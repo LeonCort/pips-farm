@@ -87,6 +87,15 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 .joy { position: fixed; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%; border: 4px solid rgba(255,246,228,0.85); background: rgba(34,48,60,0.12); pointer-events: none; }
 .joy i { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%; background: rgba(255,246,228,0.95); border: 3px solid var(--ink); }
 [hidden] { display: none !important; }
+.updBtn { position: relative; }
+.updBtn .chk, .updBtn .bad { display: none; }
+.updBtn.ok .arr, .updBtn.bad .arr { display: none; } .updBtn.ok .chk { display: inline; } .updBtn.bad .bad { display: inline; }
+.updBtn.ok { background: #e3f4e0; border-color: #2f7d4f; } .updBtn.new { background: #e3f4e0; border-color: #2f7d4f; }
+.updBtn.busy .arr, .updBtn.new .arr { transform-origin: 24px 24px; animation: updSpin 0.9s linear infinite; }
+.updBtn .dot { display: none; position: absolute; top: -4px; right: -4px; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 3px solid var(--ink); }
+.updBtn.has .dot { display: block; } .updBtn.ok .dot { display: none; }
+@keyframes updSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .updBtn.busy .arr, .updBtn.new .arr { animation-duration: 2.5s; } }
 </style>
 </head>
 <body>
@@ -111,6 +120,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <div class="sheetTop">
       <button type="button" class="round" id="soundBtn" aria-label="Sound" aria-pressed="true"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 19 h7 l9 -8 v26 l-9 -8 h-7 z" fill="#fff6e4" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/><path class="wave" d="M31 17 q5 7 0 14 M35 13 q9 11 0 22" fill="none" stroke="#22303c" stroke-width="3" stroke-linecap="round"/><path class="mute" d="M31 18 l10 12 M41 18 l-10 12" stroke="#b8401f" stroke-width="3.5" stroke-linecap="round"/></svg></button>
       <button type="button" class="round ctrlBtn" id="ctrlBtn" aria-label="Steering"><svg class="drag" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" fill="none" stroke="#22303c" stroke-width="3" stroke-dasharray="4 4"/><circle cx="31" cy="18" r="8" fill="#e9684a" stroke="#22303c" stroke-width="3"/><path d="M24 24 L30 19" stroke="#22303c" stroke-width="3" stroke-linecap="round"/></svg><svg class="tapI" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="7" fill="#e9684a" stroke="#22303c" stroke-width="3"/><circle cx="24" cy="24" r="15" fill="none" stroke="#22303c" stroke-width="3"/><path d="M24 3 v5 M24 40 v5 M3 24 h5 M40 24 h5" stroke="#22303c" stroke-width="3" stroke-linecap="round"/></svg></button>
+      <button type="button" class="round updBtn" id="updBtn" aria-label="Check for updates" hidden><svg viewBox="0 0 48 48" aria-hidden="true"><g class="arr"><path d="M38 20 A15 15 0 0 0 11 15" fill="none" stroke="#22303c" stroke-width="4" stroke-linecap="round"/><path d="M8 8 L10 17 L19 15" fill="none" stroke="#22303c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 28 A15 15 0 0 0 37 33" fill="none" stroke="#22303c" stroke-width="4" stroke-linecap="round"/><path d="M40 40 L38 31 L29 33" fill="none" stroke="#22303c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g><path class="chk" d="M12 25 L21 34 L37 15" fill="none" stroke="#2f7d4f" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><g class="bad"><path d="M15 15 L33 33 M33 15 L15 33" stroke="#9a8f80" stroke-width="5" stroke-linecap="round"/></g></svg><span class="dot" aria-hidden="true"></span></button>
       <a class="round homeBtn" id="homeBtn" href="./" aria-label="Choose game" hidden><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 24 L24 9 L40 24 M13 20 V39 H35 V20" fill="#fff6e4" stroke="#22303c" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="20" y="27" width="8" height="12" fill="#e9684a" stroke="#22303c" stroke-width="3"/></svg></a>
       <button type="button" class="round" id="menuClose" aria-label="Close"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 14 L34 34 M34 14 L14 34" stroke="#22303c" stroke-width="5" stroke-linecap="round"/></svg></button>
     </div>
@@ -122,8 +132,18 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     </div>
   </div>
 </div>
+<meta name="app-ver" content="20261120100712">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
+<script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
+var b=document.getElementById("updBtn");if(!b)return;b.hidden=false;
+var m=document.querySelector('meta[name="app-ver"]'),cur=m?m.content:"";
+function ask(){return fetch("version.json?t="+Date.now(),{cache:"no-store"}).then(function(r){if(!r.ok)throw 0;return r.json();}).then(function(j){var v=String(j.v);try{localStorage.setItem("pipsVer",v);}catch(e){}return v;});}
+function set(s,l){b.classList.remove("busy","ok","new","bad");if(s)b.classList.add(s);b.setAttribute("aria-label",l||"Check for updates");}
+ask().then(function(v){if(v!==cur)b.classList.add("has");}).catch(function(){});
+b.addEventListener("click",function(){if(b.classList.contains("busy"))return;set("busy","Checking for updates");
+ask().then(function(v){if(v!==cur){set("new","Updating");setTimeout(function(){location.replace(location.pathname+"?v="+encodeURIComponent(v));},700);}else{b.classList.remove("has");set("ok","Up to date");setTimeout(function(){set("");},2500);}})
+.catch(function(){set("bad","Could not check, no internet?");setTimeout(function(){set("");},2500);});});})();</script>
 <script src="three.min.js"></script>
 <script>
 // Voiceover mode: SOUND.kit(ctx, { voiceover: true }) drops beds and music, plays anything marked minor
@@ -591,12 +611,15 @@ let pipWalk = 0;
 
 /* ---------- producers ---------- */
 const producers = [];
+/* each hen and cow gets its own coat */
+const HEN_COAT = [PAL.paper, '#c9773f', '#3a3433', '#e8c27a', '#9a948c', '#f3e3c8'];
+const COW_COAT = [[PAL.paper, PAL.ink], ['#8a5a3c', PAL.paper], ['#b07a4f', '#efe1c4'], ['#3a3433', PAL.paper]];
 function hen(i) {
   const s = SPOT.hen[i], g = new T.Group(); g.position.set(s[0], 0, s[1]); sc.add(g);
   const nest = new T.TorusGeometry(0.34, 0.12, 4, 9); nest.rotateX(Math.PI / 2); part(fac(jit(nest, 0.02, i), PAL.ochre, i), g, 0, 0.1, 0.35, true);
   const body = new T.Group(); body.position.set(0, 0, -0.2); g.add(body);
-  let geo = ico(0.24, 1, i, 0.02); geo.scale(1.1, 0.9, 1); part(fac(geo, PAL.paper, i), body, 0, 0.3, 0);
-  part(fac(ico(0.13, 0, i + 1), PAL.paper, i + 1), body, 0, 0.55, 0.17); part(fac(new T.BoxGeometry(0.04, 0.09, 0.1), PAL.accent, 1), body, 0, 0.68, 0.17);
+  let geo = ico(0.24, 1, i, 0.02); geo.scale(1.1, 0.9, 1); part(fac(geo, HEN_COAT[i % HEN_COAT.length], i), body, 0, 0.3, 0);
+  part(fac(ico(0.13, 0, i + 1), HEN_COAT[i % HEN_COAT.length], i + 1), body, 0, 0.55, 0.17); part(fac(new T.BoxGeometry(0.04, 0.09, 0.1), PAL.accent, 1), body, 0, 0.68, 0.17);
   geo = new T.ConeGeometry(0.04, 0.09, 4); geo.rotateX(Math.PI / 2); part(fac(geo, PAL.ochre, 2), body, 0, 0.55, 0.32);
   [-0.05, 0.05].forEach((x) => { const e = new T.Mesh(new T.SphereGeometry(0.02, 6, 4), ink); e.position.set(x, 0.58, 0.28); body.add(e); });
   const pile = new Pile(g, (k) => [Math.cos(k * 1.57 + 0.4) * 0.17, 0.08 + Math.floor(k / 4) * 0.14, 0.35 + Math.sin(k * 1.57 + 0.4) * 0.12]);
@@ -613,11 +636,11 @@ function appleTree(i) {
 }
 function cow(i) {
   const s = SPOT.cow[i], g = new T.Group(); g.position.set(s[0], 0, s[1]); sc.add(g);
-  const body = new T.Group(); g.add(body);
-  let geo = new T.BoxGeometry(0.9, 0.5, 0.5, 2, 2, 2); part(fac(jit(geo, 0.03, i), PAL.paper, i), body, 0, 0.62, 0);
-  for (let k = 0; k < 3; k++) part(fac(new T.BoxGeometry(0.22, 0.2, 0.02), PAL.ink, k), body, -0.25 + k * 0.25, 0.68 + hash(k, i) * 0.08, 0.26, true);
-  for (let k = 0; k < 4; k++) { geo = new T.CylinderGeometry(0.06, 0.06, 0.4, 5); geo.translate(0, 0.2, 0); part(fac(geo, PAL.paper, k), body, k % 2 ? 0.32 : -0.32, 0, k < 2 ? 0.16 : -0.16); }
-  geo = new T.BoxGeometry(0.34, 0.32, 0.3); part(fac(geo, PAL.paper, 5), body, 0.55, 0.8, 0); part(fac(new T.BoxGeometry(0.1, 0.14, 0.26), PAL.blush, 6), body, 0.74, 0.74, 0);
+  const body = new T.Group(); g.add(body); const [cb, cs] = COW_COAT[i % COW_COAT.length];
+  let geo = new T.BoxGeometry(0.9, 0.5, 0.5, 2, 2, 2); part(fac(jit(geo, 0.03, i), cb, i), body, 0, 0.62, 0);
+  for (let k = 0; k < 3; k++) part(fac(new T.BoxGeometry(0.22, 0.2, 0.02), cs, k), body, -0.25 + k * 0.25, 0.68 + hash(k, i) * 0.08, 0.26, true);
+  for (let k = 0; k < 4; k++) { geo = new T.CylinderGeometry(0.06, 0.06, 0.4, 5); geo.translate(0, 0.2, 0); part(fac(geo, cb, k), body, k % 2 ? 0.32 : -0.32, 0, k < 2 ? 0.16 : -0.16); }
+  geo = new T.BoxGeometry(0.34, 0.32, 0.3); part(fac(geo, cb, 5), body, 0.55, 0.8, 0); part(fac(new T.BoxGeometry(0.1, 0.14, 0.26), PAL.blush, 6), body, 0.74, 0.74, 0);
   [-0.09, 0.09].forEach((z) => { const h = new T.ConeGeometry(0.03, 0.12, 4); part(fac(h, PAL.sand, 7), body, 0.5, 1.02, z); const e = new T.Mesh(new T.SphereGeometry(0.025, 6, 4), ink); e.position.set(0.7, 0.86, z * 1.2); body.add(e); });
   body.rotation.y = -0.5;
   geo = new T.BoxGeometry(0.62, 0.16, 0.4); geo.translate(0, 0.08, 0); part(fac(geo, PAL.sea, i + 3), g, 0, 0, 1.2);
