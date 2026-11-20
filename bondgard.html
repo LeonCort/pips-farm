@@ -223,7 +223,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Done"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M11 25 L20 34 L37 14" fill="none" stroke="#fff6e4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
 </div>
-<meta name="app-ver" content="20261120222308">
+<meta name="app-ver" content="20261120222725">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -3270,7 +3270,8 @@ function marketGoal() {
 function guideGoal() {
   /* carrying goods: to the market. Otherwise the animals come first, then whatever the market needs (the truck to unload, coins to pick up) */
   if (carriesGoods()) return marketGoal() || goal();
-  if (VARIANT === 'van' && inMarketTown()) return marketGoal() || goal();
+  /* 'van': when the truck waits at the market with goods, go and unload it (unless Pip is carrying animal food) */
+  if (VARIANT === 'van' && (inMarketTown() || (van && van.st === 'there' && van.pile.items.length && !carry.items.some((m) => SRC[m.userData.type])))) return marketGoal() || goal();
   return goal() || marketGoal();
 }
 /* the picture map's market badge: coins waiting, or a guest at the counter with nothing on the shelf */
