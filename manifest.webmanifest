@@ -1,0 +1,13 @@
+{
+  "name": "Pips gårdsbutik",
+  "short_name": "Pips gård",
+  "start_url": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#f8dcc0",
+  "theme_color": "#a5bf66",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
