@@ -463,7 +463,7 @@ const UPS = [
   { id: 'farm', base: 25, g: 1.9, max: 8 }, { id: 'guests', base: 40, g: 1.9, max: 8 }
 ];
 const feedPos = (a) => { const p = PEN[a], vx = -Math.sign(p.x), vz = 0; return [p.x + vx * (p.w / 2 + 0.75), p.z + vz]; };
-const housePos = (a) => { const p = PEN[a]; return [p.x + Math.sign(p.x) * (p.w / 2 - 0.75), p.z - p.d / 2 + 0.7]; };
+const housePos = (a) => { const p = penBox(a); return [p.x + Math.sign(p.x) * (p.w / 2 - 0.75), p.z - p.d / 2 + 0.7]; };
 function padPos(p) {
   if (p.kind === 'animal') { const f = feedPos(p.a); return [f[0], f[1] + 1.35]; }
   if (p.kind === 'house') { const f = feedPos(p.a); return [f[0], f[1] - 1.35]; }
@@ -549,7 +549,7 @@ function tree(kind, s) {
   else { geo = new T.CylinderGeometry(0.09, 0.12, 0.7, 5); geo.translate(0, 0.35, 0); part(fac(geo, PAL.trunk, s), g); part(fac(ico(0.6, 1, s), PAL.forest, s), g, 0, 1.15, 0); }
   return g;
 }
-[[-10, -6, 'pine'], [-8.4, -6.6, 'pine'], [-10.2, -1.5, 'tree'], [-10, 3.5, 'pine'], [-7.5, 6.2, 'tree'], [9.8, -6.2, 'pine'], [10.2, 2.5, 'tree'], [9.9, 6.3, 'pine'], [2, -6.6, 'tree'], [-2.5, -6.8, 'pine'], [5.5, -6.6, 'pine'], [-6.3, 6.7, 'pine']].forEach((t, i) => { const m = tree(t[2], i * 7 + 3); m.position.set(t[0], hAt(t[0], t[1]), t[1]); m.rotation.y = hash(i, 4) * 6.28; m.scale.setScalar(0.85 + hash(i, 9) * 0.4); sc.add(m); });
+[[-10, -6, 'pine'], [-8.4, -6.6, 'pine'], [-10.2, -1.5, 'tree'], [-10, 3.5, 'pine'], [-9.8, 6.0, 'tree'], [9.8, -6.2, 'pine'], [10.2, 2.5, 'tree'], [9.9, 6.3, 'pine'], [2, -6.6, 'tree'], [-2.5, -6.8, 'pine'], [5.5, -6.6, 'pine'], [-6.3, 6.7, 'pine']].forEach((t, i) => { const m = tree(t[2], i * 7 + 3); m.position.set(t[0], hAt(t[0], t[1]), t[1]); m.rotation.y = hash(i, 4) * 6.28; m.scale.setScalar(0.85 + hash(i, 9) * 0.4); sc.add(m); });
 /* ---------- items: food Pip carries ---------- */
 const PROTO = {};
 { const g = new T.Group(), b = new T.BoxGeometry(0.32, 0.18, 0.22, 2, 1, 1); b.translate(0, 0.09, 0); part(fac(jit(b, 0.012, 1), PAL.ochre, 1), g, 0, 0, 0, true);
@@ -682,20 +682,30 @@ function animalModel(a, i) {
   return { g, body, h: 1.4 };
 }
 const pens = {}, animals = [];
+/* the pen grows outward with every animal; the trough side toward the middle stays put */
+function penBox(a) {
+  const p = PEN[a], n = Math.max(1, animals.filter((o) => o.a === a).length), sx = -Math.sign(p.x), inner = p.x + sx * p.w / 2;
+  const w = p.w + 0.75 * (n - 1), d = p.d + 0.3 * (n - 1); return { x: inner - sx * w / 2, z: p.z, w, d };
+}
+function fencePen(a) {
+  const pen = pens[a]; if (pen.fence) sc.remove(pen.fence);
+  const b = penBox(a), fg = new T.Group(); fg.position.set(b.x, 0, b.z); sc.add(fg); pen.fence = fg;
+  const geo = new T.PlaneGeometry(b.w, b.d); geo.rotateX(-Math.PI / 2); const floor = new T.Mesh(geo, new T.MeshStandardMaterial({ color: a === 'pig' ? '#b39276' : a === 'hen' ? '#d8c39a' : PAL.meadow, roughness: 1 })); floor.position.y = 0.05; floor.receiveShadow = true; fg.add(floor);
+  const per = 2 * (b.w + b.d), n = Math.round(per / 0.55);
+  for (let k = 0; k < n; k++) {
+    let s = k / n * per, x, z; if (s < b.w) { x = -b.w / 2 + s; z = -b.d / 2; } else if ((s -= b.w) < b.d) { x = b.w / 2; z = -b.d / 2 + s; } else if ((s -= b.d) < b.w) { x = b.w / 2 - s; z = b.d / 2; } else { s -= b.w; x = -b.w / 2; z = b.d / 2 - s; }
+    const post = new T.BoxGeometry(0.07, 0.42, 0.07); post.translate(0, 0.21, 0); part(fac(post, PAL.trunk, k), fg, x, 0, z);
+  }
+  [[0, -b.d / 2, b.w, 0], [0, b.d / 2, b.w, 0], [-b.w / 2, 0, b.d, 1], [b.w / 2, 0, b.d, 1]].forEach(([x, z, l, r], k) => { const rail = new T.BoxGeometry(l, 0.05, 0.04); if (r) rail.rotateY(Math.PI / 2); part(fac(rail, PAL.trunk, 50 + k), fg, x, 0.34, z); });
+  setHouse(a, pen.big);
+}
 function buildPen(a) {
   if (pens[a]) return pens[a]; const p = PEN[a], g = new T.Group(); g.position.set(p.x, 0, p.z); sc.add(g);
-  const geo = new T.PlaneGeometry(p.w, p.d); geo.rotateX(-Math.PI / 2); const floor = new T.Mesh(geo, new T.MeshStandardMaterial({ color: a === 'pig' ? '#b39276' : a === 'hen' ? '#d8c39a' : PAL.meadow, roughness: 1 })); floor.position.y = 0.05; floor.receiveShadow = true; g.add(floor);
-  const per = 2 * (p.w + p.d), n = Math.round(per / 0.55);
-  for (let k = 0; k < n; k++) {
-    let s = k / n * per, x, z; if (s < p.w) { x = -p.w / 2 + s; z = -p.d / 2; } else if ((s -= p.w) < p.d) { x = p.w / 2; z = -p.d / 2 + s; } else if ((s -= p.d) < p.w) { x = p.w / 2 - s; z = p.d / 2; } else { s -= p.w; x = -p.w / 2; z = p.d / 2 - s; }
-    const post = new T.BoxGeometry(0.07, 0.42, 0.07); post.translate(0, 0.21, 0); part(fac(post, PAL.trunk, k), g, x, 0, z);
-  }
-  [[0, -p.d / 2, p.w, 0], [0, p.d / 2, p.w, 0], [-p.w / 2, 0, p.d, 1], [p.w / 2, 0, p.d, 1]].forEach(([x, z, l, r], k) => { const rail = new T.BoxGeometry(l, 0.05, 0.04); if (r) rail.rotateY(Math.PI / 2); part(fac(rail, PAL.trunk, 50 + k), g, x, 0.34, z); });
   /* the trough on the side that faces the middle of the farm */
   const sx = -Math.sign(p.x), tr = new T.BoxGeometry(0.4, 0.22, 1.2); tr.translate(0, 0.11, 0); part(fac(jit(tr, 0.015, 9), PAL.trunk, 60), g, sx * (p.w / 2 - 0.3), 0, 0);
   const f = feedPos(a); ring(f[0], f[1], 0.85);
   const pen = { a, g, house: null, big: false, trough: [p.x + sx * (p.w / 2 - 0.75), p.z] }; pens[a] = pen;
-  pen.inbound = {}; pen.food = new Pile(g, (k) => [sx * (p.w / 2 - 0.3) + ((k % 2) - 0.5) * 0.16, 0.24 + Math.floor(k / 12) * 0.18, -0.5 + (Math.floor(k / 2) % 6) * 0.2]); setHouse(a, false); return pen;
+  pen.inbound = {}; pen.food = new Pile(g, (k) => [sx * (p.w / 2 - 0.3) + ((k % 2) - 0.5) * 0.16, 0.24 + Math.floor(k / 12) * 0.18, -0.5 + (Math.floor(k / 2) % 6) * 0.2]); fencePen(a); return pen;
 }
 /* food on its way to a box counts too, so a box never overfills */
 function boxCount(pen, t) { return pen.food.count(t) + (pen.inbound[t] || 0); }
@@ -711,10 +721,11 @@ function setHouse(a, big) {
   g.scale.setScalar(a === 'hen' ? 0.85 : 1);
 }
 function addAnimal(a) {
-  const pen = buildPen(a), p = PEN[a], k = animals.filter((o) => o.a === a).length, m = animalModel(a, k + 1);
+  const pen = buildPen(a), k = animals.filter((o) => o.a === a).length, m = animalModel(a, k + 1);
+  const p0 = PEN[a], sx0 = -Math.sign(p0.x), w0 = p0.w + 0.75 * k, p = { x: p0.x + sx0 * p0.w / 2 - sx0 * w0 / 2, z: p0.z, w: w0, d: p0.d + 0.3 * k };
   const x = p.x + (hash(k, 7) - 0.5) * (p.w - 1.2), z = p.z + (hash(k, 9) - 0.5) * (p.d - 1.0); m.g.position.set(x, 0, z); m.g.rotation.y = hash(k, 3) * 6; sc.add(m.g);
   const sp = new T.Sprite(new T.SpriteMaterial({ map: bubble('heart'), depthTest: false })); sp.scale.set(0.62, 0.62, 1); sp.position.y = m.h + 0.35; sp.renderOrder = 5; sp.visible = false; m.g.add(sp);
-  const an = { a, pen, g: m.g, body: m.body, h: m.h, sp, want: null, cd: 1 + hash(k, 4) * 3, tx: x, tz: z, hop: 0, wait: 0, glad: 0, incoming: 0 }; animals.push(an); return an;
+  const an = { a, pen, g: m.g, body: m.body, h: m.h, sp, want: null, cd: 1 + hash(k, 4) * 3, tx: x, tz: z, hop: 0, wait: 0, glad: 0, incoming: 0 }; animals.push(an); if (k > 0) fencePen(a); return an;
 }
 /* a happy animal hops, hearts pop out and fly to the counter */
 const heartGeo = (() => { const s = new T.Shape(); s.moveTo(0, -0.1); s.bezierCurveTo(-0.16, 0.0, -0.08, 0.14, 0, 0.06); s.bezierCurveTo(0.08, 0.14, 0.16, 0.0, 0, -0.1); const g = new T.ExtrudeGeometry(s, { depth: 0.04, bevelEnabled: false }); g.translate(0, 0, -0.02); return g; })();
@@ -907,7 +918,7 @@ function step(dt) {
   /* animals: wander in the pen, get hungry or thirsty, come to the trough and wait */
   animals.forEach((an) => {
     if (!an.want) { an.cd -= dt; if (an.cd <= 0) { const opts = DIET[an.a].filter(available); an.want = opts[Math.floor(Math.random() * opts.length)]; an.sp.material.map = bubble(an.want); an.sp.visible = true; an.wait = 0; Snd.play('blip', { gain: 0.15, f: 520 }, 0, 400); } }
-    const p = PEN[an.a];
+    const p = penBox(an.a);
     if (an.want) { an.wait += dt; const gap = an.a === 'hen' ? 0.5 : 0.78, tz = p.z + ((animals.filter((o) => o.a === an.a).indexOf(an) % 3) - 1) * gap; an.tx = an.pen.trough[0]; an.tz = tz; }
     else if (Math.hypot(an.g.position.x - an.tx, an.g.position.z - an.tz) < 0.1 && Math.random() < dt * 0.4) { an.tx = p.x + (Math.random() - 0.5) * (p.w - 1.2); an.tz = p.z + (Math.random() - 0.5) * (p.d - 1.0); }
     const moving = !walkTo(an.g, an.tx, an.tz, dt, an.a === 'hen' ? 0.8 : 0.6);
