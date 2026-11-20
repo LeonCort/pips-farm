@@ -205,7 +205,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Done"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M11 25 L20 34 L37 14" fill="none" stroke="#fff6e4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
 </div>
-<meta name="app-ver" content="20261120202109">
+<meta name="app-ver" content="20261120202340">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -615,21 +615,51 @@ const Snd = {
     try { const bin = atob(src), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); this.ctx.decodeAudioData(u.buffer, (b) => { this.buf[name] = b; go(b); }, () => {}); } catch (e) {}
   },
   play(name, o, delay, gap) { if (!this.k) return; const n = performance.now(); if (gap && n - (this.last[name] || 0) < gap) return; this.last[name] = n; try { this.k.play(name, this.ctx.currentTime - this.base + 0.02 + (delay || 0), o || {}); } catch (e) {} },
-  /* the lo-fi track loops gaplessly through Web Audio; the synth pad only plays if the file cannot load */
-  music: null, musicState: 'idle',
-  loadMusic() {
-    if (this.musicState !== 'idle' || !this.ctx) return; this.musicState = 'loading';
-    fetch('music.mp3').then((r) => { if (!r.ok) throw new Error('no music'); return r.arrayBuffer(); })
+  /* situational soundtrack: three looping tracks, one heard at a time.
+     Each track has a level x (0..1) that walks toward 1 if it is the wanted track and toward 0 if not, over 1.5 s.
+     Gain is sin(x * pi/2), so a crossfade keeps equal loudness; when the wanted track changes mid-fade, every level
+     simply turns round from where it is, so nothing is left queued, stuck or doubled up. A track that reaches 0 is stopped. */
+  MUSIC: { pastoral: ['audio/pastoral-loop.mp3', 111.70694], coin: ['audio/bouncing-coin.mp3', 150.04], relaxed: ['audio/relaxed-pulse.mp3', 146.74245] },
+  FADE: 1.5, musVol: 0.55, musWant: null, mus: {}, pre: false, tracks: null,
+  loadTrack(id) {
+    const m = this.mus[id] = { st: 'loading', x: 0, buf: null, src: null, g: null, pos: 0, t0: 0, a: 0, len: 0 };
+    fetch(this.MUSIC[id][0]).then((r) => { if (!r.ok) throw new Error('no music'); return r.arrayBuffer(); })
       .then((b) => new Promise((ok, bad) => this.ctx.decodeAudioData(b, ok, bad)))
-      .then((buf) => { const src = this.ctx.createBufferSource(), g = this.ctx.createGain(); src.buffer = buf; src.loop = true; { /* skip the silent padding mp3 encoders add, so the loop has no gap */ const d = buf.getChannelData(0), sr = buf.sampleRate; let i0 = 0, i1 = d.length - 1; while (i0 < sr * 0.2 && Math.abs(d[i0]) < 1e-3) i0++; while (i1 > d.length - sr * 0.2 && Math.abs(d[i1]) < 1e-3) i1--; src.loopStart = i0 / sr; src.loopEnd = (i1 + 1) / sr; } g.gain.setValueAtTime(0, this.ctx.currentTime); g.gain.linearRampToValueAtTime(0.55, this.ctx.currentTime + 2); src.connect(g); g.connect(this.out); src.start(0, src.loopStart); this.music = src; this.musicState = 'playing'; })
-      .catch(() => { this.musicState = 'failed'; });
+      .then((buf) => {
+        /* skip the few silent samples an mp3 encoder puts in front, then loop exactly one cycle of the track */
+        const d = buf.getChannelData(0), sr = buf.sampleRate; let i0 = 0; while (i0 < 2048 && Math.abs(d[i0]) < 1e-3) i0++;
+        m.a = i0 / sr; m.len = Math.min(this.MUSIC[id][1], buf.duration - m.a); m.buf = buf; m.st = 'ready';
+      })
+      .catch(() => { m.st = 'failed'; setTimeout(() => { if (this.mus[id] === m) delete this.mus[id]; }, 20000); }); /* try again later, e.g. after being offline */
   },
-  ambient() {
-    if (!this.k) return; this.loadMusic(); if (this.musicState === 'playing' || this.musicState === 'loading') return;
-    const n = this.ctx.currentTime - this.base; if (n < this.until - 6) return;
-    const t0 = Math.max(n + 0.05, this.until), t1 = t0 + 60 / 64 * 4 * 12;
-    try { this.k.music('pad', t0, t1, { bpm: 64, gain: 0.6, chords: [['C4', 'E4', 'G4', 'B4'], ['F3', 'A3', 'C4', 'E4']] }); this.k.bed('room', t0, t1 + 0.3, { gain: 0.4 }); } catch (e) {}
-    this.until = t1;
+  startTrack(m) {
+    try {
+      const src = this.ctx.createBufferSource(), g = this.ctx.createGain(); src.buffer = m.buf; src.loop = true; src.loopStart = m.a; src.loopEnd = m.a + m.len;
+      g.gain.value = 0; src.connect(g); g.connect(this.out); src.start(0, m.a + (m.pos % m.len)); m.src = src; m.g = g; m.t0 = this.ctx.currentTime - (m.pos % m.len);
+    } catch (e) { m.st = 'failed'; }
+  },
+  stopTrack(m) {
+    m.pos = (this.ctx.currentTime - m.t0) % m.len; /* remember where it was, so coming back carries on from there */
+    try { m.src.stop(); m.src.disconnect(); m.g.disconnect(); } catch (e) {}
+    m.src = null; m.g = null;
+  },
+  /* called every frame with the track the game wants right now ('pastoral', 'coin' or 'relaxed') */
+  musicStep(dt, want) {
+    if (!this.ctx || this.ctx.state !== 'running') return;
+    this.musWant = want;
+    if (!this.mus[want]) this.loadTrack(want);
+    /* once the first tune plays, quietly load the others this island uses, so later switches start straight away */
+    if (!this.pre && this.mus[want].st === 'ready') { this.pre = true; setTimeout(() => (this.tracks || []).forEach((id) => { if (!this.mus[id]) this.loadTrack(id); }), 4000); }
+    const step = Math.min(dt, 0.25) / this.FADE, now = this.ctx.currentTime;
+    for (const id in this.mus) {
+      const m = this.mus[id]; if (m.st !== 'ready') continue;
+      const on = id === want;
+      m.x = Math.max(0, Math.min(1, m.x + (on ? step : -step)));
+      if (on && !m.src) this.startTrack(m);
+      if (!m.src) continue;
+      if (!on && m.x <= 0) { this.stopTrack(m); continue; }
+      m.g.gain.setTargetAtTime(this.musVol * Math.sin(m.x * Math.PI / 2), now, 0.03);
+    }
   }
 };
 
@@ -1128,6 +1158,25 @@ function drawIcon(cx, t, x, y, s) {
   else if (t === 'sunflower') { cx.fillStyle = '#f6c443'; for (let k = 0; k < 10; k++) { const a = k / 10 * 6.283; cx.beginPath(); cx.ellipse(Math.cos(a) * 18, Math.sin(a) * 18, 10, 5, a, 0, 7); cx.fill(); cx.stroke(); } cx.fillStyle = '#6b4a3c'; cx.beginPath(); cx.arc(0, 0, 13, 0, 7); cx.fill(); cx.stroke(); }
   else if (t === 'fish' || t.indexOf('fish:') === 0) { const f = FISH.find((q) => 'fish:' + q.id === t) || FISH[0], L = 22 + f.len * 30; cx.fillStyle = f.f; cx.beginPath(); cx.moveTo(L - 4, 0); cx.lineTo(L + 16, -14); cx.lineTo(L + 16, 14); cx.closePath(); cx.fill(); cx.stroke(); cx.fillStyle = f.c; cx.beginPath(); cx.ellipse(0, 0, L, 15, 0, 0, 7); cx.fill(); cx.stroke(); cx.strokeStyle = f.s; cx.lineWidth = 4; for (let k = -1; k <= 1; k++) { cx.beginPath(); cx.moveTo(k * 10, -12); cx.lineTo(k * 10 - 3, 12); cx.stroke(); } cx.strokeStyle = PAL.ink; cx.lineWidth = 3; cx.fillStyle = PAL.ink; cx.beginPath(); cx.arc(-L + 10, -3, 3.5, 0, 7); cx.fill(); }
   else if (t === 'rod') { cx.strokeStyle = PAL.trunk; cx.lineWidth = 6; cx.beginPath(); cx.moveTo(-24, 26); cx.lineTo(18, -26); cx.stroke(); cx.strokeStyle = PAL.ink; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(18, -26); cx.lineTo(18, 14); cx.stroke(); cx.lineWidth = 3; cx.fillStyle = PAL.accent; cx.beginPath(); cx.arc(18, 18, 6, 0, 7); cx.fill(); cx.stroke(); }
+  else if (t === 'sun') { cx.lineCap = 'round'; for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283; cx.beginPath(); cx.moveTo(Math.cos(a) * 21, Math.sin(a) * 21); cx.lineTo(Math.cos(a) * 30, Math.sin(a) * 30); cx.stroke(); } cx.fillStyle = '#f2c14a'; cx.beginPath(); cx.arc(0, 0, 15, 0, 7); cx.fill(); cx.stroke(); }
+  else if (t === 'rain' || t === 'cloud') {
+    const C = [[-14, -2, 11], [1, -10, 15], [16, -2, 11]], y0 = t === 'rain' ? -6 : 0;
+    cx.lineWidth = 8; C.forEach(([a, b, r]) => { cx.beginPath(); cx.arc(a, b + y0, r, 0, 7); cx.stroke(); }); cx.strokeRect(-14, -2 + y0, 30, 11);
+    cx.fillStyle = '#eef2f5'; C.forEach(([a, b, r]) => { cx.beginPath(); cx.arc(a, b + y0, r, 0, 7); cx.fill(); }); cx.fillRect(-14, -2 + y0, 30, 11);
+    if (t === 'rain') { cx.lineWidth = 3; cx.fillStyle = '#5aa9d6'; [[-12, 18], [2, 24], [16, 18]].forEach(([a, b]) => { cx.beginPath(); cx.moveTo(a, b - 8); cx.quadraticCurveTo(a + 6, b + 1, a, b + 5); cx.quadraticCurveTo(a - 6, b + 1, a, b - 8); cx.fill(); cx.stroke(); }); }
+  }
+  else if (t === 'wind') {
+    cx.lineCap = 'round'; const path = () => { cx.beginPath(); cx.moveTo(-28, -10); cx.lineTo(8, -10); cx.arc(8, -17, 7, Math.PI / 2, -Math.PI, true); cx.moveTo(-28, 3); cx.lineTo(18, 3); cx.arc(18, 10, 7, -Math.PI / 2, Math.PI, false); cx.moveTo(-22, 16); cx.lineTo(4, 16); };
+    cx.lineWidth = 11; path(); cx.stroke(); cx.strokeStyle = '#9fd0e8'; cx.lineWidth = 5; path(); cx.stroke();
+  }
+  else if (t === 'snow') {
+    cx.lineCap = 'round'; const path = () => { cx.beginPath(); for (let k = 0; k < 3; k++) { const a = k / 3 * Math.PI + Math.PI / 2, c = Math.cos(a), s = Math.sin(a); cx.moveTo(-c * 26, -s * 26); cx.lineTo(c * 26, s * 26); [-1, 1].forEach((e) => { const ex = c * 26 * e, ey = s * 26 * e, bx = c * 17 * e, by = s * 17 * e; cx.moveTo(bx - s * 7, by + c * 7); cx.lineTo(ex * 0.82, ey * 0.82); cx.lineTo(bx + s * 7, by - c * 7); }); } };
+    cx.lineWidth = 10; path(); cx.stroke(); cx.strokeStyle = '#bfe2f6'; cx.lineWidth = 5; path(); cx.stroke();
+  }
+  else if (t === 'mist') {
+    cx.lineCap = 'round'; const path = () => { cx.beginPath(); cx.moveTo(-26, -14); cx.lineTo(18, -14); cx.moveTo(-18, 0); cx.lineTo(26, 0); cx.moveTo(-26, 14); cx.lineTo(14, 14); };
+    cx.lineWidth = 13; path(); cx.stroke(); cx.strokeStyle = '#dfe6ea'; cx.lineWidth = 7; path(); cx.stroke();
+  }
   else if (t === 'hen' || t === 'pig' || t === 'cow' || t === 'horse' || t === 'bull' || t === 'sheep') {
     const col = { hen: PAL.paper, pig: '#f4b0a2', cow: PAL.paper, horse: '#a8714d', bull: '#6b4a3c', sheep: '#3f3a3a' }[t];
     if (t === 'sheep') { cx.fillStyle = PAL.snow; [[-18, -16], [0, -24], [18, -16], [-24, 2], [24, 2]].forEach(([a, b]) => { cx.beginPath(); cx.arc(a, b, 12, 0, 7); cx.fill(); cx.stroke(); }); }
@@ -1160,8 +1209,8 @@ function ring(x, z, r) { const m = new T.Mesh(new T.RingGeometry(r - 0.07, r, 28
 const sources = {};
 function addSource(t) {
   if (sources[t]) return; const s = SRC[t], g = new T.Group(); g.position.set(s.x, 0, s.z); sc.add(g);
-  if (t === 'grain') { let c = new T.CylinderGeometry(0.55, 0.6, 1.3, 8); c.translate(0, 0.65, 0); part(fac(jit(c, 0.02, 1), PAL.paper, 31), g); c = new T.ConeGeometry(0.7, 0.55, 8); c.translate(0, 1.55, 0); part(fac(c, PAL.accent, 32), g); for (let k = 0; k < 3; k++) { const m = PROTO.grain.clone(); m.position.set(-0.35 + k * 0.35, 0, 0.6); g.add(m); } }
-  if (t === 'water') { let c = new T.CylinderGeometry(0.5, 0.55, 0.5, 9, 1, true); c.translate(0, 0.25, 0); part(fac(jit(c, 0.03, 2), PAL.rock, 33), g); c = new T.CylinderGeometry(0.46, 0.46, 0.04, 9); part(fac(c, PAL.sea, 34), g, 0, 0.4, 0); [-0.45, 0.45].forEach((x) => { const p = new T.BoxGeometry(0.08, 1.1, 0.08); p.translate(0, 0.55, 0); part(fac(p, PAL.trunk, 35), g, x, 0, 0); }); c = new T.ConeGeometry(0.75, 0.4, 4); c.rotateY(Math.PI / 4); part(fac(c, PAL.accent, 36), g, 0, 1.3, 0); const m = PROTO.water.clone(); m.position.set(0.25, 0, 0.62); g.add(m); }
+  if (t === 'grain') { let c = new T.CylinderGeometry(0.55, 0.6, 1.3, 8); c.translate(0, 0.65, 0); part(fac(jit(c, 0.02, 1), PAL.paper, 31), g); c = new T.ConeGeometry(0.7, 0.55, 8); c.translate(0, 1.55, 0); part(fac(c, PAL.accent, 32), g); c = new T.ConeGeometry(0.74, 0.58, 8, 1, true); c.translate(0, 1.575, 0); snowCap(g, c); for (let k = 0; k < 3; k++) { const m = PROTO.grain.clone(); m.position.set(-0.35 + k * 0.35, 0, 0.6); g.add(m); } }
+  if (t === 'water') { let c = new T.CylinderGeometry(0.5, 0.55, 0.5, 9, 1, true); c.translate(0, 0.25, 0); part(fac(jit(c, 0.03, 2), PAL.rock, 33), g); c = new T.CylinderGeometry(0.46, 0.46, 0.04, 9); part(fac(c, PAL.sea, 34), g, 0, 0.4, 0); [-0.45, 0.45].forEach((x) => { const p = new T.BoxGeometry(0.08, 1.1, 0.08); p.translate(0, 0.55, 0); part(fac(p, PAL.trunk, 35), g, x, 0, 0); }); c = new T.ConeGeometry(0.75, 0.4, 4); c.rotateY(Math.PI / 4); part(fac(c, PAL.accent, 36), g, 0, 1.3, 0); c = new T.ConeGeometry(0.8, 0.43, 4, 1, true); c.rotateY(Math.PI / 4); snowCap(g, c, 0, 1.32, 0); const m = PROTO.water.clone(); m.position.set(0.25, 0, 0.62); g.add(m); }
   if (t === 'carrot') { let c = new T.BoxGeometry(1.4, 0.1, 1.0); c.translate(0, 0.05, 0); part(fac(jit(c, 0.02, 3), '#8a6248', 37), g); for (let k = 0; k < 6; k++) { const l = new T.ConeGeometry(0.06, 0.24, 4); part(fac(l, PAL.leaf, 38 + k), g, -0.45 + (k % 3) * 0.45, 0.2, -0.2 + Math.floor(k / 3) * 0.4); } }
   if (t === 'hay') { for (let k = 0; k < 5; k++) { const b = new T.BoxGeometry(0.7, 0.4, 0.5); part(fac(jit(b, 0.02, k), PAL.ochre, 40 + k), g, k < 3 ? -0.72 + k * 0.72 : -0.36 + (k - 3) * 0.72, k < 3 ? 0.2 : 0.6, 0); } }
   ring(s.x, s.z + 1.0, 0.85); sources[t] = { t, g, x: s.x, z: s.z + 1.0 };
@@ -1261,6 +1310,7 @@ function setHouse(a, big) {
   const s = big ? 1.5 : 1, wall = big ? PAL.accent : PAL.trunk;
   let geo = new T.BoxGeometry(0.9 * s, 0.6 * s, 0.7 * s, 2, 1, 1); geo.translate(0, 0.3 * s, 0); part(fac(jit(geo, 0.02, 3), wall, 70), g);
   geo = new T.CylinderGeometry(0.01, 0.62 * s, 0.4 * s, 4, 1); geo.rotateY(Math.PI / 4); geo.scale(1.05, 1, 0.82); geo.translate(0, 0.8 * s, 0); part(fac(geo, big ? PAL.paper : PAL.accent, 71), g);
+  geo = new T.CylinderGeometry(0.01, 0.66 * s, 0.43 * s, 4, 1, true); geo.rotateY(Math.PI / 4); geo.scale(1.05, 1, 0.82); geo.translate(0, 0.825 * s, 0); snowCap(g, geo); /* snow on the roof in winter */
   const door = new T.Mesh(new T.BoxGeometry(0.26 * s, 0.36 * s, 0.02), ink); door.position.set(0, 0.18 * s, 0.36 * s); g.add(door);
   if (big) { [-0.32, 0.32].forEach((x) => { const tr = new T.BoxGeometry(0.06, 0.9, 0.02); const m = part(fac(tr, PAL.paper, 72), g, x * s, 0.45, 0.36 * s); m.rotation.z = 0; }); }
   lightHouse(g, big); g.scale.setScalar(a === 'hen' ? 0.85 : 1);
@@ -1507,7 +1557,10 @@ const fallGeo = new T.BufferGeometry(); fallGeo.setAttribute('position', new T.B
 const fallTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.beginPath(); x.arc(16, 16, 13, 0, 7); x.fill(); return new T.CanvasTexture(c); })();
 const fallMat = new T.PointsMaterial({ color: '#ffffff', size: 0.12, map: fallTex, transparent: true, depthWrite: false, alphaTest: 0.3 });
 const falling = new T.Points(fallGeo, fallMat); falling.frustumCulled = false; sc.add(falling);
-const FALL = { spring: { c: '#f6b8c8', size: 0.1, v: 0.5, sway: 0.8, n: 70 }, summer: { c: '#fff6c8', size: 0.06, v: 0.15, sway: 0.4, n: 18 }, autumn: { c: '#e0893a', size: 0.13, v: 0.7, sway: 1.1, n: 90 }, winter: { c: '#ffffff', size: 0.11, v: 0.9, sway: 0.5, n: 160 } };
+/* winter keeps only a few stray flakes here: real snowfall is a weather spell (weather.js) */
+const FALL = { spring: { c: '#f6b8c8', size: 0.1, v: 0.5, sway: 0.8, n: 70, drift: 2.6 }, summer: { c: '#fff6c8', size: 0.06, v: 0.15, sway: 0.4, n: 18, drift: 1.6 }, autumn: { c: '#e0893a', size: 0.13, v: 0.7, sway: 1.1, n: 90, drift: 2.8 }, winter: { c: '#ffffff', size: 0.11, v: 0.9, sway: 0.5, n: 14, drift: 2.0 } };
+/* the wind, set by the weather: direction (x, z), strength now (g, with gusts) and on average (amt) */
+const WIND = { x: 1, z: 0, g: 0, amt: 0 };
 /* repaint the ground, trees and pen floors for a season */
 function repaint(mesh, paint) {
   const p = mesh.geometry.attributes.position, col = mesh.geometry.attributes.color; if (!col) return;
@@ -1525,10 +1578,39 @@ function paintSeason(s) {
     if (m.userData.pine) repaint(m, (cx, cy, cz, i) => tone(s === 'winter' && hash(i, m.id) > 0.45 ? '#f2f6f8' : base, i));
     else { const l = LEAF[s]; repaint(m, (cx, cy, cz, i) => tone(s === 'summer' ? base : s === 'spring' ? (hash(i, m.id) > 0.78 ? l[1] : l[0]) : l[Math.floor(hash(i, m.id) * l.length)], i)); }
   });
+  if (s === 'winter') snowPaint(state.wx && state.wx.cover > 0.35 ? state.wx.cover : 0.35);
   paintFloors();
 }
+const _fc = new T.Color();
 function paintFloors() {
-  for (const a in pens) { const f = pens[a].fence && pens[a].fence.children[0]; if (!f || !f.material || !f.material.color) continue; if (!f.userData.base) f.userData.base = '#' + f.material.color.getHexString(); f.material.color.set(FLOOR[season] || f.userData.base); }
+  const cov = season === 'winter' && state.wx ? Math.max(0.35, state.wx.cover || 0) : 0;
+  for (const a in pens) { const f = pens[a].fence && pens[a].fence.children[0]; if (!f || !f.material || !f.material.color) continue; if (!f.userData.base) f.userData.base = '#' + f.material.color.getHexString();
+    if (FLOOR[season]) f.material.color.set(f.userData.base).lerp(_fc.set(FLOOR[season]), 0.3 + 0.7 * cov); else f.material.color.set(f.userData.base); }
+}
+/* snow cover in winter: each triangle of the ground and the trees turns white once the cover passes its own
+   threshold, so the snow comes in patches that grow together. Colours are worked out once and then only copied. */
+const SNOWY = [];
+function snowPrep(m, bare, snow, thr) {
+  const p = m.geometry.attributes.position, n = p.count / 3, B = new Float32Array(n * 3), W = new Float32Array(n * 3), H = new Float32Array(n);
+  for (let i = 0; i < n; i++) { const j = i * 3, cx = (p.getX(j) + p.getX(j + 1) + p.getX(j + 2)) / 3, cy = (p.getY(j) + p.getY(j + 1) + p.getY(j + 2)) / 3, cz = (p.getZ(j) + p.getZ(j + 1) + p.getZ(j + 2)) / 3;
+    let c = bare(cx, cy, cz, i); B[j] = c.r; B[j + 1] = c.g; B[j + 2] = c.b; c = snow(cx, cy, cz, i); W[j] = c.r; W[j + 1] = c.g; W[j + 2] = c.b; H[i] = thr(cx, cy, cz, i); }
+  SNOWY.push({ m, B, W, H });
+}
+function snowPaint(cover) {
+  if (!SNOWY.length) {
+    const onPath = (cx, cz) => (Math.abs(cz + 1.5) < 0.55 && cx > 4.4) || (Math.abs(cx - 3.6) < 0.5 && cz > 1 && cz < 11.8);
+    const kind = (cx, cy, cz) => cy < -0.6 ? 0 : cy < -0.05 ? 1 : onPath(cx, cz) ? 2 : 3;
+    const BARE = [PAL.bed, '#e9e4d6', '#cdbf9e', '#b3c09a'], WHITE = [PAL.bed, '#e9e4d6', '#e2e8eb', '#eef3f6'];
+    snowPrep(ground, (cx, cy, cz, i) => { const q = kind(cx, cy, cz); return tone(BARE[q], i, q === 2 ? 0.6 : q === 3 ? 0.9 : 1); }, (cx, cy, cz, i) => { const q = kind(cx, cy, cz); return tone(WHITE[q], i, q === 2 ? 0.6 : q === 3 ? 0.9 : 1); },
+      (cx, cy, cz, i) => clamp(0.5 + 0.32 * Math.sin(cx * 0.73 + cz * 0.31) * Math.sin(cz * 0.91 - cx * 0.27 + 1.3) + (hash(i, 61) - 0.5) * 0.16, 0.02, 0.98));
+    leafs.forEach((m) => {
+      if (m.userData.pine) snowPrep(m, (cx, cy, cz, i) => tone(m.userData.base, i), (cx, cy, cz, i) => tone('#f2f6f8', i), (cx, cy, cz, i) => 1 - hash(i, m.id));
+      else snowPrep(m, (cx, cy, cz, i) => tone('#c9d6dc', i), (cx, cy, cz, i) => tone('#eef3f6', i), (cx, cy, cz, i) => hash(i, m.id));
+    });
+  }
+  for (const o of SNOWY) { const col = o.m.geometry.attributes.color; if (!col) continue; const a = col.array, n = o.H.length;
+    for (let i = 0; i < n; i++) { const S = o.H[i] < cover ? o.W : o.B, j = i * 3; for (let v = 0; v < 3; v++) { const q = (j + v) * 3; a[q] = S[j]; a[q + 1] = S[j + 1]; a[q + 2] = S[j + 2]; } }
+    col.needsUpdate = true; }
 }
 /* the little sun or moon and season badge under the hearts */
 const SEASON_SVG = {
@@ -1571,16 +1653,20 @@ function skyStep(dt) {
   const s = SEASONS[Math.floor(state.clock / DAY) % 4];
   if (s !== season || seasonShown === null) { const first = seasonShown === null; season = s; seasonShown = s; paintSeason(s); const fl = FALL[s]; fallMat.color.set(fl.c); fallMat.size = fl.size; if (!first) { seasonToast(s); Snd.play('sparkle', { gain: 0.5 }); } }
   /* falling petals, leaves or snow drift around the camera */
-  const fl = FALL[season]; falling.visible = !reduced;
-  if (!reduced) for (let k = 0; k < FALL_N; k++) {
-    if (k >= fl.n) { fallPos[k * 3 + 1] = -50; continue; }
-    let y = fallPos[k * 3 + 1]; if (y < -1) y = hash(k, time) * 9; y -= fl.v * dt * (0.7 + hash(k, 3) * 0.6);
-    let x = fallPos[k * 3] + Math.sin(time * 1.3 + k) * fl.sway * dt, z = fallPos[k * 3 + 2];
+  const fl = FALL[season]; falling.visible = !reduced && !inHouse;
+  /* more of them come loose when it blows, and they drift sideways with the wind */
+  const fn = Math.min(FALL_N, Math.round(fl.n * (1 + WIND.g * (season === 'winter' ? 0.5 : 0.9)))), wdx = WIND.x * WIND.g * fl.drift * dt, wdz = WIND.z * WIND.g * fl.drift * dt;
+  if (falling.visible) for (let k = 0; k < FALL_N; k++) {
+    if (k >= fn) { fallPos[k * 3 + 1] = -50; continue; }
+    let y = fallPos[k * 3 + 1], x = fallPos[k * 3], z = fallPos[k * 3 + 2];
+    if (y < -1) { y = hash(k, time) * 9; x = camFocus.x + (hash(k, time + 3) - 0.5) * 26; z = camFocus.z + (hash(k, time + 4) - 0.5) * 20; }
+    y -= fl.v * dt * (0.7 + hash(k, 3) * 0.6);
+    x += Math.sin(time * 1.3 + k) * fl.sway * dt + wdx; z += wdz;
     if (y < 0) { y = 8 + hash(k, time) * 2; x = camFocus.x + (hash(k, time + 1) - 0.5) * 26; z = camFocus.z + (hash(k, time + 2) - 0.5) * 20; }
-    if (Math.abs(x - camFocus.x) > 13) x = camFocus.x - Math.sign(x - camFocus.x) * 12.9; if (Math.abs(z - camFocus.z) > 10) z = camFocus.z - Math.sign(z - camFocus.z) * 9.9;
+    if (x - camFocus.x > 13) x -= 26; else if (x - camFocus.x < -13) x += 26; if (z - camFocus.z > 10) z -= 20; else if (z - camFocus.z < -10) z += 20;
     fallPos[k * 3] = x; fallPos[k * 3 + 1] = y; fallPos[k * 3 + 2] = z;
   }
-  fallGeo.attributes.position.needsUpdate = true;
+  if (falling.visible) fallGeo.attributes.position.needsUpdate = true;
   skyT -= dt; if (skyT <= 0) { skyT = 1; paintFloors(); renderClock(); }
 }
 let skyT = 0;
@@ -1783,7 +1869,7 @@ function familyStep(dt) {
   babyStep(dt); tagStep(dt);
   familyT -= dt; if (familyT <= 0) { familyT = 1; if (!shipInbound) syncShip(); checkStickers(); }
 }
-/* ---------- extras: the farm dog, fishing from the dock, weather and the vegetable patch ---------- */
+/* ---------- extras: the farm dog, fishing from the dock and the vegetable patch (weather is in weather.js) ---------- */
 function toastIcon(t, text) {
   const el = $('toast'); if (!el) return;
   el.innerHTML = '<img alt="" src="' + actIcon(t) + '" style="width:60px;height:60px"><b>' + text + '</b>'; el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
@@ -1915,63 +2001,6 @@ function fishStep(dt) {
 const fishPics = {};
 function fishPic(id) { if (fishPics[id]) return fishPics[id]; const c = document.createElement('canvas'); c.width = c.height = 128; drawIcon(c.getContext('2d'), 'fish:' + id, 60, 64, 1.25); return (fishPics[id] = c.toDataURL()); }
 
-/* ---------- weather: rain showers with puddles and a rainbow after, misty autumn mornings ---------- */
-const RAIN_N = 260, rainPos = new Float32Array(RAIN_N * 6), rainY = new Float32Array(RAIN_N).map(() => -1);
-const rainGeo = new T.BufferGeometry(); rainGeo.setAttribute('position', new T.BufferAttribute(rainPos, 3));
-const rainMat = new T.LineBasicMaterial({ color: '#d6e8f0', transparent: true, opacity: 0 });
-const rainLines = new T.LineSegments(rainGeo, rainMat); rainLines.frustumCulled = false; rainLines.visible = false; sc.add(rainLines);
-const rainbow = new T.Group(); rainbow.visible = false; sc.add(rainbow);
-['#e5533d', '#f29a3a', '#f5d34a', '#6dbb5a', '#4a8fd1', '#7a5bbf'].forEach((c, k) => { const m = new T.Mesh(new T.TorusGeometry(6 - k * 0.36, 0.19, 4, 48, Math.PI), new T.MeshBasicMaterial({ color: c, transparent: true, opacity: 0, depthWrite: false, fog: false })); rainbow.add(m); });
-const PUDDLES = [[3.0, 3.4], [4.2, 6.2], [0.9, -3.4], [-2.4, 2.8], [1.6, 5.2], [8.8, -1.0], [-1.0, -5.4], [6.4, 7.4]].map(([x, z], i) => {
-  const m = new T.Mesh(new T.CircleGeometry(0.62 + (i % 3) * 0.12, 14), new T.MeshBasicMaterial({ color: '#6f9fb3', transparent: true, opacity: 0.75 }));
-  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.035, z); m.scale.setScalar(0.001); sc.add(m); return { m, x, z, r: 0.62 + (i % 3) * 0.12 };
-});
-const GREY = new T.Color('#8f9aa4'), GREY_TOP = new T.Color('#7d8a96');
-let rainAmt = 0, fogAmt = 0, rainbowT = 0, rainbowAmt = 0, rainUntil = 0, splashT = 0, wet = 0;
-const raining = () => state.wx.rain > 0;
-function weatherStep(dt) {
-  const wx = state.wx, was = wx.rain > 0;
-  if (wx.rain > 0) wx.rain = Math.max(0, wx.rain - dt);
-  else { wx.next -= dt; if (wx.next <= 0) { wx.next = 140 + Math.random() * 160; if (season !== 'winter' && Math.random() < 0.5) { wx.rain = 45 + Math.random() * 45; toastIcon('water', 'Det regnar!'); } } }
-  if (was && wx.rain <= 0 && !isNight && season !== 'winter') { rainbowT = 30; toastIcon('heart', 'Regnbåge!'); Snd.play('sparkle', { gain: 0.5 }); }
-  rainAmt += ((raining() ? 1 : 0) - rainAmt) * Math.min(1, dt * 0.5);
-  /* darker, greyer light while it rains */
-  if (rainAmt > 0.005) {
-    const k = rainAmt * 0.55; sc.background.lerp(GREY, k); sc.fog.color.copy(sc.background);
-    sky.material.uniforms.top.value.lerp(GREY_TOP, k); sky.material.uniforms.hor.value.lerp(GREY, k);
-    sun.intensity *= 1 - 0.5 * rainAmt; if (hemi) hemi.intensity *= 1 - 0.2 * rainAmt;
-  }
-  /* mist: autumn, early mornings and rain */
-  const f = dayFrac(), fogT = clamp((season === 'autumn' ? 0.55 : 0) + (f < 0.12 ? 0.3 : 0) + rainAmt * 0.35, 0, 1);
-  fogAmt += (fogT - fogAmt) * Math.min(1, dt * 0.3); sc.fog.near = 28 - 20 * fogAmt; sc.fog.far = 70 - 42 * fogAmt;
-  /* the falling rain follows the camera */
-  rainLines.visible = rainAmt > 0.01 && !inHouse && !reduced; rainMat.opacity = rainAmt * 0.55;
-  if (rainLines.visible) {
-    for (let k = 0; k < RAIN_N; k++) {
-      let y = rainY[k] - dt * 13, x = rainPos[k * 6], z = rainPos[k * 6 + 2];
-      if (y < 0) { y = 5 + Math.random() * 6; x = camFocus.x + (Math.random() - 0.5) * 26; z = camFocus.z + (Math.random() - 0.5) * 20 - 1; }
-      rainY[k] = y; rainPos[k * 6] = x; rainPos[k * 6 + 1] = y; rainPos[k * 6 + 2] = z; rainPos[k * 6 + 3] = x + 0.05; rainPos[k * 6 + 4] = y + 0.5; rainPos[k * 6 + 5] = z + 0.03;
-    }
-    rainGeo.attributes.position.needsUpdate = true;
-  }
-  /* the sound of rain, scheduled a few seconds at a time */
-  if (Snd.k && rainAmt > 0.05) { const now = Snd.ctx.currentTime - Snd.base; if (now > rainUntil - 1) { const t0 = Math.max(now + 0.05, rainUntil - 0.4); try { Snd.k.bed('rain', t0, t0 + 6, { gain: (inHouse ? 0.35 : 0.9) * rainAmt + 0.2 }); } catch (e) {} rainUntil = t0 + 6; } }
-  /* puddles fill while it rains and dry slowly after */
-  wet = raining() ? Math.min(1, wet + dt * 0.04) : Math.max(0, wet - dt / 100);
-  PUDDLES.forEach((p) => { p.m.scale.setScalar(Math.max(0.001, wet)); p.m.visible = wet > 0.02; });
-  splashT -= dt;
-  if (wet > 0.3 && splashT <= 0 && !inHouse && !mount && Math.hypot(target.x - pip.position.x, target.z - pip.position.z) > 0.2) {
-    const p = PUDDLES.find((q) => Math.hypot(pip.position.x - q.x, pip.position.z - q.z) < q.r * wet);
-    if (p) { splashT = 0.35; splash(pip.position.x, 0.08, pip.position.z, 6); Snd.play('swish', { gain: 0.3 }); Snd.play('pop', { gain: 0.25, f: 260 + Math.random() * 80 }); }
-  }
-  /* the rainbow */
-  if (rainbowT > 0) rainbowT -= dt;
-  rainbowAmt += ((rainbowT > 0 && !isNight ? 1 : 0) - rainbowAmt) * Math.min(1, dt * 0.6);
-  rainbow.visible = rainbowAmt > 0.01 && !inHouse;
-  if (rainbow.visible) { const kk = aspect < 1 ? 1.5 : 1.15; rainbow.quaternion.copy(cam.quaternion); rainbow.position.set(camFocus.x, -0.1, camFocus.z - 3.9 * kk); rainbow.scale.set(kk * (aspect < 1 ? 0.62 : 1), kk * 0.55, 1); rainbow.children.forEach((m) => { m.material.opacity = rainbowAmt * 0.55; }); }
-  for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.t += dt; r.m.scale.setScalar(1 + r.t * 5); r.m.material.opacity = 0.8 * (1 - r.t / 0.9); if (r.t > 0.9) { sc.remove(r.m); ripples.splice(i, 1); } }
-}
-
 /* ---------- the vegetable patch ---------- */
 const beds = BEDS.map(([x, z, c], i) => {
   const g = new T.Group(); g.position.set(x, 0, z); sc.add(g);
@@ -1983,7 +2012,8 @@ const beds = BEDS.map(([x, z, c], i) => {
   return { g, x, z, c, wetM, plants, sp, stage: '', icon: '' };
 });
 const SPOTS = [[-0.25, -0.25], [0.25, -0.25], [-0.25, 0.25], [0.25, 0.25]];
-function cropModel(b, stage) {
+function cropModel(b, stage) { cropBuild(b, stage); b.plants.children.forEach((m) => { m.userData.rz = m.rotation.z; m.userData.rx = m.rotation.x; }); }
+function cropBuild(b, stage) {
   const p = b.plants, c = b.c; while (p.children.length) p.remove(p.children[0]); if (stage === 'empty') return;
   const s = 400 + BEDS.indexOf(BEDS.find((q) => q[0] === b.x && q[1] === b.z)) * 7;
   SPOTS.forEach(([x, z], k) => {
@@ -2057,17 +2087,258 @@ function extraActs(out) {
 }
 function extrasInit() {
   if (!Array.isArray(state.garden) || state.garden.length !== BEDS.length) state.garden = BEDS.map(() => ({ s: 0, g: 0, w: 0 }));
-  if (!state.fish) state.fish = {}; if (!state.wx) state.wx = { rain: 0, next: 150 };
+  if (!state.fish) state.fish = {}; wxInit();
   dog.g.position.set(KENNEL.x - 0.6, 0, KENNEL.z + 0.9);
 }
 function extrasStep(dt) { dogStep(dt); fishStep(dt); weatherStep(dt); gardenStep(dt); animalAmbience(dt); }
 function extrasTest() {
   return {
-    dog: () => [dog.g.position.x, dog.g.position.z, dog.chase, dog.asleep], rain: (on) => { state.wx.rain = on ? 60 : 0; state.wx.next = on ? 999 : 999; }, wx: () => ({ rain: state.wx.rain, amt: rainAmt, wet, fog: fogAmt, bow: rainbowAmt }),
+    dog: () => [dog.g.position.x, dog.g.position.z, dog.chase, dog.asleep], 
     garden: () => state.garden.map((g) => g.s + ':' + g.g.toFixed(2) + ':' + Math.round(g.w)).join(' '), grow: () => state.garden.forEach((g) => { if (g.s) g.g = 1; }),
     fish: () => JSON.stringify(state.fish), fishing: () => fishing && fishing.st, acts: () => findActs().map((a) => a.label), act: (l) => { const a = findActs().find((q) => q.label.indexOf(l) === 0); if (a) a.run(); return !!a; },
-    spot: () => [FISHSPOT.x, FISHSPOT.z], rainEnd: () => { state.wx.rain = 0.5; },
-    give: (t, n) => { for (let k = 0; k < (n || 1); k++) carry.add(mk(t)); }
+    spot: () => [FISHSPOT.x, FISHSPOT.z],
+    give: (t, n) => { for (let k = 0; k < (n || 1); k++) carry.add(mk(t)); },
+    ...weatherTest()
+  };
+}
+/* ---------- weather: clear, windy, rain (light or heavy), mist, and snow in winter ---------- */
+/* one spell at a time, each 40 to 120 seconds; clear is the most common, and everything fades in and out */
+const WX_KINDS = ['clear', 'windy', 'rain', 'heavy', 'mist', 'snow'];
+const WX_TOAST = { windy: ['wind', 'Det blåser!'], rain: ['rain', 'Det regnar!'], heavy: ['rain', 'Det ösregnar!'], mist: ['mist', 'Dimma!'], snow: ['snow', 'Det snöar!'] };
+const WX_WIND = { clear: 0.12, windy: 1, rain: 0.25, heavy: 0.55, mist: 0, snow: 0.22 };
+const raining = () => state.wx.k === 'rain' || state.wx.k === 'heavy';
+const seasonNow = () => SEASONS[Math.floor(state.clock / DAY) % 4]; /* the season variable only catches up in the next skyStep */
+function wxWeights() {
+  const f = dayFrac(), morn = f < 0.16 || f > 0.95, k = state.wx.k;
+  const s = seasonNow(), w = s === 'winter' ? { clear: 3, windy: 1.3, snow: 3, mist: 0.8 } : s === 'autumn' ? { clear: 3, windy: 2, rain: 1.8, heavy: 0.9, mist: 1.6 } : s === 'summer' ? { clear: 5, windy: 1.2, rain: 1.1, heavy: 0.7, mist: 0.3 } : { clear: 4, windy: 1.4, rain: 1.8, heavy: 0.5, mist: 0.8 };
+  if (morn) w.mist *= 3;
+  if (k !== 'clear') { w.clear *= 2.5; w[k] = 0; if (k === 'rain' || k === 'heavy') w.rain = w.heavy = 0; }
+  return w;
+}
+function wxPick() { const w = wxWeights(); let tot = 0; for (const k in w) tot += w[k]; let r = Math.random() * tot; for (const k in w) { r -= w[k]; if (r <= 0) return k; } return 'clear'; }
+const wxLen = (k) => k === 'clear' ? 60 + Math.random() * 60 : k === 'heavy' ? 40 + Math.random() * 30 : 40 + Math.random() * 60;
+function wxSet(k, len, quiet) {
+  const wx = state.wx, was = wx.k, s = seasonNow(); if (s === 'winter' && (k === 'rain' || k === 'heavy')) k = 'snow'; if (s !== 'winter' && k === 'snow') k = 'rain';
+  wx.k = k; wx.t = len == null ? wxLen(k) : len;
+  if (k !== 'clear' && k !== was) wx.dir = (Math.random() < 0.5 ? 0 : Math.PI) + (Math.random() - 0.5) * 0.6;
+  wx.rain = raining() ? wx.t : 0; wx.next = raining() ? 999 : wx.t; /* older builds read these */
+  if (quiet || k === was) return;
+  const day = !isNight && !inHouse && !sleep;
+  if ((was === 'rain' || was === 'heavy') && k !== 'rain' && k !== 'heavy' && !isNight && s !== 'winter') { rainbowT = 30; toastIcon('heart', 'Regnbåge!'); Snd.play('sparkle', { gain: 0.5 }); return; }
+  if (WX_TOAST[k] && !inHouse && !sleep) { toastIcon(WX_TOAST[k][0], WX_TOAST[k][1]); if (k === 'snow') Snd.play('sparkle', { gain: 0.3 }); }
+  else if (k === 'clear' && day && (was === 'mist' || was === 'snow' || was === 'windy')) toastIcon('sun', 'Solen skiner!');
+}
+function wxInit() {
+  if (!state.wx || typeof state.wx !== 'object') state.wx = { rain: 0, next: 150 };
+  const wx = state.wx;
+  /* saves from before the weather system only have { rain, next } */
+  if (WX_KINDS.indexOf(wx.k) < 0) { wx.k = wx.rain > 0 ? 'rain' : 'clear'; wx.t = wx.rain > 0 ? wx.rain : Math.min(120, Math.max(20, wx.next || 60)); }
+  if (typeof wx.t !== 'number' || !(wx.t >= 0)) wx.t = 60;
+  if (typeof wx.dir !== 'number') wx.dir = 0;
+  if (typeof wx.cover !== 'number') wx.cover = 0;
+  wxAng = wx.dir;
+}
+
+/* rain: streaks that slant with the wind */
+const RAIN_N = 320, rainPos = new Float32Array(RAIN_N * 6), rainY = new Float32Array(RAIN_N).fill(-1);
+const rainGeo = new T.BufferGeometry(); rainGeo.setAttribute('position', new T.BufferAttribute(rainPos, 3));
+const rainMat = new T.LineBasicMaterial({ color: '#d6e8f0', transparent: true, opacity: 0 });
+const rainLines = new T.LineSegments(rainGeo, rainMat); rainLines.frustumCulled = false; rainLines.visible = false; sc.add(rainLines);
+const rainbow = new T.Group(); rainbow.visible = false; sc.add(rainbow);
+['#e5533d', '#f29a3a', '#f5d34a', '#6dbb5a', '#4a8fd1', '#7a5bbf'].forEach((c, k) => { const m = new T.Mesh(new T.TorusGeometry(6 - k * 0.36, 0.19, 4, 48, Math.PI), new T.MeshBasicMaterial({ color: c, transparent: true, opacity: 0, depthWrite: false, fog: false })); rainbow.add(m); });
+const PUDDLES = [[3.0, 3.4], [4.2, 6.2], [0.9, -3.4], [-2.4, 2.8], [1.6, 5.2], [8.8, -1.0], [-1.0, -5.4], [6.4, 7.4]].map(([x, z], i) => {
+  const m = new T.Mesh(new T.CircleGeometry(0.62 + (i % 3) * 0.12, 14), new T.MeshBasicMaterial({ color: '#6f9fb3', transparent: true, opacity: 0.75 }));
+  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.035, z); m.scale.setScalar(0.001); sc.add(m); return { m, x, z, r: 0.62 + (i % 3) * 0.12 };
+});
+/* snow: soft round flakes that drift with the wind */
+const softTex = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.translate(w / 2, h / 2); x.scale(w / 2, h / 2); const g = x.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.45, 'rgba(255,255,255,0.75)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(-1, -1, 2, 2); return new T.CanvasTexture(c); };
+const SNOW_N = 300, snowPos = new Float32Array(SNOW_N * 3).fill(-99);
+const snowGeo = new T.BufferGeometry(); snowGeo.setAttribute('position', new T.BufferAttribute(snowPos, 3)); snowGeo.setDrawRange(0, 0);
+const snowMat = new T.PointsMaterial({ color: '#ffffff', size: 0.24, map: softTex(32, 32), transparent: true, depthWrite: false, opacity: 0.95 });
+const snowPts = new T.Points(snowGeo, snowMat); snowPts.frustumCulled = false; snowPts.visible = false; sc.add(snowPts);
+/* mist: a few big soft banks low over the ground */
+const mistMat = new T.SpriteMaterial({ map: softTex(128, 64), color: '#f3f6f6', transparent: true, depthWrite: false, opacity: 0, fog: false });
+const MIST = []; for (let i = 0; i < 10; i++) { const s = new T.Sprite(mistMat.clone()); s.scale.set(6 + hash(i, 71) * 3, 1.8 + hash(i, 73) * 0.6, 1); s.visible = false; sc.add(s); MIST.push({ s, x: (hash(i, 75) - 0.5) * 28, z: (hash(i, 77) - 0.5) * 18 - 2, y: 0.75 + hash(i, 79) * 0.35 }); }
+/* wind: a few white swooshes that draw themselves across the farm while it blows */
+const GUST_SEG = 40, gustAttr = (() => {
+  const P = []; for (let i = 0; i <= GUST_SEG; i++) { const s = i / GUST_SEG; if (s < 0.7) { const u = s / 0.7; P.push([u * 2.8, Math.sin(u * Math.PI * 1.5) * 0.12]); } else { const a = -Math.PI / 2 + (s - 0.7) / 0.3 * Math.PI * 1.6; P.push([2.8 + Math.cos(a) * 0.28, -0.12 + 0.28 + Math.sin(a) * 0.28]); } }
+  const v = new Float32Array(GUST_SEG * 18), E = (i, side) => { const a = P[Math.max(0, i - 1)], b = P[Math.min(GUST_SEG, i + 1)], tx = b[0] - a[0], ty = b[1] - a[1], l = Math.hypot(tx, ty) || 1, w = 0.08 * (0.35 + 0.65 * Math.sin(Math.PI * i / GUST_SEG)) * side; return [P[i][0] - ty / l * w, P[i][1] + tx / l * w, 0]; };
+  for (let i = 0; i < GUST_SEG; i++) { [E(i, 1), E(i, -1), E(i + 1, 1), E(i + 1, 1), E(i, -1), E(i + 1, -1)].forEach((q, k) => { v.set(q, (i * 6 + k) * 3); }); }
+  return new T.BufferAttribute(v, 3);
+})();
+const GUSTS = []; for (let i = 0; i < 6; i++) { const g = new T.BufferGeometry(); g.setAttribute('position', gustAttr); g.setDrawRange(0, 0); const m = new T.Mesh(g, new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0, side: T.DoubleSide, depthWrite: false, fog: false })); m.frustumCulled = false; m.visible = false; sc.add(m); GUSTS.push({ m, t: 0, L: 1 }); }
+let gustT = 0;
+function gustStep(dt, on) {
+  gustT -= dt;
+  if (on && gustT <= 0) { gustT = (0.45 + Math.random() * 0.9) / windAmt; const q = GUSTS.find((o) => !o.m.visible); if (q) { q.t = 0; q.L = 1.6 + Math.random() * 0.8; q.m.visible = true; q.m.position.set(camFocus.x + (Math.random() - 0.5) * 16 - WIND.x * 3, 0.7 + Math.random() * 1.6, camFocus.z + (Math.random() - 0.65) * 10); q.m.rotation.y = -Math.atan2(WIND.z, WIND.x); } }
+  for (let i = 0; i < GUSTS.length; i++) {
+    const q = GUSTS[i]; if (!q.m.visible) continue; q.t += dt; const u = q.t / q.L;
+    if (u >= 1 || !on && u < 0.05) { q.m.visible = false; continue; }
+    const sp = 3 + 3 * WIND.g; q.m.position.x += WIND.x * sp * dt; q.m.position.z += WIND.z * sp * dt;
+    const a = Math.floor(Math.max(0, u * 1.5 - 0.6) * GUST_SEG), b = Math.floor(Math.min(1, u * 1.5) * GUST_SEG); q.m.geometry.setDrawRange(a * 6, (b - a) * 6);
+    q.m.material.opacity = 0.9 * Math.min(1, windAmt * 1.3) * Math.min(1, (1 - u) * 4);
+  }
+}
+/* snow on the roofs: one shared material, so every cap whitens together */
+const capMat = MAT.clone(); capMat.transparent = true; capMat.opacity = 0; capMat.visible = false;
+function snowCap(parent, geo, x, y, z) { const m = new T.Mesh(fac(geo, PAL.snow, 9), capMat); m.position.set(x || 0, y || 0, z || 0); m.receiveShadow = true; parent.add(m); return m; }
+{ /* the upgrade house and the kennel */
+  let g = new T.CylinderGeometry(0.01, 1.95, 1.06, 4, 1, true); g.rotateY(Math.PI / 4); g.scale(1, 1, 0.82); g.translate(0, 2.04, 0); snowCap(houseG, g);
+  [-1, 1].forEach((s) => { g = new T.BoxGeometry(0.62, 0.035, 1.08); const m = snowCap(sc, g, KENNEL.x + s * (0.27 + 0.055 * 0.581), 0.8 + 0.055 * 0.814, KENNEL.z); m.rotation.z = -s * 0.62; });
+}
+/* a snowman turns up once enough snow has fallen, and stays for the rest of the winter */
+const snowman = new T.Group(); snowman.position.set(-1.3, 0, 6.3); snowman.visible = false; snowman.scale.setScalar(0.001); sc.add(snowman);
+{
+  [[0.42, 0.36], [0.31, 0.95], [0.22, 1.38]].forEach(([r, y], k) => { const q = ico(r, 1, 500 + k, r * 0.05); part(fac(q, PAL.snow, 500 + k), snowman, 0, y, 0); });
+  [-0.08, 0.08].forEach((x) => { const e = new T.Mesh(new T.SphereGeometry(0.03, 6, 4), ink); e.position.set(x, 1.45, 0.19); snowman.add(e); });
+  [0.86, 1.0, 1.14].forEach((y) => { const e = new T.Mesh(new T.SphereGeometry(0.028, 6, 4), ink); e.position.set(0, y, 0.3 - Math.abs(y - 1.0) * 0.25); snowman.add(e); });
+  let q = new T.ConeGeometry(0.04, 0.2, 6); q.rotateX(Math.PI / 2); part(fac(q, '#ef8a2e', 504), snowman, 0, 1.38, 0.3, true);
+  q = new T.CylinderGeometry(0.25, 0.27, 0.08, 10); part(fac(q, PAL.accent, 505), snowman, 0, 1.19, 0);
+  q = new T.BoxGeometry(0.08, 0.26, 0.03); part(fac(q, PAL.accent, 506), snowman, 0.14, 1.06, 0.22).rotation.z = 0.3;
+  [-1, 1].forEach((s) => { q = new T.CylinderGeometry(0.015, 0.02, 0.5, 4); q.translate(0, 0.25, 0); const m = part(fac(q, PAL.trunk, 507), snowman, s * 0.26, 0.98, 0); m.rotation.z = -s * 1.0; });
+}
+/* footprints behind Pip in deep snow: a small pool, reused */
+const printGeo = new T.CircleGeometry(0.075, 8), printMat = new T.MeshBasicMaterial({ color: '#b4c2cc', transparent: true, opacity: 0.75, depthWrite: false });
+const PRINTS = []; for (let i = 0; i < 28; i++) { const m = new T.Mesh(printGeo, printMat); m.rotation.x = -Math.PI / 2; m.visible = false; sc.add(m); PRINTS.push({ m, t: 0 }); }
+let printI = 0, printSide = 1; const printLast = new T.Vector3();
+
+const GREY = new T.Color('#8f9aa4'), GREY_TOP = new T.Color('#7d8a96'), PALE = new T.Color('#dfe5e8'), PALE_TOP = new T.Color('#c7d2da'), _wc = new T.Color();
+let rainAmt = 0, fogAmt = 0, rainbowT = 0, rainbowAmt = 0, rainUntil = 0, windUntil = 0, splashT = 0, wet = 0, snowAmt = 0, mistAmt = 0, windAmt = 0.12, wxAng = 0, snowN = 0, manAmt = 0, coverT = 0, coverShown = -1;
+let swayers = null, puddleIce = false;
+function swaySetup() {
+  swayers = { trees: [], tufts };
+  leafs.forEach((m) => { const g = m.parent; if (g && swayers.trees.indexOf(g) < 0) { g.rotation.order = 'ZXY'; g.userData.ph = hash(g.position.x, g.position.z) * 6.28; swayers.trees.push(g); } });
+}
+function sway() {
+  if (!swayers) swaySetup();
+  const g = WIND.g, wx = WIND.x, wz = WIND.z;
+  for (let i = 0; i < swayers.trees.length; i++) { const t = swayers.trees[i], a = g * 0.05 + Math.sin(time * 1.6 + t.userData.ph) * (0.008 + g * 0.03); t.rotation.z = -a * wx; t.rotation.x = a * wz; }
+  for (let i = 0; i < tufts.length; i++) { const t = tufts[i], a = g * 0.22 + Math.sin(time * 2.6 - (t.x * wx + t.z * wz) * 0.55) * (0.02 + g * 0.13); t.g.rotation.z = -a * wx; t.g.rotation.x = a * wz; }
+  for (let i = 0; i < beds.length; i++) { const ch = beds[i].plants.children; for (let j = 0; j < ch.length; j++) { const m = ch[j], a = g * 0.1 + Math.sin(time * 3.1 + i + j * 0.7) * (0.015 + g * 0.09); m.rotation.z = (m.userData.rz || 0) - a * wx; m.rotation.x = (m.userData.rx || 0) + a * wz; } }
+}
+function weatherStep(dt) {
+  const wx = state.wx, out = !inHouse;
+  /* the season can turn rain to snow and back */
+  if (season === 'winter' && raining()) wxSet('snow', wx.t, true); else if (season !== 'winter' && wx.k === 'snow') wxSet('rain', wx.t, true);
+  wx.t -= dt; wx.rain = raining() ? wx.t : 0; wx.next = raining() ? 999 : wx.t;
+  if (wx.t <= 0) { const nx = wx.nx; delete wx.nx; wxSet(nx || wxPick()); }
+  const k = wx.k;
+  rainAmt += ((k === 'heavy' ? 1 : k === 'rain' ? 0.55 : 0) - rainAmt) * Math.min(1, dt * 0.5);
+  snowAmt += ((k === 'snow' ? 1 : 0) - snowAmt) * Math.min(1, dt * 0.3);
+  mistAmt += ((k === 'mist' ? 1 : 0) - mistAmt) * Math.min(1, dt * 0.25);
+  windAmt += (WX_WIND[k] - windAmt) * Math.min(1, dt * 0.35);
+  /* wind: a slowly turning direction and soft gusts */
+  let da = wx.dir - wxAng; da = Math.atan2(Math.sin(da), Math.cos(da)); wxAng += da * Math.min(1, dt * 0.25);
+  WIND.x = Math.cos(wxAng); WIND.z = Math.sin(wxAng) * 0.6; WIND.amt = windAmt;
+  WIND.g = windAmt * (0.7 + 0.3 * Math.sin(time * 0.63) * Math.sin(time * 1.7 + 1));
+  if (!reduced && out) sway();
+  gustStep(dt, windAmt > 0.45 && out && !reduced);
+  /* light: grey under rain, pale and soft in snow and mist, never brighter than the night */
+  const nf = 1 - 0.65 * nightAmt;
+  if (rainAmt > 0.005) {
+    const q = rainAmt * 0.55; _wc.copy(GREY).multiplyScalar(nf); sc.background.lerp(_wc, q); sky.material.uniforms.hor.value.lerp(_wc, q);
+    _wc.copy(GREY_TOP).multiplyScalar(nf); sky.material.uniforms.top.value.lerp(_wc, q);
+    sun.intensity *= 1 - 0.5 * rainAmt; if (hemi) hemi.intensity *= 1 - 0.2 * rainAmt;
+  }
+  const pale = Math.max(snowAmt * 0.5, mistAmt * 0.55);
+  if (pale > 0.005) {
+    const q = pale * (1 - 0.85 * nightAmt); sc.background.lerp(PALE, q); sky.material.uniforms.hor.value.lerp(PALE, q); sky.material.uniforms.top.value.lerp(PALE_TOP, q);
+    sun.intensity *= 1 - 0.3 * Math.max(snowAmt, mistAmt);
+  }
+  sc.fog.color.copy(sc.background);
+  /* fog: autumn, early mornings, rain, snow and mist */
+  const f = dayFrac(), fogT = clamp((season === 'autumn' ? 0.55 : 0) + (f < 0.12 ? 0.3 : 0) + rainAmt * 0.35 + (out ? mistAmt * 0.4 + snowAmt * 0.3 : 0), 0, 1);
+  fogAmt += (fogT - fogAmt) * Math.min(1, dt * 0.3); sc.fog.near = 28 - 20 * fogAmt; sc.fog.far = 70 - 42 * fogAmt;
+  /* the falling rain follows the camera and slants with the wind */
+  const rn = Math.round(RAIN_N * Math.min(1, rainAmt) * (reduced ? 0.35 : 1));
+  rainLines.visible = rn > 2 && out; rainMat.opacity = 0.35 + rainAmt * 0.3;
+  if (rainLines.visible) {
+    const fall = (10 + 4 * rainAmt) * (reduced ? 0.6 : 1), vx = WIND.x * WIND.g * 5, vz = WIND.z * WIND.g * 5, sl = 0.045;
+    for (let k = 0; k < rn; k++) {
+      let y = rainY[k] - dt * fall, x = rainPos[k * 6] + vx * dt, z = rainPos[k * 6 + 2] + vz * dt;
+      if (y < 0) { y = 5 + Math.random() * 6; x = camFocus.x + (Math.random() - 0.5) * 26 - vx * y / fall; z = camFocus.z + (Math.random() - 0.5) * 20 - 1 - vz * y / fall; }
+      rainY[k] = y; rainPos[k * 6] = x; rainPos[k * 6 + 1] = y; rainPos[k * 6 + 2] = z; rainPos[k * 6 + 3] = x - vx * sl + 0.02; rainPos[k * 6 + 4] = y + fall * sl; rainPos[k * 6 + 5] = z - vz * sl;
+    }
+    rainGeo.setDrawRange(0, rn * 2); rainGeo.attributes.position.needsUpdate = true;
+  }
+  /* the falling snow */
+  const sn = out ? Math.round(SNOW_N * snowAmt * (reduced ? 0.35 : 1)) : 0;
+  for (let k = sn; k < snowN; k++) snowPos[k * 3 + 1] = -99;
+  snowN = sn; snowPts.visible = sn > 0;
+  if (sn > 0) {
+    const sp = reduced ? 0.5 : 1, dx = WIND.x * WIND.g * 2.4, dz = WIND.z * WIND.g * 2.4;
+    for (let k = 0; k < sn; k++) {
+      let x = snowPos[k * 3], y = snowPos[k * 3 + 1], z = snowPos[k * 3 + 2];
+      if (y < -50) { y = Math.random() * 9; x = camFocus.x + (Math.random() - 0.5) * 26; z = camFocus.z + (Math.random() - 0.5) * 20; }
+      y -= dt * sp * (0.7 + hash(k, 5) * 0.5); x += dt * sp * (dx + Math.sin(time * 1.1 + k) * 0.35); z += dt * sp * dz;
+      if (y < 0) { y = 7.5 + Math.random() * 2; x = camFocus.x + (Math.random() - 0.5) * 26; z = camFocus.z + (Math.random() - 0.5) * 20; }
+      if (x - camFocus.x > 13) x -= 26; else if (x - camFocus.x < -13) x += 26;
+      if (z - camFocus.z > 10) z -= 20; else if (z - camFocus.z < -10) z += 20;
+      snowPos[k * 3] = x; snowPos[k * 3 + 1] = y; snowPos[k * 3 + 2] = z;
+    }
+    snowGeo.setDrawRange(0, sn); snowGeo.attributes.position.needsUpdate = true;
+  }
+  /* mist banks drift slowly along with the wind */
+  const mv = mistAmt > 0.01 && out;
+  for (let i = 0; i < MIST.length; i++) {
+    const m = MIST[i]; m.s.visible = mv; if (!mv) continue;
+    m.x += dt * (reduced ? 0.05 : 0.3) * (WIND.x >= 0 ? 1 : -1) * (0.6 + hash(i, 81) * 0.6);
+    if (m.x - camFocus.x > 15) m.x -= 30; else if (m.x - camFocus.x < -15) m.x += 30;
+    if (m.z - camFocus.z > 10) m.z -= 20; else if (m.z - camFocus.z < -10) m.z += 20;
+    m.s.position.set(m.x, m.y, m.z);
+    /* a bank thins out over Pip, so the child never loses sight of them */
+    m.s.material.opacity = mistAmt * 0.6 * clamp(Math.hypot((m.x - pip.position.x) / (m.s.scale.x * 0.45), (m.z - pip.position.z - 0.8) / 1.8) - 0.4, 0.2, 1);
+  }
+  /* snow settles on the ground, the trees and the roofs while it snows, and slowly thaws back to a light frost */
+  if (season === 'winter') { wx.cover = snowAmt > 0.3 ? Math.min(1, Math.max(wx.cover, 0.35) + dt * snowAmt / 55) : Math.max(0.35, wx.cover - dt / 300); if (wx.cover > 0.65) wx.man = 1; }
+  else { wx.cover = 0; wx.man = 0; }
+  coverT -= dt; if (coverT <= 0) { coverT = 0.75; if (season === 'winter' && Math.abs(wx.cover - coverShown) > 0.03) { coverShown = wx.cover; snowPaint(wx.cover); } else if (season !== 'winter') coverShown = -1; }
+  capMat.opacity = season === 'winter' ? clamp((wx.cover - 0.25) / 0.6, 0, 1) : 0; capMat.visible = capMat.opacity > 0.01;
+  manAmt += ((wx.man && season === 'winter' ? 1 : 0) - manAmt) * Math.min(1, dt * 0.5);
+  snowman.visible = manAmt > 0.01; snowman.scale.setScalar(Math.max(0.001, manAmt));
+  /* footprints */
+  const pp = pip.position;
+  if (season === 'winter' && wx.cover > 0.55 && out && !mount && pp.y < 0.05 && hAt(pp.x, pp.z) > -0.05) {
+    const d = Math.hypot(pp.x - printLast.x, pp.z - printLast.z);
+    if (d > 0.32) { if (d < 1) { const p = PRINTS[printI], a = pip.rotation.y; printI = (printI + 1) % PRINTS.length; printSide = -printSide; p.t = 14; p.m.visible = true; p.m.position.set(pp.x + Math.cos(a) * 0.09 * printSide, 0.06, pp.z - Math.sin(a) * 0.09 * printSide); p.m.rotation.z = a; p.m.scale.set(1, 1.5, 1); } printLast.copy(pp); }
+  } else printLast.copy(pp);
+  for (let i = 0; i < PRINTS.length; i++) { const p = PRINTS[i]; if (p.t <= 0) continue; p.t -= dt; if (p.t <= 0 || season !== 'winter') { p.t = 0; p.m.visible = false; } else if (p.t < 3) p.m.scale.set(p.t / 3, 1.5 * p.t / 3, 1); }
+  /* sounds: rain in six-second beds, and a soft gusty whoosh for the wind */
+  if (Snd.k && rainAmt > 0.05) { const now = Snd.ctx.currentTime - Snd.base; if (now > rainUntil - 1) { const t0 = Math.max(now + 0.05, rainUntil - 0.4); try { Snd.k.bed('rain', t0, t0 + 6, { gain: (inHouse ? 0.35 : 0.9) * rainAmt + 0.2 }); } catch (e) {} rainUntil = t0 + 6; } }
+  if (Snd.k && windAmt > 0.3) { const now = Snd.ctx.currentTime - Snd.base; if (now > windUntil - 1.5) { const t0 = Math.max(now + 0.05, windUntil - 1.5), d = 6, top = 560 + Math.random() * 300; try { Snd.k.noise(t0, { dur: d, color: 'pink', filter: 'bandpass', f: [[0, 300], [d * 0.45, top], [d, 340]], q: 0.8, gain: 0.07 * windAmt * (inHouse ? 0.3 : 1), a: 2.4, hold: 0.8, bus: 'amb', pan: WIND.x * 0.3 }); } catch (e) {} windUntil = t0 + 3.6; } }
+  /* puddles fill while it rains and dry slowly after */
+  wet = raining() ? Math.min(1, wet + dt * 0.04 * (k === 'heavy' ? 1.6 : 1)) : Math.max(0, wet - dt / 100);
+  const ice = season === 'winter'; if (ice !== puddleIce) { puddleIce = ice; PUDDLES.forEach((p) => p.m.material.color.set(ice ? '#d2e6f0' : '#6f9fb3')); } /* frozen in winter */
+  PUDDLES.forEach((p) => { p.m.scale.setScalar(Math.max(0.001, wet)); p.m.visible = wet > 0.02; });
+  splashT -= dt;
+  if (wet > 0.3 && !ice && splashT <= 0 && !inHouse && !mount && Math.hypot(target.x - pip.position.x, target.z - pip.position.z) > 0.2) {
+    const p = PUDDLES.find((q) => Math.hypot(pip.position.x - q.x, pip.position.z - q.z) < q.r * wet);
+    if (p) { splashT = 0.35; splash(pip.position.x, 0.08, pip.position.z, 6); Snd.play('swish', { gain: 0.3 }); Snd.play('pop', { gain: 0.25, f: 260 + Math.random() * 80 }); }
+  }
+  /* the rainbow */
+  if (rainbowT > 0) rainbowT -= dt;
+  rainbowAmt += ((rainbowT > 0 && !isNight && season !== 'winter' && k !== 'mist' && !raining() ? 1 : 0) - rainbowAmt) * Math.min(1, dt * 0.6);
+  rainbow.visible = rainbowAmt > 0.01 && !inHouse;
+  if (rainbow.visible) { const kk = aspect < 1 ? 1.5 : 1.15; rainbow.quaternion.copy(cam.quaternion); rainbow.position.set(camFocus.x, -0.1, camFocus.z - 3.9 * kk); rainbow.scale.set(kk * (aspect < 1 ? 0.62 : 1), kk * 0.55, 1); rainbow.children.forEach((m) => { m.material.opacity = rainbowAmt * 0.55; }); }
+  for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.t += dt; r.m.scale.setScalar(1 + r.t * 5); r.m.material.opacity = 0.8 * (1 - r.t / 0.9); if (r.t > 0.9) { sc.remove(r.m); ripples.splice(i, 1); } }
+}
+function weatherTest() {
+  /* weather(kind, seconds, snap): force a spell; snap skips the fade (and lets the snow settle at once) */
+  const f = (k, len, snap) => {
+    if (WX_KINDS.indexOf(k) < 0) return false; wxSet(k, len == null ? 999 : len); delete state.wx.nx; k = state.wx.k;
+    if (snap) { rainAmt = k === 'heavy' ? 1 : k === 'rain' ? 0.55 : 0; snowAmt = k === 'snow' ? 1 : 0; mistAmt = k === 'mist' ? 1 : 0; windAmt = WX_WIND[k]; wxAng = state.wx.dir; if (k === 'snow') state.wx.cover = 1; }
+    return k;
+  };
+  return {
+    weather: f,
+    wxState: () => ({ k: state.wx.k, t: Math.round(state.wx.t), season, rain: +rainAmt.toFixed(2), wind: +windAmt.toFixed(2), gust: +WIND.g.toFixed(2), snow: +snowAmt.toFixed(2), mist: +mistAmt.toFixed(2), fog: +fogAmt.toFixed(2), cover: +state.wx.cover.toFixed(2), man: manAmt > 0.5, bow: +rainbowAmt.toFixed(2), drops: rainLines.visible ? rainGeo.drawRange.count / 2 : 0, flakes: snowN }),
+    rain: (on) => f(on ? 'rain' : 'clear', on ? 60 : 999),
+    wx: () => ({ rain: raining() ? state.wx.t : 0, amt: rainAmt, wet, fog: fogAmt, bow: rainbowAmt, k: state.wx.k }),
+    rainEnd: () => { state.wx.t = 0.5; state.wx.nx = 'clear'; },
+    /* jump to a season (keeps the time of day), or to a time of day 0..1 */
+    season: (s) => { const i = SEASONS.indexOf(s); if (i < 0) return false; const fr = dayFrac(), d = Math.floor(state.clock / DAY); state.clock = (d - (d % 4) + i + 4) * DAY + fr * DAY; return s; },
+    icons: () => ['rain', 'wind', 'snow', 'mist', 'sun', 'heart'].map((t) => actIcon(t)),
+    dayAt: (fr) => { state.clock = Math.floor(state.clock / DAY) * DAY + fr * DAY; }
   };
 }
 /* ---------- camera and input ---------- */
@@ -2143,7 +2414,23 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catc
 function load() { try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (!s || s.v !== 1 || typeof s.coins !== 'number') return null; const b = fresh(); for (const k in b) if (!(k in s)) s[k] = b[k]; return s; } catch (e) { return null; } }
 
 /* ---------- loop ---------- */
-let actT = 0, menuT = 0, time = 0, xferT = 0, lastT = 0, saveT = 0, ambT = 0, waterT = 0;
+/* which music fits where Pip is: the house (and night on the farm) is calm, the shop's market area has the coin tune,
+   everywhere else is the pastoral day music */
+let inMkt = false;
+function inMarket() {
+  if (HERE !== 'shop') return false;
+  const x = pip.position.x, z = pip.position.z, m = inMkt ? 0.4 : 0; /* a small margin, so standing on the edge does not flip back and forth */
+  inMkt = (x > 0.9 - m && x < 8.6 + m && z > -4.8 - m && z < 2.5 + m) || z > 2.7 - m;
+  return inMkt;
+}
+function musicMood() {
+  if (inHouse) return 'relaxed';
+  if (HERE === 'farm') return isNight ? 'relaxed' : 'pastoral';
+  return inMarket() ? 'coin' : 'pastoral';
+}
+Snd.tracks = HERE === 'farm' ? ['pastoral', 'relaxed'] : ['pastoral', 'coin', 'relaxed'];
+if (window.__farmTest) { window.__snd = Snd; window.__pip = pip; }
+let actT = 0, menuT = 0, time = 0, xferT = 0, lastT = 0, saveT = 0, waterT = 0;
 function step(dt) {
   time += dt;
   /* Pip moves toward the touch point, or by keys */
@@ -2247,7 +2534,7 @@ function step(dt) {
   renderer.render(sc, cam);
   $('coins').textContent = fmt(state.coins);
   menuT -= dt; if (menuT <= 0) { menuT = 0.25; const any = UPS.some((u) => state.lv[u.id] < u.max && state.coins >= upCost(u)); $('menuBtn').classList.toggle('ready', false); if (!$('menu').hidden) renderMenu(); }
-  ambT -= dt; if (ambT <= 0) { ambT = 2; Snd.ambient(); }
+  Snd.musicStep(dt, musicMood());
 }
 function frame(now) { if (now - lastT < 1000 / fpsCap - 3) { requestAnimationFrame(frame); return; } let dt = (now - lastT) / 1000; lastT = now; if (dt > 0.1) dt = 0.1; if (dt > 0) step(dt); saveT += dt; if (saveT > 5) { saveT = 0; save(); } requestAnimationFrame(frame); }
 if (window.__farmTest) window.__farmTest = { go: (x, z) => target.set(x, 0, z), pip: () => [pip.position.x, pip.position.z], st: () => state, carry: () => carry.items.map((m) => m.userData.type).join(','), animals: () => animals.map((an) => an.a + ':' + (an.want || '-')).join(' '), boxes: () => Object.fromEntries(Object.keys(pens).map((a) => [a, pens[a].food.items.map((m) => m.userData.type[0]).join('')])), helpers: () => helpers.map((h) => h.t + ':' + h.st).join(' '), add: (a) => { addAnimal(a); }, clock: (c) => { state.clock = c; }, babies: () => babies.map((b) => b.a + b.coatI).join(' '), feedAll: () => animals.forEach((an) => { an.want = an.want || DIET[an.a][0]; feed(an); }), album: () => stickerCount() };
