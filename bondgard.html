@@ -83,6 +83,9 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { .hint, .hint .ripple { animation: none; } .sheet { animation: none; } }
 .homeBtn { display: block; box-sizing: border-box; }
 .sheetTop { gap: 12px; } .sheetTop .homeBtn { margin-right: auto; }
+.ctrlBtn .tapI { display: none; } .ctrlBtn.tap .tapI { display: block; } .ctrlBtn.tap .drag { display: none; }
+.joy { position: fixed; width: 112px; height: 112px; margin: -56px 0 0 -56px; border-radius: 50%; border: 4px solid rgba(255,246,228,0.85); background: rgba(34,48,60,0.12); pointer-events: none; }
+.joy i { position: absolute; left: 50%; top: 50%; width: 48px; height: 48px; margin: -24px 0 0 -24px; border-radius: 50%; background: rgba(255,246,228,0.95); border: 3px solid var(--ink); }
 [hidden] { display: none !important; }
 
 .flycoin { background: var(--accent); }
@@ -105,10 +108,12 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 <div class="hint" id="hint" aria-hidden="true">
   <svg viewBox="0 0 64 64"><circle class="ripple" cx="26" cy="18" r="12" fill="none" stroke="#fff6e4" stroke-width="3"/><path d="M22 18 v22 l-6 -5 c-3 -2 -6 1 -4 4 l12 15 h18 c3 0 5 -3 5 -6 V32 c0 -3 -4 -4 -5 -1 v-3 c0 -3 -4 -4 -5 -1 v-2 c0 -3 -5 -3 -5 0 V18 c0 -4 -6 -4 -6 0 z" fill="#fff6e4" stroke="#22303c" stroke-width="2.5" stroke-linejoin="round"/></svg>
 </div>
+<div class="joy" id="joy" hidden aria-hidden="true"><i></i></div>
 <div class="menu" id="menu" hidden>
   <div class="sheet" role="dialog" aria-label="Upgrades">
     <div class="sheetTop">
       <button type="button" class="round" id="soundBtn" aria-label="Sound" aria-pressed="true"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 19 h7 l9 -8 v26 l-9 -8 h-7 z" fill="#fff6e4" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/><path class="wave" d="M31 17 q5 7 0 14 M35 13 q9 11 0 22" fill="none" stroke="#22303c" stroke-width="3" stroke-linecap="round"/><path class="mute" d="M31 18 l10 12 M41 18 l-10 12" stroke="#b8401f" stroke-width="3.5" stroke-linecap="round"/></svg></button>
+      <button type="button" class="round ctrlBtn" id="ctrlBtn" aria-label="Steering"><svg class="drag" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" fill="none" stroke="#22303c" stroke-width="3" stroke-dasharray="4 4"/><circle cx="31" cy="18" r="8" fill="#e9684a" stroke="#22303c" stroke-width="3"/><path d="M24 24 L30 19" stroke="#22303c" stroke-width="3" stroke-linecap="round"/></svg><svg class="tapI" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="7" fill="#e9684a" stroke="#22303c" stroke-width="3"/><circle cx="24" cy="24" r="15" fill="none" stroke="#22303c" stroke-width="3"/><path d="M24 3 v5 M24 40 v5 M3 24 h5 M40 24 h5" stroke="#22303c" stroke-width="3" stroke-linecap="round"/></svg></button>
       <a class="round homeBtn" id="homeBtn" href="./" aria-label="Choose game" hidden><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 24 L24 9 L40 24 M13 20 V39 H35 V20" fill="#fff6e4" stroke="#22303c" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="20" y="27" width="8" height="12" fill="#e9684a" stroke="#22303c" stroke-width="3"/></svg></a>
       <button type="button" class="round" id="menuClose" aria-label="Close"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 14 L34 34 M34 14 L14 34" stroke="#22303c" stroke-width="5" stroke-linecap="round"/></svg></button>
     </div>
@@ -440,19 +445,19 @@ const PEN = {
 /* food sources in the middle of the farm; Pip can take as much as fits in the basket */
 const SRC = { grain: { x: -1.6, z: 0.3 }, water: { x: 0.4, z: -1.6 }, carrot: { x: 2.4, z: 0.3 }, hay: { x: 0.4, z: 3.4 } };
 const PADS = [
-  { id: 'hen2', kind: 'animal', a: 'hen', cost: 5 }, { id: 'hen3', kind: 'animal', a: 'hen', cost: 12 },
-  { id: 'house-hen', kind: 'house', a: 'hen', cost: 25 },
-  { id: 'pig1', kind: 'animal', a: 'pig', cost: 35 }, { id: 'carrot', kind: 'source', t: 'carrot', cost: 50 },
-  { id: 'pig2', kind: 'animal', a: 'pig', cost: 70 }, { id: 'help-water', kind: 'helper', t: 'water', cost: 90 },
-  { id: 'hay', kind: 'source', t: 'hay', cost: 100 }, { id: 'cow1', kind: 'animal', a: 'cow', cost: 130 },
-  { id: 'house-pig', kind: 'house', a: 'pig', cost: 160 }, { id: 'hen4', kind: 'animal', a: 'hen', cost: 180 },
-  { id: 'cow2', kind: 'animal', a: 'cow', cost: 220 }, { id: 'help-grain', kind: 'helper', t: 'grain', cost: 260 },
-  { id: 'horse1', kind: 'animal', a: 'horse', cost: 320 }, { id: 'house-cow', kind: 'house', a: 'cow', cost: 400 },
-  { id: 'pig3', kind: 'animal', a: 'pig', cost: 440 }, { id: 'horse2', kind: 'animal', a: 'horse', cost: 500 },
-  { id: 'help-hay', kind: 'helper', t: 'hay', cost: 580 }, { id: 'bull1', kind: 'animal', a: 'bull', cost: 680 },
-  { id: 'house-horse', kind: 'house', a: 'horse', cost: 780 }, { id: 'cow3', kind: 'animal', a: 'cow', cost: 880 },
-  { id: 'help-carrot', kind: 'helper', t: 'carrot', cost: 960 }, { id: 'house-bull', kind: 'house', a: 'bull', cost: 1200 }
+  { id: 'hen3', kind: 'animal', a: 'hen', cost: 8 }, { id: 'pig2', kind: 'animal', a: 'pig', cost: 15 },
+  { id: 'house-hen', kind: 'house', a: 'hen', cost: 25 }, { id: 'help-water', kind: 'helper', t: 'water', cost: 40 },
+  { id: 'hay', kind: 'source', t: 'hay', cost: 55 }, { id: 'cow1', kind: 'animal', a: 'cow', cost: 70 },
+  { id: 'cow2', kind: 'animal', a: 'cow', cost: 110 }, { id: 'house-pig', kind: 'house', a: 'pig', cost: 140 },
+  { id: 'hen4', kind: 'animal', a: 'hen', cost: 170 }, { id: 'help-grain', kind: 'helper', t: 'grain', cost: 210 },
+  { id: 'horse1', kind: 'animal', a: 'horse', cost: 260 }, { id: 'house-cow', kind: 'house', a: 'cow', cost: 330 },
+  { id: 'pig3', kind: 'animal', a: 'pig', cost: 380 }, { id: 'horse2', kind: 'animal', a: 'horse', cost: 440 },
+  { id: 'help-hay', kind: 'helper', t: 'hay', cost: 520 }, { id: 'bull1', kind: 'animal', a: 'bull', cost: 620 },
+  { id: 'house-horse', kind: 'house', a: 'horse', cost: 720 }, { id: 'cow3', kind: 'animal', a: 'cow', cost: 820 },
+  { id: 'help-carrot', kind: 'helper', t: 'carrot', cost: 900 }, { id: 'house-bull', kind: 'house', a: 'bull', cost: 1100 }
 ];
+/* each pen has a feed box; it holds up to this many of each food, so you can fill it before the animals get hungry */
+const BOX_MAX = 6;
 const UPS = [
   { id: 'speed', base: 10, g: 1.8, max: 8 }, { id: 'bag', base: 15, g: 1.8, max: 8 },
   { id: 'farm', base: 25, g: 1.9, max: 8 }, { id: 'guests', base: 40, g: 1.9, max: 8 }
@@ -467,7 +472,7 @@ function padPos(p) {
   return [0, 0];
 }
 let state = null;
-function fresh() { return { v: 1, coins: 0, total: 0, paid: {}, owned: { hen1: true }, lv: { speed: 0, bag: 0, farm: 0, guests: 0 }, sound: true, moved: false }; }
+function fresh() { return { v: 1, coins: 0, total: 0, paid: {}, owned: {}, lv: { speed: 0, bag: 0, farm: 0, guests: 0 }, sound: true, moved: false }; }
 const own = (id) => !!state.owned[id];
 const speed = () => 3.0 + 0.45 * state.lv.speed;
 const cap = () => 3 + 1 * state.lv.bag;
@@ -689,8 +694,12 @@ function buildPen(a) {
   /* the trough on the side that faces the middle of the farm */
   const sx = -Math.sign(p.x), tr = new T.BoxGeometry(0.4, 0.22, 1.2); tr.translate(0, 0.11, 0); part(fac(jit(tr, 0.015, 9), PAL.trunk, 60), g, sx * (p.w / 2 - 0.3), 0, 0);
   const f = feedPos(a); ring(f[0], f[1], 0.85);
-  const pen = { a, g, house: null, big: false, trough: [p.x + sx * (p.w / 2 - 0.75), p.z] }; pens[a] = pen; setHouse(a, false); return pen;
+  const pen = { a, g, house: null, big: false, trough: [p.x + sx * (p.w / 2 - 0.75), p.z] }; pens[a] = pen;
+  pen.inbound = {}; pen.food = new Pile(g, (k) => [sx * (p.w / 2 - 0.3) + ((k % 2) - 0.5) * 0.16, 0.24 + Math.floor(k / 12) * 0.18, -0.5 + (Math.floor(k / 2) % 6) * 0.2]); setHouse(a, false); return pen;
 }
+/* food on its way to a box counts too, so a box never overfills */
+function boxCount(pen, t) { return pen.food.count(t) + (pen.inbound[t] || 0); }
+function boxIn(pen, m, dur) { const t = m.userData.type; pen.inbound[t] = (pen.inbound[t] || 0) + 1; fly(m, () => pen.g.localToWorld(tmpV.set(0, 0.4, 0)), () => { pen.inbound[t]--; pen.food.add(m); }, dur); }
 function setHouse(a, big) {
   const pen = pens[a]; if (!pen) return; if (pen.house) sc.remove(pen.house); pen.big = big;
   const h = housePos(a), g = new T.Group(); g.position.set(h[0], 0, h[1]); sc.add(g); pen.house = g;
@@ -719,7 +728,7 @@ function feed(an, m) {
   for (let k = 0; k < 5; k++) { const h = new T.Mesh(heartGeo, heartMat); h.position.set(wp.x, an.h, wp.z); const a = k / 5 * 6.283; h.userData = { v: new T.Vector3(Math.cos(a) * 1.2, 3 + hash(k, 5), Math.sin(a) * 1.2), t: 0 }; sc.add(h); pops.push(h); }
   Snd.play('coin', { gain: 0.45 }, 0, 90); Snd.play('sparkle', { gain: 0.35 }, 0.05, 200);
 }
-function available(t) { return t === 'grain' || t === 'water' || own(t); }
+function available(t) { return !!sources[t]; }
 
 /* ---------- helpers: each one looks after one kind of food ---------- */
 const helpers = [];
@@ -735,20 +744,26 @@ function addHelper(t) {
   const home = [SRC[t].x, SRC[t].z - 1.25], g = robot(FOOD_COL[t]); g.position.set(home[0], 0, home[1]); sc.add(g);
   const h = { g, t, home, st: 'idle', target: null, k: 0 }; h.pile = new Pile(g, (k) => { let y = 0.52; for (let q = 0; q < k; q++) y += ITEM_H[t]; return [0, y, -0.28]; }); helpers.push(h);
 }
-function wanting(t, exceptHelper) { return animals.filter((an) => an.want === t && an.incoming <= 0 && !helpers.some((o) => o !== exceptHelper && o.target && o.target.a === an.a && o.t === t)); }
+/* the pen that most needs this food: someone is asking for it, or its box is running low */
+function needy(t, h) {
+  let best = null, bs = 0;
+  for (const a in pens) { if (!DIET[a].includes(t)) continue; const pen = pens[a], have = boxCount(pen, t); if (have >= BOX_MAX - 1 || helpers.some((o) => o !== h && o.t === t && o.target === pen)) continue;
+    const s = (BOX_MAX - have) + animals.filter((an) => an.a === a && an.want === t).length * 4; if (s > bs) { bs = s; best = pen; } }
+  return best;
+}
 function runHelper(h, dt) {
   const p = h.g.position, sp = helpSpeed();
   if (h.st === 'idle') {
-    const w = wanting(h.t, h)[0];
-    if (w) { h.target = w; h.st = h.pile.items.length ? 'go' : 'get'; } else walkTo(h.g, h.home[0], h.home[1], dt, 2);
+    const pen = needy(h.t, h);
+    if (pen) { h.target = pen; h.st = h.pile.items.length ? 'go' : 'get'; } else walkTo(h.g, h.home[0], h.home[1], dt, 2);
   } else if (h.st === 'get') {
     if (walkTo(h.g, SRC[h.t].x + 0.5, SRC[h.t].z + 0.8, dt, sp)) { h.k -= dt; if (h.k <= 0) { h.k = 0.15; if (h.pile.items.length < 4) { const m = mk(h.t); m.position.set(SRC[h.t].x, 0.5, SRC[h.t].z); sc.add(m); fly(m, () => h.g.localToWorld(tmpV.set(0, 0.6 + h.pile.items.length * 0.2, -0.28)), () => h.pile.add(m)); } else h.st = 'go'; } }
   } else if (h.st === 'go') {
     const f = feedPos(h.target.a); if (walkTo(h.g, f[0] + 0.4, f[1] + 0.3, dt, sp)) { h.st = 'feed'; h.k = 0; }
   } else if (h.st === 'feed') {
     h.k -= dt; if (h.k <= 0) { h.k = 0.35;
-      const an = animals.find((o) => o.a === h.target.a && o.want === h.t && o.incoming <= 0);
-      if (an && h.pile.items.length) { const m = h.pile.take(); an.incoming++; fly(m, () => an.g.localToWorld(tmpV.set(0, an.h * 0.6, 0.2)), () => feed(an, m), 0.45); }
+      const pen = h.target;
+      if (h.pile.items.length && boxCount(pen, h.t) < BOX_MAX) { const m = h.pile.take(); boxIn(pen, m, 0.4); }
       else { h.target = null; h.st = 'idle'; } }
   }
   p.y = h.st === 'get' || h.st === 'go' ? Math.abs(Math.sin(time * 12 + h.home[0])) * 0.04 : 0;
@@ -795,13 +810,14 @@ const chevron = new T.Mesh(new T.ConeGeometry(0.16, 0.38, 3), new T.MeshBasicMat
 function goal() {
   const p = nextPad();
   if (p && state.coins >= p.cost - (state.paid[p.id] || 0)) return padPos(p);
-  const hungry = animals.filter((an) => an.want && an.incoming <= 0);
-  /* carrying something an animal wants: go to that pen */
-  const fed = hungry.filter((an) => carry.count(an.want)).sort((a, b) => b.wait - a.wait)[0];
-  if (fed) return feedPos(fed.a);
-  /* otherwise fetch what the hungriest animal wants */
-  const next = hungry.filter((an) => carry.items.length < cap()).sort((a, b) => b.wait - a.wait)[0];
-  if (next && sources[next.want]) return [sources[next.want].x, sources[next.want].z];
+  /* carrying food a pen can use: take it there, the pen with a hungry animal first */
+  const fits = (a) => carry.items.some((m) => DIET[a].includes(m.userData.type) && boxCount(pens[a], m.userData.type) < BOX_MAX);
+  const usable = Object.keys(pens).filter(fits).sort((a, b) => animals.filter((an) => an.a === b && an.want).length - animals.filter((an) => an.a === a && an.want).length);
+  if (usable.length) return feedPos(usable[0]);
+  /* otherwise fetch what a hungry animal is missing in its box, or what a box is low on */
+  const hungry = animals.filter((an) => an.want && !an.pen.food.count(an.want)).sort((a, b) => b.wait - a.wait)[0];
+  if (hungry && sources[hungry.want]) return [sources[hungry.want].x, sources[hungry.want].z];
+  for (const a in pens) for (const t of DIET[a]) if (sources[t] && pens[a].food.count(t) < 2) return [sources[t].x, sources[t].z];
   return null;
 }
 /* ---------- camera and input ---------- */
@@ -811,11 +827,16 @@ if (window.ResizeObserver) new ResizeObserver(resize).observe(wrap); else window
 resize();
 const camFocus = new T.Vector3().copy(pip.position);
 const ray = new T.Raycaster(), ndc = new T.Vector2(), groundPlane = new T.Plane(new T.Vector3(0, 1, 0), 0);
-let holding = false, keys = {};
+let holding = false, keys = {}, joy = null;
+/* two ways to steer: drag like a joystick (Pip walks while the finger is down, stops when it lifts), or tap where Pip should go */
+const dragMode = () => state.ctrl !== 'tap';
+const joyEl = $('joy'), JOY_R = 56;
+function joyShow() { if (!joyEl) return; joyEl.hidden = false; joyEl.style.left = joy.x0 + 'px'; joyEl.style.top = joy.y0 + 'px'; joyKnob(); }
+function joyKnob() { if (!joyEl) return; const l = Math.hypot(joy.dx, joy.dy), k = l > JOY_R ? JOY_R / l : 1; joyEl.firstElementChild.style.transform = 'translate(' + joy.dx * k + 'px,' + joy.dy * k + 'px)'; }
 function aim(e) { const r = canvas.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, cam); if (ray.ray.intersectPlane(groundPlane, tmpV)) target.set(clamp(tmpV.x, -10.3, 10.3), 0, clamp(tmpV.z, -6.9, 6.9)); }
-wrap.addEventListener('pointerdown', (e) => { if (e.button && e.button !== 0) return; closeMenu(); Snd.init(); holding = true; try { wrap.setPointerCapture(e.pointerId); } catch (er) {} aim(e); if (!state.moved) { state.moved = true; $('hint').hidden = true; } });
-wrap.addEventListener('pointermove', (e) => { if (holding) aim(e); });
-['pointerup', 'pointercancel'].forEach((ev) => wrap.addEventListener(ev, () => { holding = false; }));
+wrap.addEventListener('pointerdown', (e) => { if (e.button && e.button !== 0) return; closeMenu(); Snd.init(); holding = true; try { wrap.setPointerCapture(e.pointerId); } catch (er) {} if (dragMode()) { joy = { x0: e.clientX, y0: e.clientY, dx: 0, dy: 0 }; joyShow(); } else aim(e); if (!state.moved) { state.moved = true; $('hint').hidden = true; } });
+wrap.addEventListener('pointermove', (e) => { if (!holding) return; if (joy) { joy.dx = e.clientX - joy.x0; joy.dy = e.clientY - joy.y0; const l = Math.hypot(joy.dx, joy.dy); if (l > JOY_R * 1.6) { /* the stick follows a finger that wanders far */ joy.x0 += joy.dx * (1 - JOY_R * 1.6 / l); joy.y0 += joy.dy * (1 - JOY_R * 1.6 / l); joy.dx = e.clientX - joy.x0; joy.dy = e.clientY - joy.y0; joyShow(); } joyKnob(); } else aim(e); });
+['pointerup', 'pointercancel'].forEach((ev) => wrap.addEventListener(ev, () => { holding = false; if (joy) { joy = null; if (joyEl) joyEl.hidden = true; target.copy(pip.position); } }));
 window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'w', 'a', 's', 'd'].includes(k)) { keys[k] = true; e.preventDefault(); Snd.init(); if (!state.moved) { state.moved = true; $('hint').hidden = true; } } if (k === 'escape') closeMenu(); });
 window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 wrap.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -851,6 +872,7 @@ UPS.forEach((u) => {
   });
 });
 $('soundBtn').addEventListener('click', () => { state.sound = !state.sound; Snd.init(); Snd.set(state.sound); renderMenu(); });
+if ($('ctrlBtn')) $('ctrlBtn').addEventListener('click', () => { state.ctrl = dragMode() ? 'tap' : 'drag'; Snd.play('pop', { gain: 0.4, f: dragMode() ? 800 : 600 }); renderMenu(); save(); });
 function renderMenu() {
   UPS.forEach((u) => {
     const b = $('up-' + u.id), lv = state.lv[u.id], c = upCost(u), maxed = lv >= u.max;
@@ -859,6 +881,7 @@ function renderMenu() {
     b.classList.toggle('poor', !maxed && state.coins < c); b.classList.toggle('can', !maxed && state.coins >= c); b.classList.toggle('maxed', maxed);
     b.querySelector('.need b').style.width = Math.min(100, state.coins / c * 100) + '%';
   });
+  if ($('ctrlBtn')) { $('ctrlBtn').classList.toggle('tap', !dragMode()); $('ctrlBtn').setAttribute('aria-label', dragMode() ? 'Steering: drag with your finger' : 'Steering: tap where to go'); }
   $('soundBtn').setAttribute('aria-pressed', String(state.sound)); $('soundBtn').classList.toggle('off', !state.sound);
 }
 
@@ -873,6 +896,7 @@ function step(dt) {
   time += dt;
   /* Pip moves toward the touch point, or by keys */
   let kx = (keys.d || keys.arrowright ? 1 : 0) - (keys.a || keys.arrowleft ? 1 : 0), kz = (keys.s || keys.arrowdown ? 1 : 0) - (keys.w || keys.arrowup ? 1 : 0);
+  if (joy) { if (Math.hypot(joy.dx, joy.dy) > 10) { kx = joy.dx; kz = joy.dy; } else target.copy(pip.position); }
   if (kx || kz) { const l = Math.hypot(kx, kz); target.set(clamp(pip.position.x + kx / l * 0.6, -10.3, 10.3), 0, clamp(pip.position.z + kz / l * 0.6, -6.9, 6.9)); }
   const moving = !walkTo(pip, target.x, target.z, dt, speed());
   pipWalk = moving ? pipWalk + dt : 0;
@@ -887,6 +911,8 @@ function step(dt) {
     if (an.want) { an.wait += dt; const gap = an.a === 'hen' ? 0.5 : 0.78, tz = p.z + ((animals.filter((o) => o.a === an.a).indexOf(an) % 3) - 1) * gap; an.tx = an.pen.trough[0]; an.tz = tz; }
     else if (Math.hypot(an.g.position.x - an.tx, an.g.position.z - an.tz) < 0.1 && Math.random() < dt * 0.4) { an.tx = p.x + (Math.random() - 0.5) * (p.w - 1.2); an.tz = p.z + (Math.random() - 0.5) * (p.d - 1.0); }
     const moving = !walkTo(an.g, an.tx, an.tz, dt, an.a === 'hen' ? 0.8 : 0.6);
+    /* a hungry animal at the box eats by itself if its food is there */
+    if (an.want && !moving && an.incoming <= 0 && an.pen.food.count(an.want)) { const m = an.pen.food.take(an.want); an.incoming++; fly(m, () => an.g.localToWorld(tmpV.set(0, an.h * 0.55, 0.25)), () => feed(an, m), 0.35); }
     if (!moving && an.want) an.g.rotation.y += (Math.atan2(-Math.sign(p.x), 0) - an.g.rotation.y) * Math.min(1, dt * 4);
     if (an.hop > 0) an.hop = Math.max(0, an.hop - dt * 2.2);
     const bob = reduced ? 0 : moving ? Math.abs(Math.sin(time * 9 + an.tx)) * 0.04 : 0;
@@ -900,11 +926,12 @@ function step(dt) {
     let did = false;
     for (const t in sources) { const s = sources[t]; if (!near(s.x, s.z, 0.95)) continue;
       if (carry.items.length < cap()) { const m = mk(t); m.position.set(SRC[t].x, 0.6, SRC[t].z); sc.add(m); fly(m, () => { carry.parent.updateMatrixWorld(); return pip.localToWorld(tmpV.set(0, 0.72 + carry.items.reduce((a, b) => a + ITEM_H[b.userData.type], 0), -0.32)); }, () => carry.add(m)); Snd.play('pop', { gain: 0.45, f: 500 + carry.items.length * 60 }); did = true; }
-      else { /* basket full: put back something nobody wants right now */ const spare = carry.items.find((m) => !animals.some((an) => an.want === m.userData.type)); if (spare && spare.userData.type !== t) { carry.take(spare.userData.type); fly(spare, () => tmpV.set(SRC[spare.userData.type].x, 0.5, SRC[spare.userData.type].z), () => sc.remove(spare)); did = true; } }
+      else { /* basket full: put back something no box has room for */ const spare = carry.items.find((m) => m.userData.type !== t && !Object.keys(pens).some((a) => DIET[a].includes(m.userData.type) && boxCount(pens[a], m.userData.type) < BOX_MAX)) || carry.items.find((m) => m.userData.type !== t && !animals.some((an) => an.want === m.userData.type)); if (spare && spare.userData.type !== t) { carry.take(spare.userData.type); fly(spare, () => tmpV.set(SRC[spare.userData.type].x, 0.5, SRC[spare.userData.type].z), () => sc.remove(spare)); did = true; } }
       break; }
-    if (!did) for (const a in pens) { const f = feedPos(a); if (!near(f[0], f[1], 1.0)) continue;
-      const an = animals.find((o) => o.a === a && o.want && o.incoming <= 0 && carry.count(o.want));
-      if (an) { const m = carry.take(an.want); an.incoming++; fly(m, () => an.g.localToWorld(tmpV.set(0, an.h * 0.6, 0.2)), () => feed(an, m), 0.4); Snd.play('tick', { gain: 0.45, f: 900 }); did = true; }
+    /* at a pen, everything its animals eat goes into the feed box */
+    if (!did) for (const a in pens) { const f = feedPos(a), pen = pens[a]; if (!near(f[0], f[1], 1.0)) continue;
+      const m = carry.items.slice().reverse().find((q) => DIET[a].includes(q.userData.type) && boxCount(pen, q.userData.type) < BOX_MAX);
+      if (m) { carry.take(m.userData.type); boxIn(pen, m, 0.3); Snd.play('tick', { gain: 0.45, f: 900 }); did = true; }
       break; }
     if (did) xferT = 0.12;
   }
@@ -945,14 +972,13 @@ function step(dt) {
   ambT -= dt; if (ambT <= 0) { ambT = 2; Snd.ambient(); }
 }
 function frame(now) { let dt = (now - lastT) / 1000; lastT = now; if (dt > 0.1) dt = 0.1; if (dt > 0) step(dt); saveT += dt; if (saveT > 5) { saveT = 0; save(); } requestAnimationFrame(frame); }
-if (window.__farmTest) window.__farmTest = { go: (x, z) => target.set(x, 0, z), pip: () => [pip.position.x, pip.position.z], st: () => state, carry: () => carry.items.map((m) => m.userData.type).join(','), animals: () => animals.map((an) => an.a + ':' + (an.want || '-')).join(' '), helpers: () => helpers.map((h) => h.t + ':' + h.st).join(' ') };
+if (window.__farmTest) window.__farmTest = { go: (x, z) => target.set(x, 0, z), pip: () => [pip.position.x, pip.position.z], st: () => state, carry: () => carry.items.map((m) => m.userData.type).join(','), animals: () => animals.map((an) => an.a + ':' + (an.want || '-')).join(' '), boxes: () => Object.fromEntries(Object.keys(pens).map((a) => [a, pens[a].food.items.map((m) => m.userData.type[0]).join('')])), helpers: () => helpers.map((h) => h.t + ':' + h.st).join(' ') };
 let started = false;
 function start(data) {
   if (started) return; started = true;
   const hot = data && data.state && data.state.v === 1 ? data.state : null;
   state = hot || load() || fresh();
-  state.owned.hen1 = true;
-  addSource('grain'); addSource('water'); addAnimal('hen');
+  addSource('grain'); addSource('water'); addSource('carrot'); addAnimal('hen'); addAnimal('hen'); addAnimal('pig'); /* two hens and a pig from the start */
   PADS.forEach((p) => { if (own(p.id)) build(p); });
   showPad(); $('hint').hidden = !!state.moved;
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
