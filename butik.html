@@ -118,6 +118,9 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 @keyframes toastIn { 0% { opacity: 0; transform: translateX(-50%) scale(0.6); } 10% { opacity: 1; transform: translateX(-50%) scale(1.06); } 16% { transform: translateX(-50%) scale(1); } 85% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .toast.show { animation: none; } }
 .ups[hidden], .round[hidden] { display: none; }
+.fpsBtn { position: relative; }
+.fpsBtn b { position: absolute; left: 0; right: 0; bottom: 5px; font: 800 15px/1 system-ui, sans-serif; color: var(--ink); text-align: center; }
+.fpsBtn.eco .leaf { stroke: #2f7d4f; transform: rotate(-50deg); transform-origin: 24px 30px; }
 </style>
 </head>
 <body>
@@ -144,6 +147,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
       <button type="button" class="round" id="soundBtn" aria-label="Sound" aria-pressed="true"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 19 h7 l9 -8 v26 l-9 -8 h-7 z" fill="#fff6e4" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/><path class="wave" d="M31 17 q5 7 0 14 M35 13 q9 11 0 22" fill="none" stroke="#22303c" stroke-width="3" stroke-linecap="round"/><path class="mute" d="M31 18 l10 12 M41 18 l-10 12" stroke="#b8401f" stroke-width="3.5" stroke-linecap="round"/></svg></button>
       <button type="button" class="round" id="wardBtn" hidden aria-label="Change clothes and hair"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M17 8 L8 14 L11 23 L15 21 V40 H33 V21 L37 23 L40 14 L31 8 C29 12 19 12 17 8 Z" fill="#e9684a" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/></svg></button>
       <button type="button" class="round ctrlBtn" id="ctrlBtn" aria-label="Steering"><svg class="drag" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" fill="none" stroke="#22303c" stroke-width="3" stroke-dasharray="4 4"/><circle cx="31" cy="18" r="8" fill="#e9684a" stroke="#22303c" stroke-width="3"/><path d="M24 24 L30 19" stroke="#22303c" stroke-width="3" stroke-linecap="round"/></svg><svg class="tapI" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="7" fill="#e9684a" stroke="#22303c" stroke-width="3"/><circle cx="24" cy="24" r="15" fill="none" stroke="#22303c" stroke-width="3"/><path d="M24 3 v5 M24 40 v5 M3 24 h5 M40 24 h5" stroke="#22303c" stroke-width="3" stroke-linecap="round"/></svg></button>
+      <button type="button" class="round fpsBtn" id="fpsBtn" aria-label="Frame rate"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 33 A17 17 0 1 1 40 33" fill="#fff6e4" stroke="#22303c" stroke-width="3" stroke-linecap="round"/><path class="leaf" d="M24 30 L33 17" stroke="#e9684a" stroke-width="4" stroke-linecap="round"/><circle cx="24" cy="30" r="3.5" fill="#22303c"/></svg><b>30</b></button>
       <button type="button" class="round updBtn" id="updBtn" aria-label="Check for updates" hidden><svg viewBox="0 0 48 48" aria-hidden="true"><g class="arr"><path d="M38 20 A15 15 0 0 0 11 15" fill="none" stroke="#22303c" stroke-width="4" stroke-linecap="round"/><path d="M8 8 L10 17 L19 15" fill="none" stroke="#22303c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 28 A15 15 0 0 0 37 33" fill="none" stroke="#22303c" stroke-width="4" stroke-linecap="round"/><path d="M40 40 L38 31 L29 33" fill="none" stroke="#22303c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g><path class="chk" d="M12 25 L21 34 L37 15" fill="none" stroke="#2f7d4f" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><g class="bad"><path d="M15 15 L33 33 M33 15 L15 33" stroke="#9a8f80" stroke-width="5" stroke-linecap="round"/></g></svg><span class="dot" aria-hidden="true"></span></button>
       <a class="round homeBtn" id="homeBtn" href="./" aria-label="Choose game" hidden><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 24 L24 9 L40 24 M13 20 V39 H35 V20" fill="#fff6e4" stroke="#22303c" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="20" y="27" width="8" height="12" fill="#e9684a" stroke="#22303c" stroke-width="3"/></svg></a>
       <button type="button" class="round" id="menuClose" aria-label="Close"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 14 L34 34 M34 14 L14 34" stroke="#22303c" stroke-width="5" stroke-linecap="round"/></svg></button>
@@ -162,7 +166,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Done"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M11 25 L20 34 L37 14" fill="none" stroke="#fff6e4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
 </div>
-<meta name="app-ver" content="20261120181232">
+<meta name="app-ver" content="20261120182332">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -558,7 +562,9 @@ const T = window.THREE;
 const wrap = $('scene'), canvas = $('gl');
 if (!T) { $('nogl').hidden = false; return; }
 let renderer; try { renderer = new T.WebGLRenderer({ canvas, antialias: true }); } catch (e) { $('nogl').hidden = false; return; }
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
+/* battery: a lower pixel ratio and a frame cap the player picks in settings (20, 30 or 60 per second) */
+const FPS_OPTS = [30, 60, 20]; let fpsCap = 30; try { const v = +localStorage.getItem('pips-fps'); if (FPS_OPTS.includes(v)) fpsCap = v; } catch (e) {}
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, fpsCap === 20 ? 1 : 1.5)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFShadowMap;
 const sc = new T.Scene(); sc.background = new T.Color(PAL.haze); sc.fog = new T.Fog(PAL.haze, 28, 70);
 const cam = new T.PerspectiveCamera(36, 1, 0.5, 300);
 const MAT = new T.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 1, metalness: 0 });
@@ -575,7 +581,7 @@ const ico = (r, d, seed, j) => jit(new T.IcosahedronGeometry(r, d), j == null ? 
 const ink = new T.MeshBasicMaterial({ color: PAL.ink });
 
 sc.add(new T.HemisphereLight(0xa9c9ff, 0x8fa98a, 0.66));
-const sun = new T.DirectionalLight(0xffe0ba, 0.9); sun.position.set(-9, 12, 7); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+const sun = new T.DirectionalLight(0xffe0ba, 0.9); sun.position.set(-9, 12, 7); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
 Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 12, bottom: -12, near: 1, far: 50 }); sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03; sc.add(sun); sc.add(sun.target);
 const sky = new T.Mesh(new T.SphereGeometry(150, 32, 16), new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: false, uniforms: { top: { value: new T.Color('#7db7dd') }, hor: { value: new T.Color('#ffe2c4') } }, vertexShader: 'varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }', fragmentShader: 'varying vec3 vD; uniform vec3 top; uniform vec3 hor; void main(){ float y = max(normalize(vD).y, 0.0); gl_FragColor = vec4(mix(hor, top, pow(y, 0.55)), 1.0); }' })); sc.add(sky);
 
@@ -955,7 +961,7 @@ function popDemo(room, dt) {
   const h = room.hen.userData.hop || 0; room.hen.position.y = Math.sin(h * Math.PI) * 0.25; room.hen.userData.hop = Math.max(0, h - dt * 3);
 }
 /* the wardrobe room: a mirror and a clothes rail; stand in front of the mirror to change */
-const wardRing = mkRing(HO.x, HO.z - 5.6);
+const wardRing = mkRing(HO.x, HO.z - 6.15);
 {
   const fr = new T.BoxGeometry(1.2, 1.8, 0.12); part(fac(fr, PAL.trunk, 170), inG, 0, 0.95, -6.8);
   const gl = new T.Mesh(new T.PlaneGeometry(0.95, 1.55), new T.MeshStandardMaterial({ color: '#cfe8f2', roughness: 0.15, metalness: 0.3 })); gl.position.set(0, 0.95, -6.73); inG.add(gl);
@@ -1370,6 +1376,7 @@ UPS.forEach((u) => {
   });
 });
 $('soundBtn').addEventListener('click', () => { state.sound = !state.sound; Snd.init(); Snd.set(state.sound); renderMenu(); });
+if ($('fpsBtn')) $('fpsBtn').addEventListener('click', () => { fpsCap = FPS_OPTS[(FPS_OPTS.indexOf(fpsCap) + 1) % FPS_OPTS.length]; try { localStorage.setItem('pips-fps', fpsCap); } catch (e) {} renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, fpsCap === 20 ? 1 : 1.5)); resize(); Snd.play('pop', { gain: 0.4, f: 400 + fpsCap * 8 }); renderMenu(); });
 if ($('ctrlBtn')) $('ctrlBtn').addEventListener('click', () => { state.ctrl = dragMode() ? 'tap' : 'drag'; Snd.play('pop', { gain: 0.4, f: dragMode() ? 800 : 600 }); renderMenu(); save(); });
 function renderMenu() {
   UPS.forEach((u) => {
@@ -1379,6 +1386,7 @@ function renderMenu() {
     b.classList.toggle('poor', !maxed && state.coins < c); b.classList.toggle('can', !maxed && state.coins >= c); b.classList.toggle('maxed', maxed);
     b.querySelector('.need b').style.width = Math.min(100, state.coins / c * 100) + '%';
   });
+  if ($('fpsBtn')) { $('fpsBtn').querySelector('b').textContent = fpsCap; $('fpsBtn').setAttribute('aria-label', 'Frame rate: ' + fpsCap + ' per second' + (fpsCap === 20 ? ', battery saver' : '')); $('fpsBtn').classList.toggle('eco', fpsCap < 60); }
   if ($('ctrlBtn')) { $('ctrlBtn').classList.toggle('tap', !dragMode()); $('ctrlBtn').setAttribute('aria-label', dragMode() ? 'Steering: drag with your finger' : 'Steering: tap where to go'); }
   $('soundBtn').setAttribute('aria-pressed', String(state.sound)); $('soundBtn').classList.toggle('off', !state.sound);
 }
@@ -1389,7 +1397,7 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catc
 function load() { try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (!s || s.v !== 1 || typeof s.coins !== 'number') return null; const b = fresh(); for (const k in b) if (!(k in s)) s[k] = b[k]; return s; } catch (e) { return null; } }
 
 /* ---------- loop ---------- */
-let menuT = 0, time = 0, xferT = 0, lastT = 0, saveT = 0, ambT = 0;
+let menuT = 0, time = 0, xferT = 0, lastT = 0, saveT = 0, ambT = 0, waterT = 0;
 function step(dt) {
   time += dt;
   /* Pip moves toward the touch point, or by keys */
@@ -1503,8 +1511,7 @@ function step(dt) {
   }
 
   /* water and camera */
-  for (let i = 0; i < wp.count; i++) { const x = wp.getX(i), z = wp.getZ(i); wp.setY(i, Math.sin(x * 0.5 + time * 0.9) * 0.06 + Math.sin(z * 0.42 - time * 0.7) * 0.06); }
-  wp.needsUpdate = true;
+  waterT -= dt; if (waterT <= 0) { waterT = 0.1; for (let i = 0; i < wp.count; i++) { const x = wp.getX(i), z = wp.getZ(i); wp.setY(i, Math.sin(x * 0.5 + time * 0.9) * 0.06 + Math.sin(z * 0.42 - time * 0.7) * 0.06); } wp.needsUpdate = true; }
   camFocus.lerp(pip.position, 1 - Math.exp(-dt * 4));
   dressT += ((dressing ? 1 : 0) - dressT) * Math.min(1, dt * 5); const k = (aspect < 1 ? 1.5 : 1.15) * (1 - 0.7 * dressT); cam.position.set(camFocus.x, 9.5 * k, camFocus.z + 8.5 * k); cam.lookAt(camFocus.x + (aspect < 1 ? 0 : 0.75) * dressT, 0.55 * dressT, camFocus.z + 0.3 + (aspect < 1 ? 0.55 : -0.1) * dressT);
   sun.position.set(camFocus.x - 9, 12, camFocus.z + 7); sun.target.position.copy(camFocus);
@@ -1513,7 +1520,7 @@ function step(dt) {
   menuT -= dt; if (menuT <= 0) { menuT = 0.25; const any = UPS.some((u) => state.lv[u.id] < u.max && state.coins >= upCost(u)); $('menuBtn').classList.toggle('ready', false); if (!$('menu').hidden) renderMenu(); }
   ambT -= dt; if (ambT <= 0) { ambT = 2; Snd.ambient(); }
 }
-function frame(now) { let dt = (now - lastT) / 1000; lastT = now; if (dt > 0.1) dt = 0.1; if (dt > 0) step(dt); saveT += dt; if (saveT > 5) { saveT = 0; save(); } requestAnimationFrame(frame); }
+function frame(now) { if (now - lastT < 1000 / fpsCap - 3) { requestAnimationFrame(frame); return; } let dt = (now - lastT) / 1000; lastT = now; if (dt > 0.1) dt = 0.1; if (dt > 0) step(dt); saveT += dt; if (saveT > 5) { saveT = 0; save(); } requestAnimationFrame(frame); }
 
 if (window.__farmTest) window.__farmTest = { go: (x, z) => target.set(x, 0, z), pip: () => [pip.position.x, pip.position.z], st: () => state, money: () => money.n, carry: () => carry.items.length, fillShelf: (t) => { while (shelf[t].items.length < SHELF_MAX) shelf[t].add(mk(t)); }, stalls: () => Object.fromEntries(Object.keys(stalls).map((t) => [t, { shelf: stalls[t].shelf.items.length, money: stalls[t].money.n, robot: stalls[t].stocker && stalls[t].stocker.st }])), guests: () => customers.map((c) => c.slot + ':' + c.type + ':' + c.st).join(' '), stock: () => ({ shelf: Object.fromEntries(Object.keys(shelf).map((t) => [t, shelf[t].items.length])), back: back.items.length }) };
 let started = false;
