@@ -424,20 +424,27 @@ const SPOT = {
   hen: [[-3, -0.3], [-4.4, -0.3], [-3, 1.5], [-4.4, 1.5], [-5.8, -0.3], [-5.8, 1.5]],
   tree: [[-1.0, -3.4], [0.9, -3.7], [-2.9, -3.9]],
   cow: [[-6.4, -3.7], [-4.8, -4.3]],
-  helper: [[0.4, 3.4], [-0.8, 3.4]],
+  helper: [[2.3, 2.7], [4.9, 2.8]],
   sign: [[8.3, 0.6], [9.7, 0.6], [9.4, -4.3]]
 };
 const COUNTER = { x: 3.6, z: 0.4 }, DROP = { x: 3.6, z: 1.65 }, MONEY = { x: 1.5, z: 1.9 };
 const BAKERY = { x: 6.6, z: -3.6 }, B_IN = { x: 5.6, z: -2.3 }, B_OUT = { x: 7.6, z: -2.3 };
 const PADS = [
   { id: 'hen2', kind: 'hen', i: 1, cost: 8 }, { id: 'hen3', kind: 'hen', i: 2, cost: 20 }, { id: 'sign1', kind: 'sign', i: 0, cost: 30 },
-  { id: 'tree1', kind: 'tree', i: 0, cost: 40 }, { id: 'hen4', kind: 'hen', i: 3, cost: 70 },
-  { id: 'tree2', kind: 'tree', i: 1, cost: 110 }, { id: 'cow1', kind: 'cow', i: 0, cost: 200 },
-  { id: 'helper1', kind: 'helper', i: 0, cost: 320 }, { id: 'hen5', kind: 'hen', i: 4, cost: 450 }, { id: 'sign2', kind: 'sign', i: 1, cost: 550 },
-  { id: 'cow2', kind: 'cow', i: 1, cost: 650 }, { id: 'bakery', kind: 'bakery', cost: 900 },
-  { id: 'cashier', kind: 'cashier', cost: 1300 }, { id: 'tree3', kind: 'tree', i: 2, cost: 1800 }, { id: 'sign3', kind: 'sign', i: 2, cost: 2000 },
-  { id: 'hen6', kind: 'hen', i: 5, cost: 2400 }, { id: 'helper2', kind: 'helper', i: 1, cost: 3200 }
+  { id: 'tree1', kind: 'tree', i: 0, cost: 40 }, { id: 'stall-egg', kind: 'stall', t: 'egg', cost: 60 }, { id: 'hen4', kind: 'hen', i: 3, cost: 70 },
+  { id: 'tree2', kind: 'tree', i: 1, cost: 110 }, { id: 'stock-egg', kind: 'stock', t: 'egg', cost: 160 }, { id: 'cow1', kind: 'cow', i: 0, cost: 200 },
+  { id: 'sell-egg', kind: 'seller', t: 'egg', cost: 260 }, { id: 'stall-apple', kind: 'stall', t: 'apple', cost: 320 },
+  { id: 'helper1', kind: 'helper', i: 0, cost: 380 }, { id: 'hen5', kind: 'hen', i: 4, cost: 450 }, { id: 'stock-apple', kind: 'stock', t: 'apple', cost: 520 },
+  { id: 'sign2', kind: 'sign', i: 1, cost: 550 }, { id: 'cow2', kind: 'cow', i: 1, cost: 650 }, { id: 'sell-apple', kind: 'seller', t: 'apple', cost: 750 },
+  { id: 'bakery', kind: 'bakery', cost: 900 }, { id: 'stall-milk', kind: 'stall', t: 'milk', cost: 1000 },
+  { id: 'cashier', kind: 'cashier', cost: 1300 }, { id: 'stock-milk', kind: 'stock', t: 'milk', cost: 1500 }, { id: 'tree3', kind: 'tree', i: 2, cost: 1800 },
+  { id: 'sell-milk', kind: 'seller', t: 'milk', cost: 1900 }, { id: 'sign3', kind: 'sign', i: 2, cost: 2000 },
+  { id: 'hen6', kind: 'hen', i: 5, cost: 2400 }, { id: 'stall-cake', kind: 'stall', t: 'cake', cost: 2600 },
+  { id: 'helper2', kind: 'helper', i: 1, cost: 3200 }, { id: 'stock-cake', kind: 'stock', t: 'cake', cost: 3600 }, { id: 'sell-cake', kind: 'seller', t: 'cake', cost: 4200 }
 ];
+/* one stall per product: buy the stall, then a robot that stocks it, then a seller who takes the money */
+const STALL_AT = { egg: [-4.2, 4.5], apple: [-1.1, 4.5], milk: [2.0, 4.5], cake: [7.3, 4.5] };
+const stallDrop = (t) => [STALL_AT[t][0], STALL_AT[t][1] + 1.25];
 const UPS = [
   { id: 'speed', base: 15, g: 1.8, max: 8 }, { id: 'bag', base: 20, g: 1.8, max: 8 },
   { id: 'farm', base: 30, g: 1.9, max: 8 }, { id: 'guests', base: 40, g: 1.9, max: 8 }
@@ -446,6 +453,9 @@ function padPos(p) {
   if (p.kind === 'bakery') return [BAKERY.x, BAKERY.z + 1.9];
   if (p.kind === 'cashier') return [5.7, 1.7];
   if (p.kind === 'sign') return SPOT.sign[p.i];
+  if (p.kind === 'stall') return stallDrop(p.t);
+  if (p.kind === 'stock') return [STALL_AT[p.t][0] - 1.3, STALL_AT[p.t][1] + 0.9];
+  if (p.kind === 'seller') return [STALL_AT[p.t][0] + 1.3, STALL_AT[p.t][1] + 0.9];
   const s = SPOT[p.kind][p.i]; return p.kind === 'hen' || p.kind === 'helper' ? s : [s[0], s[1] + 1.2];
 }
 let state = null;
@@ -526,7 +536,7 @@ function tree(kind, s) {
   else { geo = new T.CylinderGeometry(0.09, 0.12, 0.7, 5); geo.translate(0, 0.35, 0); part(fac(geo, PAL.trunk, s), g); part(fac(ico(0.6, 1, s), PAL.forest, s), g, 0, 1.15, 0); }
   return g;
 }
-[[-10, -6, 'pine'], [-8.4, -6.6, 'pine'], [-10.2, -1.5, 'tree'], [-10, 3.5, 'pine'], [-7.5, 6.2, 'tree'], [9.8, -6.2, 'pine'], [10.2, 2.5, 'tree'], [8.3, 6.4, 'pine'], [2, -6.6, 'tree'], [-2.5, -6.8, 'pine'], [5.5, -6.6, 'pine'], [-4, 6.6, 'pine']].forEach((t, i) => { const m = tree(t[2], i * 7 + 3); m.position.set(t[0], hAt(t[0], t[1]), t[1]); m.rotation.y = hash(i, 4) * 6.28; m.scale.setScalar(0.85 + hash(i, 9) * 0.4); sc.add(m); });
+[[-10, -6, 'pine'], [-8.4, -6.6, 'pine'], [-10.2, -1.5, 'tree'], [-10, 3.5, 'pine'], [-7.5, 6.2, 'tree'], [9.8, -6.2, 'pine'], [10.2, 2.5, 'tree'], [9.9, 6.3, 'pine'], [2, -6.6, 'tree'], [-2.5, -6.8, 'pine'], [5.5, -6.6, 'pine'], [-6.3, 6.7, 'pine']].forEach((t, i) => { const m = tree(t[2], i * 7 + 3); m.position.set(t[0], hAt(t[0], t[1]), t[1]); m.rotation.y = hash(i, 4) * 6.28; m.scale.setScalar(0.85 + hash(i, 9) * 0.4); sc.add(m); });
 /* coop fence around the hens */
 for (let i = 0; i < 18; i++) { const a = i / 18, x = -6.6 + (a < 0.5 ? a * 2 * 4.4 : 4.4), z = a < 0.5 ? -1.2 : -1.2 + (a - 0.5) * 2 * 3.6; if (a >= 0.5 && z > 0.2 && z < 1.0) continue; const g = new T.CylinderGeometry(0.04, 0.05, 0.4, 4); g.translate(0, 0.2, 0); part(fac(g, PAL.trunk, i), sc, x, 0, z); }
 
@@ -648,9 +658,15 @@ function stock(m) {
 let backT = 0;
 /* money pile in front of the shop */
 const coinGeo = fac(new T.CylinderGeometry(0.13, 0.13, 0.05, 8), PAL.ochre, 3);
-const money = { n: 0, meshes: [], g: new T.Group() }; money.g.position.set(MONEY.x, 0, MONEY.z); sc.add(money.g);
-{ const mat = new T.Mesh(new T.CylinderGeometry(0.55, 0.55, 0.02, 10), new T.MeshBasicMaterial({ color: PAL.sand })); mat.position.y = 0.01; money.g.add(mat); }
-function moneyShow() { const show = Math.min(48, Math.ceil(money.n / Math.max(1, Math.ceil(money.n / 48)))); while (money.meshes.length < show) { const k = money.meshes.length, m = new T.Mesh(coinGeo, MAT); m.castShadow = true; m.position.set(-0.24 + (k % 3) * 0.24, 0.04 + Math.floor(k / 9) * 0.055, -0.24 + (Math.floor(k / 3) % 3) * 0.24); money.g.add(m); money.meshes.push(m); } while (money.meshes.length > show) money.g.remove(money.meshes.pop()); }
+function makeMoney(x, z) {
+  const o = { n: 0, meshes: [], g: new T.Group(), x, z }; o.g.position.set(x, 0, z); sc.add(o.g);
+  const mat = new T.Mesh(new T.CylinderGeometry(0.55, 0.55, 0.02, 10), new T.MeshBasicMaterial({ color: PAL.sand })); mat.position.y = 0.01; o.g.add(mat);
+  o.show = function () { const money = this; moneyShowFor(money); }; piles.push(o); return o;
+}
+const piles = [];
+const money = makeMoney(MONEY.x, MONEY.z);
+function moneyShow() { moneyShowFor(money); }
+function moneyShowFor(money) { const show = Math.min(48, Math.ceil(money.n / Math.max(1, Math.ceil(money.n / 48)))); while (money.meshes.length < show) { const k = money.meshes.length, m = new T.Mesh(coinGeo, MAT); m.castShadow = true; m.position.set(-0.24 + (k % 3) * 0.24, 0.04 + Math.floor(k / 9) * 0.055, -0.24 + (Math.floor(k / 3) % 3) * 0.24); money.g.add(m); money.meshes.push(m); } while (money.meshes.length > show) money.g.remove(money.meshes.pop()); }
 
 /* zone rings on the ground so a small child can see where to stand */
 const ringMat = new T.MeshBasicMaterial({ color: PAL.paper, transparent: true, opacity: 0.55 });
@@ -660,9 +676,13 @@ ring(DROP.x, DROP.z, 0.9);
 /* ---------- customers ---------- */
 const SLOTS = [[COUNTER.x - 0.95, COUNTER.z - 1.75], [COUNTER.x, COUNTER.z - 1.75], [COUNTER.x + 0.95, COUNTER.z - 1.75],
   [COUNTER.x - 0.95, COUNTER.z - 2.75], [COUNTER.x, COUNTER.z - 2.75], [COUNTER.x + 0.95, COUNTER.z - 2.75]];
+const STALL_T = ['egg', 'apple', 'milk', 'cake'];
+STALL_T.forEach((t) => { const a = STALL_AT[t]; SLOTS.push([a[0] - 0.5, a[1] - 1.5], [a[0] + 0.5, a[1] - 1.5]); });
+const slotStall = (i) => (i >= 6 ? STALL_T[(i - 6) >> 1] : null);
+const VIA = [9.5, 2.6]; /* stall guests walk round the shop, not through it */
 /* each sign out on the road brings guests sooner, faster, and opens one more place in the queue */
 const signs = () => ['sign1', 'sign2', 'sign3'].filter(own).length;
-const guestEvery = () => (2.6 + Math.random() * 1.4) / (1 + 0.6 * signs() + 0.3 * state.lv.guests);
+const guestEvery = () => (2.6 + Math.random() * 1.4) / (1 + 0.6 * signs() + 0.3 * state.lv.guests + 0.45 * Object.keys(stalls).length);
 const guestWalk = () => 2.6 + 0.5 * signs();
 const ENTRY = [12, -1.4], EXIT = [12, -2.6];
 const ANIMALS = ['bunny', 'bear', 'fox', 'frog', 'duck'];
@@ -704,16 +724,23 @@ const customers = [];
 let spawnT = 1;
 function wants() {
   const kinds = ['egg']; if (producers.some((p) => p.type === 'apple')) kinds.push('apple'); if (producers.some((p) => p.type === 'milk')) kinds.push('milk'); if (bakery) kinds.push('cake');
-  const w = kinds.map((k, i) => 1 + i * 0.8), sum = w.reduce((a, b) => a + b, 0); let r = Math.random() * sum;
+  const have = (k) => shelf[k].items.length + back.count(k), anyStock = kinds.some((k) => have(k) > 0);
+  /* guests mostly ask for what is actually in the shop, so one missing item cannot block the counter */
+  const w = kinds.map((k, i) => (1 + i * 0.8) * (!anyStock || have(k) > 0 ? 1 : 0.08) * (1 + Math.min(3, have(k) / 8))), sum = w.reduce((a, b) => a + b, 0); let r = Math.random() * sum;
   for (let i = 0; i < kinds.length; i++) { r -= w[i]; if (r <= 0) return kinds[i]; } return kinds[0];
 }
 function spawnCustomer() {
-  const open = 3 + signs(), free = SLOTS.findIndex((s, i) => i < open && !customers.some((c) => c.slot === i)); if (free < 0) return;
+  const taken = (i) => customers.some((c) => c.slot === i);
+  const counterFree = SLOTS.findIndex((s, i) => i < 3 + signs() && !taken(i));
+  /* stalls that have goods and a free place get guests first, so nothing piles up unsold */
+  const opts = []; STALL_T.forEach((t, k) => { if (!stalls[t]) return; [6 + 2 * k, 7 + 2 * k].forEach((i) => { if (!taken(i)) opts.push({ i, w: stalls[t].shelf.items.length > 0 ? 3 : 0.4 }); }); });
+  if (counterFree >= 0) opts.push({ i: counterFree, w: 2 });
+  if (!opts.length) return; let r = Math.random() * opts.reduce((a, o) => a + o.w, 0), free = opts[0].i; for (const o of opts) { r -= o.w; if (r <= 0) { free = o.i; break; } }
   const kind = ANIMALS[Math.floor(Math.random() * ANIMALS.length)], g = animal(kind); g.position.set(ENTRY[0], 0, ENTRY[1]); sc.add(g);
-  const type = wants(), n = 1 + Math.floor(Math.random() * Math.min(4, 1 + Math.floor(Object.keys(state.owned).length / 4) + Math.floor(state.lv.guests / 3)));
+  const type = slotStall(free) || wants(), n = 1 + Math.floor(Math.random() * Math.min(4, 1 + Math.floor(Object.keys(state.owned).length / 4) + Math.floor(state.lv.guests / 3)));
   const sp = new T.Sprite(new T.SpriteMaterial({ map: bubble(type, n), depthTest: false })); sp.scale.set(0.9, 0.56, 1); sp.position.y = 1.55; sp.renderOrder = 5; sp.visible = false; g.add(sp);
   const hold = new Pile(g, (k) => [0.3 * (k % 2 ? 1 : -1) * 0, 0.25 + k * 0.12, 0.3]);
-  customers.push({ g, kind, type, n, got: 0, slot: free, st: 'in', sp, hold, t: 0, bob: Math.random() * 6 });
+  customers.push({ g, kind, type, n, got: 0, slot: free, st: 'in', sp, hold, t: 0, bob: Math.random() * 6, via: free >= 6, wait: 0, stall: slotStall(free) });
 }
 function walkTo(o, x, z, dt, sp) { const dx = x - o.position.x, dz = z - o.position.z, d = Math.hypot(dx, dz); if (d < 0.04) return true; const st = Math.min(d, dt * sp); o.position.x += dx / d * st; o.position.z += dz / d * st; o.rotation.y = Math.atan2(dx, dz); return false; }
 
@@ -739,6 +766,41 @@ function addSign(i) {
   const face = new T.Mesh(new T.PlaneGeometry(0.9, 0.56), new T.MeshBasicMaterial({ map: new T.CanvasTexture(c) })); face.position.set(0, 1.35, 0.05); g.add(face);
   const back = face.clone(); back.rotation.y = Math.PI; back.position.z = -0.05; g.add(back);
 }
+const stalls = {};
+const STALL_COL = { egg: PAL.ochre, apple: PAL.accent, milk: PAL.sea, cake: PAL.blush };
+function addStall(t) {
+  const a = STALL_AT[t], g = new T.Group(); g.position.set(a[0], 0, a[1]); sc.add(g);
+  let geo = new T.BoxGeometry(1.6, 0.7, 0.7, 2, 1, 1); geo.translate(0, 0.35, 0); part(fac(jit(geo, 0.02, 4), PAL.trunk, 21), g);
+  geo = new T.BoxGeometry(1.7, 0.06, 0.8); part(fac(geo, PAL.sand, 22), g, 0, 0.73, 0);
+  [-0.78, 0.78].forEach((x) => { const p = new T.CylinderGeometry(0.035, 0.035, 1.5, 5); p.translate(0, 0.75, 0); part(fac(p, PAL.trunk, 23), g, x, 0, 0.3); });
+  for (let k = 0; k < 4; k++) { const aw = new T.BoxGeometry(0.43, 0.05, 0.9); aw.rotateX(-0.35); part(fac(aw, k % 2 ? PAL.paper : STALL_COL[t], 24 + k), g, -0.64 + k * 0.43, 1.55, 0.05); }
+  const c = document.createElement('canvas'); c.width = 256; c.height = 160; const x = c.getContext('2d'); x.fillStyle = PAL.paper; x.strokeStyle = PAL.ink; x.lineWidth = 6; x.beginPath(); x.roundRect ? x.roundRect(8, 8, 240, 144, 40) : x.rect(8, 8, 240, 144); x.fill(); x.stroke(); drawIcon(x, t, 128, 80, 1.5);
+  const sp = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(c), depthTest: false })); sp.scale.set(0.7, 0.44, 1); sp.position.set(0, 2.1, 0); sp.renderOrder = 4; g.add(sp);
+  const d = stallDrop(t); ring(d[0], d[1], 0.8);
+  stalls[t] = { t, g, shelf: new Pile(g, (k) => [-0.54 + (k % 4) * 0.36, 0.78 + Math.floor(k / 8) * ITEM_H[t], -0.14 + (Math.floor(k / 4) % 2) * 0.28]), money: makeMoney(a[0] + 1.35, a[1] + 1.35), stocker: null, seller: null };
+}
+function addStocker(t) {
+  const s = stalls[t], home = [STALL_AT[t][0] - 1.3, STALL_AT[t][1] + 0.9], g = robot(STALL_COL[t]); g.position.set(home[0], 0, home[1]); sc.add(g);
+  const h = { g, t, home, st: 'idle', src: null, t2: 0 }; h.pile = new Pile(g, (k) => { let y = 0.52; for (let q = 0; q < k; q++) y += ITEM_H[t]; return [0, y, -0.28]; }); s.stocker = h;
+}
+function addSeller(t) {
+  const s = stalls[t], kinds = { egg: 'duck', apple: 'fox', milk: 'frog', cake: 'bunny' }, g = animal(kinds[t]); g.position.set(STALL_AT[t][0] + 1.1, 0, STALL_AT[t][1] - 0.1); g.rotation.y = Math.PI + 0.5; sc.add(g);
+  const hat = new T.CylinderGeometry(0.16, 0.2, 0.12, 8); part(fac(hat, STALL_COL[t], 3), g, 0, 1.0, 0.02); s.seller = g;
+  if (s.money.n) { earn(s.money.n); s.money.n = 0; s.money.show(); }
+}
+/* a stocking robot fetches only its own product and keeps its stall full */
+function runStocker(h, dt) {
+  const s = stalls[h.t], drop = stallDrop(h.t), p = h.g.position;
+  if (h.st === 'idle') { const q = producers.filter((q) => q.type === h.t && q.pile.items.length).sort((a, b) => b.pile.items.length - a.pile.items.length)[0]; h.feed = false;
+    /* the cake robot also feeds eggs to the bakery when there is no cake to fetch */
+    const hq = !q && h.t === 'cake' && bakery && bakery.inp.items.length < 6 ? producers.filter((q2) => q2.type === 'egg' && q2.pile.items.length).sort((a, b) => b.pile.items.length - a.pile.items.length)[0] : null;
+    if (q && s.shelf.items.length < SHELF_MAX - 2) { h.src = q; h.st = 'go'; } else if (hq && s.shelf.items.length < SHELF_MAX - 2) { h.src = hq; h.feed = true; h.st = 'go'; } else walkTo(h.g, h.home[0], h.home[1], dt, 2); }
+  else if (h.st === 'go') { if (walkTo(h.g, h.src.x + 0.5, h.src.z + 0.3, dt, 2.6)) { h.st = 'load'; h.t2 = 0; } }
+  else if (h.st === 'load') { h.t2 -= dt; if (h.t2 <= 0) { h.t2 = 0.15; if (h.src.pile.items.length && h.pile.items.length < 8) { const m = h.src.pile.take(); fly(m, () => h.g.localToWorld(tmpV.set(0, 0.6 + h.pile.items.length * 0.18, -0.28)), () => h.pile.add(m)); } else { h.st = h.pile.items.length ? 'ret' : 'idle'; h.src = null; } } }
+  else if (h.st === 'ret') { const to = h.feed ? [B_IN.x - 0.5, B_IN.z + 0.5] : [drop[0] - 0.5, drop[1]]; if (walkTo(h.g, to[0], to[1], dt, 2.6)) { h.st = 'drop'; h.t2 = 0; } }
+  else if (h.st === 'drop') { h.t2 -= dt; if (h.t2 <= 0) { h.t2 = 0.12; if (!h.pile.items.length) h.st = 'idle'; else if (h.feed) { if (bakery.inp.items.length < 12) { const m = h.pile.take(); fly(m, () => tmpV.set(B_IN.x, 0.2, B_IN.z), () => bakery.inp.add(m)); } else h.t2 = 0.5; } else if (s.shelf.items.length < SHELF_MAX) { const m = h.pile.take(); fly(m, () => s.g.localToWorld(tmpV.set(0, 1.0, 0)), () => s.shelf.add(m)); } else h.t2 = 0.5; } }
+  p.y = h.st === 'go' || h.st === 'ret' ? Math.abs(Math.sin(time * 12 + 3)) * 0.04 : 0;
+}
 let cashier = null;
 function addCashier() { const g = animal('bear'); g.position.set(COUNTER.x + 1.75, 0, COUNTER.z - 0.2); g.rotation.y = -0.6; sc.add(g); const hat = new T.CylinderGeometry(0.16, 0.2, 0.12, 8); part(fac(hat, PAL.sea, 3), g, 0, 1.0, 0.02); cashier = g; }
 
@@ -748,10 +810,12 @@ function padTex(p, left) {
   const c = document.createElement('canvas'); c.width = 256; c.height = 256; const x = c.getContext('2d');
   x.fillStyle = 'rgba(255,246,228,0.92)'; x.beginPath(); x.arc(128, 128, 120, 0, 7); x.fill();
   x.lineWidth = 10; x.strokeStyle = PAL.ochre; x.beginPath(); x.arc(128, 128, 112, -Math.PI / 2, -Math.PI / 2 + 6.2832 * (1 - left / p.cost)); x.stroke();
-  const icon = { hen: 'egg', tree: 'apple', cow: 'milk', bakery: 'cake', helper: 'helper', cashier: 'coin', sign: 'guest' }[p.kind];
+  const icon = { hen: 'egg', tree: 'apple', cow: 'milk', bakery: 'cake', helper: 'helper', cashier: 'coin', sign: 'guest', stall: p.t, stock: 'helper', seller: 'coin' }[p.kind];
   if (icon === 'helper') { x.fillStyle = PAL.paper; x.strokeStyle = PAL.ink; x.lineWidth = 5; x.fillRect(96, 54, 64, 50); x.strokeRect(96, 54, 64, 50); x.fillStyle = PAL.ink; x.fillRect(106, 68, 44, 16); x.fillStyle = PAL.seaShallow; x.beginPath(); x.arc(118, 76, 5, 0, 7); x.arc(138, 76, 5, 0, 7); x.fill(); }
   else if (icon === 'guest') { x.lineWidth = 5; x.strokeStyle = PAL.ink; x.fillStyle = PAL.paper; [[110, 40], [134, 40]].forEach(([ex, ey]) => { x.beginPath(); x.ellipse(ex, ey, 8, 20, 0, 0, 7); x.fill(); x.stroke(); }); x.beginPath(); x.arc(122, 88, 30, 0, 7); x.fill(); x.stroke(); x.fillStyle = PAL.ink; x.beginPath(); x.arc(111, 84, 4, 0, 7); x.arc(133, 84, 4, 0, 7); x.fill(); x.fillStyle = PAL.blush; x.beginPath(); x.arc(122, 97, 5, 0, 7); x.fill(); x.fillStyle = PAL.leaf; x.beginPath(); x.arc(168, 104, 18, 0, 7); x.fill(); x.stroke(); x.strokeStyle = PAL.paper; x.lineWidth = 6; x.beginPath(); x.moveTo(168, 94); x.lineTo(168, 114); x.moveTo(158, 104); x.lineTo(178, 104); x.stroke(); }
   else drawIcon(x, icon, 128, 82, 1.25);
+  if (p.kind === 'stock' || p.kind === 'seller') drawIcon(x, p.t, 178, 104, 0.75);
+  if (p.kind === 'stall') { x.fillStyle = STALL_COL[p.t]; x.strokeStyle = PAL.ink; x.lineWidth = 4; x.fillRect(78, 28, 100, 16); x.strokeRect(78, 28, 100, 16); }
   drawIcon(x, 'coin', 76, 172, 0.8);
   x.fillStyle = PAL.ink; x.font = '700 58px Fredoka, sans-serif'; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillText(fmt(left), 100, 176);
   return new T.CanvasTexture(c);
@@ -766,7 +830,7 @@ function showPad() {
 }
 function unlock(p) {
   state.owned[p.id] = true; delete state.paid[p.id];
-  if (p.kind === 'hen') hen(p.i); else if (p.kind === 'tree') appleTree(p.i); else if (p.kind === 'cow') cow(p.i); else if (p.kind === 'bakery') makeBakery(); else if (p.kind === 'helper') addHelper(p.i); else if (p.kind === 'cashier') addCashier(); else if (p.kind === 'sign') addSign(p.i);
+  if (p.kind === 'hen') hen(p.i); else if (p.kind === 'tree') appleTree(p.i); else if (p.kind === 'cow') cow(p.i); else if (p.kind === 'bakery') makeBakery(); else if (p.kind === 'helper') addHelper(p.i); else if (p.kind === 'cashier') addCashier(); else if (p.kind === 'stall') addStall(p.t); else if (p.kind === 'stock') addStocker(p.t); else if (p.kind === 'seller') addSeller(p.t); else if (p.kind === 'sign') addSign(p.i);
   Snd.init(); Snd.play('success', { gain: 0.6, f: 'E6' }); Snd.play('sparkle', { gain: 0.6 }, 0.12);
   pop(padPos(p)); showPad(); save();
 }
@@ -781,7 +845,8 @@ const chevron = new T.Mesh(new T.ConeGeometry(0.16, 0.38, 3), new T.MeshBasicMat
 function goal() {
   const p = nextPad();
   if (p && state.coins >= p.cost - (state.paid[p.id] || 0)) return padPos(p);
-  if (money.n > 0 && carry.items.length === 0) return [MONEY.x, MONEY.z];
+  const mp = piles.filter((o) => o.n > 0).sort((a, b) => b.n - a.n)[0];
+  if (mp && carry.items.length === 0) return [mp.x, mp.z];
   if (carry.items.length >= cap() || (carry.items.length > 0 && !producers.some((q) => q.pile.items.length > 0 && q.type !== 'cake'))) {
     if (bakery && carry.items.every((m) => m.userData.type === 'egg') && shelf.cake.items.length < 3 && bakery.inp.items.length < 4) return [B_IN.x, B_IN.z];
     return [DROP.x, DROP.z];
@@ -789,7 +854,7 @@ function goal() {
   let best = null, bn = 0; producers.forEach((q) => { if (q.pile.items.length > bn) { bn = q.pile.items.length; best = q; } });
   if (best) return [best.x, best.z];
   if (carry.items.length) return [DROP.x, DROP.z];
-  if (money.n > 0) return [MONEY.x, MONEY.z];
+  if (mp) return [mp.x, mp.z];
   return null;
 }
 
@@ -888,10 +953,11 @@ function step(dt) {
     let did = false;
     if (carry.items.length < cap()) for (const q of producers) { if (q.pile.items.length && near(q.x, q.z, q.r)) { const m = q.pile.take(); fly(m, () => { carry.parent.updateMatrixWorld(); return pip.localToWorld(tmpV.set(0, 0.72 + carry.items.reduce((a, b) => a + ITEM_H[b.userData.type], 0), -0.32)); }, () => carry.add(m)); Snd.play('pop', { gain: 0.45, f: 500 + carry.items.length * 60 }); did = true; break; } }
     if (!did && bakery && near(B_IN.x, B_IN.z, 0.95) && carry.count('egg') && bakery.inp.items.length < 12) { const m = carry.take('egg'); fly(m, () => tmpV.set(B_IN.x, 0.2, B_IN.z), () => bakery.inp.add(m)); Snd.play('tick', { gain: 0.4 }); did = true; }
+    if (!did) for (const t in stalls) { const d = stallDrop(t), s = stalls[t]; if (near(d[0], d[1], 0.9) && carry.count(t) && s.shelf.items.length < SHELF_MAX) { const m = carry.take(t); fly(m, () => s.g.localToWorld(tmpV.set(0, 1.0, 0)), () => s.shelf.add(m)); Snd.play('tick', { gain: 0.45, f: 900 }); did = true; break; } }
     if (!did && near(DROP.x, DROP.z, 1.0) && carry.items.length && (back.items.length < BACK_MAX || carry.items.some((q) => shelf[q.userData.type].items.length < SHELF_MAX))) { const top = carry.items[carry.items.length - 1], t = shelf[top.userData.type].items.length < SHELF_MAX || back.items.length < BACK_MAX ? top.userData.type : carry.items.find((q) => shelf[q.userData.type].items.length < SHELF_MAX).userData.type; const m = carry.take(t); stock(m); Snd.play('tick', { gain: 0.45, f: 900 }); did = true; }
     if (did) xferT = 0.09;
   }
-  if (money.n > 0 && near(MONEY.x, MONEY.z, 0.85)) { const n = money.n; money.n = 0; moneyShow(); earn(n); coinToHud(MONEY.x, 0.3, MONEY.z, Math.ceil(n / 3)); Snd.play('coin', { gain: 0.6 }); }
+  piles.forEach((o) => { if (o.n > 0 && near(o.x, o.z, 0.85)) { const n = o.n; o.n = 0; o.show(); earn(n); coinToHud(o.x, 0.3, o.z, Math.ceil(n / 3)); Snd.play('coin', { gain: 0.6 }); } });
   if (pad) {
     const pos = padPos(pad.p), left = pad.p.cost - (state.paid[pad.p.id] || 0);
     if (near(pos[0], pos[1], 0.85) && state.coins > 0 && !moving) {
@@ -904,29 +970,39 @@ function step(dt) {
   }
 
   /* the crate refills shelves that have room */
-  backT -= dt; if (backT <= 0 && back.items.length) { backT = 0.15; for (const t in shelf) if (shelf[t].items.length < SHELF_MAX - 2 && back.count(t)) { const m = back.take(t); fly(m, () => counterG.localToWorld(tmpV.set(SHELF_X[t], 1.0, 0)), () => shelf[t].add(m)); break; } }
+  backT -= dt; if (backT <= 0 && back.items.length) { backT = 0.15;
+    const low = Object.values(stalls).find((s) => s.shelf.items.length < 4 && back.count(s.t));
+    if (low) { const m = back.take(low.t); fly(m, () => low.g.localToWorld(tmpV.set(0, 1.0, 0)), () => low.shelf.add(m), 0.6); } else for (const t in shelf) if (shelf[t].items.length < SHELF_MAX - 2 && back.count(t)) { const m = back.take(t); fly(m, () => counterG.localToWorld(tmpV.set(SHELF_X[t], 1.0, 0)), () => shelf[t].add(m)); break; } }
 
+  for (const t in stalls) if (stalls[t].stocker) runStocker(stalls[t].stocker, dt);
   /* customers */
   if (!customers.length) spawnT = Math.min(spawnT, 0.5);
   spawnT -= dt; if (spawnT <= 0) { spawnT = guestEvery(); spawnCustomer(); }
   for (let i = customers.length - 1; i >= 0; i--) {
     const c = customers[i], s = SLOTS[c.slot];
     c.g.children[0].position.y = 0.36 + (reduced ? 0 : Math.abs(Math.sin(time * 8 + c.bob)) * 0.03);
-    if (c.slot >= 3 && !customers.some((o) => o.slot === c.slot - 3)) c.slot -= 3; /* step up to the counter */
-    if (c.st === 'in') { const q = SLOTS[c.slot]; if (walkTo(c.g, q[0], q[1], dt, guestWalk()) && c.slot < 3) { c.st = 'wait'; c.g.rotation.y = 0; c.sp.visible = true; } else if (c.slot >= 3) { c.sp.visible = true; } }
+    if (c.slot >= 3 && c.slot < 6 && !customers.some((o) => o.slot === c.slot - 3)) c.slot -= 3; /* step up to the counter */
+    if (c.st === 'in' && c.via) { if (walkTo(c.g, VIA[0], VIA[1], dt, guestWalk())) c.via = false; }
+    else if (c.st === 'in') { const q = SLOTS[c.slot]; if (walkTo(c.g, q[0], q[1], dt, guestWalk()) && (c.slot < 3 || c.slot >= 6)) { c.st = 'wait'; c.wait = 0; c.g.rotation.y = 0; c.sp.visible = true; } else if (c.slot >= 3) { c.sp.visible = true; } }
     else if (c.st === 'wait') {
       c.t -= dt; c.sp.position.y = 1.55 + (reduced ? 0 : Math.sin(time * 3 + c.bob) * 0.04);
-      if (c.t <= 0 && shelf[c.type].items.length) { c.t = 0.3; const m = shelf[c.type].take(); fly(m, () => c.g.localToWorld(tmpV.set(0, 0.3 + c.got * 0.12, 0.3)), () => { c.hold.add(m); }); c.got++; Snd.play('blip', { gain: 0.25 }, 0, 80); if (c.got >= c.n) { c.st = 'pay'; c.t = 0.4; } }
+      const src = c.stall ? stalls[c.stall].shelf : shelf[c.type];
+      /* a counter guest who waits long for something that is not there picks something that is */
+      if (!c.stall && !src.items.length && c.got === 0) { c.wait += dt; if (c.wait > 8) { const alt = Object.keys(shelf).filter((t) => shelf[t].items.length > 0); if (alt.length) { c.type = alt[Math.floor(Math.random() * alt.length)]; c.n = Math.min(c.n, Math.max(1, shelf[c.type].items.length)); c.sp.material.map = bubble(c.type, c.n); c.wait = 0; Snd.play('pop', { gain: 0.3, f: 600 }); } } }
+      if (c.t <= 0 && src.items.length) { c.t = 0.3; const m = src.take(); fly(m, () => c.g.localToWorld(tmpV.set(0, 0.3 + c.got * 0.12, 0.3)), () => { c.hold.add(m); }); c.got++; Snd.play('blip', { gain: 0.25 }, 0, 80); if (c.got >= c.n) { c.st = 'pay'; c.t = 0.4; } }
     } else if (c.st === 'pay') {
       c.t -= dt; if (c.t <= 0) {
         const v = ITEMS[c.type].value * c.n;
-        if (cashier) { earn(v); coinToHud(c.g.position.x, 1, c.g.position.z, 3); Snd.play('coin', { gain: 0.35 }, 0, 120); }
+        const st = c.stall && stalls[c.stall];
+        if (st && !st.seller) { st.money.n += v; st.money.show(); Snd.play('coin', { gain: 0.3 }, 0, 120); }
+        else if (st || cashier) { earn(v); coinToHud(c.g.position.x, 1, c.g.position.z, 3); Snd.play('coin', { gain: 0.35 }, 0, 120); }
         else { money.n += v; moneyShow(); Snd.play('coin', { gain: 0.3 }, 0, 120); }
-        c.sp.material.map = bubble('heart', 0); c.st = 'out'; c.t = 1.2; c.slot = -1; /* free the place for the next guest */
+        c.sp.material.map = bubble('heart', 0); c.st = 'out'; c.t = 1.2; c.slot = -1; c.via = !!c.stall; c.slot = -1; /* free the place for the next guest */
       }
     } else if (c.st === 'out') {
       c.t -= dt; if (c.t <= 0) c.sp.visible = false;
-      if (walkTo(c.g, EXIT[0], EXIT[1], dt, guestWalk())) { sc.remove(c.g); customers.splice(i, 1); }
+      if (c.via) { if (walkTo(c.g, VIA[0], VIA[1], dt, guestWalk())) c.via = false; }
+      else if (walkTo(c.g, EXIT[0], EXIT[1], dt, guestWalk())) { sc.remove(c.g); customers.splice(i, 1); }
     }
   }
 
@@ -967,7 +1043,7 @@ function step(dt) {
 }
 function frame(now) { let dt = (now - lastT) / 1000; lastT = now; if (dt > 0.1) dt = 0.1; if (dt > 0) step(dt); saveT += dt; if (saveT > 5) { saveT = 0; save(); } requestAnimationFrame(frame); }
 
-if (window.__farmTest) window.__farmTest = { go: (x, z) => target.set(x, 0, z), pip: () => [pip.position.x, pip.position.z], st: () => state, money: () => money.n, carry: () => carry.items.length, fillShelf: (t) => { while (shelf[t].items.length < SHELF_MAX) shelf[t].add(mk(t)); }, stock: () => ({ shelf: Object.fromEntries(Object.keys(shelf).map((t) => [t, shelf[t].items.length])), back: back.items.length }) };
+if (window.__farmTest) window.__farmTest = { go: (x, z) => target.set(x, 0, z), pip: () => [pip.position.x, pip.position.z], st: () => state, money: () => money.n, carry: () => carry.items.length, fillShelf: (t) => { while (shelf[t].items.length < SHELF_MAX) shelf[t].add(mk(t)); }, stalls: () => Object.fromEntries(Object.keys(stalls).map((t) => [t, { shelf: stalls[t].shelf.items.length, money: stalls[t].money.n, robot: stalls[t].stocker && stalls[t].stocker.st }])), guests: () => customers.map((c) => c.slot + ':' + c.type + ':' + c.st).join(' '), stock: () => ({ shelf: Object.fromEntries(Object.keys(shelf).map((t) => [t, shelf[t].items.length])), back: back.items.length }) };
 let started = false;
 function start(data) {
   if (started) return; started = true;
@@ -975,7 +1051,7 @@ function start(data) {
   state = hot || load() || fresh();
   state.owned.hen1 = true;
   hen(0);
-  PADS.forEach((p) => { if (own(p.id)) { if (p.kind === 'hen') hen(p.i); else if (p.kind === 'tree') appleTree(p.i); else if (p.kind === 'cow') cow(p.i); else if (p.kind === 'bakery') makeBakery(); else if (p.kind === 'helper') addHelper(p.i); else if (p.kind === 'cashier') addCashier(); else if (p.kind === 'sign') addSign(p.i); } });
+  PADS.forEach((p) => { if (own(p.id)) { if (p.kind === 'hen') hen(p.i); else if (p.kind === 'tree') appleTree(p.i); else if (p.kind === 'cow') cow(p.i); else if (p.kind === 'bakery') makeBakery(); else if (p.kind === 'helper') addHelper(p.i); else if (p.kind === 'cashier') addCashier(); else if (p.kind === 'stall') addStall(p.t); else if (p.kind === 'stock') addStocker(p.t); else if (p.kind === 'seller') addSeller(p.t); else if (p.kind === 'sign') addSign(p.i); } });
   showPad(); $('hint').hidden = !!state.moved;
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
   window.addEventListener('pagehide', save);
