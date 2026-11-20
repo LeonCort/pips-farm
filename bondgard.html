@@ -108,9 +108,9 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 .wardDone { align-self: center; width: 84px; height: 64px; border-radius: 32px; border: 3px solid var(--ink); background: #3f9a62; box-shadow: 0 5px 0 rgba(34,48,60,0.3); padding: 8px; }
 .wardDone svg { width: 100%; height: 100%; display: block; }
 .wardDone:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(34,48,60,0.3); }
-@media (orientation: landscape) { .ward { align-items: center; justify-content: flex-end; padding-right: max(16px, env(safe-area-inset-right, 0px)); } .sw { width: 46px; height: 46px; } .ward .sheet { width: min(450px, 52vw); border: 3px solid var(--ink); border-radius: 28px; margin-top: 60px; } }
+@media (orientation: landscape) { .ward { align-items: center; justify-content: flex-end; padding-right: max(16px, env(safe-area-inset-right, 0px)); } .sw { width: 46px; height: 46px; } .ward .sheet { width: min(480px, 54vw); border: 3px solid var(--ink); border-radius: 28px; margin-top: 60px; } }
 @media (max-width: 480px) { .sw { width: 38px; height: 38px; padding: 3px; } .wrow { gap: 6px; } }
-@media (max-height: 520px) { .sw { width: 34px; height: 34px; padding: 2px; } .wrow { gap: 5px; } .wardRows { gap: 5px; } .ward .sheet { margin-top: 0; max-height: none; padding-top: 8px; gap: 6px; } .wardDone { height: 48px; width: 72px; } }
+@media (max-height: 520px) { .sw { width: 31px; height: 31px; padding: 2px; border-width: 2px; } .wrow { gap: 5px; } .wardRows { gap: 4px; } .ward .sheet { margin-top: 0; max-height: none; padding-top: 8px; gap: 6px; } .wardDone { height: 48px; width: 72px; } }
 .toast { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 10px 26px 10px 14px; border-radius: 999px; background: var(--paper); border: 4px solid var(--ink); box-shadow: 0 6px 0 rgba(34,48,60,0.3); font-size: 34px; pointer-events: none; }
 .toast svg { width: 56px; height: 56px; }
 .toast b { font-weight: 700; margin-right: 8px; }
@@ -200,7 +200,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Done"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M11 25 L20 34 L37 14" fill="none" stroke="#fff6e4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
 </div>
-<meta name="app-ver" content="20261120103148">
+<meta name="app-ver" content="20261120103457">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -678,25 +678,29 @@ const AVO = {
   hc: ['#3a2a22', '#7a4a2a', '#e0b45a', '#c4562e', '#22232a', '#d9d4cc', '#e889b5', '#6aa0e0'],
   sh: ['#e9684a', '#1f6a80', '#e0a646', '#3f7d62', '#f0907a', '#7b5ea7', '#fff6e4', '#22303c'],
   bs: ['byxor', 'shorts', 'kjol'],
-  bc: ['#2e4a7a', '#7d5e4e', '#22303c', '#3f7d62', '#e889b5', '#e0a646']
+  bc: ['#2e4a7a', '#7d5e4e', '#22303c', '#3f7d62', '#e889b5', '#e0a646'],
+  ss: ['skor', 'stovlar', 'sandaler'],
+  sc: ['#3a3433', '#e9684a', '#1f6a80', '#f2c14a', '#3f7d62', '#e889b5', '#fff6e4']
 };
 const AV_KEY = 'pips-avatar';
 let av = null, avNew = false;
 try { av = JSON.parse(localStorage.getItem(AV_KEY) || 'null'); } catch (e) {}
-if (!av || typeof av !== 'object') { av = { skin: 1, hs: 0, hc: 1, sh: 0, bs: 0, bc: 0 }; avNew = true; }
+if (!av || typeof av !== 'object') { av = { skin: 1, hs: 0, hc: 1, sh: 0, bs: 0, bc: 0, ss: 0, sc: 0 }; avNew = true; }
 for (const k in AVO) if (!(av[k] >= 0 && av[k] < AVO[k].length)) av[k] = 0;
 const eyes = [], limbs = [];
 const riding = () => typeof mount !== 'undefined' && !!mount;
 function buildAvatar() {
   while (pb.children.length) pb.remove(pb.children[0]); eyes.length = 0; limbs.length = 0;
-  const skin = AVO.skin[av.skin], hc = AVO.hc[av.hc], sh = AVO.sh[av.sh], bc = AVO.bc[av.bc], bs = AVO.bs[av.bs], hs = AVO.hs[av.hs];
+  const shoe = AVO.sc[av.sc], ss = AVO.ss[av.ss], skin = AVO.skin[av.skin], hc = AVO.hc[av.hc], sh = AVO.sh[av.sh], bc = AVO.bc[av.bc], bs = AVO.bs[av.bs], hs = AVO.hs[av.hs];
   let g;
   /* legs swing from the hip */
   [-0.11, 0.11].forEach((x, k) => {
     const leg = new T.Group(); leg.position.set(x, 0.64, 0); pb.add(leg); limbs.push({ g: leg, s: k ? 1 : -1 });
     g = new T.BoxGeometry(0.15, 0.3, 0.17); g.translate(0, -0.15, 0); part(fac(g, bs === 'kjol' ? skin : bc, 20 + k), leg);
     g = new T.BoxGeometry(0.14, 0.26, 0.16); g.translate(0, -0.43, 0); part(fac(g, bs === 'byxor' ? bc : skin, 22 + k), leg);
-    g = new T.BoxGeometry(0.17, 0.09, 0.25); g.translate(0, -0.59, 0.04); part(fac(g, '#3a3433', 24 + k), leg);
+    if (ss === 'stovlar') { g = new T.BoxGeometry(0.17, 0.24, 0.19); g.translate(0, -0.48, 0); part(fac(g, shoe, 24 + k), leg); }
+    if (ss === 'sandaler') { g = new T.BoxGeometry(0.17, 0.04, 0.25); g.translate(0, -0.615, 0.04); part(fac(g, shoe, 24 + k), leg); g = new T.BoxGeometry(0.175, 0.03, 0.05); g.translate(0, -0.57, 0.08); part(fac(g, shoe, 26 + k), leg); g = new T.BoxGeometry(0.15, 0.05, 0.2); g.translate(0, -0.575, 0.05); part(fac(g, skin, 28 + k), leg); }
+    else { g = new T.BoxGeometry(0.17, 0.09, 0.25); g.translate(0, -0.59, 0.04); part(fac(g, shoe, 24 + k), leg); g = new T.BoxGeometry(0.175, 0.02, 0.26); g.translate(0, -0.635, 0.04); part(fac(g, ss === 'skor' ? PAL.paper : '#2a2626', 30 + k), leg); }
   });
   if (bs === 'kjol') { g = new T.CylinderGeometry(0.2, 0.34, 0.34, 8); part(fac(jit(g, 0.01, 5), bc, 26), pb, 0, 0.62, 0); }
   else { g = new T.BoxGeometry(0.42, 0.14, 0.26); part(fac(g, bc, 26), pb, 0, 0.68, 0); }
@@ -749,16 +753,22 @@ const BS_ICON = {
   shorts: '<path d="M14 8 H34 L36 26 H27 L24 18 L21 26 H12 Z"/>',
   kjol: '<path d="M16 8 H32 L40 38 H8 Z"/>'
 };
+const SS_ICON = {
+  skor: '<path d="M8 30 C8 24 12 22 18 22 L24 22 C28 26 34 27 40 28 C42 29 42 34 40 35 H8 Z"/><path d="M8 35 H41" stroke-width="4" stroke="#fff6e4"/>',
+  stovlar: '<path d="M14 6 H26 V26 C30 28 36 28 40 30 C42 31 42 37 40 38 H14 Z"/>',
+  sandaler: '<path d="M8 34 H40 V38 H8 Z"/><path d="M14 34 L22 24 L30 34" fill="none" stroke-width="4"/>'
+};
 const AV_ROWS = [
   { k: 'skin', label: 'Hudfärg', icon: '<circle cx="24" cy="24" r="14" fill="#e8b48f" stroke="#22303c" stroke-width="3"/>' },
-  { k: 'hs', label: 'Frisyr' }, { k: 'hc', label: 'Hårfärg' }, { k: 'sh', label: 'Tröja' }, { k: 'bs', label: 'Byxor eller kjol' }, { k: 'bc', label: 'Byxfärg' }
+  { k: 'hs', label: 'Frisyr' }, { k: 'hc', label: 'Hårfärg' }, { k: 'sh', label: 'Tröja' }, { k: 'bs', label: 'Byxor eller kjol' }, { k: 'bc', label: 'Byxfärg' }, { k: 'ss', label: 'Skor' }, { k: 'sc', label: 'Skofärg' }
 ];
 function avSwatch(k, i) {
   if (k === 'hs') return '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="27" r="14" fill="#f6d3b8" stroke="#22303c" stroke-width="2.5"/><g fill="' + AVO.hc[av.hc] + '" stroke="#22303c" stroke-width="2.5" stroke-linejoin="round">' + HS_ICON[AVO.hs[i]] + '</g></svg>';
+  if (k === 'ss') return '<svg viewBox="0 0 48 48" aria-hidden="true"><g fill="' + AVO.sc[av.sc] + '" stroke="#22303c" stroke-width="2.5" stroke-linejoin="round">' + SS_ICON[AVO.ss[i]] + '</g></svg>';
   if (k === 'bs') return '<svg viewBox="0 0 48 48" aria-hidden="true"><g fill="' + AVO.bc[av.bc] + '" stroke="#22303c" stroke-width="2.5" stroke-linejoin="round">' + BS_ICON[AVO.bs[i]] + '</g></svg>';
   return '<i style="background:' + AVO[k][i] + '"></i>';
 }
-const AV_NAMES = { hs: ['Kort hår', 'Långt hår', 'Tofsar', 'Knut', 'Lockar', 'Keps'], bs: ['Byxor', 'Shorts', 'Kjol'] };
+const AV_NAMES = { hs: ['Kort hår', 'Långt hår', 'Tofsar', 'Knut', 'Lockar', 'Keps'], bs: ['Byxor', 'Shorts', 'Kjol'], ss: ['Skor', 'Stövlar', 'Sandaler'] };
 function renderWardrobe() {
   const box = $('wardRows'); if (!box) return;
   box.innerHTML = AV_ROWS.map((r) => '<div class="wrow" role="radiogroup" aria-label="' + r.label + '">' + AVO[r.k].map((v, i) =>
