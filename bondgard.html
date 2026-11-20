@@ -90,6 +90,13 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 
 .flycoin { background: var(--accent); }
 .price i { background: var(--accent); border-radius: 50% 50% 50% 50%; }
+.acts { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: max(18px, env(safe-area-inset-bottom, 0px)); display: flex; gap: 14px; align-items: flex-end; }
+.act { width: 96px; height: 96px; border-radius: 50%; border: 4px solid var(--ink); background: var(--paper); box-shadow: 0 6px 0 rgba(34,48,60,0.3); padding: 8px; animation: pop 0.25s ease-out; }
+.act img { width: 100%; height: 100%; display: block; pointer-events: none; }
+.act.ride { background: #f2fae6; border-color: #3f7d62; }
+.act:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(34,48,60,0.3); }
+@keyframes pop { from { transform: scale(0.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .act { animation: none; } }
 </style>
 </head>
 <body>
@@ -109,6 +116,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
   <svg viewBox="0 0 64 64"><circle class="ripple" cx="26" cy="18" r="12" fill="none" stroke="#fff6e4" stroke-width="3"/><path d="M22 18 v22 l-6 -5 c-3 -2 -6 1 -4 4 l12 15 h18 c3 0 5 -3 5 -6 V32 c0 -3 -4 -4 -5 -1 v-3 c0 -3 -4 -4 -5 -1 v-2 c0 -3 -5 -3 -5 0 V18 c0 -4 -6 -4 -6 0 z" fill="#fff6e4" stroke="#22303c" stroke-width="2.5" stroke-linejoin="round"/></svg>
 </div>
 <div class="joy" id="joy" hidden aria-hidden="true"><i></i></div>
+<div class="acts" id="acts"><button type="button" class="act" id="actB" hidden><img alt=""></button><button type="button" class="act" id="actA" hidden><img alt=""></button></div>
 <div class="menu" id="menu" hidden>
   <div class="sheet" role="dialog" aria-label="Upgrades">
     <div class="sheetTop">
@@ -432,29 +440,37 @@ const PAL = { seaDeep: '#1f6a80', sea: '#2e8f9c', seaShallow: '#63bfb4', sand: '
 
 /* ---------- rules ---------- */
 /* what each animal likes to eat, and how many hearts a happy animal gives */
-const DIET = { hen: ['grain', 'water'], pig: ['grain', 'carrot', 'water'], cow: ['hay', 'water'], horse: ['hay', 'carrot', 'water'], bull: ['hay', 'water'] };
-const HEARTS = { hen: 2, pig: 3, cow: 5, horse: 6, bull: 9 };
+const DIET = { hen: ['grain', 'water'], pig: ['grain', 'carrot', 'water'], cow: ['hay', 'water'], horse: ['hay', 'carrot', 'water'], bull: ['hay', 'water'], sheep: ['hay', 'water'] };
+const HEARTS = { hen: 2, pig: 3, cow: 5, horse: 6, bull: 9, sheep: 4 };
 /* pens: centre, size, and how many animals fit */
 const PEN = {
   hen: { x: -5.4, z: 0.2, w: 3.4, d: 2.6, n: 4 },
   pig: { x: -5.4, z: 4.3, w: 3.4, d: 2.4, n: 3 },
   cow: { x: 5.6, z: 4.2, w: 3.6, d: 2.6, n: 3 },
   horse: { x: 5.6, z: -2.4, w: 3.6, d: 2.8, n: 2 },
-  bull: { x: -5.4, z: -4.2, w: 3.4, d: 2.4, n: 1 }
+  bull: { x: -5.4, z: -4.2, w: 3.4, d: 2.4, n: 1 },
+  sheep: { x: 11.6, z: 1.0, w: 3.4, d: 2.6, n: 3 }
 };
+/* the bigger farm: a hay meadow to mow and a tractor shed */
+const MEADOW = { x0: -6, x1: 4, z0: -9.6, z1: -6.6 }, TRACTOR_HOME = [8.6, -7.6];
+const RIDE = { horse: 1.9, pig: 1.35, sheep: 1.35 };
+let mount = null; /* what Pip is sitting on: an animal or the tractor */
 /* food sources in the middle of the farm; Pip can take as much as fits in the basket */
 const SRC = { grain: { x: -1.6, z: 0.3 }, water: { x: 0.4, z: -1.6 }, carrot: { x: 2.4, z: 0.3 }, hay: { x: 0.4, z: 3.4 } };
 const PADS = [
   { id: 'hen3', kind: 'animal', a: 'hen', cost: 8 }, { id: 'pig2', kind: 'animal', a: 'pig', cost: 15 },
-  { id: 'house-hen', kind: 'house', a: 'hen', cost: 25 }, { id: 'help-water', kind: 'helper', t: 'water', cost: 40 },
-  { id: 'hay', kind: 'source', t: 'hay', cost: 55 }, { id: 'cow1', kind: 'animal', a: 'cow', cost: 70 },
-  { id: 'cow2', kind: 'animal', a: 'cow', cost: 110 }, { id: 'house-pig', kind: 'house', a: 'pig', cost: 140 },
-  { id: 'hen4', kind: 'animal', a: 'hen', cost: 170 }, { id: 'help-grain', kind: 'helper', t: 'grain', cost: 210 },
-  { id: 'horse1', kind: 'animal', a: 'horse', cost: 260 }, { id: 'house-cow', kind: 'house', a: 'cow', cost: 330 },
+  { id: 'house-hen', kind: 'house', a: 'hen', cost: 25 }, { id: 'tractor', kind: 'tractor', cost: 35 },
+  { id: 'help-water', kind: 'helper', t: 'water', cost: 45 }, { id: 'hay', kind: 'source', t: 'hay', cost: 60 },
+  { id: 'sheep1', kind: 'animal', a: 'sheep', cost: 70 }, { id: 'cow1', kind: 'animal', a: 'cow', cost: 85 },
+  { id: 'sheep2', kind: 'animal', a: 'sheep', cost: 110 }, { id: 'cow2', kind: 'animal', a: 'cow', cost: 130 },
+  { id: 'house-pig', kind: 'house', a: 'pig', cost: 160 }, { id: 'hen4', kind: 'animal', a: 'hen', cost: 180 },
+  { id: 'help-grain', kind: 'helper', t: 'grain', cost: 220 }, { id: 'horse1', kind: 'animal', a: 'horse', cost: 260 },
+  { id: 'house-sheep', kind: 'house', a: 'sheep', cost: 300 }, { id: 'house-cow', kind: 'house', a: 'cow', cost: 340 },
   { id: 'pig3', kind: 'animal', a: 'pig', cost: 380 }, { id: 'horse2', kind: 'animal', a: 'horse', cost: 440 },
-  { id: 'help-hay', kind: 'helper', t: 'hay', cost: 520 }, { id: 'bull1', kind: 'animal', a: 'bull', cost: 620 },
-  { id: 'house-horse', kind: 'house', a: 'horse', cost: 720 }, { id: 'cow3', kind: 'animal', a: 'cow', cost: 820 },
-  { id: 'help-carrot', kind: 'helper', t: 'carrot', cost: 900 }, { id: 'house-bull', kind: 'house', a: 'bull', cost: 1100 }
+  { id: 'sheep3', kind: 'animal', a: 'sheep', cost: 480 }, { id: 'help-hay', kind: 'helper', t: 'hay', cost: 520 },
+  { id: 'bull1', kind: 'animal', a: 'bull', cost: 620 }, { id: 'house-horse', kind: 'house', a: 'horse', cost: 720 },
+  { id: 'cow3', kind: 'animal', a: 'cow', cost: 820 }, { id: 'help-carrot', kind: 'helper', t: 'carrot', cost: 900 },
+  { id: 'house-bull', kind: 'house', a: 'bull', cost: 1100 }
 ];
 /* each pen has a feed box; it holds up to this many of each food, so you can fill it before the animals get hungry */
 const BOX_MAX = 6;
@@ -468,13 +484,14 @@ function padPos(p) {
   if (p.kind === 'animal') { const f = feedPos(p.a); return [f[0], f[1] + 1.35]; }
   if (p.kind === 'house') { const f = feedPos(p.a); return [f[0], f[1] - 1.35]; }
   if (p.kind === 'source') return [SRC[p.t].x, SRC[p.t].z + 1.0];
+  if (p.kind === 'tractor') return [TRACTOR_HOME[0], TRACTOR_HOME[1] + 1.8];
   if (p.kind === 'helper') return [SRC[p.t].x, SRC[p.t].z - 1.25];
   return [0, 0];
 }
 let state = null;
 function fresh() { return { v: 1, coins: 0, total: 0, paid: {}, owned: {}, lv: { speed: 0, bag: 0, farm: 0, guests: 0 }, sound: true, moved: false }; }
 const own = (id) => !!state.owned[id];
-const speed = () => 3.0 + 0.45 * state.lv.speed;
+const speed = () => (3.0 + 0.45 * state.lv.speed) * (!mount ? 1 : mount.kind === 'tractor' ? 1.8 : RIDE[mount.an.a]);
 const cap = () => 3 + 1 * state.lv.bag;
 const heartMult = () => 1 + 0.25 * state.lv.farm;
 const helpSpeed = () => 2.2 * (1 + 0.15 * state.lv.guests);
@@ -534,12 +551,12 @@ Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 12, bottom: -12, n
 const sky = new T.Mesh(new T.SphereGeometry(150, 32, 16), new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: false, uniforms: { top: { value: new T.Color('#7db7dd') }, hor: { value: new T.Color('#ffe2c4') } }, vertexShader: 'varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }', fragmentShader: 'varying vec3 vD; uniform vec3 top; uniform vec3 hor; void main(){ float y = max(normalize(vD).y, 0.0); gl_FragColor = vec4(mix(hor, top, pow(y, 0.55)), 1.0); }' })); sc.add(sky);
 
 /* ground: a flat farm plateau that drops to the sea at the edges */
-function hAt(x, z) { const d = Math.max(Math.abs(x) / 11, Math.abs(z) / 7.6); return d < 1 ? 0 : -Math.min(1.6, (d - 1) * 7); }
-const tg = new T.PlaneGeometry(36, 28, 48, 38); tg.rotateX(-Math.PI / 2);
+function hAt(x, z) { const d = Math.max(Math.abs(x) / 17, Math.abs(z) / 11.6); return d < 1 ? 0 : -Math.min(1.6, (d - 1) * 7); }
+const tg = new T.PlaneGeometry(54, 42, 66, 52); tg.rotateX(-Math.PI / 2);
 { const p = tg.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i) + (hash(i, 1) - 0.5) * 0.3, z = p.getZ(i) + (hash(i, 2) - 0.5) * 0.3; p.setXYZ(i, x, hAt(x, z) + (hAt(x, z) === 0 ? hash(i, 5) * 0.04 : 0), z); } }
 const ground = part(fac(tg, (cx, cy, cz, i) => cy < -0.6 ? tone(PAL.bed, i) : cy < -0.05 ? tone(PAL.sand, i) : (Math.abs(cz + 1.5) < 0.55 && cx > 4.4) || (Math.abs(cx - 3.6) < 0.5 && cz > 1 && cz < 7) ? tone(PAL.sand, i, 0.6) : tone(PAL.grass, i, 0.9)), sc); ground.castShadow = false;
 let wg = new T.PlaneGeometry(160, 160, 40, 40); wg.rotateX(-Math.PI / 2);
-wg = fac(wg, (cx, cy, cz, i) => { const d = Math.max(Math.abs(cx) / 1.4, Math.abs(cz)); return tone(d < 13 ? PAL.seaShallow : d < 24 ? PAL.sea : PAL.seaDeep, i, 0.9); });
+wg = fac(wg, (cx, cy, cz, i) => { const d = Math.max(Math.abs(cx) / 1.4, Math.abs(cz)); return tone(d < 16 ? PAL.seaShallow : d < 28 ? PAL.sea : PAL.seaDeep, i, 0.9); });
 const water = new T.Mesh(wg, new T.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.3 })); water.position.y = -0.45; water.receiveShadow = true; sc.add(water);
 const wp = wg.attributes.position;
 
@@ -549,7 +566,7 @@ function tree(kind, s) {
   else { geo = new T.CylinderGeometry(0.09, 0.12, 0.7, 5); geo.translate(0, 0.35, 0); part(fac(geo, PAL.trunk, s), g); part(fac(ico(0.6, 1, s), PAL.forest, s), g, 0, 1.15, 0); }
   return g;
 }
-[[-10, -6, 'pine'], [-8.4, -6.6, 'pine'], [-10.2, -1.5, 'tree'], [-10, 3.5, 'pine'], [-9.8, 6.0, 'tree'], [9.8, -6.2, 'pine'], [10.2, 2.5, 'tree'], [9.9, 6.3, 'pine'], [2, -6.6, 'tree'], [-2.5, -6.8, 'pine'], [5.5, -6.6, 'pine'], [-6.3, 6.7, 'pine']].forEach((t, i) => { const m = tree(t[2], i * 7 + 3); m.position.set(t[0], hAt(t[0], t[1]), t[1]); m.rotation.y = hash(i, 4) * 6.28; m.scale.setScalar(0.85 + hash(i, 9) * 0.4); sc.add(m); });
+[[-14, -9, 'pine'], [-15, -4, 'tree'], [-14.6, 3, 'pine'], [-13, 8.6, 'tree'], [-8, 9.8, 'pine'], [0, 10, 'tree'], [6, 9.8, 'pine'], [13, 8.6, 'tree'], [15.2, 4, 'pine'], [15.2, -3, 'tree'], [14, -9, 'pine'], [6.4, -10.6, 'pine'], [-9, -10, 'tree'], [11.6, -4.6, 'tree'], [-10.6, -6.6, 'pine'], [-11, 5.6, 'tree']].forEach((t, i) => { const m = tree(t[2], i * 7 + 3); m.position.set(t[0], hAt(t[0], t[1]), t[1]); m.rotation.y = hash(i, 4) * 6.28; m.scale.setScalar(0.85 + hash(i, 9) * 0.4); sc.add(m); });
 /* ---------- items: food Pip carries ---------- */
 const PROTO = {};
 { const g = new T.Group(), b = new T.BoxGeometry(0.32, 0.18, 0.22, 2, 1, 1); b.translate(0, 0.09, 0); part(fac(jit(b, 0.012, 1), PAL.ochre, 1), g, 0, 0, 0, true);
@@ -605,8 +622,12 @@ function drawIcon(cx, t, x, y, s) {
   else if (t === 'heart') { cx.fillStyle = PAL.accent; cx.beginPath(); cx.moveTo(0, 22); cx.bezierCurveTo(-34, -2, -18, -30, 0, -12); cx.bezierCurveTo(18, -30, 34, -2, 0, 22); cx.fill(); cx.stroke(); }
   else if (t === 'house') { cx.fillStyle = PAL.accent; cx.beginPath(); cx.moveTo(-28, -2); cx.lineTo(0, -28); cx.lineTo(28, -2); cx.closePath(); cx.fill(); cx.stroke(); cx.fillStyle = PAL.paper; cx.fillRect(-20, -2, 40, 28); cx.strokeRect(-20, -2, 40, 28); cx.fillStyle = PAL.trunk; cx.fillRect(-7, 8, 14, 18); cx.strokeRect(-7, 8, 14, 18); }
   else if (t === 'robot') { cx.fillStyle = PAL.paper; cx.fillRect(-26, -20, 52, 40); cx.strokeRect(-26, -20, 52, 40); cx.fillStyle = PAL.ink; cx.fillRect(-18, -10, 36, 14); cx.fillStyle = PAL.seaShallow; cx.beginPath(); cx.arc(-8, -3, 4, 0, 7); cx.arc(8, -3, 4, 0, 7); cx.fill(); }
-  else if (t === 'hen' || t === 'pig' || t === 'cow' || t === 'horse' || t === 'bull') {
-    const col = { hen: PAL.paper, pig: '#f4b0a2', cow: PAL.paper, horse: '#a8714d', bull: '#6b4a3c' }[t];
+  else if (t === 'tractor') { cx.fillStyle = PAL.accent; cx.fillRect(-26, -6, 40, 18); cx.strokeRect(-26, -6, 40, 18); cx.fillRect(-4, -26, 18, 20); cx.strokeRect(-4, -26, 18, 20); cx.fillStyle = PAL.seaShallow; cx.fillRect(0, -22, 10, 10); cx.fillStyle = PAL.ink; cx.beginPath(); cx.arc(8, 16, 13, 0, 7); cx.fill(); cx.beginPath(); cx.arc(-20, 20, 8, 0, 7); cx.fill(); cx.fillStyle = PAL.rock; cx.beginPath(); cx.arc(8, 16, 5, 0, 7); cx.fill(); }
+  else if (t === 'hand') { cx.fillStyle = PAL.paper; cx.beginPath(); cx.roundRect ? cx.roundRect(-16, -8, 32, 30, 10) : cx.rect(-16, -8, 32, 30); cx.fill(); cx.stroke(); [-12, -4, 4, 12].forEach((q, k) => { cx.beginPath(); cx.roundRect ? cx.roundRect(q - 4, -24 + Math.abs(k - 1.5) * 4, 8, 22, 4) : cx.rect(q - 4, -24, 8, 22); cx.fill(); cx.stroke(); }); cx.fillStyle = PAL.accent; cx.beginPath(); cx.moveTo(18, -6); cx.bezierCurveTo(8, -14, 12, -26, 18, -20); cx.bezierCurveTo(24, -26, 28, -14, 18, -6); cx.fill(); cx.stroke(); }
+  else if (t === 'down') { cx.fillStyle = PAL.paper; cx.beginPath(); cx.moveTo(-10, -24); cx.lineTo(10, -24); cx.lineTo(10, 0); cx.lineTo(22, 0); cx.lineTo(0, 24); cx.lineTo(-22, 0); cx.lineTo(-10, 0); cx.closePath(); cx.fill(); cx.stroke(); }
+  else if (t === 'hen' || t === 'pig' || t === 'cow' || t === 'horse' || t === 'bull' || t === 'sheep') {
+    const col = { hen: PAL.paper, pig: '#f4b0a2', cow: PAL.paper, horse: '#a8714d', bull: '#6b4a3c', sheep: '#3f3a3a' }[t];
+    if (t === 'sheep') { cx.fillStyle = PAL.snow; [[-18, -16], [0, -24], [18, -16], [-24, 2], [24, 2]].forEach(([a, b]) => { cx.beginPath(); cx.arc(a, b, 12, 0, 7); cx.fill(); cx.stroke(); }); }
     if (t === 'hen') { cx.fillStyle = PAL.accent; cx.beginPath(); cx.arc(0, -28, 7, 0, 7); cx.fill(); cx.stroke(); }
     if (t === 'cow' || t === 'bull') { cx.fillStyle = PAL.sand; [-1, 1].forEach((q) => { cx.beginPath(); cx.moveTo(q * 16, -18); cx.lineTo(q * (t === 'bull' ? 34 : 26), -34); cx.lineTo(q * 22, -14); cx.closePath(); cx.fill(); cx.stroke(); }); }
     if (t === 'horse') { cx.fillStyle = PAL.ink; cx.fillRect(-6, -34, 12, 18); }
@@ -661,6 +682,13 @@ function animalModel(a, i) {
     for (let k = 0; k < 4; k++) { geo = new T.CylinderGeometry(0.06, 0.06, 0.18, 5); geo.translate(0, 0.09, 0); part(fac(geo, AN_COL.pig, 5 + k), body, k % 2 ? 0.17 : -0.17, 0, k < 2 ? 0.22 : -0.22); }
     geo = new T.TorusGeometry(0.06, 0.02, 4, 8, 4.5); part(fac(geo, AN_COL.pig, 9), body, 0, 0.5, -0.46);
     return { g, body, h: 1.15 };
+  }
+  if (a === 'sheep') {
+    for (let k = 0; k < 7; k++) part(fac(ico(0.2, 0, k + i), PAL.snow, k), body, Math.cos(k * 0.9) * 0.2, 0.55 + (k % 2) * 0.12, -0.25 + k * 0.08);
+    geo = ico(0.15, 0, i + 3); geo.scale(0.9, 1, 1.2); part(fac(geo, '#3f3a3a', 3), body, 0, 0.72, 0.42);
+    [-0.07, 0.07].forEach((x) => { const e = new T.Mesh(new T.SphereGeometry(0.025, 6, 4), new T.MeshBasicMaterial({ color: PAL.snow })); e.position.set(x, 0.78, 0.55); body.add(e); const ear = new T.BoxGeometry(0.12, 0.04, 0.06); part(fac(ear, '#3f3a3a', 4), body, x * 2.2, 0.76, 0.38); });
+    for (let k = 0; k < 4; k++) { geo = new T.CylinderGeometry(0.04, 0.04, 0.34, 5); geo.translate(0, 0.17, 0); part(fac(geo, '#3f3a3a', 5 + k), body, k % 2 ? 0.13 : -0.13, 0, k < 2 ? 0.2 : -0.2); }
+    return { g, body, h: 1.0 };
   }
   /* cow, horse and bull share a four-legged body */
   const col = a === 'cow' ? PAL.paper : AN_COL[a], long = a === 'horse';
@@ -733,7 +761,7 @@ const heartMat = new T.MeshBasicMaterial({ color: PAL.accent, side: T.DoubleSide
 function feed(an, m) {
   an.incoming = Math.max(0, an.incoming - 1); if (m) sc.remove(m);
   if (!an.want) return;
-  an.want = null; an.sp.visible = false; an.cd = 4 + Math.random() * 5; an.hop = 1; an.glad = 2.5; an.wait = 0;
+  an.want = null; an.sp.visible = false; an.cd = 14 + Math.random() * 12; /* calm: animals are content for a good while after a meal */ an.hop = 1; an.glad = 2.5; an.wait = 0;
   const n = Math.max(1, Math.round(HEARTS[an.a] * (an.pen.big ? 2 : 1) * heartMult()));
   earn(n); const wp = an.g.position; coinToHud(wp.x, an.h, wp.z, Math.min(6, n));
   for (let k = 0; k < 5; k++) { const h = new T.Mesh(heartGeo, heartMat); h.position.set(wp.x, an.h, wp.z); const a = k / 5 * 6.283; h.userData = { v: new T.Vector3(Math.cos(a) * 1.2, 3 + hash(k, 5), Math.sin(a) * 1.2), t: 0 }; sc.add(h); pops.push(h); }
@@ -787,6 +815,7 @@ function padTex(p, left) {
   x.fillStyle = 'rgba(255,246,228,0.92)'; x.beginPath(); x.arc(128, 128, 120, 0, 7); x.fill();
   x.lineWidth = 10; x.strokeStyle = PAL.ochre; x.beginPath(); x.arc(128, 128, 112, -Math.PI / 2, -Math.PI / 2 + 6.2832 * (1 - left / p.cost)); x.stroke();
   if (p.kind === 'animal') drawIcon(x, p.a, 128, 86, 1.3);
+  else if (p.kind === 'tractor') drawIcon(x, 'tractor', 128, 86, 1.2);
   else if (p.kind === 'house') { drawIcon(x, 'house', 118, 84, 1.25); drawIcon(x, p.a, 176, 106, 0.6); }
   else if (p.kind === 'source') drawIcon(x, p.t, 128, 84, 1.3);
   else if (p.kind === 'helper') { drawIcon(x, 'robot', 118, 84, 1.2); drawIcon(x, p.t, 178, 108, 0.7); }
@@ -803,7 +832,7 @@ function showPad() {
   pad = { p, g, disc, shown: -1, coinT: 0 };
 }
 function build(p) {
-  if (p.kind === 'animal') addAnimal(p.a); else if (p.kind === 'house') setHouse(p.a, true); else if (p.kind === 'source') addSource(p.t); else if (p.kind === 'helper') addHelper(p.t);
+  if (p.kind === 'tractor') addTractor(); else if (p.kind === 'animal') addAnimal(p.a); else if (p.kind === 'house') setHouse(p.a, true); else if (p.kind === 'source') addSource(p.t); else if (p.kind === 'helper') addHelper(p.t);
 }
 function unlock(p) {
   state.owned[p.id] = true; delete state.paid[p.id]; build(p);
@@ -828,8 +857,91 @@ function goal() {
   /* otherwise fetch what a hungry animal is missing in its box, or what a box is low on */
   const hungry = animals.filter((an) => an.want && !an.pen.food.count(an.want)).sort((a, b) => b.wait - a.wait)[0];
   if (hungry && sources[hungry.want]) return [sources[hungry.want].x, sources[hungry.want].z];
-  for (const a in pens) for (const t of DIET[a]) if (sources[t] && pens[a].food.count(t) < 2) return [sources[t].x, sources[t].z];
   return null;
+}
+/* ---------- the hay meadow: tall grass that Pip or the tractor can mow into bales ---------- */
+const tufts = [];
+{
+  const geo = new T.ConeGeometry(0.09, 0.55, 4); geo.translate(0, 0.27, 0);
+  for (let x = MEADOW.x0; x <= MEADOW.x1; x += 0.62) for (let z = MEADOW.z0; z <= MEADOW.z1; z += 0.62) {
+    const g = new T.Group(), jx = x + (hash(x, z) - 0.5) * 0.3, jz = z + (hash(z, x) - 0.5) * 0.3; g.position.set(jx, 0, jz); sc.add(g);
+    for (let k = 0; k < 3; k++) { const m = part(fac(geo.clone(), k ? '#b9c75a' : '#a5b84e', k + Math.round(x * 3)), g, (k - 1) * 0.1, 0, (k % 2) * 0.08 - 0.04, true); m.rotation.z = (k - 1) * 0.25; }
+    tufts.push({ g, x: jx, z: jz, h: 1 });
+  }
+  /* a low fence along the meadow edge */
+  for (let x = MEADOW.x0 - 0.5; x <= MEADOW.x1 + 0.5; x += 0.8) { const p = new T.BoxGeometry(0.07, 0.36, 0.07); p.translate(0, 0.18, 0); part(fac(p, PAL.trunk, Math.round(x * 5)), sc, x, 0, MEADOW.z0 - 0.5); }
+}
+let mown = 0;
+const loose = []; /* hay bales lying in the meadow, waiting to be picked up */
+function cutTuft(t) {
+  t.h = 0.12; t.g.scale.y = t.h; mown++;
+  if (mown % 4 === 0) { const m = mk('hay'); m.position.set(t.x, 0, t.z); m.rotation.y = hash(t.x, t.z) * 3; sc.add(m); loose.push(m); earn(1); coinToHud(t.x, 0.5, t.z, 1); Snd.play('pop', { gain: 0.4, f: 420 }, 0, 120); }
+}
+
+/* ---------- the tractor ---------- */
+let tractor = null;
+function addTractor() {
+  if (tractor) return; const g = new T.Group(); g.position.set(TRACTOR_HOME[0], 0, TRACTOR_HOME[1]); sc.add(g);
+  let geo = new T.BoxGeometry(0.62, 0.42, 1.2, 2, 1, 2); part(fac(jit(geo, 0.015, 1), PAL.accent, 81), g, 0, 0.58, 0.05);
+  geo = new T.BoxGeometry(0.5, 0.36, 0.55); part(fac(geo, PAL.accent, 82), g, 0, 0.62, 0.72);
+  geo = new T.BoxGeometry(0.4, 0.12, 0.34); part(fac(geo, PAL.ink, 83), g, 0, 0.84, -0.3);
+  [-1, 1].forEach((s) => { let w = new T.CylinderGeometry(0.4, 0.4, 0.22, 10); w.rotateZ(Math.PI / 2); part(fac(w, PAL.ink, 84), g, s * 0.42, 0.4, -0.3); w = new T.CylinderGeometry(0.16, 0.16, 0.06, 8); w.rotateZ(Math.PI / 2); part(fac(w, PAL.ochre, 85), g, s * 0.54, 0.4, -0.3);
+    w = new T.CylinderGeometry(0.22, 0.22, 0.16, 8); w.rotateZ(Math.PI / 2); part(fac(w, PAL.ink, 86), g, s * 0.36, 0.22, 0.75); });
+  geo = new T.CylinderGeometry(0.04, 0.04, 0.5, 6); part(fac(geo, PAL.rock, 87), g, 0.16, 1.0, 0.8);
+  /* the mower bar behind */
+  geo = new T.BoxGeometry(1.7, 0.06, 0.22); part(fac(geo, PAL.rock, 88), g, 0, 0.12, -0.95);
+  for (let k = 0; k < 6; k++) { const b = new T.ConeGeometry(0.06, 0.14, 3); b.rotateX(Math.PI / 2); part(fac(b, PAL.snow, 89), g, -0.7 + k * 0.28, 0.12, -1.1); }
+  tractor = { g };
+}
+
+/* ---------- actions: one or two big buttons show what Pip can do right here ---------- */
+const ACT_ICON = {};
+function actIcon(name, sub) {
+  const key = name + (sub || ''); if (ACT_ICON[key]) return ACT_ICON[key];
+  const c = document.createElement('canvas'); c.width = 128; c.height = 128; const x = c.getContext('2d');
+  if (sub) { drawIcon(x, sub, 54, 70, 1.05); drawIcon(x, name, 92, 34, 0.7); } else drawIcon(x, name, 64, 66, 1.35);
+  return (ACT_ICON[key] = c.toDataURL());
+}
+let acts = [];
+function nearestAnimal(r) { let best = null, bd = r; animals.forEach((an) => { if (an.ridden) return; const d = Math.hypot(an.g.position.x - pip.position.x, an.g.position.z - pip.position.z); if (d < bd) { bd = d; best = an; } }); return best; }
+function findActs() {
+  const out = [];
+  if (mount) out.push({ icon: actIcon('down'), label: 'Hoppa av', run: dismount });
+  else {
+    if (tractor && Math.hypot(tractor.g.position.x - pip.position.x, tractor.g.position.z - pip.position.z) < 1.3) out.push({ icon: actIcon('tractor'), label: 'Kör traktorn', run: () => mountTractor() });
+    const an = nearestAnimal(1.15);
+    if (an && RIDE[an.a]) out.push({ icon: actIcon(an.a), label: 'Rid', ride: true, run: () => ride(an) });
+    if (an) out.push({ icon: actIcon('hand'), label: 'Klappa', run: () => pet(an) });
+  }
+  return out.slice(0, 2);
+}
+function renderActs() {
+  const next = findActs(), key = next.map((a) => a.label).join('|');
+  if (key !== acts.map((a) => a.label).join('|')) {
+    ['actA', 'actB'].forEach((id, k) => { const b = $(id), a = next[k]; if (!b) return; b.hidden = !a; if (a) { b.querySelector('img').src = a.icon; b.setAttribute('aria-label', a.label); b.classList.toggle('ride', !!a.ride); } });
+  }
+  acts = next;
+}
+['actA', 'actB'].forEach((id, k) => { const b = $(id); if (b) b.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); const a = acts[k]; if (a) { a.run(); acts = []; renderActs(); } }); });
+window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if ((k === 'e' || k === ' ') && acts[0]) { e.preventDefault(); acts[0].run(); acts = []; renderActs(); } else if (k === 'q' && acts[1]) { acts[1].run(); acts = []; renderActs(); } });
+function burst(x, y, z, n) { for (let k = 0; k < n; k++) { const h = new T.Mesh(heartGeo, heartMat); h.position.set(x, y, z); const a = k / n * 6.283; h.userData = { v: new T.Vector3(Math.cos(a) * 1.0, 2.6 + hash(k, 5), Math.sin(a) * 1.0), t: 0 }; sc.add(h); pops.push(h); } }
+function pet(an) {
+  an.hop = 1; const p = an.g.position; burst(p.x, an.h, p.z, 4); Snd.play('sparkle', { gain: 0.35 }, 0, 150);
+  if (time - (an.petT || -99) > 8) { an.petT = time; earn(1); coinToHud(p.x, an.h, p.z, 1); }
+}
+function ride(an) {
+  mount = { kind: 'animal', an, t0: time }; an.ridden = true; an.sp.visible = false; target.copy(an.g.position); pip.position.set(an.g.position.x, 0, an.g.position.z);
+  pip.rotation.y = an.g.rotation.y; Snd.play('powerup', { gain: 0.4 }); pet(an);
+}
+function mountTractor() { mount = { kind: 'tractor' }; pip.position.set(tractor.g.position.x, 0, tractor.g.position.z); pip.rotation.y = tractor.g.rotation.y; target.copy(pip.position); Snd.play('powerup', { gain: 0.4, f: 300 }); }
+function dismount() {
+  const m = mount; mount = null; pip.position.y = 0;
+  if (m.kind === 'animal') {
+    const an = m.an, p = penBox(an.a); an.ridden = false; an.sp.visible = !!an.want; an.tx = p.x + (Math.random() - 0.5) * (p.w - 1.2); an.tz = p.z + (Math.random() - 0.5) * (p.d - 1.0);
+    const n = Math.min(6, 1 + Math.floor((time - m.t0) / 6)); earn(n); const q = an.g.position; coinToHud(q.x, an.h, q.z, n); burst(q.x, an.h, q.z, 5); an.hop = 1;
+    pip.position.x += Math.cos(pip.rotation.y) * 0.7; pip.position.z -= Math.sin(pip.rotation.y) * 0.7;
+  } else { pip.position.x += Math.cos(pip.rotation.y) * 0.9; pip.position.z -= Math.sin(pip.rotation.y) * 0.9; }
+  target.copy(pip.position); Snd.play('pop', { gain: 0.4, f: 500 });
 }
 /* ---------- camera and input ---------- */
 let aspect = 1;
@@ -844,7 +956,7 @@ const dragMode = () => state.ctrl !== 'tap';
 const joyEl = $('joy'), JOY_R = 56;
 function joyShow() { if (!joyEl) return; joyEl.hidden = false; joyEl.style.left = joy.x0 + 'px'; joyEl.style.top = joy.y0 + 'px'; joyKnob(); }
 function joyKnob() { if (!joyEl) return; const l = Math.hypot(joy.dx, joy.dy), k = l > JOY_R ? JOY_R / l : 1; joyEl.firstElementChild.style.transform = 'translate(' + joy.dx * k + 'px,' + joy.dy * k + 'px)'; }
-function aim(e) { const r = canvas.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, cam); if (ray.ray.intersectPlane(groundPlane, tmpV)) target.set(clamp(tmpV.x, -10.3, 10.3), 0, clamp(tmpV.z, -6.9, 6.9)); }
+function aim(e) { const r = canvas.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, cam); if (ray.ray.intersectPlane(groundPlane, tmpV)) target.set(clamp(tmpV.x, -16.3, 16.3), 0, clamp(tmpV.z, -10.9, 10.9)); }
 wrap.addEventListener('pointerdown', (e) => { if (e.button && e.button !== 0) return; closeMenu(); Snd.init(); holding = true; try { wrap.setPointerCapture(e.pointerId); } catch (er) {} if (dragMode()) { joy = { x0: e.clientX, y0: e.clientY, dx: 0, dy: 0 }; joyShow(); } else aim(e); if (!state.moved) { state.moved = true; $('hint').hidden = true; } });
 wrap.addEventListener('pointermove', (e) => { if (!holding) return; if (joy) { joy.dx = e.clientX - joy.x0; joy.dy = e.clientY - joy.y0; /* the stick stays where the finger first touched; lift and touch again to move it */ joyKnob(); } else aim(e); });
 ['pointerup', 'pointercancel'].forEach((ev) => wrap.addEventListener(ev, () => { holding = false; if (joy) { joy = null; if (joyEl) joyEl.hidden = true; target.copy(pip.position); } }));
@@ -902,13 +1014,13 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catc
 function load() { try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (!s || s.v !== 1 || typeof s.coins !== 'number') return null; const b = fresh(); for (const k in b) if (!(k in s)) s[k] = b[k]; return s; } catch (e) { return null; } }
 
 /* ---------- loop ---------- */
-let menuT = 0, time = 0, xferT = 0, lastT = 0, saveT = 0, ambT = 0;
+let actT = 0, menuT = 0, time = 0, xferT = 0, lastT = 0, saveT = 0, ambT = 0;
 function step(dt) {
   time += dt;
   /* Pip moves toward the touch point, or by keys */
   let kx = (keys.d || keys.arrowright ? 1 : 0) - (keys.a || keys.arrowleft ? 1 : 0), kz = (keys.s || keys.arrowdown ? 1 : 0) - (keys.w || keys.arrowup ? 1 : 0);
   if (joy) { if (Math.hypot(joy.dx, joy.dy) > 10) { kx = joy.dx; kz = joy.dy; } else target.copy(pip.position); }
-  if (kx || kz) { const l = Math.hypot(kx, kz); target.set(clamp(pip.position.x + kx / l * 0.6, -10.3, 10.3), 0, clamp(pip.position.z + kz / l * 0.6, -6.9, 6.9)); }
+  if (kx || kz) { const l = Math.hypot(kx, kz); target.set(clamp(pip.position.x + kx / l * 0.6, -16.3, 16.3), 0, clamp(pip.position.z + kz / l * 0.6, -10.9, 10.9)); }
   const moving = !walkTo(pip, target.x, target.z, dt, speed());
   pipWalk = moving ? pipWalk + dt : 0;
   pb.position.y = reduced ? 0 : moving ? Math.abs(Math.sin(pipWalk * 11)) * 0.07 : Math.sin(time * 2.1) * 0.03;
@@ -917,18 +1029,20 @@ function step(dt) {
   const near = (x, z, r) => Math.hypot(pip.position.x - x, pip.position.z - z) < r;
   /* animals: wander in the pen, get hungry or thirsty, come to the trough and wait */
   animals.forEach((an) => {
+    if (an.ridden) { an.g.position.set(pip.position.x, 0, pip.position.z); an.g.rotation.y = pip.rotation.y; an.body.position.y = reduced ? 0 : Math.abs(Math.sin(time * 10)) * 0.06; return; }
     if (!an.want) { an.cd -= dt; if (an.cd <= 0) { const opts = DIET[an.a].filter(available); an.want = opts[Math.floor(Math.random() * opts.length)]; an.sp.material.map = bubble(an.want); an.sp.visible = true; an.wait = 0; Snd.play('blip', { gain: 0.15, f: 520 }, 0, 400); } }
     const p = penBox(an.a);
     if (an.want) { an.wait += dt; const gap = an.a === 'hen' ? 0.5 : 0.78, tz = p.z + ((animals.filter((o) => o.a === an.a).indexOf(an) % 3) - 1) * gap; an.tx = an.pen.trough[0]; an.tz = tz; }
     else if (Math.hypot(an.g.position.x - an.tx, an.g.position.z - an.tz) < 0.1 && Math.random() < dt * 0.4) { an.tx = p.x + (Math.random() - 0.5) * (p.w - 1.2); an.tz = p.z + (Math.random() - 0.5) * (p.d - 1.0); }
-    const moving = !walkTo(an.g, an.tx, an.tz, dt, an.a === 'hen' ? 0.8 : 0.6);
+    const away = Math.abs(an.g.position.x - p.x) > p.w / 2 || Math.abs(an.g.position.z - p.z) > p.d / 2;
+    const moving = !walkTo(an.g, an.tx, an.tz, dt, away ? 2.0 : an.a === 'hen' ? 0.8 : 0.6);
     /* a hungry animal at the box eats by itself if its food is there */
     if (an.want && !moving && an.incoming <= 0 && an.pen.food.count(an.want)) { const m = an.pen.food.take(an.want); an.incoming++; fly(m, () => an.g.localToWorld(tmpV.set(0, an.h * 0.55, 0.25)), () => feed(an, m), 0.35); }
     if (!moving && an.want) an.g.rotation.y += (Math.atan2(-Math.sign(p.x), 0) - an.g.rotation.y) * Math.min(1, dt * 4);
     if (an.hop > 0) an.hop = Math.max(0, an.hop - dt * 2.2);
     const bob = reduced ? 0 : moving ? Math.abs(Math.sin(time * 9 + an.tx)) * 0.04 : 0;
     an.body.position.y = Math.sin(an.hop * Math.PI) * 0.35 + bob; an.body.rotation.z = an.hop > 0 && !reduced ? Math.sin(an.hop * 12) * 0.12 : 0;
-    if (an.want) an.sp.position.y = an.h + 0.35 + (reduced ? 0 : Math.sin(time * (an.wait > 20 ? 7 : 3) + an.tx) * 0.05);
+    if (an.want) an.sp.position.y = an.h + 0.35 + (reduced ? 0 : Math.sin(time * 3 + an.tx) * 0.05);
   });
 
   /* Pip takes food from a source, and feeds animals that want what Pip carries (one item at a time) */
@@ -947,6 +1061,16 @@ function step(dt) {
     if (did) xferT = 0.12;
   }
   helpers.forEach((h) => runHelper(h, dt));
+  /* riding and driving: Pip sits on top, the mount follows Pip */
+  if (mount && mount.kind === 'animal') pip.position.y = mount.an.h * (mount.an.a === 'horse' ? 0.45 : 0.42);
+  else if (mount && mount.kind === 'tractor') { pip.position.y = 0.5; tractor.g.position.set(pip.position.x, 0, pip.position.z); tractor.g.rotation.y = pip.rotation.y; }
+  /* mowing: Pip cuts the grass right underfoot, the tractor a wide strip */
+  { const r = mount && mount.kind === 'tractor' ? 1.1 : 0.42, px = pip.position.x, pz = pip.position.z;
+    if (px > MEADOW.x0 - 1.5 && px < MEADOW.x1 + 1.5 && pz > MEADOW.z0 - 1.5 && pz < MEADOW.z1 + 1.5) tufts.forEach((t) => { if (t.h > 0.8 && Math.hypot(t.x - px, t.z - pz) < r) cutTuft(t); }); }
+  tufts.forEach((t) => { if (t.h < 1) { t.h = Math.min(1, t.h + dt / 50); t.g.scale.y = t.h; } });
+  /* pick up hay bales lying in the meadow */
+  for (let i = loose.length - 1; i >= 0; i--) { const m = loose[i]; if (carry.items.length < cap() && near(m.position.x, m.position.z, mount ? 1.1 : 0.7)) { loose.splice(i, 1); fly(m, () => { carry.parent.updateMatrixWorld(); return pip.localToWorld(tmpV.set(0, 0.72 + carry.items.reduce((a, b) => a + ITEM_H[b.userData.type], 0), -0.32)); }, () => carry.add(m)); Snd.play('pop', { gain: 0.4, f: 600 }); break; } }
+  actT -= dt; if (actT <= 0) { actT = 0.15; renderActs(); }
   if (pad) {
     const pos = padPos(pad.p), left = pad.p.cost - (state.paid[pad.p.id] || 0);
     if (near(pos[0], pos[1], 0.85) && state.coins > 0 && !moving) {
