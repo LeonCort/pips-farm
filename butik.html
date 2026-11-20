@@ -111,6 +111,12 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 @media (orientation: landscape) { .ward { align-items: center; justify-content: flex-end; padding-right: max(16px, env(safe-area-inset-right, 0px)); } .sw { width: 46px; height: 46px; } .ward .sheet { width: min(450px, 52vw); border: 3px solid var(--ink); border-radius: 28px; margin-top: 60px; } }
 @media (max-width: 480px) { .sw { width: 38px; height: 38px; padding: 3px; } .wrow { gap: 6px; } }
 @media (max-height: 520px) { .sw { width: 34px; height: 34px; padding: 2px; } .wrow { gap: 5px; } .wardRows { gap: 5px; } .ward .sheet { margin-top: 0; max-height: none; padding-top: 8px; gap: 6px; } .wardDone { height: 48px; width: 72px; } }
+.toast { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 10px 26px 10px 14px; border-radius: 999px; background: var(--paper); border: 4px solid var(--ink); box-shadow: 0 6px 0 rgba(34,48,60,0.3); font-size: 34px; pointer-events: none; }
+.toast svg { width: 56px; height: 56px; }
+.toast b { font-weight: 700; margin-right: 8px; }
+.toast.show { animation: toastIn 3.2s ease-out forwards; }
+@keyframes toastIn { 0% { opacity: 0; transform: translateX(-50%) scale(0.6); } 10% { opacity: 1; transform: translateX(-50%) scale(1.06); } 16% { transform: translateX(-50%) scale(1); } 85% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .toast.show { animation: none; } }
 </style>
 </head>
 <body>
@@ -126,6 +132,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 <button type="button" class="menuBtn" id="menuBtn" aria-label="Upgrades" aria-expanded="false"><span class="badge" aria-hidden="true">+</span>
   <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 8 L40 26 H30 V40 H18 V26 H8 Z" fill="#fff6e4" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/></svg>
 </button>
+<div class="toast" id="toast" hidden aria-live="polite"></div>
 <div class="hint" id="hint" aria-hidden="true">
   <svg viewBox="0 0 64 64"><circle class="ripple" cx="26" cy="18" r="12" fill="none" stroke="#fff6e4" stroke-width="3"/><path d="M22 18 v22 l-6 -5 c-3 -2 -6 1 -4 4 l12 15 h18 c3 0 5 -3 5 -6 V32 c0 -3 -4 -4 -5 -1 v-3 c0 -3 -4 -4 -5 -1 v-2 c0 -3 -5 -3 -5 0 V18 c0 -4 -6 -4 -6 0 z" fill="#fff6e4" stroke="#22303c" stroke-width="2.5" stroke-linejoin="round"/></svg>
 </div>
@@ -154,7 +161,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Done"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M11 25 L20 34 L37 14" fill="none" stroke="#fff6e4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
 </div>
-<meta name="app-ver" content="20261120102222">
+<meta name="app-ver" content="20261120103148">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -793,7 +800,21 @@ function stock(m) {
   if (back.items.length < BACK_MAX) { fly(m, () => backG.localToWorld(tmpV.set(0, 0.4, 0)), () => back.add(m)); return true; }
   return false;
 }
-let backT = 0;
+let backT = 0, farmT = 1;
+/* deliveries from the farm game on the same device: eggs and milk land in the crate */
+const EGG_SVG = '<svg viewBox="0 0 48 48" aria-hidden="true"><ellipse cx="24" cy="26" rx="13" ry="16" fill="#fffbf4" stroke="#22303c" stroke-width="3"/></svg>', MILK_SVG = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M17 16 H31 V40 C31 42 29 43 27 43 H21 C19 43 17 42 17 40 Z" fill="#fff6e4" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/><rect x="19" y="7" width="10" height="9" fill="#1f6a80" stroke="#22303c" stroke-width="3"/></svg>';
+function farmDelivery() {
+  let s; try { s = JSON.parse(localStorage.getItem('pips-delivery') || 'null'); } catch (e) { return; }
+  if (!s || !((s.egg | 0) > 0 || (s.milk | 0) > 0)) return;
+  let room = BACK_MAX - back.items.length; if (room <= 0) return;
+  const got = { egg: 0, milk: 0 };
+  ['egg', 'milk'].forEach((t) => { const n = Math.min(s[t] | 0, room); for (let k = 0; k < n; k++) { const m = mk(t); m.position.set(BACK.x + (k % 5 - 2) * 0.3, 4, BACK.z + 7); sc.add(m); m.updateMatrixWorld(); fly(m, () => backG.localToWorld(tmpV.set(0, 0.4, 0)), () => back.add(m), 0.6 + k * 0.05); } got[t] = n; room -= n; s[t] = (s[t] | 0) - n; });
+  try { localStorage.setItem('pips-delivery', JSON.stringify(s)); } catch (e) {}
+  if (got.egg + got.milk) {
+    Snd.play('success', { gain: 0.5, f: 'C6' });
+    const el = $('toast'); if (el) { el.innerHTML = (got.egg ? EGG_SVG + '<b>' + got.egg + '</b>' : '') + (got.milk ? MILK_SVG + '<b>' + got.milk + '</b>' : ''); el.setAttribute('aria-label', 'Från bondgården: ' + got.egg + ' ägg och ' + got.milk + ' mjölk'); el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); clearTimeout(farmDelivery.t); farmDelivery.t = setTimeout(() => { el.hidden = true; }, 3200); }
+  }
+}
 /* money pile in front of the shop */
 const coinGeo = fac(new T.CylinderGeometry(0.13, 0.13, 0.05, 8), PAL.ochre, 3);
 function makeMoney(x, z) {
@@ -861,7 +882,7 @@ function bubble(type, n) {
 const customers = [];
 let spawnT = 1;
 function wants() {
-  const kinds = ['egg']; if (producers.some((p) => p.type === 'apple')) kinds.push('apple'); if (producers.some((p) => p.type === 'milk')) kinds.push('milk'); if (bakery) kinds.push('cake');
+  const kinds = ['egg']; if (producers.some((p) => p.type === 'apple')) kinds.push('apple'); if (producers.some((p) => p.type === 'milk') || shelf.milk.items.length + back.count('milk') > 0) kinds.push('milk'); if (bakery) kinds.push('cake');
   const have = (k) => shelf[k].items.length + back.count(k), anyStock = kinds.some((k) => have(k) > 0);
   /* guests mostly ask for what is actually in the shop, so one missing item cannot block the counter */
   const w = kinds.map((k, i) => (1 + i * 0.8) * (!anyStock || have(k) > 0 ? 1 : 0.08) * (1 + Math.min(3, have(k) / 8))), sum = w.reduce((a, b) => a + b, 0); let r = Math.random() * sum;
@@ -1118,6 +1139,7 @@ function step(dt) {
   }
 
   /* the crate refills shelves that have room */
+  farmT -= dt; if (farmT <= 0) { farmT = 1.5; farmDelivery(); }
   backT -= dt; if (backT <= 0 && back.items.length) { backT = 0.15;
     const low = Object.values(stalls).find((s) => s.shelf.items.length < 4 && back.count(s.t));
     if (low) { const m = back.take(low.t); fly(m, () => low.g.localToWorld(tmpV.set(0, 1.0, 0)), () => low.shelf.add(m), 0.6); } else for (const t in shelf) if (shelf[t].items.length < SHELF_MAX - 2 && back.count(t)) { const m = back.take(t); fly(m, () => counterG.localToWorld(tmpV.set(SHELF_X[t], 1.0, 0)), () => shelf[t].add(m)); break; } }

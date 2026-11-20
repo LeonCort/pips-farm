@@ -111,6 +111,12 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 @media (orientation: landscape) { .ward { align-items: center; justify-content: flex-end; padding-right: max(16px, env(safe-area-inset-right, 0px)); } .sw { width: 46px; height: 46px; } .ward .sheet { width: min(450px, 52vw); border: 3px solid var(--ink); border-radius: 28px; margin-top: 60px; } }
 @media (max-width: 480px) { .sw { width: 38px; height: 38px; padding: 3px; } .wrow { gap: 6px; } }
 @media (max-height: 520px) { .sw { width: 34px; height: 34px; padding: 2px; } .wrow { gap: 5px; } .wardRows { gap: 5px; } .ward .sheet { margin-top: 0; max-height: none; padding-top: 8px; gap: 6px; } .wardDone { height: 48px; width: 72px; } }
+.toast { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 10px 26px 10px 14px; border-radius: 999px; background: var(--paper); border: 4px solid var(--ink); box-shadow: 0 6px 0 rgba(34,48,60,0.3); font-size: 34px; pointer-events: none; }
+.toast svg { width: 56px; height: 56px; }
+.toast b { font-weight: 700; margin-right: 8px; }
+.toast.show { animation: toastIn 3.2s ease-out forwards; }
+@keyframes toastIn { 0% { opacity: 0; transform: translateX(-50%) scale(0.6); } 10% { opacity: 1; transform: translateX(-50%) scale(1.06); } 16% { transform: translateX(-50%) scale(1); } 85% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .toast.show { animation: none; } }
 
 .flycoin { background: var(--accent); }
 .price i { background: var(--accent); border-radius: 50% 50% 50% 50%; }
@@ -121,6 +127,26 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 .act:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(34,48,60,0.3); }
 @keyframes pop { from { transform: scale(0.6); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .act { animation: none; } }
+
+.clock { position: fixed; top: calc(max(12px, env(safe-area-inset-top, 0px)) + 62px); left: max(16px, env(safe-area-inset-left, 0px)); display: flex; gap: 2px; padding: 4px 8px; border-radius: 999px; background: var(--paper); border: 3px solid var(--ink); box-shadow: 0 3px 0 rgba(34,48,60,0.2); pointer-events: none; }
+.clock svg { width: 34px; height: 34px; display: block; }
+.albumBtn { position: fixed; top: max(14px, env(safe-area-inset-top, 0px)); right: calc(max(16px, env(safe-area-inset-right, 0px)) + 90px); width: 68px; height: 68px; border-radius: 50%; border: 3px solid var(--ink); background: var(--paper); box-shadow: 0 5px 0 rgba(34,48,60,0.3); padding: 8px; }
+.albumBtn svg { width: 100%; height: 100%; display: block; }
+.albumBtn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(34,48,60,0.3); }
+.albumBtn .dot { display: none; position: absolute; top: -4px; right: -4px; width: 22px; height: 22px; border-radius: 50%; background: var(--accent); border: 3px solid var(--ink); }
+.albumBtn.new .dot { display: block; } .albumBtn.new { animation: ready 1.4s ease-in-out infinite; }
+.album .sheet { width: min(760px, 100%); max-height: 86vh; display: flex; flex-direction: column; }
+.albumCount { font-size: 26px; font-weight: 700; align-self: center; margin-right: auto; padding-left: 6px; }
+.albumGrid { overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-bottom: 6px; }
+.arow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; padding: 8px; border-radius: 20px; background: #f3e6cc; }
+.stk { width: 84px; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 2px 6px; border-radius: 16px; border: 3px dashed #c9b38c; background: #fbf3e2; }
+.stk img { width: 72px; height: 72px; display: block; }
+.stk span { width: 72px; height: 72px; display: grid; place-items: center; font-size: 34px; font-weight: 700; color: #c9b38c; }
+.stk em { font-style: normal; font-size: 15px; font-weight: 600; min-height: 18px; text-align: center; }
+.stk.got { border: 3px solid var(--ink); background: #fffaf0; box-shadow: 0 3px 0 rgba(34,48,60,0.2); }
+.stk.baby.got { background: #fde8ee; }
+@media (max-width: 480px) { .stk { width: 70px; } .stk img, .stk span { width: 60px; height: 60px; } .albumBtn { width: 60px; height: 60px; right: calc(max(16px, env(safe-area-inset-right, 0px)) + 86px); } }
+@media (prefers-reduced-motion: reduce) { .albumBtn.new { animation: none; } }
 </style>
 </head>
 <body>
@@ -136,6 +162,15 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 <button type="button" class="menuBtn" id="menuBtn" aria-label="Upgrades" aria-expanded="false"><span class="badge" aria-hidden="true">+</span>
   <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 8 L40 26 H30 V40 H18 V26 H8 Z" fill="#fff6e4" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/></svg>
 </button>
+<div class="clock" id="clock" role="status"></div>
+<div class="toast" id="toast" hidden aria-live="polite"></div>
+<button type="button" class="albumBtn" id="albumBtn" aria-label="Sticker album"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="9" y="7" width="30" height="35" rx="4" fill="#3f7d62" stroke="#22303c" stroke-width="3"/><rect x="15" y="13" width="18" height="14" rx="3" fill="#fff6e4" stroke="#22303c" stroke-width="2.5"/><path d="M24 24 C17 19 18 15 21 15 C22.5 15 23.5 16 24 17 C24.5 16 25.5 15 27 15 C30 15 31 19 24 24 Z" fill="#e9684a"/><path d="M14 35 H34" stroke="#fff6e4" stroke-width="3" stroke-linecap="round"/></svg><span class="dot" aria-hidden="true"></span></button>
+<div class="menu album" id="album" hidden>
+  <div class="sheet" role="dialog" aria-label="Sticker album">
+    <div class="sheetTop"><span class="albumCount" id="albumCount"></span><button type="button" class="round" id="albumClose" aria-label="Close"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M14 14 L34 34 M34 14 L14 34" stroke="#22303c" stroke-width="5" stroke-linecap="round"/></svg></button></div>
+    <div class="albumGrid" id="albumGrid"></div>
+  </div>
+</div>
 <div class="hint" id="hint" aria-hidden="true">
   <svg viewBox="0 0 64 64"><circle class="ripple" cx="26" cy="18" r="12" fill="none" stroke="#fff6e4" stroke-width="3"/><path d="M22 18 v22 l-6 -5 c-3 -2 -6 1 -4 4 l12 15 h18 c3 0 5 -3 5 -6 V32 c0 -3 -4 -4 -5 -1 v-3 c0 -3 -4 -4 -5 -1 v-2 c0 -3 -5 -3 -5 0 V18 c0 -4 -6 -4 -6 0 z" fill="#fff6e4" stroke="#22303c" stroke-width="2.5" stroke-linejoin="round"/></svg>
 </div>
@@ -165,7 +200,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Done"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M11 25 L20 34 L37 14" fill="none" stroke="#fff6e4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
 </div>
-<meta name="app-ver" content="20261120102222">
+<meta name="app-ver" content="20261120103148">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -602,10 +637,11 @@ wg = fac(wg, (cx, cy, cz, i) => { const d = Math.max(Math.abs(cx) / 1.4, Math.ab
 const water = new T.Mesh(wg, new T.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.3 })); water.position.y = -0.45; water.receiveShadow = true; sc.add(water);
 const wp = wg.attributes.position;
 
+const leafs = [];
 function tree(kind, s) {
   const g = new T.Group(); let geo;
-  if (kind === 'pine') { geo = new T.CylinderGeometry(0.07, 0.09, 0.35, 5); geo.translate(0, 0.17, 0); part(fac(geo, PAL.trunk, s), g); for (let i = 0; i < 3; i++) { geo = new T.ConeGeometry(0.5 - i * 0.12, 0.6, 6); geo.translate(0, 0.6 + i * 0.36, 0); part(fac(jit(geo, 0.02, s + i), i % 2 ? PAL.forest : PAL.pine, s + i), g); } }
-  else { geo = new T.CylinderGeometry(0.09, 0.12, 0.7, 5); geo.translate(0, 0.35, 0); part(fac(geo, PAL.trunk, s), g); part(fac(ico(0.6, 1, s), PAL.forest, s), g, 0, 1.15, 0); }
+  if (kind === 'pine') { geo = new T.CylinderGeometry(0.07, 0.09, 0.35, 5); geo.translate(0, 0.17, 0); part(fac(geo, PAL.trunk, s), g); for (let i = 0; i < 3; i++) { geo = new T.ConeGeometry(0.5 - i * 0.12, 0.6, 6); geo.translate(0, 0.6 + i * 0.36, 0); { const lm = part(fac(jit(geo, 0.02, s + i), i % 2 ? PAL.forest : PAL.pine, s + i), g); lm.userData = { pine: 1, base: i % 2 ? PAL.forest : PAL.pine }; leafs.push(lm); } } }
+  else { geo = new T.CylinderGeometry(0.09, 0.12, 0.7, 5); geo.translate(0, 0.35, 0); part(fac(geo, PAL.trunk, s), g); { const lm = part(fac(ico(0.6, 1, s), PAL.forest, s), g, 0, 1.15, 0); lm.userData = { base: PAL.forest }; leafs.push(lm); } }
   return g;
 }
 [[-14, -9, 'pine'], [-15, -4, 'tree'], [-14.6, 3, 'pine'], [-13, 8.6, 'tree'], [-8, 9.8, 'pine'], [0, 10, 'tree'], [6, 9.8, 'pine'], [13, 8.6, 'tree'], [15.2, 4, 'pine'], [15.2, -3, 'tree'], [14, -9, 'pine'], [6.4, -10.6, 'pine'], [-9, -10, 'tree'], [11.6, -4.6, 'tree'], [-10.6, -6.6, 'pine'], [-11, 5.6, 'tree']].forEach((t, i) => { const m = tree(t[2], i * 7 + 3); m.position.set(t[0], hAt(t[0], t[1]), t[1]); m.rotation.y = hash(i, 4) * 6.28; m.scale.setScalar(0.85 + hash(i, 9) * 0.4); sc.add(m); });
@@ -804,9 +840,9 @@ const COATS = {
 const coatOf = (a, i) => { const l = COATS[a]; return l[(i - 1) % l.length]; };
 /* patches for spotted coats; plain coats paint as before */
 const coatPaint = (c, seed, big) => c.s && big ? (x, y, z) => { const q = big; return tone(hash(Math.floor(x * q + 20) + seed * 3.1, Math.floor(y * q + 20), Math.floor(z * q + 20)) > 0.58 ? c.s : c.b, x * 31.1 + y * 53.3 + z * 77.7 + seed); } : c.b;
-function animalModel(a, i) {
+function animalModel(a, i, coat) {
   const g = new T.Group(), body = new T.Group(); g.add(body); let geo;
-  const c = coatOf(a, i);
+  const c = coat || coatOf(a, i);
   if (a === 'hen') {
     geo = ico(0.24, 1, i, 0.02); geo.scale(1.1, 0.9, 1); part(fac(geo, coatPaint(c, i, 9), i), body, 0, 0.3, 0);
     part(fac(ico(0.13, 0, i + 1), c.b, i + 1), body, 0, 0.55, 0.17); part(fac(new T.BoxGeometry(0.04, 0.09, 0.12), PAL.accent, 3), body, 0, 0.7, 0.16);
@@ -886,7 +922,7 @@ function setHouse(a, big) {
   geo = new T.CylinderGeometry(0.01, 0.62 * s, 0.4 * s, 4, 1); geo.rotateY(Math.PI / 4); geo.scale(1.05, 1, 0.82); geo.translate(0, 0.8 * s, 0); part(fac(geo, big ? PAL.paper : PAL.accent, 71), g);
   const door = new T.Mesh(new T.BoxGeometry(0.26 * s, 0.36 * s, 0.02), ink); door.position.set(0, 0.18 * s, 0.36 * s); g.add(door);
   if (big) { [-0.32, 0.32].forEach((x) => { const tr = new T.BoxGeometry(0.06, 0.9, 0.02); const m = part(fac(tr, PAL.paper, 72), g, x * s, 0.45, 0.36 * s); m.rotation.z = 0; }); }
-  g.scale.setScalar(a === 'hen' ? 0.85 : 1);
+  lightHouse(g, big); g.scale.setScalar(a === 'hen' ? 0.85 : 1);
 }
 function addAnimal(a) {
   const pen = buildPen(a), k = animals.filter((o) => o.a === a).length, m = animalModel(a, k + 1);
@@ -903,7 +939,7 @@ function feed(an, m) {
   if (!an.want) return;
   an.want = null; an.sp.visible = false; an.cd = 14 + Math.random() * 12; /* calm: animals are content for a good while after a meal */ an.hop = 1; an.glad = 2.5; an.wait = 0;
   const n = Math.max(1, Math.round(HEARTS[an.a] * (an.pen.big ? 2 : 1) * heartMult()));
-  earn(n); const wp = an.g.position; coinToHud(wp.x, an.h, wp.z, Math.min(6, n));
+  earn(n); const wp = an.g.position; coinToHud(wp.x, an.h, wp.z, Math.min(6, n)); produce(an); maybeBaby(an);
   for (let k = 0; k < 5; k++) { const h = new T.Mesh(heartGeo, heartMat); h.position.set(wp.x, an.h, wp.z); const a = k / 5 * 6.283; h.userData = { v: new T.Vector3(Math.cos(a) * 1.2, 3 + hash(k, 5), Math.sin(a) * 1.2), t: 0 }; sc.add(h); pops.push(h); }
   Snd.play('coin', { gain: 0.45 }, 0, 90); Snd.play('sparkle', { gain: 0.35 }, 0.05, 200);
 }
@@ -1043,14 +1079,14 @@ function actIcon(name, sub) {
   return (ACT_ICON[key] = c.toDataURL());
 }
 let acts = [];
-function nearestAnimal(r) { let best = null, bd = r; animals.forEach((an) => { if (an.ridden) return; const d = Math.hypot(an.g.position.x - pip.position.x, an.g.position.z - pip.position.z); if (d < bd) { bd = d; best = an; } }); return best; }
+function nearestAnimal(r) { let best = null, bd = r; animals.concat(babies).forEach((an) => { if (an.ridden) return; const d = Math.hypot(an.g.position.x - pip.position.x, an.g.position.z - pip.position.z); if (d < bd) { bd = d; best = an; } }); return best; }
 function findActs() {
   const out = [];
   if (mount) out.push({ icon: actIcon('down'), label: 'Hoppa av', run: dismount });
   else {
     if (tractor && Math.hypot(tractor.g.position.x - pip.position.x, tractor.g.position.z - pip.position.z) < 1.3) out.push({ icon: actIcon('tractor'), label: 'Kör traktorn', run: () => mountTractor() });
     const an = nearestAnimal(1.15);
-    if (an && RIDE[an.a]) out.push({ icon: actIcon(an.a), label: 'Rid', ride: true, run: () => ride(an) });
+    if (an && RIDE[an.a] && !an.baby) out.push({ icon: actIcon(an.a), label: 'Rid', ride: true, run: () => ride(an) });
     if (an) out.push({ icon: actIcon('hand'), label: 'Klappa', run: () => pet(an) });
   }
   return out.slice(0, 2);
@@ -1066,7 +1102,7 @@ function renderActs() {
 window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if ((k === 'e' || k === ' ') && acts[0]) { e.preventDefault(); acts[0].run(); acts = []; renderActs(); } else if (k === 'q' && acts[1]) { acts[1].run(); acts = []; renderActs(); } });
 function burst(x, y, z, n) { for (let k = 0; k < n; k++) { const h = new T.Mesh(heartGeo, heartMat); h.position.set(x, y, z); const a = k / n * 6.283; h.userData = { v: new T.Vector3(Math.cos(a) * 1.0, 2.6 + hash(k, 5), Math.sin(a) * 1.0), t: 0 }; sc.add(h); pops.push(h); } }
 function pet(an) {
-  an.hop = 1; const p = an.g.position; burst(p.x, an.h, p.z, 4); Snd.play('sparkle', { gain: 0.35 }, 0, 150);
+  an.hop = 1; const p = an.g.position; burst(p.x, an.h, p.z, 4); showName(an, 2.2); Snd.play('sparkle', { gain: 0.35 }, 0, 150);
   if (time - (an.petT || -99) > 8) { an.petT = time; earn(1); coinToHud(p.x, an.h, p.z, 1); }
 }
 function ride(an) {
@@ -1082,6 +1118,289 @@ function dismount() {
     pip.position.x += Math.cos(pip.rotation.y) * 0.7; pip.position.z -= Math.sin(pip.rotation.y) * 0.7;
   } else { pip.position.x += Math.cos(pip.rotation.y) * 0.9; pip.position.z -= Math.sin(pip.rotation.y) * 0.9; }
   target.copy(pip.position); Snd.play('pop', { gain: 0.4, f: 500 });
+}
+
+/* ---------- day, night and the seasons ---------- */
+/* one day is 8 minutes; each season lasts one day: spring, summer, autumn, winter */
+const DAY = 480, SEASONS = ['spring', 'summer', 'autumn', 'winter'], SEASON_SV = { spring: 'Vår', summer: 'Sommar', autumn: 'Höst', winter: 'Vinter' };
+const hemi = sc.children.find((o) => o.isHemisphereLight);
+const SKY_KEYS = [
+  /* f: 0 is sunrise, 0.5 late afternoon, 0.62 sunset, 0.7 to 0.94 night */
+  { f: 0.0, top: '#8fb3d9', hor: '#ffc9a0', sun: '#ffc08a', si: 0.6, hs: '#a9c9ff', hg: '#8fa98a', hi: 0.55, n: 0.25 },
+  { f: 0.08, top: '#7db7dd', hor: '#ffe2c4', sun: '#ffe0ba', si: 0.9, hs: '#a9c9ff', hg: '#8fa98a', hi: 0.66, n: 0 },
+  { f: 0.52, top: '#7db7dd', hor: '#ffe2c4', sun: '#ffe0ba', si: 0.9, hs: '#a9c9ff', hg: '#8fa98a', hi: 0.66, n: 0 },
+  { f: 0.62, top: '#6a78b8', hor: '#ff9f6e', sun: '#ff9a5c', si: 0.6, hs: '#c9a6d9', hg: '#8a7a6a', hi: 0.55, n: 0.2 },
+  { f: 0.7, top: '#1c2650', hor: '#3a4478', sun: '#9fb4ff', si: 0.38, hs: '#7086c9', hg: '#3a4458', hi: 0.6, n: 1 },
+  { f: 0.94, top: '#1c2650', hor: '#3a4478', sun: '#9fb4ff', si: 0.38, hs: '#7086c9', hg: '#3a4458', hi: 0.6, n: 1 },
+  { f: 1.0, top: '#8fb3d9', hor: '#ffc9a0', sun: '#ffc08a', si: 0.6, hs: '#a9c9ff', hg: '#8fa98a', hi: 0.55, n: 0.25 }
+];
+const _ca = new T.Color(), _cb = new T.Color();
+const mixHex = (a, b, q, out) => out.copy(_ca.set(a)).lerp(_cb.set(b), q);
+let nightAmt = 0, isNight = false, season = 'spring', seasonShown = null;
+const dayFrac = () => (state.clock % DAY) / DAY;
+/* a soft warm light that follows Pip at night, and one for the tractor's headlights */
+const pipLamp = new T.PointLight(0xffd8a0, 0, 4.5, 2); pipLamp.position.set(0, 1.6, 0.4); pip.add(pipLamp);
+const tractorLamp = new T.PointLight(0xfff0c0, 0, 6, 2); sc.add(tractorLamp);
+/* glows: a soft round sprite used for windows, Pip's lamp and fireflies */
+const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,230,160,1)'); g.addColorStop(0.35, 'rgba(255,210,120,0.55)'); g.addColorStop(1, 'rgba(255,200,100,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
+const glowMat = new T.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: 0 });
+const lampMat = new T.MeshBasicMaterial({ color: '#4a3a2e' });
+const lampOff = new T.Color('#4a3a2e'), lampOn = new T.Color('#ffd27a');
+/* windows and a porch glow on every animal house; called after a house is (re)built */
+function lightHouse(g, big) {
+  const s = big ? 1.5 : 1;
+  [-0.3, 0.3].forEach((x) => { const w = new T.Mesh(new T.BoxGeometry(0.14 * s, 0.14 * s, 0.02), lampMat); w.position.set(x * s, 0.36 * s, 0.36 * s + 0.005); g.add(w); });
+  const sp = new T.Sprite(glowMat); sp.scale.set(1.8 * s, 1.8 * s, 1); sp.position.set(0, 0.4 * s, 0.55 * s); g.add(sp);
+}
+/* fireflies drift over the meadow and between the trees at night */
+const FLY_N = 40, flyPos = new Float32Array(FLY_N * 3), flySeed = [];
+for (let i = 0; i < FLY_N; i++) { const x = (hash(i, 31) - 0.5) * 28, z = (hash(i, 37) - 0.5) * 19; flySeed.push({ x, z, a: hash(i, 41) * 6.28, s: 0.4 + hash(i, 43) * 0.6 }); }
+const flyGeo = new T.BufferGeometry(); flyGeo.setAttribute('position', new T.BufferAttribute(flyPos, 3));
+const flyMat = new T.PointsMaterial({ color: '#f4ff9a', size: 0.22, map: glowTex, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: 0 });
+const fireflies = new T.Points(flyGeo, flyMat); fireflies.frustumCulled = false; sc.add(fireflies);
+/* falling things: petals in spring, leaves in autumn, snow in winter */
+const FALL_N = 160, fallPos = new Float32Array(FALL_N * 3);
+for (let i = 0; i < FALL_N; i++) { fallPos[i * 3] = (hash(i, 51) - 0.5) * 26; fallPos[i * 3 + 1] = hash(i, 53) * 9; fallPos[i * 3 + 2] = (hash(i, 57) - 0.5) * 20; }
+const fallGeo = new T.BufferGeometry(); fallGeo.setAttribute('position', new T.BufferAttribute(fallPos, 3));
+const fallTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 32; const x = c.getContext('2d'); x.fillStyle = '#fff'; x.beginPath(); x.arc(16, 16, 13, 0, 7); x.fill(); return new T.CanvasTexture(c); })();
+const fallMat = new T.PointsMaterial({ color: '#ffffff', size: 0.12, map: fallTex, transparent: true, depthWrite: false, alphaTest: 0.3 });
+const falling = new T.Points(fallGeo, fallMat); falling.frustumCulled = false; sc.add(falling);
+const FALL = { spring: { c: '#f6b8c8', size: 0.1, v: 0.5, sway: 0.8, n: 70 }, summer: { c: '#fff6c8', size: 0.06, v: 0.15, sway: 0.4, n: 18 }, autumn: { c: '#e0893a', size: 0.13, v: 0.7, sway: 1.1, n: 90 }, winter: { c: '#ffffff', size: 0.11, v: 0.9, sway: 0.5, n: 160 } };
+/* repaint the ground, trees and pen floors for a season */
+function repaint(mesh, paint) {
+  const p = mesh.geometry.attributes.position, col = mesh.geometry.attributes.color; if (!col) return;
+  for (let i = 0; i < p.count; i += 3) { const cx = (p.getX(i) + p.getX(i + 1) + p.getX(i + 2)) / 3, cy = (p.getY(i) + p.getY(i + 1) + p.getY(i + 2)) / 3, cz = (p.getZ(i) + p.getZ(i + 1) + p.getZ(i + 2)) / 3; const c = paint(cx, cy, cz, i / 3); for (let k = 0; k < 3; k++) col.setXYZ(i + k, c.r, c.g, c.b); }
+  col.needsUpdate = true;
+}
+const GRASS = { spring: '#a5bf66', summer: '#b2c25a', autumn: '#bdb35f', winter: '#dde6ea' };
+const LEAF = { spring: ['#8cc46a', '#f6b8c8'], summer: ['#5d9160', '#5d9160'], autumn: ['#e0893a', '#d9b03f', '#c45a32'], winter: ['#eef3f6', '#c9d6dc'] };
+const FLOOR = { spring: null, summer: null, autumn: null, winter: '#e6ecee' };
+function paintSeason(s) {
+  const grass = GRASS[s], path = s === 'winter' ? '#dfe5e8' : PAL.sand, beach = s === 'winter' ? '#e9e4d6' : PAL.sand;
+  repaint(ground, (cx, cy, cz, i) => cy < -0.6 ? tone(PAL.bed, i) : cy < -0.05 ? tone(beach, i) : (Math.abs(cz + 1.5) < 0.55 && cx > 4.4) || (Math.abs(cx - 3.6) < 0.5 && cz > 1 && cz < 7) ? tone(path, i, 0.6) : tone(grass, i, 0.9));
+  leafs.forEach((m) => {
+    const base = m.userData.base;
+    if (m.userData.pine) repaint(m, (cx, cy, cz, i) => tone(s === 'winter' && hash(i, m.id) > 0.45 ? '#f2f6f8' : base, i));
+    else { const l = LEAF[s]; repaint(m, (cx, cy, cz, i) => tone(s === 'summer' ? base : s === 'spring' ? (hash(i, m.id) > 0.78 ? l[1] : l[0]) : l[Math.floor(hash(i, m.id) * l.length)], i)); }
+  });
+  paintFloors();
+}
+function paintFloors() {
+  for (const a in pens) { const f = pens[a].fence && pens[a].fence.children[0]; if (!f || !f.material || !f.material.color) continue; if (!f.userData.base) f.userData.base = '#' + f.material.color.getHexString(); f.material.color.set(FLOOR[season] || f.userData.base); }
+}
+/* the little sun or moon and season badge under the hearts */
+const SEASON_SVG = {
+  spring: '<circle cx="24" cy="24" r="6" fill="#e0a646"/><g fill="#f6b8c8" stroke="#22303c" stroke-width="2.5"><circle cx="24" cy="12" r="7"/><circle cx="36" cy="22" r="7"/><circle cx="31" cy="36" r="7"/><circle cx="17" cy="36" r="7"/><circle cx="12" cy="22" r="7"/></g><circle cx="24" cy="25" r="6" fill="#e0a646" stroke="#22303c" stroke-width="2.5"/>',
+  summer: '<g stroke="#22303c" stroke-width="3" stroke-linecap="round"><path d="M24 4 v6 M24 38 v6 M4 24 h6 M38 24 h6 M10 10 l4 4 M34 34 l4 4 M10 38 l4 -4 M34 14 l4 -4"/></g><circle cx="24" cy="24" r="10" fill="#f2c14a" stroke="#22303c" stroke-width="3"/>',
+  autumn: '<path d="M24 6 C34 14 40 22 36 32 C32 40 16 40 12 32 C8 22 14 14 24 6 Z" fill="#e0893a" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/><path d="M24 12 V44" stroke="#22303c" stroke-width="3" stroke-linecap="round"/>',
+  winter: '<g stroke="#5a8fc4" stroke-width="4" stroke-linecap="round"><path d="M24 5 V43 M8 14 L40 34 M8 34 L40 14"/><path d="M19 8 L24 13 L29 8 M19 40 L24 35 L29 40"/></g>'
+};
+const SUN_SVG = '<circle cx="24" cy="24" r="11" fill="#f2c14a" stroke="#22303c" stroke-width="3"/>', MOON_SVG = '<path d="M30 8 A16 16 0 1 0 40 32 A12 12 0 1 1 30 8 Z" fill="#f4ecc8" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/>';
+let clockShown = '';
+function renderClock() {
+  const el = $('clock'); if (!el) return; const key = season + (isNight ? 'n' : 'd'); if (key === clockShown) return; clockShown = key;
+  el.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true">' + SEASON_SVG[season] + '</svg><svg viewBox="0 0 48 48" aria-hidden="true">' + (isNight ? MOON_SVG : SUN_SVG) + '</svg>';
+  el.setAttribute('aria-label', SEASON_SV[season] + ', ' + (isNight ? 'natt' : 'dag'));
+}
+function seasonToast(s) {
+  const el = $('toast'); if (!el) return;
+  el.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true">' + SEASON_SVG[s] + '</svg><b>' + SEASON_SV[s] + '!</b>'; el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+  clearTimeout(seasonToast.t); seasonToast.t = setTimeout(() => { el.hidden = true; }, 3200);
+}
+function skyStep(dt) {
+  if (typeof state.clock !== 'number') state.clock = DAY * 0.1;
+  state.clock += dt;
+  const f = dayFrac(); let i = 0; while (i < SKY_KEYS.length - 2 && f > SKY_KEYS[i + 1].f) i++;
+  const a = SKY_KEYS[i], b = SKY_KEYS[i + 1], q = clamp((f - a.f) / (b.f - a.f), 0, 1), e = q * q * (3 - 2 * q);
+  mixHex(a.top, b.top, e, sky.material.uniforms.top.value); mixHex(a.hor, b.hor, e, sky.material.uniforms.hor.value);
+  sc.background.copy(sky.material.uniforms.hor.value); sc.fog.color.copy(sky.material.uniforms.hor.value);
+  mixHex(a.sun, b.sun, e, sun.color); sun.intensity = a.si + (b.si - a.si) * e;
+  if (hemi) { mixHex(a.hs, b.hs, e, hemi.color); mixHex(a.hg, b.hg, e, hemi.groundColor); hemi.intensity = a.hi + (b.hi - a.hi) * e; }
+  nightAmt = a.n + (b.n - a.n) * e; isNight = f > 0.68 && f < 0.95;
+  lampMat.color.copy(lampOff).lerp(lampOn, clamp(nightAmt * 1.4, 0, 1)); glowMat.opacity = nightAmt * 0.65;
+  pipLamp.intensity = nightAmt * 1.1;
+  if (tractor) { tractor.g.updateMatrixWorld(); tractorLamp.position.copy(tractor.g.localToWorld(tmpV.set(0, 0.8, 1.6))); tractorLamp.intensity = nightAmt * (mount && mount.kind === 'tractor' ? 1.6 : 0.5); }
+  /* fireflies */
+  flyMat.opacity = nightAmt * (0.7 + (reduced ? 0 : Math.sin(time * 5) * 0.2));
+  if (nightAmt > 0.01) for (let k = 0; k < FLY_N; k++) { const s = flySeed[k], t = time * s.s + s.a; flyPos[k * 3] = s.x + Math.sin(t) * 1.2; flyPos[k * 3 + 1] = 0.5 + Math.sin(t * 1.7) * 0.3 + 0.3; flyPos[k * 3 + 2] = s.z + Math.cos(t * 0.8) * 1.0; }
+  flyGeo.attributes.position.needsUpdate = true;
+  /* the season changes at sunrise */
+  const s = SEASONS[Math.floor(state.clock / DAY) % 4];
+  if (s !== season || seasonShown === null) { const first = seasonShown === null; season = s; seasonShown = s; paintSeason(s); const fl = FALL[s]; fallMat.color.set(fl.c); fallMat.size = fl.size; if (!first) { seasonToast(s); Snd.play('sparkle', { gain: 0.5 }); } }
+  /* falling petals, leaves or snow drift around the camera */
+  const fl = FALL[season]; falling.visible = !reduced;
+  if (!reduced) for (let k = 0; k < FALL_N; k++) {
+    if (k >= fl.n) { fallPos[k * 3 + 1] = -50; continue; }
+    let y = fallPos[k * 3 + 1]; if (y < -1) y = hash(k, time) * 9; y -= fl.v * dt * (0.7 + hash(k, 3) * 0.6);
+    let x = fallPos[k * 3] + Math.sin(time * 1.3 + k) * fl.sway * dt, z = fallPos[k * 3 + 2];
+    if (y < 0) { y = 8 + hash(k, time) * 2; x = camFocus.x + (hash(k, time + 1) - 0.5) * 26; z = camFocus.z + (hash(k, time + 2) - 0.5) * 20; }
+    if (Math.abs(x - camFocus.x) > 13) x = camFocus.x - Math.sign(x - camFocus.x) * 12.9; if (Math.abs(z - camFocus.z) > 10) z = camFocus.z - Math.sign(z - camFocus.z) * 9.9;
+    fallPos[k * 3] = x; fallPos[k * 3 + 1] = y; fallPos[k * 3 + 2] = z;
+  }
+  fallGeo.attributes.position.needsUpdate = true;
+  skyT -= dt; if (skyT <= 0) { skyT = 1; paintFloors(); renderClock(); }
+}
+let skyT = 0;
+
+/* ---------- names, babies and the sticker album ---------- */
+const NAMES = {
+  hen: ['Pippa', 'Gullan', 'Kajsa', 'Prickan', 'Solan', 'Grålla'],
+  pig: ['Nasse', 'Fläckis', 'Brunte', 'Rosa', 'Prick', 'Mysan'],
+  sheep: ['Ullis', 'Molly', 'Molnet', 'Svartis', 'Lammi'],
+  horse: ['Blixten', 'Natten', 'Guldis', 'Silver', 'Pricken', 'Bruno', 'Kanel'],
+  cow: ['Mumsan', 'Klöver', 'Karamell', 'Natti', 'Smulan'],
+  bull: ['Bruse', 'Kolja', 'Tor', 'Gråben', 'Pelle']
+};
+const BABY_SV = { hen: 'kyckling', pig: 'kulting', sheep: 'lamm', horse: 'föl', cow: 'kalv', bull: 'kalv' };
+const KIND_SV = { hen: 'Höns', pig: 'Grisar', sheep: 'Får', horse: 'Hästar', cow: 'Kor', bull: 'Tjurar' };
+const CHICK = { b: '#f6d65a' };
+const babies = [];
+/* an animal's coat number: adults follow the order they arrived, babies keep their own */
+const coatIdx = (an) => an.coatI != null ? an.coatI : (animals.filter((o) => o.a === an.a).indexOf(an)) % COATS[an.a].length;
+function nameOf(an) { const n = NAMES[an.a][coatIdx(an) % NAMES[an.a].length]; return an.baby ? 'Lilla ' + n : n; }
+/* the album: one sticker per coat, and one for a baby of each kind */
+function hasSticker(a, i) { return i === 'baby' ? babies.some((b) => b.a === a) : animals.some((o) => o.a === a && coatIdx(o) === i) || babies.some((b) => b.a === a && b.coatI === i); }
+function stickerCount() { let n = 0; for (const a in COATS) { COATS[a].forEach((c, i) => { if (hasSticker(a, i)) n++; }); if (hasSticker(a, 'baby')) n++; } return n; }
+const STICKER_TOTAL = Object.keys(COATS).reduce((s, a) => s + COATS[a].length + 1, 0);
+function makeBaby(mum, coatI, quiet) {
+  const a = mum.a, m = animalModel(a, coatI + 1, a === 'hen' ? CHICK : null);
+  m.g.scale.setScalar(a === 'hen' ? 0.6 : 0.5); const p = mum.g.position; m.g.position.set(p.x + 0.4, 0, p.z + 0.4); sc.add(m.g);
+  const b = { a, baby: true, mum, coatI, g: m.g, body: m.body, h: m.h * 0.55, hop: 0, petT: -99, sleep: null };
+  babies.push(b); mum.kids = (mum.kids || 0) + 1;
+  if (!quiet) { b.hop = 1; burst(p.x, mum.h, p.z, 8); Snd.play('success', { gain: 0.6, f: 'G6' }); Snd.play('sparkle', { gain: 0.5 }, 0.1); earn(3); coinToHud(p.x, mum.h, p.z, 3); showName(b, 2.4); flashAlbum(); }
+  return b;
+}
+/* a well-fed, happy animal sometimes gets a baby; spring is the season for it */
+function maybeBaby(an) {
+  an.love = (an.love || 0) + 1;
+  if (an.kids || babies.length >= 14 || isNight) return;
+  if (an.love < (season === 'spring' ? 4 : 8)) return;
+  an.love = 0;
+  /* the baby gets a coat the album is still missing, if there is one */
+  const n = COATS[an.a].length, miss = []; for (let i = 0; i < n; i++) if (!hasSticker(an.a, i)) miss.push(i);
+  const c = miss.length ? miss[Math.floor(Math.random() * miss.length)] : Math.floor(Math.random() * n);
+  makeBaby(an, c); state.babies = babies.map((b) => ({ a: b.a, m: animals.indexOf(b.mum), c: b.coatI }));
+}
+function restoreBabies() { (state.babies || []).forEach((s) => { const mum = animals[s.m]; if (mum && mum.a === s.a && s.c >= 0 && s.c < COATS[s.a].length) makeBaby(mum, s.c, true); }); }
+/* babies trot after their mum, and curl up next to her at night */
+function babyStep(dt) {
+  babies.forEach((b, k) => {
+    const mum = b.mum, mp = mum.g.position, r = mum.a === 'hen' ? 0.35 : 0.6;
+    const back = mum.g.rotation.y + Math.PI + (k % 2 ? 0.6 : -0.6), tx = mp.x + Math.sin(back) * r, tz = mp.z + Math.cos(back) * r;
+    const far = Math.hypot(b.g.position.x - tx, b.g.position.z - tz);
+    const moving = far > 0.12 && !walkTo(b.g, tx, tz, dt, far > 1.5 ? 4.0 : mum.ridden ? 2.6 : 1.1);
+    if (!moving && mum.asleep) b.g.rotation.y += (mum.g.rotation.y - b.g.rotation.y) * Math.min(1, dt * 3);
+    const sleepy = !moving && mum.asleep;
+    zzz(b, sleepy, dt);
+    if (b.hop > 0) b.hop = Math.max(0, b.hop - dt * 2.2);
+    b.body.position.y = Math.sin(b.hop * Math.PI) * 0.4 + (reduced ? 0 : moving ? Math.abs(Math.sin(time * 13 + k)) * 0.06 : 0);
+  });
+}
+function sleepSpot(an) { const h = housePos(an.a), k = animals.filter((o) => o.a === an.a).indexOf(an), sp = an.a === 'hen' ? 0.42 : an.a === 'pig' || an.a === 'sheep' ? 0.62 : 0.8; return [h[0] - Math.sign(PEN[an.a].x) * (k % 3) * sp, h[1] + 0.85 + Math.floor(k / 3) * 0.6]; }
+/* sleeping: a little "z z" floats over sleeping animals */
+const zTex = (() => { const c = document.createElement('canvas'); c.width = 96; c.height = 64; const x = c.getContext('2d'); x.font = '700 30px Fredoka, sans-serif'; x.fillStyle = '#fff6e4'; x.strokeStyle = PAL.ink; x.lineWidth = 6; x.lineJoin = 'round'; [['z', 14, 52, 26], ['z', 40, 36, 32], ['Z', 64, 22, 38]].forEach(([t, px, py, s]) => { x.font = '700 ' + s + 'px Fredoka, sans-serif'; x.strokeText(t, px, py); x.fillText(t, px, py); }); return new T.CanvasTexture(c); })();
+function zzz(an, on, dt) {
+  if (on && !an.zs && !an.baby) { an.zs = new T.Sprite(new T.SpriteMaterial({ map: zTex, transparent: true, depthTest: false })); an.zs.renderOrder = 6; an.zs.scale.set(0.6, 0.4, 1); sc.add(an.zs); }
+  if (an.zs) { an.zs.visible = on; if (on) { const p = an.g.position; an.zs.position.set(p.x + 0.25, an.h * (an.baby ? 1 : 0.85) + 0.25 + (reduced ? 0 : Math.sin(time * 1.5 + p.x) * 0.08), p.z); } }
+  const lie = on ? 1 : 0; an.lie = (an.lie || 0) + (lie - (an.lie || 0)) * Math.min(1, dt * 3);
+  an.body.scale.y = 1 - an.lie * 0.22; an.body.rotation.x = an.lie * 0.05;
+}
+/* a name tag pops up over an animal when you pet it */
+const nameTex = {};
+function nameSprite(txt) {
+  if (nameTex[txt]) return nameTex[txt];
+  const c = document.createElement('canvas'); c.width = 256; c.height = 72; const x = c.getContext('2d'); x.font = '700 34px Fredoka, sans-serif'; const w = Math.min(244, x.measureText(txt).width + 36);
+  x.fillStyle = PAL.paper; x.strokeStyle = PAL.ink; x.lineWidth = 5; x.beginPath(); x.roundRect ? x.roundRect(128 - w / 2, 8, w, 54, 27) : x.rect(128 - w / 2, 8, w, 54); x.fill(); x.stroke();
+  x.fillStyle = PAL.ink; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(txt, 128, 36);
+  return (nameTex[txt] = new T.CanvasTexture(c));
+}
+const tags = [];
+function showName(an, dur) {
+  if (an.tag) { an.tag.t = dur; return; }
+  const sp = new T.Sprite(new T.SpriteMaterial({ map: nameSprite(nameOf(an)), transparent: true, depthTest: false })); sp.renderOrder = 7; sp.scale.set(1.5, 0.42, 1); sc.add(sp);
+  an.tag = { sp, t: dur }; tags.push(an);
+}
+function tagStep(dt) {
+  for (let i = tags.length - 1; i >= 0; i--) { const an = tags[i], tg = an.tag; tg.t -= dt; const p = an.g.position; tg.sp.position.set(p.x, an.h + (an.baby ? 0.45 : 0.75), p.z); tg.sp.material.opacity = Math.min(1, tg.t * 3); if (tg.t <= 0) { sc.remove(tg.sp); an.tag = null; tags.splice(i, 1); } }
+}
+/* ---------- the album ---------- */
+let albumShown = -1;
+function flashAlbum() { const b = $('albumBtn'); if (b) { b.classList.add('new'); } }
+const thumbs = {};
+let thumbRT = null, thumbScene = null, thumbCam = null;
+function thumb(a, i) {
+  const key = a + ':' + i; if (thumbs[key]) return thumbs[key];
+  if (!thumbRT) {
+    thumbRT = new T.WebGLRenderTarget(160, 160); thumbScene = new T.Scene(); thumbCam = new T.PerspectiveCamera(30, 1, 0.1, 50);
+    thumbScene.add(new T.HemisphereLight(0xffffff, 0xb0a890, 0.85)); const d = new T.DirectionalLight(0xfff0dd, 0.7); d.position.set(3, 5, 4); thumbScene.add(d);
+  }
+  const baby = i === 'baby', m = animalModel(a, baby ? 1 : i + 1, baby && a === 'hen' ? CHICK : null);
+  if (baby) m.g.scale.setScalar(0.7);
+  m.g.rotation.y = 0.75; thumbScene.add(m.g);
+  const h = m.h * (baby ? 0.7 : 1), dist = 0.55 + h * 1.15; thumbCam.position.set(dist * 0.15, h * 0.55 + dist * 0.35, dist); thumbCam.lookAt(0, h * 0.45, 0);
+  const old = renderer.getClearColor(new T.Color()).getHex(), oldA = renderer.getClearAlpha();
+  renderer.setRenderTarget(thumbRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(thumbScene, thumbCam);
+  const px = new Uint8Array(160 * 160 * 4); renderer.readRenderTargetPixels(thumbRT, 0, 0, 160, 160, px); renderer.setRenderTarget(null); renderer.setClearColor(old, oldA);
+  thumbScene.remove(m.g);
+  const c = document.createElement('canvas'); c.width = c.height = 160; const x = c.getContext('2d'), img = x.createImageData(160, 160);
+  for (let y = 0; y < 160; y++) img.data.set(px.subarray((159 - y) * 640, (160 - y) * 640), y * 640);
+  x.putImageData(img, 0, 0); return (thumbs[key] = c.toDataURL());
+}
+function renderAlbum() {
+  const box = $('albumGrid'); if (!box) return;
+  let html = '';
+  for (const a of ['hen', 'pig', 'sheep', 'cow', 'horse', 'bull']) {
+    html += '<div class="arow" role="group" aria-label="' + KIND_SV[a] + '">';
+    COATS[a].forEach((c, i) => { const got = hasSticker(a, i); html += '<div class="stk' + (got ? ' got' : '') + '">' + (got ? '<img alt="" src="' + thumb(a, i) + '">' : '<span aria-hidden="true">?</span>') + '<em>' + (got ? NAMES[a][i] : '') + '</em></div>'; });
+    const gb = hasSticker(a, 'baby'); html += '<div class="stk baby' + (gb ? ' got' : '') + '">' + (gb ? '<img alt="" src="' + thumb(a, 'baby') + '">' : '<span aria-hidden="true">?</span>') + '<em>' + (gb ? BABY_SV[a] : '') + '</em></div>';
+    html += '</div>';
+  }
+  box.innerHTML = html; $('albumCount').textContent = stickerCount() + ' / ' + STICKER_TOTAL;
+}
+function openAlbum() { if (typeof closeMenu === 'function') closeMenu(); $('album').hidden = false; $('albumBtn').classList.remove('new'); Snd.init(); Snd.play('pop', { gain: 0.4, f: 640 }); renderAlbum(); }
+function closeAlbum() { $('album').hidden = true; }
+if ($('albumBtn')) { $('albumBtn').addEventListener('click', (e) => { e.stopPropagation(); if ($('album').hidden) openAlbum(); else closeAlbum(); }); $('albumClose').addEventListener('click', closeAlbum); $('album').addEventListener('click', (e) => { if (e.target === $('album')) closeAlbum(); }); }
+/* new animals give new stickers too */
+let stickersSeen = -1;
+function checkStickers() { const n = stickerCount(); if (stickersSeen >= 0 && n > stickersSeen) flashAlbum(); stickersSeen = n; }
+
+/* ---------- the shop crate: eggs and milk from happy animals go to Pip's shop ---------- */
+const SHIP_AT = [0.8, 7.4], SHIP_KEY = 'pips-delivery', SHIP_MAX = 60;
+const shipG = new T.Group(); shipG.position.set(SHIP_AT[0], 0, SHIP_AT[1]); sc.add(shipG);
+{
+  let geo = new T.BoxGeometry(1.2, 0.08, 0.9); part(fac(geo, PAL.trunk, 91), shipG, 0, 0.04, 0);
+  [[0, 0.41, 1.2, 0.08], [0, -0.41, 1.2, 0.08]].forEach(([x, z, w, d], k) => { geo = new T.BoxGeometry(w, 0.32, d); part(fac(jit(geo, 0.01, k), PAL.ochre, 92 + k), shipG, x, 0.2, z); });
+  [-0.56, 0.56].forEach((x, k) => { geo = new T.BoxGeometry(0.08, 0.32, 0.9); part(fac(geo, PAL.ochre, 94 + k), shipG, x, 0.2, 0); });
+  /* a little striped awning sign so it reads as "for the shop" */
+  geo = new T.BoxGeometry(0.06, 1.0, 0.06); part(fac(geo, PAL.trunk, 96), shipG, -0.5, 0.5, -0.5);
+  geo = new T.BoxGeometry(0.06, 1.0, 0.06); part(fac(geo, PAL.trunk, 96), shipG, 0.5, 0.5, -0.5);
+  for (let k = 0; k < 5; k++) { geo = new T.BoxGeometry(0.22, 0.06, 0.34); geo.rotateX(0.35); part(fac(geo, k % 2 ? PAL.paper : PAL.accent, 97 + k), shipG, -0.44 + k * 0.22, 1.02, -0.38); }
+}
+const PROTO2 = {};
+{ const g = new T.Group(), e = ico(0.09, 1, 1, 0.005); e.scale(0.85, 1.1, 0.85); part(fac(e, PAL.snow, 1), g, 0, 0.09, 0, true); PROTO2.egg = g; }
+{ const g = new T.Group(); let geo = new T.CylinderGeometry(0.065, 0.075, 0.18, 6); geo.translate(0, 0.09, 0); part(fac(geo, PAL.paper, 4), g, 0, 0, 0, true); geo = new T.CylinderGeometry(0.04, 0.05, 0.05, 6); part(fac(geo, PAL.sea, 5), g, 0, 0.2, 0, true); PROTO2.milk = g; }
+const shipPile = new Pile(shipG, (k) => [-0.4 + (k % 5) * 0.2, 0.1 + Math.floor(k / 15) * 0.2, -0.24 + (Math.floor(k / 5) % 3) * 0.24]);
+let shipInbound = 0;
+function readShip() { try { const s = JSON.parse(localStorage.getItem(SHIP_KEY) || 'null'); return s && typeof s === 'object' ? { egg: s.egg | 0, milk: s.milk | 0 } : { egg: 0, milk: 0 }; } catch (e) { return { egg: 0, milk: 0 }; } }
+function writeShip(s) { try { localStorage.setItem(SHIP_KEY, JSON.stringify(s)); } catch (e) {} }
+/* hens lay an egg and cows give milk when they have eaten; it flies to the crate */
+function produce(an) {
+  const t = an.a === 'hen' ? 'egg' : an.a === 'cow' ? 'milk' : null; if (!t) return;
+  const s = readShip(); if (s.egg + s.milk >= SHIP_MAX) return; s[t]++; writeShip(s);
+  const m = PROTO2[t].clone(); m.userData.type = t; const p = an.g.position; m.position.set(p.x, an.h * 0.5, p.z); sc.add(m); shipInbound++;
+  fly(m, () => shipG.localToWorld(tmpV.set(0, 0.5, 0)), () => { shipInbound--; sc.remove(m); syncShip(); }, 0.9);
+}
+/* the crate shows what is waiting; the shop empties it when it is opened on the same device */
+function syncShip() {
+  const s = readShip(), want = Math.min(30, s.egg + s.milk), types = []; for (let k = 0; k < Math.min(s.egg, want); k++) types.push('egg'); while (types.length < want) types.push('milk');
+  const have = shipPile.items.map((m) => m.userData.type).join(); if (have === types.join()) return;
+  while (shipPile.items.length) shipG.remove(shipPile.take());
+  types.forEach((t) => { const m = PROTO2[t].clone(); m.userData.type = t; shipPile.add(m); });
+}
+let familyT = 0;
+function familyStep(dt) {
+  babyStep(dt); tagStep(dt);
+  familyT -= dt; if (familyT <= 0) { familyT = 1; if (!shipInbound) syncShip(); checkStickers(); }
 }
 /* ---------- camera and input ---------- */
 let aspect = 1;
@@ -1169,9 +1488,20 @@ function step(dt) {
   if (dressing) { pip.rotation.y += (0 - pip.rotation.y) * Math.min(1, dt * 6); }
   eyes.forEach((e) => { e.scale.y = (time % 3.7) < 0.12 ? 0.15 : 1; });
   const near = (x, z, r) => Math.hypot(pip.position.x - x, pip.position.z - z) < r;
+  skyStep(dt);
   /* animals: wander in the pen, get hungry or thirsty, come to the trough and wait */
   animals.forEach((an) => {
-    if (an.ridden) { an.g.position.set(pip.position.x, 0, pip.position.z); an.g.rotation.y = pip.rotation.y; an.body.position.y = reduced ? 0 : Math.abs(Math.sin(time * 10)) * 0.06; return; }
+    if (an.ridden) { an.g.position.set(pip.position.x, 0, pip.position.z); an.g.rotation.y = pip.rotation.y; an.body.position.y = reduced ? 0 : Math.abs(Math.sin(time * 10)) * 0.06; zzz(an, false, dt); return; }
+    /* at night every animal walks to its house and sleeps; nobody gets hungry while asleep */
+    if (isNight) {
+      if (an.want) { an.want = null; an.sp.visible = false; }
+      if (an.cd < 3) an.cd = 3 + Math.random() * 6;
+      const s = sleepSpot(an), moving = !walkTo(an.g, s[0], s[1], dt, 1.2);
+      an.asleep = !moving; if (!moving) an.g.rotation.y += (0 - an.g.rotation.y) * Math.min(1, dt * 3);
+      if (an.hop > 0) an.hop = Math.max(0, an.hop - dt * 2.2);
+      an.body.position.y = Math.sin(an.hop * Math.PI) * 0.3; zzz(an, an.asleep, dt); an.tx = an.g.position.x; an.tz = an.g.position.z; return;
+    }
+    if (an.asleep || an.lie > 0.01) { an.asleep = false; zzz(an, false, dt); }
     if (!an.want) { an.cd -= dt; if (an.cd <= 0) { const opts = DIET[an.a].filter(available); an.want = opts[Math.floor(Math.random() * opts.length)]; an.sp.material.map = bubble(an.want); an.sp.visible = true; an.wait = 0; Snd.play('blip', { gain: 0.15, f: 520 }, 0, 400); } }
     const p = penBox(an.a);
     if (an.want) { an.wait += dt; const gap = an.a === 'hen' ? 0.5 : 0.78, tz = p.z + ((animals.filter((o) => o.a === an.a).indexOf(an) % 3) - 1) * gap; an.tx = an.pen.trough[0]; an.tz = tz; }
@@ -1209,10 +1539,11 @@ function step(dt) {
   /* mowing: Pip cuts the grass right underfoot, the tractor a wide strip */
   { const r = mount && mount.kind === 'tractor' ? 1.1 : 0.42, px = pip.position.x, pz = pip.position.z;
     if (px > MEADOW.x0 - 1.5 && px < MEADOW.x1 + 1.5 && pz > MEADOW.z0 - 1.5 && pz < MEADOW.z1 + 1.5) tufts.forEach((t) => { if (t.h > 0.8 && Math.hypot(t.x - px, t.z - pz) < r) cutTuft(t); }); }
-  tufts.forEach((t) => { if (t.h < 1) { t.h = Math.min(1, t.h + dt / 50); t.g.scale.y = t.h; } });
+  tufts.forEach((t) => { if (t.h < 1) { t.h = Math.min(1, t.h + dt / (season === 'winter' ? 150 : 50)); t.g.scale.y = t.h; } });
   /* pick up hay bales lying in the meadow */
   for (let i = loose.length - 1; i >= 0; i--) { const m = loose[i]; if (carry.items.length < cap() && near(m.position.x, m.position.z, mount ? 1.1 : 0.7)) { loose.splice(i, 1); fly(m, () => { carry.parent.updateMatrixWorld(); return pip.localToWorld(tmpV.set(0, 0.72 + carry.items.reduce((a, b) => a + ITEM_H[b.userData.type], 0), -0.32)); }, () => carry.add(m)); Snd.play('pop', { gain: 0.4, f: 600 }); break; } }
   actT -= dt; if (actT <= 0) { actT = 0.15; renderActs(); }
+  familyStep(dt);
   if (pad) {
     const pos = padPos(pad.p), left = pad.p.cost - (state.paid[pad.p.id] || 0);
     if (near(pos[0], pos[1], 0.85) && state.coins > 0 && !moving) {
@@ -1249,7 +1580,7 @@ function step(dt) {
   ambT -= dt; if (ambT <= 0) { ambT = 2; Snd.ambient(); }
 }
 function frame(now) { let dt = (now - lastT) / 1000; lastT = now; if (dt > 0.1) dt = 0.1; if (dt > 0) step(dt); saveT += dt; if (saveT > 5) { saveT = 0; save(); } requestAnimationFrame(frame); }
-if (window.__farmTest) window.__farmTest = { go: (x, z) => target.set(x, 0, z), pip: () => [pip.position.x, pip.position.z], st: () => state, carry: () => carry.items.map((m) => m.userData.type).join(','), animals: () => animals.map((an) => an.a + ':' + (an.want || '-')).join(' '), boxes: () => Object.fromEntries(Object.keys(pens).map((a) => [a, pens[a].food.items.map((m) => m.userData.type[0]).join('')])), helpers: () => helpers.map((h) => h.t + ':' + h.st).join(' '), add: (a) => { addAnimal(a); } };
+if (window.__farmTest) window.__farmTest = { go: (x, z) => target.set(x, 0, z), pip: () => [pip.position.x, pip.position.z], st: () => state, carry: () => carry.items.map((m) => m.userData.type).join(','), animals: () => animals.map((an) => an.a + ':' + (an.want || '-')).join(' '), boxes: () => Object.fromEntries(Object.keys(pens).map((a) => [a, pens[a].food.items.map((m) => m.userData.type[0]).join('')])), helpers: () => helpers.map((h) => h.t + ':' + h.st).join(' '), add: (a) => { addAnimal(a); }, clock: (c) => { state.clock = c; }, babies: () => babies.map((b) => b.a + b.coatI).join(' '), feedAll: () => animals.forEach((an) => { an.want = an.want || DIET[an.a][0]; feed(an); }), album: () => stickerCount() };
 let started = false;
 function start(data) {
   if (started) return; started = true;
@@ -1257,6 +1588,7 @@ function start(data) {
   state = hot || load() || fresh();
   addSource('grain'); addSource('water'); addSource('carrot'); addAnimal('hen'); addAnimal('hen'); addAnimal('pig'); /* two hens and a pig from the start */
   PADS.forEach((p) => { if (own(p.id)) build(p); });
+  restoreBabies();
   showPad(); $('hint').hidden = !!state.moved; if (avNew) openWardrobe(true);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
   window.addEventListener('pagehide', save);
