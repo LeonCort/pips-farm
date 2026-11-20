@@ -166,7 +166,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Done"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M11 25 L20 34 L37 14" fill="none" stroke="#fff6e4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
 </div>
-<meta name="app-ver" content="20261120194541">
+<meta name="app-ver" content="20261120202109">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -552,21 +552,51 @@ const Snd = {
     try { const bin = atob(src), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); this.ctx.decodeAudioData(u.buffer, (b) => { this.buf[name] = b; go(b); }, () => {}); } catch (e) {}
   },
   play(name, o, delay, gap) { if (!this.k) return; const n = performance.now(); if (gap && n - (this.last[name] || 0) < gap) return; this.last[name] = n; try { this.k.play(name, this.ctx.currentTime - this.base + 0.02 + (delay || 0), o || {}); } catch (e) {} },
-  /* the lo-fi track loops gaplessly through Web Audio; the synth pad only plays if the file cannot load */
-  music: null, musicState: 'idle',
-  loadMusic() {
-    if (this.musicState !== 'idle' || !this.ctx) return; this.musicState = 'loading';
-    fetch('music.mp3').then((r) => { if (!r.ok) throw new Error('no music'); return r.arrayBuffer(); })
+  /* situational soundtrack: three looping tracks, one heard at a time.
+     Each track has a level x (0..1) that walks toward 1 if it is the wanted track and toward 0 if not, over 1.5 s.
+     Gain is sin(x * pi/2), so a crossfade keeps equal loudness; when the wanted track changes mid-fade, every level
+     simply turns round from where it is, so nothing is left queued, stuck or doubled up. A track that reaches 0 is stopped. */
+  MUSIC: { pastoral: ['audio/pastoral-loop.mp3', 111.70694], coin: ['audio/bouncing-coin.mp3', 150.04], relaxed: ['audio/relaxed-pulse.mp3', 146.74245] },
+  FADE: 1.5, musVol: 0.55, musWant: null, mus: {}, pre: false, tracks: null,
+  loadTrack(id) {
+    const m = this.mus[id] = { st: 'loading', x: 0, buf: null, src: null, g: null, pos: 0, t0: 0, a: 0, len: 0 };
+    fetch(this.MUSIC[id][0]).then((r) => { if (!r.ok) throw new Error('no music'); return r.arrayBuffer(); })
       .then((b) => new Promise((ok, bad) => this.ctx.decodeAudioData(b, ok, bad)))
-      .then((buf) => { const src = this.ctx.createBufferSource(), g = this.ctx.createGain(); src.buffer = buf; src.loop = true; { /* skip the silent padding mp3 encoders add, so the loop has no gap */ const d = buf.getChannelData(0), sr = buf.sampleRate; let i0 = 0, i1 = d.length - 1; while (i0 < sr * 0.2 && Math.abs(d[i0]) < 1e-3) i0++; while (i1 > d.length - sr * 0.2 && Math.abs(d[i1]) < 1e-3) i1--; src.loopStart = i0 / sr; src.loopEnd = (i1 + 1) / sr; } g.gain.setValueAtTime(0, this.ctx.currentTime); g.gain.linearRampToValueAtTime(0.55, this.ctx.currentTime + 2); src.connect(g); g.connect(this.out); src.start(0, src.loopStart); this.music = src; this.musicState = 'playing'; })
-      .catch(() => { this.musicState = 'failed'; });
+      .then((buf) => {
+        /* skip the few silent samples an mp3 encoder puts in front, then loop exactly one cycle of the track */
+        const d = buf.getChannelData(0), sr = buf.sampleRate; let i0 = 0; while (i0 < 2048 && Math.abs(d[i0]) < 1e-3) i0++;
+        m.a = i0 / sr; m.len = Math.min(this.MUSIC[id][1], buf.duration - m.a); m.buf = buf; m.st = 'ready';
+      })
+      .catch(() => { m.st = 'failed'; setTimeout(() => { if (this.mus[id] === m) delete this.mus[id]; }, 20000); }); /* try again later, e.g. after being offline */
   },
-  ambient() {
-    if (!this.k) return; this.loadMusic(); if (this.musicState === 'playing' || this.musicState === 'loading') return;
-    const n = this.ctx.currentTime - this.base; if (n < this.until - 6) return;
-    const t0 = Math.max(n + 0.05, this.until), t1 = t0 + 60 / 64 * 4 * 12;
-    try { this.k.music('pad', t0, t1, { bpm: 64, gain: 0.6, chords: [['C4', 'E4', 'G4', 'B4'], ['F3', 'A3', 'C4', 'E4']] }); this.k.bed('room', t0, t1 + 0.3, { gain: 0.4 }); } catch (e) {}
-    this.until = t1;
+  startTrack(m) {
+    try {
+      const src = this.ctx.createBufferSource(), g = this.ctx.createGain(); src.buffer = m.buf; src.loop = true; src.loopStart = m.a; src.loopEnd = m.a + m.len;
+      g.gain.value = 0; src.connect(g); g.connect(this.out); src.start(0, m.a + (m.pos % m.len)); m.src = src; m.g = g; m.t0 = this.ctx.currentTime - (m.pos % m.len);
+    } catch (e) { m.st = 'failed'; }
+  },
+  stopTrack(m) {
+    m.pos = (this.ctx.currentTime - m.t0) % m.len; /* remember where it was, so coming back carries on from there */
+    try { m.src.stop(); m.src.disconnect(); m.g.disconnect(); } catch (e) {}
+    m.src = null; m.g = null;
+  },
+  /* called every frame with the track the game wants right now ('pastoral', 'coin' or 'relaxed') */
+  musicStep(dt, want) {
+    if (!this.ctx || this.ctx.state !== 'running') return;
+    this.musWant = want;
+    if (!this.mus[want]) this.loadTrack(want);
+    /* once the first tune plays, quietly load the others this island uses, so later switches start straight away */
+    if (!this.pre && this.mus[want].st === 'ready') { this.pre = true; setTimeout(() => (this.tracks || []).forEach((id) => { if (!this.mus[id]) this.loadTrack(id); }), 4000); }
+    const step = Math.min(dt, 0.25) / this.FADE, now = this.ctx.currentTime;
+    for (const id in this.mus) {
+      const m = this.mus[id]; if (m.st !== 'ready') continue;
+      const on = id === want;
+      m.x = Math.max(0, Math.min(1, m.x + (on ? step : -step)));
+      if (on && !m.src) this.startTrack(m);
+      if (!m.src) continue;
+      if (!on && m.x <= 0) { this.stopTrack(m); continue; }
+      m.g.gain.setTargetAtTime(this.musVol * Math.sin(m.x * Math.PI / 2), now, 0.03);
+    }
   }
 };
 
@@ -1410,7 +1440,23 @@ function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catc
 function load() { try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (!s || s.v !== 1 || typeof s.coins !== 'number') return null; const b = fresh(); for (const k in b) if (!(k in s)) s[k] = b[k]; return s; } catch (e) { return null; } }
 
 /* ---------- loop ---------- */
-let menuT = 0, time = 0, xferT = 0, lastT = 0, saveT = 0, ambT = 0, waterT = 0;
+/* which music fits where Pip is: the house (and night on the farm) is calm, the shop's market area has the coin tune,
+   everywhere else is the pastoral day music */
+let inMkt = false;
+function inMarket() {
+  if (HERE !== 'shop') return false;
+  const x = pip.position.x, z = pip.position.z, m = inMkt ? 0.4 : 0; /* a small margin, so standing on the edge does not flip back and forth */
+  inMkt = (x > 0.9 - m && x < 8.6 + m && z > -4.8 - m && z < 2.5 + m) || z > 2.7 - m;
+  return inMkt;
+}
+function musicMood() {
+  if (inHouse) return 'relaxed';
+  if (HERE === 'farm') return isNight ? 'relaxed' : 'pastoral';
+  return inMarket() ? 'coin' : 'pastoral';
+}
+Snd.tracks = HERE === 'farm' ? ['pastoral', 'relaxed'] : ['pastoral', 'coin', 'relaxed'];
+if (window.__farmTest) { window.__snd = Snd; window.__pip = pip; }
+let menuT = 0, time = 0, xferT = 0, lastT = 0, saveT = 0, waterT = 0;
 function step(dt) {
   time += dt;
   /* Pip moves toward the touch point, or by keys */
@@ -1531,7 +1577,7 @@ function step(dt) {
   renderer.render(sc, cam);
   $('coins').textContent = fmt(state.coins);
   menuT -= dt; if (menuT <= 0) { menuT = 0.25; const any = UPS.some((u) => state.lv[u.id] < u.max && state.coins >= upCost(u)); $('menuBtn').classList.toggle('ready', false); if (!$('menu').hidden) renderMenu(); }
-  ambT -= dt; if (ambT <= 0) { ambT = 2; Snd.ambient(); }
+  Snd.musicStep(dt, musicMood());
 }
 function frame(now) { if (now - lastT < 1000 / fpsCap - 3) { requestAnimationFrame(frame); return; } let dt = (now - lastT) / 1000; lastT = now; if (dt > 0.1) dt = 0.1; if (dt > 0) step(dt); saveT += dt; if (saveT > 5) { saveT = 0; save(); } requestAnimationFrame(frame); }
 
