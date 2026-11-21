@@ -220,7 +220,8 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
   #boot .pick .disc { border-width: 4px; }
   #boot.isStart .stand { left: 5%; bottom: calc(var(--gh) * 0.22); }
   #boot .isle { width: 170vw; }
-  #boot .moon { top: 20vh; right: auto; left: 7vw; }
+  #boot .moon { top: 19vh; right: auto; left: 6vw; width: 42px; height: 42px; }
+  #boot.isStart .picks { top: 34vh; }
 }
 @media (max-height: 520px) and (orientation: landscape) {
   #boot .title { width: min(520px, 60vw); }
@@ -231,6 +232,13 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 }
 /* the wardrobe hides everything else on the page; the loading screen must stay on top until it fades */
 html body.dressing > div#boot#boot { visibility: visible !important; }
+/* start page: continue / new game */
+#boot .pick .disc { position: relative; }
+#boot .pick .badgeP { position: absolute; right: -4%; bottom: -2%; width: 34%; }
+#boot .pick .badgeP svg, #boot .pick .ring { display: block; width: 100%; height: auto; }
+#boot .pick .ring { position: absolute; inset: -9px; width: calc(100% + 18px); height: calc(100% + 18px); pointer-events: none; }
+#boot .pick.hold { touch-action: none; -webkit-touch-callout: none; }
+#boot .pick .ring { opacity: 0; } #boot .pick.press .ring { opacity: 1; }
 </style>
 <div id="boot" role="img" aria-label="Loading"></div>
 <script>
@@ -474,7 +482,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Done"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M11 25 L20 34 L37 14" fill="none" stroke="#fff6e4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121201739">
+<meta name="app-ver" content="20261121202223">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
