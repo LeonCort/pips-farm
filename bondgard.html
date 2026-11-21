@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121130047">
+<meta name="app-ver" content="20261121133202">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -7327,6 +7327,57 @@ function spotStep() {
 }
 { const s0 = storeStep; storeStep = function (dt) { s0(dt); spotStep(); }; }
 if (window.__farmTest) window.__spot = () => ({ cur: spCur && { key: spCur.key, cost: spCur.cost, lock: !!spCur.lock, d: +spCur.d.toFixed(2) }, marks: SPOT_MK.filter((m) => m.visible).length, tap: () => spBtn.click(), door: [HDOOR.x, HDOOR.z], pos: () => [pip.position.x, pip.position.z].map((v) => +v.toFixed(2)), offers: () => spotOffers().map((o) => o.key + ':' + o.d.toFixed(1)).join(' ') });
+/* ---------- graphics: "light" for older or slower tablets ----------
+   A button in the settings sheet switches between full and light graphics. Light draws fewer pixels (pixel ratio 1),
+   drops the sun's shadow pass, draws less far, paints simpler clouds and leaves out pollen, butterflies, dust and mist.
+   On the first run the game watches its own speed for a few seconds and picks light by itself when it struggles;
+   after a tap on the button, the player's choice is kept. */
+let gfxLow = false, gfxPicked = false;
+try { const v = localStorage.getItem('pips-gfx'); if (v === 'low' || v === 'full') { gfxLow = v === 'low'; gfxPicked = localStorage.getItem('pips-gfx-by') === 'hand'; } } catch (e) {}
+const skyFrag = sky.material.fragmentShader;
+function gfxApply() {
+  const dpr = window.devicePixelRatio || 1;
+  renderer.setPixelRatio(Math.min(dpr, gfxLow || fpsCap === 20 ? 1 : 1.5)); resize();
+  if (sun.castShadow === gfxLow) { sun.castShadow = !gfxLow; sc.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => { m.needsUpdate = true; }); }); }
+  if (typeof setDraw === 'function') setDraw(gfxLow ? 0 : drawLv0);
+  sky.material.fragmentShader = gfxLow ? skyFrag.replace('i < 5', 'i < 3') : skyFrag; sky.material.needsUpdate = true;
+  const b = document.getElementById('gfxBtn'); if (b) { b.dataset.lv = gfxLow ? 0 : 1; b.setAttribute('aria-label', gfxLow ? 'Grafik: lätt' : 'Grafik: full'); }
+}
+let drawLv0 = typeof drawLv === 'number' ? drawLv : 2;
+function gfxSet(low, byHand) {
+  if (low && !gfxLow && typeof drawLv === 'number') drawLv0 = drawLv; /* back to full later: the draw distance the player had */
+  gfxLow = low; if (byHand) gfxPicked = true;
+  try { localStorage.setItem('pips-gfx', low ? 'low' : 'full'); localStorage.setItem('pips-gfx-by', gfxPicked ? 'hand' : 'auto'); } catch (e) {}
+  gfxApply();
+}
+/* the button: a mountain with a sun (full) or a plain hill (light) */
+{
+  const fb = document.getElementById('fpsBtn'), row = fb ? fb.parentNode : document.querySelector('#menu .sheetTop');
+  if (row) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'round gfxBtn'; b.id = 'gfxBtn';
+    b.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="9" width="34" height="30" rx="6" fill="#bfe3ef" stroke="#22303c" stroke-width="3"/><path d="M9 36 L19 23 L25 30 L30 25 L39 36 Z" fill="#74a857" stroke="#22303c" stroke-width="2.5" stroke-linejoin="round"/>'
+      + '<g class="rich"><circle cx="32" cy="17" r="4.5" fill="#f2c14a" stroke="#22303c" stroke-width="2"/><path d="M14 17 l1.5 3 3 1.5 -3 1.5 -1.5 3 -1.5 -3 -3 -1.5 3 -1.5 z" fill="#fffaf0" stroke="#22303c" stroke-width="1.5" stroke-linejoin="round"/></g>'
+      + '<g class="lite"><path d="M27 11 q6 4 2 9 q6 -1 6 -7" fill="#74a857" stroke="#22303c" stroke-width="2" stroke-linejoin="round"/></g></svg>';
+    if (fb && fb.nextSibling) row.insertBefore(b, fb.nextSibling); else row.appendChild(b);
+    b.addEventListener('click', (e) => { e.stopPropagation(); gfxSet(!gfxLow, true); Snd.play('pop', { gain: 0.4, f: gfxLow ? 420 : 760 }); if (!gfxLow) Snd.play('sparkle', { gain: 0.3 }, 0.05); });
+    const st = document.createElement('style'); st.textContent = '.gfxBtn .lite{display:none}.gfxBtn[data-lv="0"] .lite{display:inline}.gfxBtn[data-lv="0"] .rich{display:none}.gfxBtn[data-lv="0"]{background:#e3ecd9}';
+    document.head.appendChild(st);
+  }
+  if (fb) fb.addEventListener('click', () => gfxApply());
+}
+/* the first time: watch the speed for a while, and go light when frames come too slowly */
+const GW = { t: 0, n: 0, sum: 0, done: gfxPicked || (() => { try { return localStorage.getItem('pips-gfx') != null; } catch (e) { return false; } })() };
+function gfxStep(dt) {
+  if (!gfxReady) { gfxReady = true; gfxApply(); }
+  if (gfxLow) { pollen.visible = false; BF.forEach((b) => { b.g.visible = false; }); DUST.forEach((d) => { d.sp.visible = false; }); MIST.forEach((m) => { m.s.visible = false; }); }
+  if (GW.done) return;
+  GW.t += dt; if (GW.t < 4 || document.hidden) return; /* let loading settle */
+  GW.n++; GW.sum += dt;
+  if (GW.t > 12) { GW.done = true; const fps = GW.n / GW.sum; if (fps < fpsCap * 0.75) { gfxSet(true, false); } else { try { localStorage.setItem('pips-gfx', 'full'); localStorage.setItem('pips-gfx-by', 'auto'); } catch (e) {} } }
+}
+let gfxReady = false;
+{ const s0 = storeStep; storeStep = function (dt) { s0(dt); gfxStep(dt); }; }
+if (window.__farmTest) window.__gfx = () => ({ low: gfxLow, picked: gfxPicked, pr: renderer.getPixelRatio(), shadow: sun.castShadow, draw: drawLv, calls: renderer.info.render.calls, set: (v) => gfxSet(v, true) });
 /* ---------- sky with clouds ----------
    Replaces the plain two-colour dome with one that follows the camera and is anchored to the *visible* horizon
    (with the curved world the sea edge sits well below eye level, so the gradient and clouds start there).
