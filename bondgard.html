@@ -223,7 +223,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Done"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M11 25 L20 34 L37 14" fill="none" stroke="#fff6e4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121064317">
+<meta name="app-ver" content="20261121064643">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -882,7 +882,9 @@ function tree(kind, s) {
   const g = new T.Group(); let geo; const LF = typeof leafs !== 'undefined' ? leafs : null;
   if (kind === 'pine') {
     geo = new T.CylinderGeometry(0.06, 0.1, 0.4, 7); geo.translate(0, 0.2, 0); part(fac(geo, PAL.trunk, s), g);
-    const L = []; for (let i = 0; i < 4; i++) { const c = new T.ConeGeometry(0.56 - i * 0.11, 0.62 - i * 0.04, 9, 2); c.translate(0, 0.62 + i * 0.3, 0); L.push(jit(c, 0.025, s + i)); }
+    const L = []; for (let i = 0; i < 4; i++) { const r = 0.58 - i * 0.115, h = 0.6 - i * 0.04, pts = [new T.Vector2(r * 0.62, 0), new T.Vector2(r * 0.92, 0.03), new T.Vector2(r, 0.09)];
+      for (let k = 1; k <= 6; k++) { const t = k / 6; pts.push(new T.Vector2(r * Math.pow(1 - t, 0.85) * (1 - 0.06 * Math.sin(t * Math.PI)) + (k === 6 ? 0.0 : 0), 0.09 + (h - 0.09) * t)); }
+      const c = new T.LatheGeometry(pts, 12); c.translate(0, 0.32 + i * 0.3, 0); L.push(jit(c, 0.018, s + i)); }
     const base = s % 2 ? PAL.pine : PAL.forest, y0 = 0.3, y1 = 1.85, m = part(fac(mergeGeos(L), (cx, cy, cz, i) => leafY(base, cy, y0, y1, i)), g);
     m.userData = { pine: 1, base, y0, y1 }; if (LF) LF.push(m);
   } else {
@@ -2493,7 +2495,7 @@ function swaySetup() {
 function sway() {
   if (!swayers) swaySetup();
   const g = WIND.g, wx = WIND.x, wz = WIND.z;
-  for (let i = 0; i < swayers.trees.length; i++) { const t = swayers.trees[i], a = g * 0.05 + Math.sin(time * 1.6 + t.userData.ph) * (0.008 + g * 0.03); t.rotation.z = -a * wx; t.rotation.x = a * wz; }
+  for (let i = 0; i < swayers.trees.length; i++) { const t = swayers.trees[i], a = g * 0.05 + (Math.sin(time * 1.6 + t.userData.ph) + 0.5 * Math.sin(time * 0.7 + t.userData.ph * 1.7)) * (0.018 + g * 0.03); t.rotation.z = -a * wx; t.rotation.x = a * wz; }
   for (let i = 0; i < tufts.length; i++) { const t = tufts[i], a = g * 0.22 + Math.sin(time * 2.6 - (t.x * wx + t.z * wz) * 0.55) * (0.02 + g * 0.13); t.g.rotation.z = -a * wx; t.g.rotation.x = a * wz; }
   for (let i = 0; i < beds.length; i++) { const ch = beds[i].plants.children; for (let j = 0; j < ch.length; j++) { const m = ch[j], a = g * 0.1 + Math.sin(time * 3.1 + i + j * 0.7) * (0.015 + g * 0.09); m.rotation.z = (m.userData.rz || 0) - a * wx; m.rotation.x = (m.userData.rx || 0) + a * wz; } }
 }
@@ -2624,7 +2626,7 @@ function weatherTest() {
 }
 /* ---------- the town: a square with a fountain, lamps, hedges, flowers, landmarks, and a picture map ---------- */
 /* static pieces are painted once and merged into one mesh, so the whole town costs only a few draw calls */
-const STATIC = [], LAMPS = [], FLOWERS = [];
+const STATIC = [], LAMPS = [], FLOWERS = [], SWAYL = []; /* SWAYL: hedges and bushes, merged with a wind-swaying material (polish.js) */
 function merged(list, mat, parent) {
   let n = 0; list.forEach((g) => { n += g.attributes.position.count; });
   const P = new Float32Array(n * 3), N = new Float32Array(n * 3), C = new Float32Array(n * 3); let o = 0;
@@ -2727,7 +2729,7 @@ LAMP_AT.forEach(([x, z], k) => {
 
 /* hedges along the harbour avenue */
 [-1.5, 1.5].forEach((x) => [[4.3, 6.8], [8.4, 11.6]].forEach(([z0, z1], k) => {
-  const L = z1 - z0, P = at(x, (z0 + z1) / 2, 0), B = [];
+  const L = z1 - z0, P = at(x, (z0 + z1) / 2, 0, SWAYL), B = [];
   for (let z = -L / 2 + 0.18; z <= L / 2 - 0.12; z += 0.2) { const r = 0.2 + hash(z, k + 3) * 0.06, sd = hash(z, k + 5) > 0.5 ? 1 : -1; B.push(ico(r, 1, 751 + z * 10, r * 0.1).translate(sd * 0.09, 0.24 + hash(k, z) * 0.06, z)); B.push(ico(r * 0.85, 1, 761 + z * 10, r * 0.1).translate(-sd * 0.1, 0.42 + hash(z, 9) * 0.08, z + 0.1)); if (hash(z, 11) > 0.5) B.push(ico(r * 0.7, 1, 771 + z * 10, r * 0.1).translate((hash(z, 13) - 0.5) * 0.12, 0.58, z)); }
   P(mergeGeos(B), (cx, cy, cz, i) => leafY(PAL.forest, cy, 0.0, 0.7, i), 751 + k, 0, 0, 0);
   for (let z = z0; z <= z1; z += 0.5) deco(x, z, 0.45);
@@ -3620,7 +3622,7 @@ if (WELL) wateringCan(WELL[0] + 0.75, WELL[1] + 0.45, 0.4, '#8fc0d4');
 wateringCan(PLANTER.x + 0.75, PLANTER.z + 0.35, 2.2, '#e0a646');
 /* round bushes in the lawns round the square */
 [[-4.6, -4.4], [4.6, 4.4], [-4.3, 4.7], [4.5, -4.6], [-6.4, 0.9], [6.4, -0.9], [-3.4, -5.6], [3.4, 5.7]].forEach(([x, z], k) => {
-  if (!cozyFree(x, z, 0.4)) return; const P = at(x, z, hash(k, 3) * 6, COZY_PROPS), r = 0.3 + hash(k, 5) * 0.12;
+  if (!cozyFree(x, z, 0.4)) return; const P = at(x, z, hash(k, 3) * 6, SWAYL), r = 0.3 + hash(k, 5) * 0.12;
   P(fluff(r, 800 + k, 6).scale(1.2, 0.85, 1.2), (cx, cy, cz, i) => leafY(k % 2 ? '#5d9160' : '#6a9a4c', cy, 0, r * 1.7, i), 800 + k, 0, r * 0.75, 0); deco(x, z, r + 0.2);
 });
 const cozyMesh = merged(COZY_PROPS); COZY_PROPS.length = 0;
@@ -3721,11 +3723,23 @@ function cozyStep(dt) {
 
 /* rim light: a soft warm edge on round things (foliage, Pip, the animals), like the outline in the hand-drawn UI */
 const RIM = { value: new T.Color('#ffe2b0') };
-MAT.onBeforeCompile = (sh) => {
+function rimify(sh) {
   sh.uniforms.rimCol = RIM;
   sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 rimCol;')
     .replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );', 'float rimF = 1.0 - saturate( dot( normal, normalize( vViewPosition ) ) ); float rim3 = rimF * rimF * rimF; outgoingLight += rimCol * ( 0.3 + diffuseColor.rgb ) * rim3 * rimF;\n\tgl_FragColor = vec4( outgoingLight, diffuseColor.a );');
-};
+}
+MAT.onBeforeCompile = rimify;
+/* wind sway for merged hedges, bushes and flowers: a gentle sine wave in the vertex shader, more the higher a point is */
+const SWAY = { t: { value: 0 }, wind: { value: new T.Vector3(1, 0, 0) } };
+function swayMat(amp) {
+  const m = new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
+  m.onBeforeCompile = (sh) => { rimify(sh); sh.uniforms.swT = SWAY.t; sh.uniforms.swW = SWAY.wind;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nuniform float swT; uniform vec3 swW;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\nfloat swH = max(position.y - 0.04, 0.0); float swP = position.x * 0.9 + position.z * 0.6;\nfloat swA = (sin(swT * 1.8 + swP) + 0.4 * sin(swT * 3.1 + swP * 1.7)) * (' + amp.toFixed(3) + ' + swW.z * ' + (amp * 2.5).toFixed(3) + ') + swW.z * ' + (amp * 1.5).toFixed(3) + ';\ntransformed.x += swW.x * swA * swH; transformed.z += swW.y * swA * swH;'); };
+  m.customProgramCacheKey = () => 'sway' + amp; return m;
+}
+if (SWAYL.length) { merged(SWAYL, swayMat(0.06)); SWAYL.length = 0; }
+flowerMesh.material = swayMat(0.16);
 sc.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => { m.needsUpdate = true; }); });
 
 /* the upgrade house entrance: a wooden door, a little shingled awning, pots of flowers, window boxes, corner beams and a hanging sign */
@@ -3823,9 +3837,23 @@ const streamMat = new T.ShaderMaterial({ uniforms: { t: FU.t, light: FU.light },
   }` });
 const streams = new T.Mesh(new T.CylinderGeometry(0.47, 0.6, 0.8, 28, 1, true), streamMat); streams.position.set(0, 0.75, 0); streams.renderOrder = 2; sc.add(streams);
 
+/* dust puffs: little soft clouds kicked up behind Pip's feet when running on the ground */
+const dustMat = new T.SpriteMaterial({ map: blobTex, color: '#d9c09a', transparent: true, depthWrite: false, opacity: 0 });
+const DUST = []; for (let i = 0; i < 14; i++) { const sp = new T.Sprite(dustMat.clone()); sp.visible = false; sp.renderOrder = 2; sc.add(sp); DUST.push({ sp, t: 1 }); }
+if (window.__farmTest) window.__dust = DUST;
+let dustT = 0, dustI = 0; const dustLast = new T.Vector3();
+function dustStep(dt) {
+  const sp = Math.hypot(pip.position.x - dustLast.x, pip.position.z - dustLast.z) / Math.max(dt, 1e-3), dx = pip.position.x - dustLast.x, dz = pip.position.z - dustLast.z; dustLast.copy(pip.position);
+  dustT -= dt;
+  if (!inHouse && !trip && !reduced && sp > 2.2 && sp < 30 && pip.position.y < 0.2 && season !== 'winter' && dustT <= 0) { dustT = 0.09; const d = DUST[dustI++ % DUST.length], l = Math.hypot(dx, dz) || 1;
+    d.t = 0; d.sp.visible = true; d.x = pip.position.x - dx / l * 0.25 + (Math.random() - 0.5) * 0.15; d.z = pip.position.z - dz / l * 0.25 + (Math.random() - 0.5) * 0.15; d.sp.material.color.set(roadKind(pip.position.x, pip.position.z) ? '#ead6b0' : '#eef0d8'); }
+  DUST.forEach((d) => { if (!d.sp.visible) return; d.t += dt / 0.55; if (d.t >= 1) { d.sp.visible = false; return; }
+    const q = d.t; d.sp.position.set(d.x, 0.08 + q * 0.22, d.z); d.sp.scale.setScalar(0.16 + q * 0.4); d.sp.material.opacity = 0.75 * (1 - q) * Math.min(1, q * 6) * (1 - 0.6 * nightAmt); });
+}
 const _fl = new T.Color();
 function polishStep(dt) {
   const frozen = season === 'winter';
+  if (!reduced) SWAY.t.value += dt; SWAY.wind.value.set(WIND.x, WIND.z, WIND.g); dustStep(dt);
   if (!frozen && !reduced) FU.t.value += dt;
   FU.ice.value += ((frozen ? 1 : 0) - FU.ice.value) * Math.min(1, dt * 2);
   streams.visible = !frozen && !inHouse;
