@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121154906">
+<meta name="app-ver" content="20261121160205">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -643,7 +643,7 @@ const speed = () => (3.0 + 0.45 * state.lv.speed) * (!mount ? 1 : mount.kind ===
 const cap = () => 4 + 1 * state.lv.bag;
 const heartMult = () => 1 + 0.25 * state.lv.farm;
 const helpSpeed = () => 2.2 * (1 + 0.15 * state.lv.guests);
-const upCost = (u) => Math.round(u.base * Math.pow(u.g, state.lv[u.id]));
+const upCost = (u) => qGearCost(u) || Math.round(u.base * Math.pow(u.g, state.lv[u.id]));
 function nextPad() { for (const p of PADS) if (!own(p.id)) return p; return null; }
 /* ---------- sound: the supplied kit ---------- */
 const Snd = {
@@ -3902,7 +3902,7 @@ function sPadPos(p) {
 }
 const shop = () => state.shop;
 const sOwn = (id) => !!shop().owned[id];
-const nextSPad = () => { for (const p of SPADS) if (!sOwn(p.id)) return p; return null; };
+const nextSPad = () => qPad('c', SPADS);
 const mFarm = () => 1 + 0.25 * state.lv.farm;
 
 /* ---------- coins: their own counter next to the hearts ---------- */
@@ -5456,7 +5456,7 @@ const bpadC = document.createElement('canvas'); bpadC.width = bpadC.height = 256
 const bpad = new T.Mesh(new T.CircleGeometry(0.72, 32), new T.MeshBasicMaterial({ map: bpadT, transparent: true })); bpad.rotation.x = -Math.PI / 2; bpad.position.set(BPAD_AT.x, 0.09, BPAD_AT.z); sc.add(bpad);
 const bpadEdge = new T.Mesh(new T.RingGeometry(0.72, 0.82, 32), new T.MeshBasicMaterial({ color: PAL.ochre })); bpadEdge.rotation.x = -Math.PI / 2; bpadEdge.position.set(BPAD_AT.x, 0.085, BPAD_AT.z); sc.add(bpadEdge);
 let bpadShown = '', bpadTick = 0, bpadPoor = false, bpadGhost = null;
-const nextBPad = () => tutOn() ? null : BPADS.find((p) => !barnS().owned[p.id]) || null;
+const nextBPad = () => tutOn() ? null : qPad('h', BPADS);
 function drawBPad(p) {
   const left = p.cost - (barnS().paid[p.id] || 0), key = p.id + ':' + left; if (key === bpadShown) return; bpadShown = key;
   const x = bpadC.getContext('2d'); x.clearRect(0, 0, 256, 256);
@@ -6639,7 +6639,7 @@ function miniHouse(size, next) {
   g.scale.setScalar(0.27); g.position.x = -0.05; const w = new T.Group(); w.add(g); return w;
 }
 function drawPad(s, o) {
-  const S = stS(), paid = o && o.cost ? (S.paid[o.id] || 0) : 0, can = o && o.cost && shop().coins >= o.cost - paid, key = (o ? o.id + ':' + (o.max ? 'max' : o.cost - paid) : '-') + ':' + can;
+  const S = stS(), paid = o && o.cost ? (S.paid[o.id] || 0) : 0, can = o && o.cost && purse(o) >= o.cost - paid, key = (o ? o.id + ':' + (o.max ? 'max' : o.cost - paid) : '-') + ':' + can;
   if (key === s.shown) return; s.shown = key;
   const x = s.c.getContext('2d'); x.clearRect(0, 0, 192, 192); s.pad.visible = !!o;
   if (!o) return;
@@ -6647,7 +6647,7 @@ function drawPad(s, o) {
   x.fillStyle = o.max ? '#fff2c2' : can ? 'rgba(236,250,226,0.96)' : 'rgba(255,246,228,0.95)'; x.beginPath(); x.arc(96, 96, 90, 0, 7); x.fill();
   if (o.max) { x.fillStyle = PAL.ochre; x.font = '700 90px Fredoka, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('★', 96, 100); }
   else { x.lineWidth = 10; x.strokeStyle = can ? '#3f7d62' : PAL.ochre; x.beginPath(); x.arc(96, 96, 84, -Math.PI / 2, -Math.PI / 2 + 6.2832 * paid / o.cost); x.stroke();
-    drawIcon(x, 'coin', 50, 98, 0.72); x.fillStyle = PAL.ink; x.font = '700 52px Fredoka, sans-serif'; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillText(fmt(o.cost - paid), 74, 102); }
+    drawIcon(x, o.gear ? 'heart' : 'coin', 50, 98, 0.72); x.fillStyle = PAL.ink; x.font = '700 52px Fredoka, sans-serif'; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillText(fmt(o.cost - paid), 74, 102); }
   s.tex.needsUpdate = true;
 }
 function drawDots(s) {
@@ -6663,7 +6663,7 @@ function syncStation(s) {
 }
 /* the cheapest thing that can be bought right now, and the cheapest thing at all (for the wish bubble) */
 function storeOffers() { const cs = STATIONS_S.find((q) => q.kind === 'cat'); return STATIONS_S.filter((s) => s.kind !== 'cat').map((s) => ({ s, o: offerOf(s) })).filter((q) => q.o && q.o.cost).concat(catOffers().map((o) => ({ s: cs, o }))); }
-function cheapest(onlyAfford) { let best = null; storeOffers().forEach((q) => { const left = q.o.cost - (stS().paid[q.o.id] || 0); if (onlyAfford && shop().coins < left) return; if (!best || left < best.left) best = { s: q.s, o: q.o, left }; }); return best; }
+function cheapest(onlyAfford) { let best = null; storeOffers().forEach((q) => { const left = q.o.cost - (stS().paid[q.o.id] || 0); if (onlyAfford && purse(q.o) < left) return; if (!best || left < best.left) best = { s: q.s, o: q.o, left }; }); return best; }
 
 /* ---------- buying ---------- */
 let spinT = 0;
@@ -6680,12 +6680,12 @@ function payStation(s, dt) {
   const o = s.item; if (!o || !o.cost || o.cat) return;
   const S = stS(), on = Math.hypot(pip.position.x - s.padX, pip.position.z - s.padZ) < 0.62, still = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) < 0.15;
   s.pad.scale.setScalar(on ? 1.08 : 1 + (reduced ? 0 : Math.sin(time * 3 + s.spin) * 0.03));
-  if (on && still && shop().coins > 0) {
-    const left = o.cost - (S.paid[o.id] || 0), amt = Math.min(shop().coins, left, Math.max(1, Math.ceil(o.cost * dt / 1.4)));
-    shop().coins -= amt; S.paid[o.id] = (S.paid[o.id] || 0) + amt; s.tick -= dt; if (s.tick <= 0) { s.tick = 0.08; Snd.play('coin', { gain: 0.18 }, 0, 70); }
+  if (on && still && purse(o) > 0) {
+    const left = o.cost - (S.paid[o.id] || 0), amt = Math.min(purse(o), left, Math.max(1, Math.ceil(o.cost * dt / 1.4)));
+    spend(o, amt); S.paid[o.id] = (S.paid[o.id] || 0) + amt; s.tick -= dt; if (s.tick <= 0) { s.tick = 0.08; Snd.play('coin', { gain: 0.18 }, 0, 70); }
     if (S.paid[o.id] >= o.cost) storeBuy(s, o);
   }
-  if (on && still && shop().coins <= 0 && !s.poor && o.cost) { s.poor = true; Snd.play('tock', { gain: 0.3, f: 300 }); flash(coinPill, 'no'); }
+  if (on && still && purse(o) <= 0 && !s.poor && o.cost) { s.poor = true; Snd.play('tock', { gain: 0.3, f: 300 }); flash(coinPill, 'no'); }
   if (!on) s.poor = false;
 }
 
@@ -6870,7 +6870,7 @@ function wishStep(dt) {
   wishEl.hidden = hide; if (hide) return;
   const r = coinPill.getBoundingClientRect(); wishEl.style.left = Math.round(r.left + r.width / 2 - 35) + 'px'; wishEl.style.top = Math.round(r.bottom + 10) + 'px';
   if (wishK !== c.o.id + (c.o.lv || '')) { wishK = c.o.id + (c.o.lv || ''); wishEl.querySelector('img').src = thumbOf(wishK, c.o.make); }
-  const f = clamp(shop().coins / Math.max(1, c.left), 0, 1), L = 2 * Math.PI * 31; wishEl.querySelector('.arc').setAttribute('stroke-dasharray', (f * L).toFixed(1) + ' 999'); wishEl.querySelector('.arc').setAttribute('stroke', f >= 1 ? '#3f7d62' : '#e0a646');
+  const f = clamp(purse(c.o) / Math.max(1, c.left), 0, 1), L = 2 * Math.PI * 31; wishEl.querySelector('.arc').setAttribute('stroke-dasharray', (f * L).toFixed(1) + ' 999'); wishEl.querySelector('.arc').setAttribute('stroke', f >= 1 ? '#3f7d62' : '#e0a646');
   wishEl.classList.toggle('ready', f >= 1);
 }
 
@@ -7865,7 +7865,7 @@ function stockAt(pen, t) { const s = pen.food.spots && pen.food.spots[t]; return
 if (window.__farmTest) window.__stock = { fill: (a, t, n) => { const pen = pens[a] || buildPen(a); for (let k = 0; k < n; k++) pen.food.add(mk(t)); return pen.food.items.length; }, spots: (a) => stockSpots(a).map((s) => s.t + '@' + s.z.toFixed(2)).join(' ') };
 /* ---------- the first day: a guided start for a new farm ----------
    A new game walks through the basics one step at a time, in this order: feed the animals, take eggs to the market,
-   pick apples and sell them, pick up the coins, buy the first thing in the store, feed the animals again, lead them
+   pick apples and sell them, buy the first thing in the store with hearts, feed the animals again, lead them
    into the barn at dusk, sleep in the tent, fetch them out in the morning, and then a present: coins for the first little house, bought on the spot at the tent.
    A picture card at the top shows the job (what to fetch -> where it goes) with dots that fill up, and a trail of the
    whole day ending in the present. The guide arrow follows the current job. Until the present is opened nothing can be
@@ -7875,8 +7875,7 @@ const TUT = [
   { id: 'feed', n: 3, a: 'grain', b: 'hen' },
   { id: 'egg', n: 2, a: 'egg', b: 'stall' },
   { id: 'apple', n: 3, a: 'apple', b: 'stall' },
-  { id: 'coin', n: 10, a: 'coin', b: null, bar: true },
-  { id: 'buy', n: 1, a: 'coin', b: 'bag' },
+  { id: 'buy', n: 1, a: 'heart', b: 'bag' },
   { id: 'feed2', n: 3, a: 'carrot', b: 'pig' },
   { id: 'barn', n: 1, a: 'pig', b: 'barn', badge: 'moon' },
   { id: 'bed', n: 1, a: 'moon', b: 'bed' },
@@ -8015,7 +8014,7 @@ function tutGiftStep(dt) {
       G.open = true; G.ot = 0; confetti(G.x, 1.0, G.z, 60); fanfare(true);
       tutGiftEl.querySelector('img').src = actIcon('coin'); tutGiftEl.hidden = false; setTimeout(() => { tutGiftEl.hidden = true; }, 2700);
       /* the present is a pile of coins: enough for the first little house, which Pip then buys at the tent like anything else */
-      const gift = SIZES[1].cost; if (state.tut) state.tut.gave = 1; earnCoins(gift); coinPill && flash(coinPill, 'bump');
+      const gift = Math.max(60, SIZES[1].cost - shop().coins); if (state.tut) state.tut.gave = 1; earnCoins(gift); coinPill && flash(coinPill, 'bump');
       for (let k = 0; k < 12; k++) setTimeout(() => Snd.play('coin', { gain: 0.3 }, 0, 40), 120 + k * 90);
       save();
     }
@@ -8054,7 +8053,7 @@ function tutGoal() {
     return tr ? [tr.x, tr.z] : [SDROP.x, SDROP.z];
   }
   if (id === 'coin') { if (outOf()) return outOf(); const mp = mPiles.filter((o) => o.n > 0).sort((a, b) => b.n - a.n)[0]; if (mp) return [mp.x, mp.z]; if (carriesGoods()) return [SDROP.x, SDROP.z]; const tr = trees.find((q) => q && q.pile.items.length); return tr ? [tr.x, tr.z] : [SDROP.x, SDROP.z + 1.6]; }
-  if (id === 'buy') { if (inStore) { const c = cheapest(true); return c ? [c.s.padX, c.s.padZ] : [SI.x, SI.z + 4.7]; } return outOf() || [SDOOR.x, SDOOR.z]; }
+  if (id === 'buy') { const hp = Q_PRICE[qHead('h')] || 10; if (!inStore && state.coins < hp) return outOf() || anyFood(); if (inStore) { const c = cheapest(true); return c ? [c.s.padX, c.s.padZ] : [SI.x, SI.z + 4.7]; } return outOf() || [SDOOR.x, SDOOR.z]; }
   if (id === 'barn' || id === 'out') { if (inStore) return [SI.x, SI.z + 4.7]; if (inHouse && !inBarn) return homeExit(); return barnGoal() || (id === 'out' ? [BDOOR.x, BDOOR.z] : null); }
   if (id === 'bed') { if (inHouse && !inBarn && !inStore) return [bedRing.x, bedRing.z]; return outOf() || [HDOOR.x, HDOOR.z]; }
   if (id === 'gift') { if (outOf()) return outOf(); return tutGift && !tutGift.open ? [tutGift.x, tutGift.z] : null; }
@@ -8109,6 +8108,91 @@ if (window.__farmTest) window.__auto = () => {
   return { g, clock: state.clock, hearts: state.coins, hTot: state.total, coins: shop().coins, cTot: shop().total, owned: Object.keys(state.owned), sOwned: Object.keys(shop().owned), lv: state.lv, size: stS() && stS().size, furn: stS() && Object.keys(stS().furn).length, deco: stS() && Object.keys(stS().deco).length, isle: stS() && Object.keys(stS().isle || {}), barn: Object.keys(barnS().owned), cat: stS() && stS().cat ? Object.keys(stS().cat.own).length : 0, n: animals.length };
 };
 if (window.__farmTest) window.__autoCat = () => { const c = cheapest(true); if (c && c.o.act) catBuy(c.o.act); if (typeof catClose === 'function') catClose(); return c && c.o.id; };
+/* ---------- the unlock queues: one for hearts (farm, barn, Pip's gear), one for coins (market, house, island) ----------
+   Only the next thing in each queue is offered, at a price set from what an okay player earns at that point (see the
+   balance doc, model in pips-balance/model2.py). Hearts can be swapped for coins at the swap pad by the store, so a child
+   who only farms still gets the house and the island along. Furniture, colours and decorations stay a free shop. */
+const QUEUE = {
+  h: [["gear:speed1", 10], ["pig1", 12], ["hen3", 20], ["pig2", 30], ["gear:bag1", 40], ["house-hen", 45], ["help-water", 70], ["gear:farm1", 85], ["hay", 115], ["sheep1", 120], ["gear:speed2", 160], ["tractor", 175], ["cow1", 190], ["gear:guests1", 250], ["goat1", 270], ["sheep2", 330], ["gear:bag2", 390], ["house-pig", 430], ["cow2", 540], ["gear:farm2", 650], ["stall6", 840], ["hen4", 890], ["gear:speed3", 1050], ["help-grain", 1150], ["horse1", 1350], ["gear:guests2", 1600], ["house-sheep", 1750], ["goat2", 2100], ["gear:bag3", 2400], ["house-cow", 2650], ["pig3", 3250], ["gear:farm3", 3700], ["stall8", 4650], ["horse2", 4950], ["gear:speed4", 5700], ["sheep3", 6300], ["help-hay", 7300], ["gear:guests3", 7500], ["bull1", 8100], ["gear:bag4", 8800], ["goat3", 8800], ["house-horse", 9400], ["gear:farm4", 10300], ["stall10", 11800], ["cow3", 11800], ["gear:speed5", 12700], ["help-carrot", 12700], ["house-bull", 12700], ["gear:guests4", 13500], ["stall12", 13500], ["gear:farm5", 13500], ["gear:bag6", 15100], ["gear:speed6", 16900], ["gear:guests6", 19000], ["gear:farm6", 21200], ["gear:bag7", 23800], ["gear:speed7", 26600], ["gear:guests7", 29800], ["gear:farm7", 33400], ["gear:bag8", 37400], ["gear:speed8", 41900], ["gear:guests8", 47000], ["gear:farm8", 52600]],
+  c: [["tree2", 20], ["sign1", 40], ["stall-egg", 45], ["isle:garden", 45], ["tree3", 50], ["isle:square", 90], ["stock-egg", 95], ["house:kitchen", 105], ["stall-apple", 115], ["sell-egg", 125], ["helper1", 170], ["stock-apple", 185], ["isle:style1", 200], ["sign2", 220], ["isle:fountain-set", 230], ["sell-apple", 250], ["bakery", 270], ["stall-milk", 580], ["house:east-wing", 860], ["cashier", 920], ["stock-milk", 1150], ["isle:style2", 1250], ["sell-milk", 1450], ["sign3", 1550], ["isle:pond-set", 1650], ["stall-cake", 1750], ["helper2", 1900], ["house:west-wing", 2050], ["stock-cake", 2200], ["sell-cake", 2350], ["isle:lighthouse-set", 2950]]
+};
+
+const Q_ISLE = { 'isle:garden': 'sg', 'isle:square': 's1', 'isle:fountain-set': 's2', 'isle:pond-set': 's3', 'isle:lighthouse-set': 's4', 'isle:style1': 'p1', 'isle:style2': 'p2' };
+const Q_SIZE = { 'house:kitchen': 2, 'house:east-wing': 3, 'house:west-wing': 4 };
+const Q_PRICE = {}; QUEUE.h.concat(QUEUE.c).forEach(([id, p]) => { Q_PRICE[id] = p; });
+const SWAP = 2; /* hearts per coin at the swap pad */
+function qOwned(id) {
+  if (id.startsWith('gear:')) { const m = id.slice(5).match(/^([a-z]+)(\d+)$/); return (state.lv[m[1]] || 0) >= +m[2]; }
+  if (Q_SIZE[id]) return !!stS() && stS().size >= Q_SIZE[id];
+  if (Q_ISLE[id]) { const k = Q_ISLE[id], t = ISET_BY[k]; return t ? setOwn(t) : !!isleX().pk[k]; }
+  if (PADS.some((p) => p.id === id)) return !!state.owned[id];
+  if (BPADS.some((p) => p.id === id)) return !!barnS().owned[id];
+  if (SPADS.some((p) => p.id === id)) return !!shop().owned[id];
+  return true;
+}
+/* the next thing in a queue: the first one not owned yet (farms from before keep what they have, and pick up wherever they are) */
+function qHead(tr) { for (const [id] of QUEUE[tr]) if (!qOwned(id)) return id; return null; }
+
+/* the prices of the pads, the barn, the house and the island come from the queue */
+PADS.forEach((p) => { if (Q_PRICE[p.id]) p.cost = Q_PRICE[p.id]; });
+BPADS.forEach((p) => { if (Q_PRICE[p.id]) p.cost = Q_PRICE[p.id]; });
+SPADS.forEach((p) => { if (Q_PRICE[p.id]) p.cost = Q_PRICE[p.id]; });
+Object.keys(Q_SIZE).forEach((id) => { const n = Q_SIZE[id]; if (SIZES[n]) SIZES[n].cost = Q_PRICE[id]; });
+Object.keys(Q_ISLE).forEach((id) => { const k = Q_ISLE[id], t = ISET_BY[k] || IPACKS.find((q) => q.id === k); if (t) t.cost = Q_PRICE[id]; });
+/* gear: priced from the queue, paid with hearts; only the next one in the queue is on its stand */
+function qGearCost(u) { const p = Q_PRICE['gear:' + u.id + ((state.lv[u.id] || 0) + 1)]; return p || null; }
+const purse = (o) => o && o.gear ? state.coins : shop().coins;
+function spend(o, n) { if (o && o.gear) { state.coins -= n; bump(); } else shop().coins -= n; }
+function qPad(tr, list) { if (tutOn()) return null; const h = qHead(tr); return list.find((p) => p.id === h) || null; }
+{ const n0 = nextPad; nextPad = function () { if (tutOn()) return null; return qPad('h', PADS); }; }
+{ const o0 = offerOf; offerOf = function (s) { const o = o0(s); if (!o) return o;
+  if (o.gear) { const id = 'gear:' + o.gear + o.lv; if (tutOn() ? !(tutId() === 'buy' && qHead('h') === id) : qHead('h') !== id) return null; }
+  if (o.size && o.size >= 2 && qHead('c') !== 'house:' + { 2: 'kitchen', 3: 'east-wing', 4: 'west-wing' }[o.size]) return null;
+  return o; }; }
+{ const i0 = islePrep; islePrep = function (a) { const h = qHead('c'); if (!h || Q_ISLE[h] !== a.id) return null; return i0(a); }; }
+{ const n0 = isleNext; isleNext = function () { const h = qHead('c'), k = h && Q_ISLE[h]; if (!k) return null; const t = ISET_BY[k] || IPACKS.find((q) => q.id === k); if (!t) return null; if (ISET_BY[k] ? t.tier > stS().size : !packOpen(t)) return null; return t; }; }
+{ const c0 = catBuy; catBuy = function (a) { if (a && a.k === 'size' && a.n >= 2 && qHead('c') !== 'house:' + { 2: 'kitchen', 3: 'east-wing', 4: 'west-wing' }[a.n]) { Snd.play('tock', { gain: 0.3, f: 300 }); return false; } return c0(a); }; }
+{ const s0 = spotOffers; spotOffers = function () { const h = qHead('c'); return s0().filter((o) => { const a = o.act || {};
+  if (a.k === 'size' && a.n >= 2) return h === 'house:' + { 2: 'kitchen', 3: 'east-wing', 4: 'west-wing' }[a.n];
+  if (a.k === 'isle') return Q_ISLE[h] === a.id && !o.lock; return true; }); }; }
+/* the arrow: when the next hearts thing is affordable, it shows the way (a pad, the barn, or the gear stand in the store) */
+function qGoalH() {
+  if (tutOn() || inHouse) return null; const h = qHead('h'); if (!h || state.coins < Q_PRICE[h] - ((state.paid || {})[h] || 0)) return null;
+  const p = PADS.find((q) => q.id === h); if (p) return padPos(p);
+  if (BPADS.some((q) => q.id === h)) return [BDOOR.x, BDOOR.z];
+  if (h.startsWith('gear:')) return [SDOOR.x, SDOOR.z];
+  return null;
+}
+{ const g0 = goal; goal = function () { return qGoalH() || g0(); }; }
+/* new heads: show the next pads as soon as something is bought */
+let qKey = '', qT = 0;
+function queueStep(dt) {
+  qT -= dt; if (qT > 0) return; qT = 0.5; if (tutOn()) return;
+  const k = qHead('h') + '|' + qHead('c'); if (k !== qKey) { qKey = k; if (typeof showPad === 'function') showPad(); showSPad(); }
+  swapStep(0.5);
+}
+/* ---------- the swap pad: stand on it and hearts turn into coins ---------- */
+const SWAP_AT = { x: STORE.x - 2.1, z: STORE.z + 3.3 };
+const swapG = (() => { const g = new T.Group(); g.position.set(SWAP_AT.x, 0.04, SWAP_AT.z); sc.add(g);
+  const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
+  x.fillStyle = 'rgba(255,246,228,0.95)'; x.beginPath(); x.arc(128, 128, 120, 0, 7); x.fill(); x.lineWidth = 10; x.strokeStyle = '#e9684a'; x.stroke();
+  drawIcon(x, 'heart', 70, 118, 1.1); drawIcon(x, 'coin', 186, 118, 1.1);
+  x.strokeStyle = PAL.ink; x.lineWidth = 9; x.lineCap = 'round'; x.lineJoin = 'round'; x.beginPath(); x.moveTo(108, 120); x.lineTo(146, 120); x.moveTo(134, 104); x.lineTo(150, 120); x.lineTo(134, 136); x.stroke();
+  const d = new T.Mesh(new T.CircleGeometry(0.8, 32), new T.MeshBasicMaterial({ map: new T.CanvasTexture(c), transparent: true })); d.rotation.x = -Math.PI / 2; g.add(d); g.add(flPadEdge()); g.visible = false; return g; })();
+let swapT = 0;
+function swapStep() {}
+function swapFrame(dt) {
+  swapG.visible = !tutOn() && !inHouse; if (!swapG.visible) return;
+  swapG.scale.setScalar(1 + (reduced ? 0 : Math.sin(time * 3) * 0.03));
+  const on = Math.hypot(pip.position.x - SWAP_AT.x, pip.position.z - SWAP_AT.z) < 0.75, still = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) < 0.15;
+  if (!on || !still || state.coins < SWAP) return;
+  swapT -= dt; if (swapT > 0) return; swapT = 0.09;
+  const n = Math.max(1, Math.min(Math.floor(state.coins / SWAP), Math.ceil(state.coins / SWAP / 25)));
+  state.coins -= n * SWAP; bump(); earnCoins(n); Snd.play('coin', { gain: 0.2 }, 0, 60);
+  const h = new T.Mesh(heartGeo, heartMat); h.position.set(pip.position.x, 1.4, pip.position.z); sc.add(h); fly(h, () => tmpV.set(SWAP_AT.x, 0.1, SWAP_AT.z), () => sc.remove(h), 0.3);
+}
+{ const e0 = extrasStep; extrasStep = function (dt) { e0(dt); queueStep(dt); swapFrame(dt); }; }
+if (window.__farmTest) window.__queue = () => ({ h: qHead('h'), c: qHead('c'), ph: Q_PRICE[qHead('h')], pc: Q_PRICE[qHead('c')], pad: pad && pad.p.id, spad: sPad && sPad.p.id, isle: isleNext() && isleNext().id, swap: [SWAP_AT.x, SWAP_AT.z] });
 /* ---------- sky with clouds ----------
    Replaces the plain two-colour dome with one that follows the camera and is anchored to the *visible* horizon
    (with the curved world the sea edge sits well below eye level, so the gradient and clouds start there).
