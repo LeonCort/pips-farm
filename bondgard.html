@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121103028">
+<meta name="app-ver" content="20261121105540">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -5690,16 +5690,16 @@ const FURN = [
   ['speed', 2, 25], ['bag', 2, 40], ['speed', 4, 60], ['bag', 4, 90], ['speed', 6, 130], ['bag', 6, 180], ['speed', 8, 240], ['bag', 8, 320],
   ['farm', 2, 260], ['guests', 2, 300], ['farm', 4, 360], ['guests', 4, 420], ['farm', 6, 500], ['guests', 6, 580], ['farm', 8, 680], ['guests', 8, 800]
 ].map(([r, lv, cost]) => ({ id: r + lv, room: r, lv, cost, need: r === 'speed' || r === 'bag' ? 1 : 2 }))
-  .concat([['clock', 900], ['fish', 1100], ['piano', 1300], ['toys', 1500]].map(([id, cost]) => ({ id, room: 'hall', cost, need: 3 })));
+  .concat([['toys', 700, 3], ['horse', 850, 3], ['piano', 1000, 3], ['clock', 1150, 3], ['fish', 1500, 4], ['plants', 1700, 4], ['tub', 1900, 4], ['duck', 2100, 4]].map(([id, cost, need]) => ({ id, room: 'hall', cost, need })));
 const DECO_L = [['lights', 15], ['lanterns', 35], ['bench', 70], ['mailbox', 110], ['birdbath', 160], ['gnome', 230], ['vane', 320]].map(([id, cost]) => ({ id, cost }));
-const SIZES = [null, null, { cost: 250 }, { cost: 1600 }];
+const SIZES = [null, null, { cost: 250 }, { cost: 1200 }, { cost: 3000 }];
 const GEAR = ['speed', 'bag', 'farm', 'guests'];
 
 /* ---------- save data, and a fair start for farms that were played before the store ---------- */
 function storeInit() {
-  if (state.store && typeof state.store === 'object') { const s = state.store; ['furn', 'deco', 'paid'].forEach((k) => { if (!s[k]) s[k] = {}; }); if (!Array.isArray(s.pend)) s.pend = []; if (!(s.size >= 1)) s.size = 1; return; }
+  if (state.store && typeof state.store === 'object') { const s = state.store; ['furn', 'deco', 'paid'].forEach((k) => { if (!s[k]) s[k] = {}; }); if (!Array.isArray(s.pend)) s.pend = []; if (!(s.size >= 1)) s.size = 1; if (!(s.seenIn >= 1)) s.seenIn = s.size; return; }
   const played = GEAR.some((k) => state.lv[k] > 0) || (state.total || 0) > 0 || Object.keys(state.owned || {}).length > 0;
-  const s = state.store = { size: played ? 2 : 1, furn: {}, deco: {}, paid: {}, pend: [] };
+  const s = state.store = { size: played ? 2 : 1, seenIn: 1, furn: {}, deco: {}, paid: {}, pend: [] };
   /* what the old upgrade levels already showed stays in the house */
   FURN.forEach((f) => { if (f.lv && f.need <= s.size && (state.lv[f.room] || 0) >= f.lv) s.furn[f.id] = 1; });
   /* a played farm gets its wing built the first time Pip walks by: a gift */
@@ -5834,11 +5834,16 @@ const DECO_B = {
 /* where each decoration stands round the house (offsets from the house centre, turn, height) */
 const DECO_AT = { lights: [0, 1.06, 0], lanterns: [0, 1.25, 0], bench: [-2.65, 1.25, 0.35], mailbox: [2.25, 1.45, 0], birdbath: [-3.45, 0.1, 0], gnome: [3.3, 1.0, -0.5], vane: [0, 0, 0, 2.48] };
 /* the hall furniture for the biggest house (offsets from the house inside's centre) */
+/* furniture for the new wings (offsets from the house inside's centre): east wing = playroom (north) and music room (south), west wing = garden room and bathroom */
 const HALL_B = {
-  clock: { at: [-1.45, -6.72, 0], b: (Q) => { Q(box(0.42, 1.55, 0.26), '#6b4630', 1350, 0, 0.78, 0); Q(new T.CylinderGeometry(0.15, 0.15, 0.03, 16).rotateX(Math.PI / 2), '#fff6e4', 1351, 0, 1.3, 0.14); Q(box(0.015, 0.1, 0.01), '#22303c', 1352, 0, 1.33, 0.16); Q(box(0.07, 0.015, 0.01), '#22303c', 1353, 0.03, 1.3, 0.16); Q(box(0.22, 0.5, 0.02), '#c9a36c', 1354, 0, 0.6, 0.135); Q(new T.CylinderGeometry(0.07, 0.07, 0.02, 12).rotateX(Math.PI / 2), '#e8b84a', 1355, 0, 0.45, 0.15); Q(box(0.5, 0.1, 0.3), '#5a3a28', 1356, 0, 1.6, 0); } },
-  fish: { at: [1.25, -6.72, 0], b: (Q) => { Q(box(0.6, 0.5, 0.3), '#6b4630', 1360, 0, 0.25, 0); Q(box(0.62, 0.36, 0.3), '#8fd0e8', 1361, 0, 0.68, 0); Q(box(0.64, 0.04, 0.32), '#3a3f48', 1362, 0, 0.88, 0); Q(box(0.6, 0.06, 0.28), '#d9c39a', 1363, 0, 0.53, 0); [[-0.12, 0.7, '#f2b134'], [0.13, 0.62, '#e9684a'], [0.02, 0.76, '#f2b134']].forEach(([x, y, c], k) => { Q(ico(0.04, 0, 1364 + k).scale(1.5, 1, 0.6), c, 1364 + k, x, y, 0.16); Q(new T.ConeGeometry(0.03, 0.05, 3).rotateZ(Math.PI / 2), c, 1367, x - 0.07, y, 0.16); }); Q(new T.ConeGeometry(0.04, 0.18, 5), '#5d9160', 1368, 0.22, 0.64, 0.05); } },
-  piano: { at: [-0.74, 0.0, Math.PI / 2], b: (Q) => { Q(box(1.0, 0.95, 0.34), '#4a2f22', 1370, 0, 0.48, 0); Q(box(0.92, 0.05, 0.2), '#fffaf0', 1371, 0, 0.62, 0.2); for (let k = 0; k < 6; k++) Q(box(0.05, 0.03, 0.1), '#22303c', 1372, -0.38 + k * 0.15, 0.65, 0.18); Q(box(1.0, 0.04, 0.24), '#4a2f22', 1373, 0, 0.58, 0.18); Q(box(0.3, 0.2, 0.02), '#fff6e4', 1374, 0, 0.88, 0.18, { rx: -0.2 }); Q(box(0.5, 0.06, 0.28), '#9a6542', 1375, 0, 0.36, 0.55); [-0.2, 0.2].forEach((x) => Q(box(0.05, 0.34, 0.05), '#6b4630', 1376, x, 0.17, 0.55)); } },
-  toys: { at: [0.76, 3.3, -Math.PI / 2], b: (Q) => { Q(box(0.62, 0.32, 0.38), '#e9684a', 1380, 0, 0.16, 0); Q(box(0.66, 0.05, 0.42), '#c45a3a', 1381, 0, 0.34, 0); Q(ico(0.1, 1, 1382), '#5a9fc4', 1382, -0.15, 0.45, 0.02); Q(ico(0.11, 1, 1383).scale(1, 1.15, 1), '#c98b62', 1383, 0.13, 0.46, 0); Q(ico(0.06, 1, 1384), '#c98b62', 1384, 0.13, 0.62, 0.02); [-1, 1].forEach((s) => Q(ico(0.035, 0, 1385), '#c98b62', 1385, 0.13 + s * 0.06, 0.68, 0)); Q(box(0.12, 0.12, 0.12), '#f2c14a', 1386, 0.36, 0.06, 0.25); } }
+  toys: { at: [7.2, -6.55, 0], b: (Q) => { Q(box(0.62, 0.32, 0.38), '#e9684a', 1380, 0, 0.16, 0); Q(box(0.66, 0.05, 0.42), '#c45a3a', 1381, 0, 0.34, 0); Q(ico(0.1, 1, 1382), '#5a9fc4', 1382, -0.15, 0.45, 0.02); Q(ico(0.11, 1, 1383).scale(1, 1.15, 1), '#c98b62', 1383, 0.13, 0.46, 0); Q(ico(0.06, 1, 1384), '#c98b62', 1384, 0.13, 0.62, 0.02); [-1, 1].forEach((s) => Q(ico(0.035, 0, 1385), '#c98b62', 1385, 0.13 + s * 0.06, 0.68, 0)); Q(box(0.12, 0.12, 0.12), '#f2c14a', 1386, 0.36, 0.06, 0.25); Q(box(0.12, 0.12, 0.12), '#74a857', 1387, 0.5, 0.06, 0.1); } },
+  horse: { at: [10.3, -3.4, -0.6], b: (Q) => { Q(new T.TorusGeometry(0.45, 0.04, 4, 16, Math.PI).rotateZ(Math.PI), '#9a6542', 1390, 0, 0.45, -0.15); Q(new T.TorusGeometry(0.45, 0.04, 4, 16, Math.PI).rotateZ(Math.PI), '#9a6542', 1390, 0, 0.45, 0.15); Q(box(0.55, 0.26, 0.24), '#fff6e4', 1391, 0, 0.42, 0); Q(box(0.16, 0.32, 0.16), '#fff6e4', 1392, 0.28, 0.62, 0, { rz: -0.3 }); Q(box(0.26, 0.14, 0.16), '#fff6e4', 1393, 0.38, 0.78, 0); Q(box(0.06, 0.32, 0.18), '#e9684a', 1394, 0.2, 0.68, 0, { rz: -0.3 }); Q(box(0.1, 0.06, 0.26), '#e9684a', 1395, -0.05, 0.57, 0); Q(ico(0.02, 0, 1396), '#22303c', 1396, 0.44, 0.82, 0.08); } },
+  piano: { at: [10.95, 1.6, -Math.PI / 2], b: (Q) => { Q(box(1.0, 0.95, 0.34), '#4a2f22', 1370, 0, 0.48, 0); Q(box(0.92, 0.05, 0.2), '#fffaf0', 1371, 0, 0.62, 0.2); for (let k = 0; k < 6; k++) Q(box(0.05, 0.03, 0.1), '#22303c', 1372, -0.38 + k * 0.15, 0.65, 0.18); Q(box(1.0, 0.04, 0.24), '#4a2f22', 1373, 0, 0.58, 0.18); Q(box(0.3, 0.2, 0.02), '#fff6e4', 1374, 0, 0.88, 0.18, { rx: -0.2 }); Q(box(0.5, 0.06, 0.28), '#9a6542', 1375, 0, 0.36, 0.55); [-0.2, 0.2].forEach((x) => Q(box(0.05, 0.34, 0.05), '#6b4630', 1376, x, 0.17, 0.55)); } },
+  clock: { at: [7.0, -0.95, 0], b: (Q) => { Q(box(0.42, 1.55, 0.26), '#6b4630', 1350, 0, 0.78, 0); Q(new T.CylinderGeometry(0.15, 0.15, 0.03, 16).rotateX(Math.PI / 2), '#fff6e4', 1351, 0, 1.3, 0.14); Q(box(0.015, 0.1, 0.01), '#22303c', 1352, 0, 1.33, 0.16); Q(box(0.07, 0.015, 0.01), '#22303c', 1353, 0.03, 1.3, 0.16); Q(box(0.22, 0.5, 0.02), '#c9a36c', 1354, 0, 0.6, 0.135); Q(new T.CylinderGeometry(0.07, 0.07, 0.02, 12).rotateX(Math.PI / 2), '#e8b84a', 1355, 0, 0.45, 0.15); Q(box(0.5, 0.1, 0.3), '#5a3a28', 1356, 0, 1.6, 0); } },
+  fish: { at: [-10.95, -3.6, Math.PI / 2], b: (Q) => { Q(box(0.9, 0.5, 0.36), '#6b4630', 1360, 0, 0.25, 0); Q(box(0.92, 0.42, 0.36), '#8fd0e8', 1361, 0, 0.71, 0); Q(box(0.94, 0.04, 0.38), '#3a3f48', 1362, 0, 0.94, 0); Q(box(0.9, 0.06, 0.34), '#d9c39a', 1363, 0, 0.53, 0); [[-0.2, 0.72, '#f2b134'], [0.18, 0.64, '#e9684a'], [0.02, 0.8, '#f2b134']].forEach(([x, y, c], k) => { Q(ico(0.045, 0, 1364 + k).scale(1.5, 1, 0.6), c, 1364 + k, x, y, 0.19); Q(new T.ConeGeometry(0.03, 0.05, 3).rotateZ(Math.PI / 2), c, 1367, x - 0.08, y, 0.19); }); Q(new T.ConeGeometry(0.05, 0.22, 5), '#5d9160', 1368, 0.32, 0.66, 0.05); } },
+  plants: { at: [-7.3, -6.55, 0], b: (Q) => { Q(box(1.2, 0.05, 0.36), '#9a6542', 1397, 0, 0.5, 0); Q(box(1.2, 0.05, 0.36), '#9a6542', 1397, 0, 0.95, 0); [-0.55, 0.55].forEach((x) => Q(box(0.05, 1.0, 0.34), '#6b4630', 1398, x, 0.5, 0)); [[-0.3, 0.52], [0.05, 0.52], [0.35, 0.52], [-0.2, 0.97], [0.25, 0.97]].forEach(([x, y], k) => { Q(new T.CylinderGeometry(0.09, 0.07, 0.14, 8), '#c8734a', 1399, x, y + 0.07, 0); Q(fluff(0.11, 1400 + k, 4).scale(1, 1.3, 1), (cx, cy, cz, i) => leafY('#5d9160', cy, -0.1, 0.14, i), 1400 + k, x, y + 0.24, 0); }); Q(new T.CylinderGeometry(0.16, 0.12, 0.3, 10), '#c8734a', 1406, 0.9, 0.15, 0.1); Q(fluff(0.26, 1407, 5).scale(1, 1.6, 1), (cx, cy, cz, i) => leafY('#4f8a58', cy, -0.2, 0.3, i), 1407, 0.9, 0.6, 0.1); } },
+  tub: { at: [-9.4, 3.5, 0], b: (Q) => { Q(box(1.3, 0.5, 0.66), '#fffaf0', 1410, 0, 0.3, 0); Q(box(1.14, 0.04, 0.5), '#8fd0e8', 1411, 0, 0.52, 0); [[-0.55, -0.25], [-0.55, 0.25], [0.55, -0.25], [0.55, 0.25]].forEach(([x, z]) => Q(ico(0.06, 0, 1412), '#e8b84a', 1412, x, 0.04, z)); Q(box(0.05, 0.3, 0.05), '#c9ced6', 1413, -0.62, 0.7, 0); Q(box(0.16, 0.05, 0.05), '#c9ced6', 1414, -0.55, 0.84, 0); for (let k = 0; k < 5; k++) Q(ico(0.05, 0, 1415 + k), '#ffffff', 1415 + k, -0.2 + k * 0.1, 0.57, (k % 2) * 0.1 - 0.05); } },
+  duck: { at: [-6.6, 1.2, Math.PI / 2], b: (Q) => { [-0.35, 0.35].forEach((x) => Q(box(0.05, 0.9, 0.05), '#c9ced6', 1420, x, 0.45, 0)); Q(box(0.76, 0.04, 0.04), '#c9ced6', 1421, 0, 0.86, 0); Q(box(0.3, 0.5, 0.03), '#f6b8c8', 1422, -0.15, 0.62, 0.03); Q(box(0.3, 0.45, 0.03), '#8fd0e8', 1423, 0.18, 0.64, 0.03); Q(box(0.5, 0.06, 0.3), '#9a6542', 1424, 0, 0.3, 0.1); Q(ico(0.09, 1, 1425).scale(1.2, 0.9, 1), '#f2c14a', 1425, 0, 0.42, 0.1); Q(ico(0.06, 1, 1426), '#f2c14a', 1426, 0.07, 0.53, 0.1); Q(new T.ConeGeometry(0.025, 0.06, 4).rotateZ(-Math.PI / 2), '#e9684a', 1427, 0.15, 0.53, 0.1); } }
 };
 function painterGroup(build) { const L = [], P = at(0, 0, 0, L); build(P); ATREC.pop(); const g = new T.Group(); merged(L, MAT, g); return g; }
 
@@ -5972,6 +5977,8 @@ function miniHouse(size, next) {
   const tower = (n) => { add(new T.CylinderGeometry(0.62, 0.66, 2.4, 8), n ? '#fff2c2' : '#f3e3c4', -1.85, 1.2, -0.15, n); add(new T.ConeGeometry(0.82, 1.0, 8), n ? '#f2c14a' : '#3f7d62', -1.85, 2.9, -0.15, n); };
   if (size >= 2) wing(false); else if (next === 2) wing(true);
   if (size >= 3) tower(false); else if (next === 3) tower(true);
+  const dormer = (n) => { add(new T.BoxGeometry(0.8, 0.55, 0.7), n ? '#fff2c2' : '#f3e3c4', 0, 1.95, 0.5, n); const r = new T.CylinderGeometry(0.01, 0.62, 0.42, 4, 1); r.rotateY(Math.PI / 4); add(r, n ? '#f2c14a' : '#3f7d62', 0, 2.43, 0.5, n); add(new T.BoxGeometry(0.28, 0.7, 0.28), n ? '#fff2c2' : '#b8aa98', 0.62, 2.35, -0.35, n); };
+  if (size >= 4) dormer(false); else if (next === 4) dormer(true);
   g.scale.setScalar(0.27); g.position.x = -0.05; const w = new T.Group(); w.add(g); return w;
 }
 function drawPad(s, o) {
@@ -6027,9 +6034,9 @@ function payStation(s, dt) {
 /* ---------- the house: closed rooms, the wing and the tower, decorations, unpacking ---------- */
 const HX = (x) => HO.x + x, HZ = (z) => HO.z + z;
 /* the right half of the house (kitchen and lounge) waits for the wing: its furniture is split off, the doorways boarded up */
-const RIGHT = { static: null, flames: [], site: new T.Group(), boards: new T.Group() };
+const RIGHT = { static: null, flames: [] };
 {
-  const inRight = (x, z) => x > HO.x + 1.05 && x < HO.x + 5.95 && z > HO.z - 4.45 && z < HO.z + 4.45;
+  const inRight = (x, z) => x > HO.x + 1.05 && x < HO.x + 6.4 && z > HO.z - 4.45 && z < HO.z + 4.45;
   const keep = INT.staticMesh ? [INT.staticMesh] : [];
   keep.forEach((m) => {
     const p = m.geometry.attributes.position, nn = m.geometry.attributes.normal, c = m.geometry.attributes.color, A = [[], [], []], B = [[], [], []];
@@ -6040,25 +6047,61 @@ const RIGHT = { static: null, flames: [], site: new T.Group(), boards: new T.Gro
     m.geometry = mk(A); const r = new T.Mesh(mk(B), MAT); r.castShadow = r.receiveShadow = true; sc.add(r); RIGHT.static = r;
   });
   INT.flames.forEach((f) => { if (inRight(f.s.position.x, f.s.position.z)) RIGHT.flames.push(f); });
-  /* the building site in each closed room: crates, a ladder and a sawhorse */
-  const L = [], P = at(HO.x, HO.z, 0, L);
-  [[3.5, -2.3], [3.5, 2.2]].forEach(([x, z], k) => { P(box(0.5, 0.4, 0.5), '#b98552', 1800 + k, x - 0.6, 0.2, z - 0.3); P(box(0.4, 0.34, 0.4), '#c9a36c', 1802, x - 0.5, 0.57, z - 0.3, { ry: 0.4 }); P(box(1.2, 0.08, 0.2), '#d9b27a', 1803, x + 0.6, 0.45, z + 0.4, { ry: 0.3 });
-    [[-0.4, -0.1], [0.4, 0.1]].forEach(([a, b]) => P(box(0.06, 0.45, 0.06), '#6b4630', 1804, x + 0.6 + a, 0.22, z + 0.4 + b)); P(box(0.08, 1.4, 0.08), '#9a6542', 1805, x + 1.3, 0.7, z - 1.2, { rz: 0.25 }); P(box(0.08, 1.4, 0.08), '#9a6542', 1805, x + 1.7, 0.7, z - 1.2, { rz: 0.25 });
-    for (let j = 0; j < 4; j++) P(box(0.42, 0.04, 0.05), '#9a6542', 1806, x + 1.5 + j * 0.08, 0.25 + j * 0.3, z - 1.2); });
-  ATREC.pop(); merged(L, MAT, RIGHT.site);
-  /* planks across the two doorways into the right rooms */
-  const B = [], Q = at(HO.x, HO.z, 0, B);
-  [-2.25, 2.25].forEach((z) => { [0.25, 0.5].forEach((y, k) => Q(box(0.06, 0.1, 1.5), '#b98552', 1810, 1.0, y, z, { rx: k ? 0.25 : -0.2 })); });
-  ATREC.pop(); merged(B, MAT, RIGHT.boards);
-  sc.add(RIGHT.site, RIGHT.boards);
 }
-const lockSigns = [-2.25, 2.25].map((z) => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.fillStyle = '#fff6e4'; x.strokeStyle = PAL.ink; x.lineWidth = 6; x.beginPath(); x.arc(64, 64, 56, 0, 7); x.fill(); x.stroke(); x.save(); x.translate(64, 60); x.scale(0.62, 0.62); drawIcon(x, 'house', 0, 0, 1.4); x.restore(); drawIcon(x, 'coin', 92, 92, 0.42);
-  const sp = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(c), depthTest: false })); sp.renderOrder = 4; sp.scale.set(0.6, 0.6, 1); sp.position.set(HX(1.0), 1.1, HZ(z)); sc.add(sp); return sp; });
+const lockSigns = [[1.0, -2.25, 2], [1.0, 2.25, 2], [5.75, -5.25, 3], [-5.75, -5.25, 4]].map(([lx, z, need]) => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.fillStyle = '#fff6e4'; x.strokeStyle = PAL.ink; x.lineWidth = 6; x.beginPath(); x.arc(64, 64, 56, 0, 7); x.fill(); x.stroke(); x.save(); x.translate(64, 60); x.scale(0.62, 0.62); drawIcon(x, 'house', 0, 0, 1.4); x.restore(); drawIcon(x, 'coin', 92, 92, 0.42);
+  const sp = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(c), depthTest: false })); sp.renderOrder = 4; sp.scale.set(0.6, 0.6, 1); sp.position.set(HX(lx), 1.1, HZ(z)); sp.userData.need = need; sc.add(sp); return sp; });
 /* the hall furniture (biggest house) */
 const HALL_M = {};
+/* ---------- the house grows: size 1 is the cottage (left rooms), 2 adds the kitchen and lounge, 3 the east wing, 4 the west wing ---------- */
+const ROOMSET = { 2: new T.Group(), 3: new T.Group(), 4: new T.Group() }; Object.values(ROOMSET).forEach((g) => sc.add(g));
+let wallK = 0;
+function wallSeg(v, at, a, b, parent) {
+  const len = b - a; if (len < 0.05) return; wallK++;
+  const m = part(fac(v ? new T.BoxGeometry(0.16, 0.7, len) : new T.BoxGeometry(len, 0.7, 0.16), PAL.paper, 1880 + wallK), parent, HX(v ? at : a + len / 2), 0.35, HZ(v ? a + len / 2 : at));
+  part(fac(v ? new T.BoxGeometry(0.22, 0.06, len) : new T.BoxGeometry(len, 0.06, 0.22), PAL.trunk, 1940 + wallK), parent, m.position.x, 0.72, m.position.z, true); return m;
+}
+/* the original outer walls on the right and left (and the right front, the middle wall of the right rooms) are swapped for pieces that can open */
+const HIDE_W = []; inG.children.forEach((c) => { if (!c.isMesh) return; const x = c.position.x, z = c.position.z; if ((Math.abs(Math.abs(x) - 6) < 0.01 && Math.abs(z + 1.25) < 0.01) || (Math.abs(x - 3.5) < 0.01 && (Math.abs(z - 4.5) < 0.01 || Math.abs(z) < 0.01))) HIDE_W.push(c); });
+HIDE_W.forEach((c) => { c.visible = false; });
+const WPC = { always: new T.Group(), closedE: new T.Group(), closedW: new T.Group(), plugs: new T.Group() }; Object.values(WPC).forEach((g) => sc.add(g));
+[1, -1].forEach((s) => { wallSeg(1, s * 6, -7, -5.9, WPC.always); wallSeg(1, s * 6, -5.9, -4.6, s > 0 ? WPC.closedE : WPC.closedW); });
+wallSeg(1, -6, -4.6, 4.5, WPC.always);
+wallSeg(1, 6, -4.6, 4.5, ROOMSET[2]); wallSeg(0, 4.5, 1, 6, ROOMSET[2]); wallSeg(0, 0, 1, 6, ROOMSET[2]);
+[[-2.95, -1.55], [1.55, 2.95]].forEach(([a, b]) => wallSeg(1, 1, a, b, WPC.plugs));
+/* size 1: where the kitchen and lounge will be is still garden */
+{ const g = new T.Mesh(new T.PlaneGeometry(5.3, 9.3, 10, 18), new T.MeshStandardMaterial({ color: '#2c3d26', roughness: 1 })); g.rotation.x = -Math.PI / 2; g.position.set(HX(3.65), 0.09, HZ(0)); g.receiveShadow = true; RIGHT.garden = g; sc.add(g);
+  const L = [], P = at(HO.x, HO.z, 0, L); for (let k = 0; k < 14; k++) P(fluff(0.18 + hash(k, 2) * 0.12, 1860 + k, 4), (cx, cy, cz, i) => leafY('#3f6b46', cy, -0.1, 0.2, i), 1860 + k, 1.6 + hash(k, 3) * 4.0, 0.1, -4.0 + hash(k, 4) * 8.3); ATREC.pop(); const bushes = merged(L); RIGHT.bushes = bushes; }
+/* a wing: floor, outer walls, a middle wall with a doorway, warm windows and two rugs */
+function buildWing(s, group) {
+  const x0 = s > 0 ? 6 : -11.4, x1 = s > 0 ? 11.4 : -6, cx = (x0 + x1) / 2;
+  part(fac(new T.BoxGeometry(x1 - x0, 0.06, 11.5), '#d9bf94', 1876), group, HX(cx), 0.03, HZ(-1.25), true);
+  { let pm = null; sc.children.forEach((c) => { if (!pm && c.isMesh && c.material && c.material.map && c.geometry.type === 'PlaneGeometry' && Math.abs(c.position.x - HX(0)) < 0.01 && Math.abs(c.position.z - HZ(-1.25)) < 0.01) pm = c.material; });
+    const mat = pm ? pm.clone() : new T.MeshStandardMaterial({ color: '#b87a4b', roughness: 0.85 }); if (pm) { mat.map = pm.map.clone(); mat.map.needsUpdate = true; mat.map.repeat.set((x1 - x0) / 1.6, 11.5 / 1.6); }
+    const f = new T.Mesh(new T.PlaneGeometry(x1 - x0, 11.5), mat); f.rotation.x = -Math.PI / 2; f.position.set(HX(cx), 0.068, HZ(-1.25)); f.receiveShadow = true; group.add(f); }
+  wallSeg(1, s > 0 ? 11.4 : -11.4, -7, 4.5, group); wallSeg(0, -7, x0, x1, group); wallSeg(0, 4.5, x0, x1, group);
+  wallSeg(0, -1.2, x0, cx - 0.7, group); wallSeg(0, -1.2, cx + 0.7, x1, group);
+  const L = [], P = at(HO.x, HO.z, 0, L), wx = s > 0 ? 11.49 : -11.49;
+  [-4.1, 1.6].forEach((z) => { P(box(0.06, 0.44, 0.7), '#6b4630', 1870, wx, 0.42, z); const w = new T.Mesh(new T.PlaneGeometry(0.56, 0.3), new T.MeshBasicMaterial({ color: '#ffd98a' })); w.position.set(HX(wx - s * 0.04), 0.42, HZ(z)); w.rotation.y = -s * Math.PI / 2; group.add(w); });
+  /* rugs and a lamp in each room so a new room never looks empty */
+  [[cx, -4.1, s > 0 ? ['#5a7fb0', '#f2c14a'] : ['#4f8a58', '#f3e3c4']], [cx, 1.7, s > 0 ? ['#7a3f3a', '#e6b45a'] : ['#8fd0e8', '#fffaf0']]].forEach(([x, z, c], k) => { P(new T.CylinderGeometry(1.1, 1.1, 0.02, 24).scale(1.3, 1, 1), c[0], 1871 + k, x, 0.08, z); P(new T.TorusGeometry(1.0, 0.05, 4, 24).rotateX(Math.PI / 2).scale(1.3, 1, 1), c[1], 1873 + k, x, 0.09, z);
+    });
+  ATREC.pop(); merged(L, MAT, group);
+}
+buildWing(1, ROOMSET[3]); buildWing(-1, ROOMSET[4]);
+/* collision for the new walls: added to the house's wall list as they open */
+const WING_W = { 3: [{ v: 1, x: 11.4, a: -7, b: 4.5, gaps: [] }, { v: 0, z: -7, a: 6, b: 11.4, gaps: [] }, { v: 0, z: 4.5, a: 6, b: 11.4, gaps: [] }, { v: 0, z: -1.2, a: 6, b: 11.4, gaps: [[8.0, 9.4]] }],
+  4: [{ v: 1, x: -11.4, a: -7, b: 4.5, gaps: [] }, { v: 0, z: -7, a: -11.4, b: -6, gaps: [] }, { v: 0, z: 4.5, a: -11.4, b: -6, gaps: [] }, { v: 0, z: -1.2, a: -11.4, b: -6, gaps: [[-9.4, -8.0]] }] };
+const W6 = { 1: WALLS.find((w) => w.v && w.x === 6), '-1': WALLS.find((w) => w.v && w.x === -6) };
+let roomsAt = 0;
+function roomsSync(size) {
+  if (size === roomsAt) return; roomsAt = size;
+  [3, 4].forEach((n) => { if (size >= n && !WING_W[n].added) { WING_W[n].added = 1; WING_W[n].forEach((w) => WALLS.push(w)); const e = W6[n === 3 ? 1 : '-1']; if (e) e.gaps.push([-5.9, -4.6]); } });
+  HOUSE_IN.x1 = HO.x + (size >= 3 ? 11.1 : 5.7); HOUSE_IN.x0 = HO.x - (size >= 4 ? 11.1 : 5.7);
+  if (inHouse && !inBarn && !inStore) { IN_B.x0 = HOUSE_IN.x0; IN_B.x1 = HOUSE_IN.x1; }
+}
 Object.keys(HALL_B).forEach((id) => { const h = HALL_B[id], L = [], P = at(HX(h.at[0]), HZ(h.at[1]), h.at[2], L); h.b(P); ATREC.pop(); const m = merged(L); m.visible = false; HALL_M[id] = m; });
 /* outside: the wing, the tower and the decorations; each is a group so it can be built up piece by piece */
-const HOUSE_ADD = { 2: new T.Group(), 3: new T.Group() };
+const HOUSE_ADD = { 2: new T.Group(), 3: new T.Group(), 4: new T.Group() };
 {
   const W = HOUSE_ADD[2]; W.position.set(HOUSE.x + 2.05, 0, HOUSE.z - 0.2); sc.add(W);
   const wall = part(fac(jit(new T.BoxGeometry(1.6, 1.15, 1.6, 2, 2, 2), 0.015, 3), (cx, cy, cz, i) => tone(cy < -0.25 ? '#b8aa98' : '#f3e3c4', i, 0.5)), W, 0, 0.58, 0); wall.userData.part = 'wall';
@@ -6073,7 +6116,13 @@ const HOUSE_ADD = { 2: new T.Group(), 3: new T.Group() };
   [0.75, 1.75].forEach((y) => { const w = new T.Mesh(new T.CircleGeometry(0.15, 12), lampMatH); w.position.set(0, y, 0.655); td.add(w); part(fac(new T.TorusGeometry(0.16, 0.03, 4, 14), '#6b4630', 1831), td, 0, y, 0.66); });
   part(fac(new T.ConeGeometry(0.03, 0.4, 4), '#3a3f48', 1832), td, 0, 3.55, 0); part(fac(new T.BoxGeometry(0.28, 0.16, 0.02), '#e9684a', 1833), td, 0.15, 3.6, 0);
   part(fac(new T.TorusGeometry(0.67, 0.035, 4, 20).rotateX(Math.PI / 2), '#6b4630', 1834), td, 0, 2.42, 0);
-  [W, T3].forEach((g) => { g.visible = false; });
+  const D4 = HOUSE_ADD[4]; D4.position.set(HOUSE.x, 0, HOUSE.z); sc.add(D4);
+  const dw = part(fac(jit(new T.BoxGeometry(0.8, 0.55, 0.7, 2, 2, 2), 0.01, 3), '#f3e3c4', 1835), D4, 0, 1.95, 0.5); dw.userData.part = 'wall';
+  const dg = new T.CylinderGeometry(0.01, 0.62, 0.42, 4, 1); dg.rotateY(Math.PI / 4); dg.scale(1, 1, 0.95); const dr = part(fac(dg, '#3f7d62', 1836), D4, 0, 2.43, 0.5); dr.userData.part = 'roof';
+  const dd = new T.Group(); dd.userData.part = 'det'; D4.add(dd);
+  { const w = new T.Mesh(new T.CircleGeometry(0.16, 14), lampMatH); w.position.set(0, 1.97, 0.86); dd.add(w); part(fac(new T.TorusGeometry(0.17, 0.035, 4, 16), '#6b4630', 1837), dd, 0, 1.97, 0.865); part(fac(new T.BoxGeometry(0.34, 0.03, 0.03), '#6b4630', 1838), dd, 0, 1.97, 0.87); }
+  part(fac(jit(new T.BoxGeometry(0.28, 0.7, 0.28, 1, 2, 1), 0.01, 5), '#b8aa98', 1839), dd, 0.62, 2.35, -0.35); part(fac(new T.BoxGeometry(0.34, 0.07, 0.34), '#6b4630', 1843), dd, 0.62, 2.72, -0.35);
+  [W, T3, D4].forEach((g) => { g.visible = false; });
 }
 const DECO_M = {};
 DECO_L.forEach((d) => { const a = DECO_AT[d.id], g = painterGroup(DECO_B[d.id]); g.position.set(HOUSE.x + a[0], a[3] || 0, HOUSE.z + a[1]); g.rotation.y = a[2]; g.visible = false; sc.add(g); DECO_M[d.id] = g; });
@@ -6092,8 +6141,8 @@ function buildStart(what) {
   const S = stS();
   if (what.startsWith('f:')) { const id = what.slice(2), f = FURN.find((q) => q.id === id); const m = f.room === 'hall' ? HALL_M[id] : (INT.extras.find((q) => q.id === f.room && q.lv === f.lv) || {}).m; BUILD = { what, t: 0, d: 1.0, m }; if (m) { m.visible = true; riseIn(m, 0.05, 0.75); m.geometry.computeBoundingSphere(); const c = m.geometry.boundingSphere.center; BUILD.at = [c.x, c.z]; } return; }
   if (what.startsWith('d:')) { const g = DECO_M[what.slice(2)]; g.visible = true; riseIn(g, 0.05, 0.7, true); BUILD = { what, t: 0, d: 1.0, at: [g.position.x, g.position.z], y: g.position.y }; return; }
-  if (what.startsWith('size')) { const n = +what.slice(4), g = HOUSE_ADD[n]; g.visible = true; const sz = n === 2 ? [1.6, 1.6, 2.0] : [1.4, 1.4, 2.9]; const sf = scaffold(sz[0], sz[1], sz[2]); sf.position.copy(g.position); sc.add(sf); riseIn(sf, 0, 0.5);
-    g.children.forEach((c) => { c.visible = false; }); BUILD = { what, t: 0, d: 3.4, g, sf, n, at: [g.position.x, g.position.z], hit: 0 }; return; }
+  if (what.startsWith('size')) { const n = +what.slice(4), g = HOUSE_ADD[n]; g.visible = true; const sz = n === 2 ? [1.6, 1.6, 2.0] : n === 3 ? [1.4, 1.4, 2.9] : [2.4, 2.0, 2.6]; const sf = scaffold(sz[0], sz[1], sz[2]); sf.position.copy(g.position); sc.add(sf); riseIn(sf, 0, 0.5);
+    g.children.forEach((c) => { c.visible = false; }); BUILD = { what, t: 0, d: 3.4, g, sf, n, at: [g.position.x, g.position.z + (n === 4 ? 0.6 : 0)], hit: 0 }; return; }
 }
 function buildStep(dt) {
   const b = BUILD; if (!b) return; b.t += dt;
@@ -6114,13 +6163,27 @@ function buildStep(dt) {
 function finishBuild() { const S = stS(), i = S.pend.indexOf(BUILD.what); if (i >= 0) S.pend.splice(i, 1); BUILD = null; save(); }
 const pendIn = () => stS().pend.filter((p) => p.startsWith('f:'));
 const pendOut = () => stS().pend.filter((p) => !p.startsWith('f:'));
+let revealT = 0;
 function houseSync() {
-  const S = stS(), open2 = S.size >= 2, building = (n) => BUILD && BUILD.what === 'size' + n;
-  if (RIGHT.static) RIGHT.static.visible = open2; RIGHT.site.visible = RIGHT.boards.visible = !open2; lockSigns.forEach((s) => { s.visible = !open2 && inHouse && !inBarn && !inStore; });
+  const S = stS(), open2 = S.size >= 2, building = (n) => BUILD && BUILD.what === 'size' + n, home = inHouse && !inBarn && !inStore;
+  roomsSync(S.size);
+  if (RIGHT.static) RIGHT.static.visible = open2; ROOMSET[2].visible = open2; RIGHT.garden.visible = RIGHT.bushes.visible = WPC.plugs.visible = !open2;
+  ROOMSET[3].visible = S.size >= 3; ROOMSET[4].visible = S.size >= 4; WPC.closedE.visible = S.size < 3; WPC.closedW.visible = S.size < 4;
+  lockSigns.forEach((s) => { s.visible = S.size < s.userData.need && home; });
   RIGHT.flames.forEach((f) => { if (!open2) f.s.visible = false; else if (!f.s.visible) f.s.visible = true; });
-  [2, 3].forEach((n) => { const done = S.size >= n && !S.pend.includes('size' + n); if (!building(n)) HOUSE_ADD[n].visible = done; if (done && !solidsDone[n]) { solidsDone[n] = 1; const q = HOUSE_SOLID[n]; solid(q[0], q[1], q[2]); } });
+  [2, 3, 4].forEach((n) => { const done = S.size >= n && !S.pend.includes('size' + n); if (!building(n)) HOUSE_ADD[n].visible = done; if (done && !solidsDone[n] && HOUSE_SOLID[n]) { solidsDone[n] = 1; const q = HOUSE_SOLID[n]; solid(q[0], q[1], q[2]); } });
   DECO_L.forEach((d) => { const g = DECO_M[d.id]; if (BUILD && BUILD.what === 'd:' + d.id) return; g.visible = !!S.deco[d.id] && !S.pend.includes('d:' + d.id); });
-  Object.keys(HALL_M).forEach((id) => { if (BUILD && BUILD.what === 'f:' + id) return; HALL_M[id].visible = !!S.furn[id] && !S.pend.includes('f:' + id); });
+  Object.keys(HALL_M).forEach((id) => { if (BUILD && BUILD.what === 'f:' + id) return; HALL_M[id].visible = !!S.furn[id] && !S.pend.includes('f:' + id) && (FURN.find((f) => f.id === id) || { need: 0 }).need <= S.size; });
+  /* the first time Pip comes in after a bigger house: the new rooms grow up out of the floor */
+  if (home && doorT <= 0 && (S.seenIn || 1) < S.size) {
+    const from = S.seenIn || 1; S.seenIn = S.size; save(); revealT = 0;
+    for (let n = from + 1; n <= S.size; n++) {
+      const d = (n - from - 1) * 0.5, list = n === 2 ? [ROOMSET[2], RIGHT.static] : [ROOMSET[n]];
+      list.forEach((o) => { if (o) riseIn(o, 0.25 + d, 1.0); });
+      const at = n === 2 ? [3.5, 0] : n === 3 ? [8.7, -1.2] : [-8.7, -1.2];
+      setTimeout(() => { confetti(HX(at[0]), 1.0, HZ(at[1]), 60, 4.5); fanfare(true); }, (0.9 + d) * 1000);
+    }
+  }
 }
 /* interior.js asks this whether an old upgrade prop should show */
 function furnOn(e) { const S = state.store; if (!S) return false; const id = e.id + e.lv; if (BUILD && BUILD.what === 'f:' + id) return true; return !!S.furn[id] && !S.pend.includes('f:' + id) && (e.id === 'speed' || e.id === 'bag' || S.size >= 2); }
