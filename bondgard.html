@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121200446">
+<meta name="app-ver" content="20261121201607">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -3526,7 +3526,7 @@ const MKT = VARIANT === 'near' ? {
   bakery: { x: 19.6, z: 6.4, f: 1 },
   trees: [[11.9, 8.0], [13.8, 7.7], [15.7, 7.6]], /* in a row below the stalls, south of the truck's yard */
   signs: [[8.9, -2.0], [21.0, -2.3], [21.4, 2.3]],
-  helpers: [[9.2, 5.2], [11.4, 5.0]],
+  helpers: [[9.2, 5.2], [10.9, 5.75]],
   entry: [23.0, -0.35], exit: [23.0, 0.35]
 };
 /* things Pip walks around (circles); flowers keep clear of these and of DECO */
@@ -3904,7 +3904,7 @@ function townTest() {
    Pip carries them to the counter or a stall, animal guests buy them, and coins pay for new things on coin pads.
    Hearts (from happy animals) and coins (from selling) are kept apart. */
 const VALUE = { egg: 1, apple: 2, milk: 4, cake: 8 };
-const SHOP = MKT.shop, SDROP = { x: SHOP.x, z: SHOP.z + 1.25 }, SMONEY = { x: SHOP.x - 2.1, z: SHOP.z + 1.6 }, SBACK = { x: SHOP.x - 1.9, z: SHOP.z - 0.1 };
+const SHOP = MKT.shop, SDROP = { x: SHOP.x, z: SHOP.z + 1.25 }, SMONEY = { x: SHOP.x - 2.1, z: SHOP.z + 1.6 }, SBACK = { x: (SHOP.x + MKT.stalls.egg.x) / 2, z: SHOP.z + 1.75 }; /* the storage crate in the yard between the counter and the egg stall */
 const BAKE = MKT.bakery, B_IN = { x: BAKE.x - 1.0, z: BAKE.z - 1.4 * BAKE.f }, B_OUT = { x: BAKE.x + 1.0, z: BAKE.z - 1.4 * BAKE.f };
 const STL = MKT.stalls, STALL_T = ['egg', 'apple', 'milk', 'cake'];
 const sDrop = (t) => [STL[t].x, STL[t].z + 1.25 * STL[t].f];
@@ -4004,13 +4004,30 @@ const counterG = new T.Group(); counterG.position.set(SHOP.x, 0, SHOP.z); sc.add
 const SHELF_X = { egg: -0.95, apple: -0.32, milk: 0.32, cake: 0.95 }, SHELF_MAX = 16;
 const shelf = {}; GOODS.forEach((t) => { shelf[t] = new Pile(counterG, (k) => [SHELF_X[t] - 0.12 + (k % 2) * 0.24, 0.82 + Math.floor(k / 4) * ITEM_H[t], -0.12 + (Math.floor(k / 2) % 2) * 0.24]); });
 const BACK_MAX = 80, backG = new T.Group(); backG.position.set(SBACK.x, 0, SBACK.z); sc.add(backG);
+/* the storage crate ("förråd"): a big open wooden crate that takes whatever Pip carries that no stall can take right now,
+   and sends it back out to the stalls and the counter as soon as they have room */
 {
-  const base = new T.BoxGeometry(1.2, 0.08, 1.0); part(fac(base, PAL.trunk, 951), backG, 0, 0.04, 0);
-  [[0, 0.45], [0, -0.45]].forEach(([x, z], k) => { const w = new T.BoxGeometry(1.2, 0.36, 0.08); part(fac(jit(w, 0.01, k), PAL.ochre, 952 + k), backG, x, 0.22, z); });
-  [[0.56, 0], [-0.56, 0]].forEach(([x, z], k) => { const w = new T.BoxGeometry(0.08, 0.36, 1.0); part(fac(jit(w, 0.01, k + 3), PAL.ochre, 954 + k), backG, x, 0.22, z); });
-  solid(SBACK.x, SBACK.z, 0.6);
+  const base = new T.BoxGeometry(1.3, 0.08, 1.05); part(fac(base, PAL.trunk, 951), backG, 0, 0.04, 0);
+  /* low crate walls: back and both sides, the front stays open towards the yard */
+  { const w = new T.BoxGeometry(1.3, 0.5, 0.08); part(fac(jit(w, 0.01, 1), PAL.ochre, 952), backG, 0, 0.29, -0.49); }
+  [[0.61, 0], [-0.61, 0]].forEach(([x, z], k) => { const w = new T.BoxGeometry(0.08, 0.5, 1.05); part(fac(jit(w, 0.01, k + 3), PAL.ochre, 954 + k), backG, x, 0.29, z); });
+  { const w = new T.BoxGeometry(1.3, 0.14, 0.06); part(fac(jit(w, 0.01, 7), PAL.ochre, 956), backG, 0, 0.13, 0.5); }
+  /* two posts at the back carry the picture sign */
+  [-0.5, 0.5].forEach((x, k) => { const g2 = new T.BoxGeometry(0.08, 1.25, 0.08); g2.translate(0, 0.62, 0); part(fac(g2, PAL.trunk, 957 + k), backG, x, 0, -0.5); });
+  { const r = new T.BoxGeometry(1.12, 0.06, 0.1); part(fac(r, PAL.trunk, 961), backG, 0, 1.25, -0.5); }
+  /* the picture sign: a crate holding all four goods */
+  const c = document.createElement('canvas'); c.width = 256; c.height = 160; const x = c.getContext('2d');
+  x.save(); x.shadowColor = 'rgba(70,40,18,0.4)'; x.shadowBlur = 8; x.shadowOffsetY = 5; x.fillStyle = '#f3e2bf'; x.beginPath(); x.roundRect ? x.roundRect(12, 10, 232, 132, 36) : x.rect(12, 10, 232, 132); x.fill(); x.restore();
+  x.fillStyle = '#fffaf0'; x.beginPath(); x.roundRect ? x.roundRect(12, 10, 232, 132, 36) : x.rect(12, 10, 232, 132); x.fill(); x.lineWidth = 5; x.strokeStyle = '#6e4426'; x.stroke();
+  x.fillStyle = '#c98c4a'; x.strokeStyle = '#6e4426'; x.lineWidth = 5; x.fillRect(56, 82, 144, 46); x.strokeRect(56, 82, 144, 46); x.beginPath(); x.moveTo(56, 105); x.lineTo(200, 105); x.stroke();
+  ['egg', 'apple', 'milk', 'cake'].forEach((t, k) => drawIcon(x, t, 74 + k * 36, 66, 0.62));
+  const sp = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(c), depthTest: false })); sp.scale.set(0.72, 0.45, 1); sp.position.set(0, 1.55, -0.45); sp.renderOrder = 4; backG.add(sp);
+  solid(SBACK.x - 0.35, SBACK.z - 0.1, 0.5); solid(SBACK.x + 0.35, SBACK.z - 0.1, 0.5);
 }
-const back = new Pile(backG, (k) => [-0.38 + (k % 4) * 0.25, 0.14 + Math.floor(k / 12) * 0.2, -0.27 + (Math.floor(k / 4) % 3) * 0.27]);
+const back = new Pile(backG, (k) => [-0.48 + (k % 5) * 0.24, 0.14 + Math.floor(k / 20) * 0.2, -0.33 + (Math.floor(k / 5) % 4) * 0.22]);
+/* goods no stall can take right now (no stall yet, or its shelf is full); animal food has no place in the market at all */
+const stuckT = (t) => GOODS.includes(t) ? !(stalls[t] && stalls[t].shelf.items.length < SHELF_MAX) : !!SRC[t];
+const SHED_R = 1.35;
 function stock(m) {
   const t = m.userData.type;
   if (shelf[t].items.length < SHELF_MAX) { fly(m, () => counterG.localToWorld(tmpV.set(SHELF_X[t], 1.0, 0)), () => shelf[t].add(m)); return true; }
@@ -4168,6 +4185,11 @@ function pipMarket(dt) {
   if (!did && bakery && nearP(B_IN.x, B_IN.z, 0.95) && carry.count('egg') && bakery.inp.items.length < 12) { const m = carry.take('egg'); fly(m, () => tmpV.set(B_IN.x, 0.2, B_IN.z), () => bakery.inp.add(m)); Snd.play('tick', { gain: 0.4 }); did = true; }
   if (!did) for (const t in stalls) { const d = sDrop(t), s = stalls[t]; if (nearP(d[0], d[1], 0.9) && carry.count(t) && s.shelf.items.length < SHELF_MAX) { const m = carry.take(t); fly(m, () => s.g.localToWorld(tmpV.set(0, 1.0, 0)), () => s.shelf.add(m)); Snd.play('tick', { gain: 0.45, f: 900 }); did = true; break; } }
   if (!did && nearP(SDROP.x, SDROP.z, 1.0)) { const m = carry.items.slice().reverse().find((q) => GOODS.includes(q.userData.type) && (shelf[q.userData.type].items.length < SHELF_MAX || back.items.length < BACK_MAX)); if (m) { carry.take(m.userData.type); stock(m); Snd.play('tick', { gain: 0.45, f: 900 }); did = true; } }
+  /* the storage crate takes, one by one, whatever no stall can take now: goods go on the pile, animal food flies home to its shed */
+  if (!did && nearP(SBACK.x, SBACK.z, SHED_R)) { const q = carry.items.slice().reverse().find((o) => stuckT(o.userData.type) && (!GOODS.includes(o.userData.type) || back.items.length < BACK_MAX));
+    if (q) { const t = q.userData.type, m = carry.take(t);
+      if (GOODS.includes(t)) fly(m, () => backG.localToWorld(tmpV.set(0, 0.5, 0)), () => back.add(m)); else fly(m, () => tmpV.set(SRC[t].x, 0.6, SRC[t].z), () => sc.remove(m), 0.45);
+      Snd.play('tick', { gain: 0.4, f: 760 }); did = true; } }
   if (did) mxT = 0.09;
 }
 /* empty the basket: food goes back to its shed, goods go to the shop's crate (or back to the farm crate if that is full) */
@@ -4216,7 +4238,7 @@ function marketStep(dt) {
   }
   /* the back crate refills shelves that run low */
   backT -= dt; if (backT <= 0 && back.items.length) { backT = 0.15;
-    const low = Object.values(stalls).find((s) => s.shelf.items.length < 4 && back.count(s.t));
+    const low = Object.values(stalls).filter((s) => s.shelf.items.length < SHELF_MAX - 2 && back.count(s.t)).sort((a, b) => a.shelf.items.length - b.shelf.items.length)[0];
     if (low) { const m = back.take(low.t); fly(m, () => low.g.localToWorld(tmpV.set(0, 1.0, 0)), () => low.shelf.add(m), 0.6); } else for (const t in shelf) if (shelf[t].items.length < SHELF_MAX - 2 && back.count(t)) { const m = back.take(t); fly(m, () => counterG.localToWorld(tmpV.set(SHELF_X[t], 1.0, 0)), () => shelf[t].add(m)); break; } }
   for (const t in stalls) if (stalls[t].stocker) runStocker(stalls[t].stocker, dt);
   mHelpers.forEach((h) => { if (h) runShopHelper(h, dt); });
@@ -4281,6 +4303,7 @@ function marketGoal() {
   if (p && shop().coins >= p.cost - (shop().paid[p.id] || 0)) return sPadPos(p);
   const mp = mPiles.filter((o) => o.n > 0).sort((a, b) => b.n - a.n)[0];
   if (mp && !goods) return [mp.x, mp.z];
+  if (goods && carry.items.length >= cap() && carry.items.every((m) => stuckT(m.userData.type)) && back.items.length < BACK_MAX) return [SBACK.x, SBACK.z + 0.8];
   if (goods && (carry.items.length >= cap() || !mProd.some((q) => q.kind !== 'crate' && q.pile.items.length > 0 && nearP(q.x, q.z, 6)))) {
     if (bakery && carry.items.every((m) => m.userData.type === 'egg' || !GOODS.includes(m.userData.type)) && shelf.cake.items.length < 3 && bakery.inp.items.length < 4) return [B_IN.x, B_IN.z];
     return [SDROP.x, SDROP.z];
@@ -4369,7 +4392,7 @@ function vanStep(dt) {
 }
 function marketTest() {
   return { coins: () => shop().coins, giveCoins: (n) => { shop().coins += n; }, shop: () => JSON.stringify(shop().owned), crate: () => CRATES.map((c) => c.pile.items.map((m) => m.userData.type[0]).join('')).join('|'), fillCrate: (t, n) => { for (let k = 0; k < (n || 4); k++) crateFor(t || 'egg').pile.add(mk(t || 'egg')); }, van: () => van ? van.st + ':' + van.pile.items.length : null, src: (t) => addSource(t), stations: () => STATIONS.map((s) => [s.x, s.z]),
-    shelves: () => Object.fromEntries(GOODS.map((t) => [t, shelf[t].items.length])), back: () => back.items.length, guests: () => customers.map((c) => c.slot + ':' + c.type + ':' + c.st).join(' '),
+    shelves: () => Object.fromEntries(GOODS.map((t) => [t, shelf[t].items.length])), back: () => back.items.length, shed: () => [SBACK.x, SBACK.z], guests: () => customers.map((c) => c.slot + ':' + c.type + ':' + c.st).join(' '),
     money: () => mPiles.map((o) => o.n).join(','), stalls: () => Object.keys(stalls).join(','), sPad: () => sPad && sPad.p.id, goal: () => guideGoal(), dump: dumpBasket, inMarket: () => inMarketTown(), unlockAll: () => { SPADS.forEach((p) => { if (!sOwn(p.id)) { shop().owned[p.id] = true; sBuild(p); } }); showSPad(); } };
 }
 /* ---------- market guests, sellers and the shopkeeper, second pass: the same animal friends, rounded, felted and outlined ----------
