@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121145600">
+<meta name="app-ver" content="20261121145725">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1986,15 +1986,15 @@ function fencePen(a) {
 }
 function buildPen(a) {
   if (pens[a]) return pens[a]; const p = PEN[a], g = new T.Group(); g.position.set(p.x, 0, p.z); sc.add(g);
-  /* the trough on the side that faces the middle of the farm */
-  const sx = penSide(a), tr = new T.BoxGeometry(0.4, 0.22, 1.2); tr.translate(0, 0.11, 0); part(fac(jit(tr, 0.015, 9), PAL.trunk, 60), g, sx * (p.w / 2 - 0.3), 0, 0);
+  /* the feeding side faces the middle of the farm: one spot per food there (stock.js) */
+  const sx = penSide(a);
   const f = feedPos(a); ring(f[0], f[1], 0.85);
   const pen = { a, g, house: null, big: false, trough: [p.x + sx * (p.w / 2 - 0.75), p.z] }; pens[a] = pen;
-  pen.inbound = {}; pen.food = new Pile(g, (k) => [sx * (p.w / 2 - 0.3) + ((k % 2) - 0.5) * 0.16, 0.24 + Math.floor(k / 12) * 0.18, -0.5 + (Math.floor(k / 2) % 6) * 0.2]); fencePen(a); return pen;
+  pen.inbound = {}; pen.food = stockPile(a, g); fencePen(a); return pen;
 }
 /* food on its way to a box counts too, so a box never overfills */
 function boxCount(pen, t) { return pen.food.count(t) + (pen.inbound[t] || 0); }
-function boxIn(pen, m, dur) { const t = m.userData.type; pen.inbound[t] = (pen.inbound[t] || 0) + 1; fly(m, () => pen.g.localToWorld(tmpV.set(0, 0.4, 0)), () => { pen.inbound[t]--; pen.food.add(m); }, dur); }
+function boxIn(pen, m, dur) { const t = m.userData.type; pen.inbound[t] = (pen.inbound[t] || 0) + 1; fly(m, () => { const q = stockAt(pen, t); return pen.g.localToWorld(tmpV.set(q[0], 0.4, q[1])); }, () => { pen.inbound[t]--; pen.food.add(m); }, dur); }
 /* walls a touch darker at the foot and lighter under the eaves, like the cozy house */
 function wallY(hex, y, h, key) { const c = tone(hex, key, 0.5), q = clamp(y / h, 0, 1); return c.multiplyScalar(0.8 + 0.28 * q); }
 function setHouse(a, big) {
@@ -4958,8 +4958,7 @@ function flPen(a, fg, b) {
   C(fluff(0.3, seed + 7, 6, 0.5).scale(1.15, 0.55, 1), (cx, cy, cz, i) => tone(hash(i, 2) > 0.6 ? '#f2d27a' : '#e0b55a', i, 0.6).multiplyScalar(0.8 + 0.3 * clamp((cy + 0.1) / 0.3, 0, 1)), seed + 9, hx, 0.12, hz);
   for (let j = 0; j < 7; j++) C(box(0.22, 0.012, 0.018), '#e8c36a', seed + 30 + j, hx + (hash(j, seed, 21) - 0.5) * 0.7, 0.07, hz + (hash(j, seed, 22) - 0.5) * 0.5, { ry: hash(j, seed, 23) * 3 });
   const tx = sx * (b.w / 2 - 0.85), tz = b.d / 2 - 0.2;
-  C(box(0.62, 0.16, 0.24), wood('#7a5438'), seed + 40, tx, 0.13, tz); C(box(0.54, 0.02, 0.17), '#6fb6c8', seed + 41, tx, 0.205, tz);
-  [-0.26, 0.26].forEach((x) => C(box(0.05, 0.08, 0.26), '#5e3f2a', seed + 42, tx + x, 0.04, tz));
+  /* (the old water trough on the front fence is gone: water has its own spot by the feeding fence now, stock.js) */
   if (a === 'hen') for (let j = 0; j < 5; j++) C(ico(0.022, 0, j), '#fffaf0', seed + 60 + j, (hash(j, seed, 31) - 0.5) * b.w * 0.7, 0.07, (hash(j, seed, 32) - 0.5) * b.d * 0.6); /* feathers */
   const cm = merged(CL, MAT, fg); cm.castShadow = false;
   /* pigs: glossy puddles on top of the painted mud */
@@ -7772,6 +7771,88 @@ function spotStep() {
 }
 { const s0 = storeStep; storeStep = function (dt) { s0(dt); spotStep(); }; }
 if (window.__farmTest) window.__spot = () => ({ cur: spCur && { key: spCur.key, cost: spCur.cost, lock: !!spCur.lock, d: +spCur.d.toFixed(2) }, marks: SPOT_MK.filter((m) => m.visible).length, tap: () => spBtn.click(), door: [HDOOR.x, HDOOR.z], pos: () => [pip.position.x, pip.position.z].map((v) => +v.toFixed(2)), offers: () => spotOffers().map((o) => o.key + ':' + o.d.toFixed(1)).join(' ') });
+/* ---------- pen stock: every food a pen needs has its own spot along the feeding fence (a grain bin, a water trough,
+   a carrot basket, a hay rack), each with a picture sign and six marked places, so you can see at a glance what runs low ---------- */
+const STOCK_LOOK = {
+  grain: { wood: '#a77a4e', dark: '#6b4630', base: '#d9b77a' }, /* a pale wooden bin */
+  water: { wood: '#5f8fa0', dark: '#3d6472', base: '#9fd3dc' }, /* a blue-painted trough */
+  carrot: { wood: '#b98a52', dark: '#7a5534', base: '#e7c48c' }, /* a wicker basket */
+  hay: { wood: '#8c6040', dark: '#5e3f2a', base: '#e0c06a' } /* a slatted hay rack */
+};
+/* where each food's spot sits in the pen's own space (the pen group sits at the pen's first centre) */
+function stockSpots(a) {
+  const p = PEN[a], foods = DIET[a], n = foods.length, sx = penSide(a), gap = Math.min(1.0, (p.d - 0.3) / n);
+  return foods.map((t, i) => ({ t, x: sx * (p.w / 2 - 0.33), z: (i - (n - 1) / 2) * gap, gap }));
+}
+/* the six places on a spot: [toward the pen, along the fence, height, turn] */
+function stockGrid(t, gap) {
+  const out = [];
+  if (t === 'hay') { for (let k = 0; k < 6; k++) out.push([0, ((k % 2) - 0.5) * 0.34, 0.1 + Math.floor(k / 2) * 0.19, Math.PI / 2]); return out; }
+  const cols = gap >= 0.92 ? 3 : 2, cz = cols === 3 ? 0.23 : gap < 0.6 ? 0.2 : 0.22, h = ITEM_H[t] || 0.2;
+  for (let k = 0; k < 6; k++) { const L = Math.floor(k / (cols * 2)), r = k % (cols * 2); out.push([(Math.floor(r / cols) - 0.5) * 0.22, ((r % cols) - (cols - 1) / 2) * cz, 0.1 + L * h, (hash(k, t.length) - 0.5) * 0.5]); }
+  return out;
+}
+/* a wooden sign with the food's picture, shared by all spots of that food */
+const stockSignMat = {};
+function stockSign(t) {
+  if (stockSignMat[t]) return stockSignMat[t];
+  const c = document.createElement('canvas'); c.width = 128; c.height = 112; const x = c.getContext('2d');
+  const gr = x.createLinearGradient(0, 0, 0, 112); gr.addColorStop(0, '#f3e2bf'); gr.addColorStop(1, '#e2c796');
+  x.fillStyle = '#6e4426'; x.beginPath(); x.roundRect ? x.roundRect(2, 2, 124, 108, 18) : x.rect(2, 2, 124, 108); x.fill();
+  x.fillStyle = gr; x.beginPath(); x.roundRect ? x.roundRect(9, 9, 110, 94, 13) : x.rect(9, 9, 110, 94); x.fill();
+  x.strokeStyle = 'rgba(150,105,60,0.35)'; x.lineWidth = 2; [38, 70].forEach((y) => { x.beginPath(); x.moveTo(12, y); x.lineTo(116, y); x.stroke(); }); /* plank seams */
+  drawIcon(x, t, 64, 58, 1.2);
+  const tex = new T.CanvasTexture(c); tex.anisotropy = 4;
+  const m = new T.MeshStandardMaterial({ map: tex, roughness: 0.9 }); stockSignMat[t] = m; return m;
+}
+/* build one spot: the holder, the empty-place marks, a post and the picture sign above the fence */
+function stockHolder(a, g, s, sx, L) {
+  const lk = STOCK_LOOK[s.t] || STOCK_LOOK.grain, seed = a.length * 13 + s.t.length * 7;
+  const add = (geo, col, k, x, y, z) => { const q = fac(geo, col, seed + k); q.translate(x, y, z); L.push(q); };
+  const grid = stockGrid(s.t, s.gap), zs = grid.map((q) => q[1]), wz = Math.max(...zs) - Math.min(...zs) + (s.t === 'hay' ? 0.36 : 0.3);
+  const dx = s.t === 'hay' ? 0.34 : 0.5, X = s.x, Z = s.z, wood = (base) => (cx, cy, cz, i) => tone(base, i, 0.8).multiplyScalar(0.78 + 0.35 * clamp(cy / 0.3, 0, 1));
+  if (s.t === 'hay') {
+    /* a pallet on the ground and a slatted rack leaning on the fence */
+    add(jit(box(dx, 0.07, wz, 1, 1, 2), 0.01, 1), wood(lk.wood), 1, X, 0.04, Z);
+    for (let k = 0; k < 4; k++) add(box(0.04, 0.62, 0.04), wood(lk.dark), 2 + k, X + sx * dx * 0.42, 0.33, Z + (k / 3 - 0.5) * (wz - 0.06));
+    [0.32, 0.6].forEach((y, k) => add(box(0.04, 0.05, wz), wood(lk.wood), 8 + k, X + sx * dx * 0.42, y, Z));
+  } else if (s.t === 'water') {
+    /* a low trough: four planks around a floor, painted blue, with a strip of water showing along the inside */
+    const h = 0.16; add(box(dx, 0.04, wz), wood(lk.dark), 1, X, 0.03, Z);
+    [-1, 1].forEach((q, k) => { add(jit(box(0.05, h, wz + 0.05), 0.006, k), wood(lk.wood), 2 + k, X + q * (dx / 2), h / 2, Z); add(jit(box(dx, h, 0.05), 0.006, k + 4), wood(lk.wood), 4 + k, X, h / 2, Z + q * (wz / 2)); });
+    [-1, 1].forEach((q, k) => add(box(0.06, 0.08, 0.06), '#5e3f2a', 7 + k, X, 0.04, Z + q * (wz / 2 - 0.06)));
+  } else if (s.t === 'carrot') {
+    /* a round-cornered wicker basket: woven bands in two tones */
+    const h = 0.14; add(box(dx, 0.04, wz), wood(lk.dark), 1, X, 0.03, Z);
+    for (let j = 0; j < 3; j++) { const col = j % 2 ? lk.wood : '#a2763f', y = 0.03 + j * 0.05;
+      [-1, 1].forEach((q, k) => { add(box(0.045, 0.05, wz + 0.04), col, 10 + j * 4 + k, X + q * (dx / 2), y + 0.025, Z); add(box(dx + 0.04, 0.05, 0.045), col, 12 + j * 4 + k, X, y + 0.025, Z + q * (wz / 2)); }); }
+    [-1, 1].forEach((q, k) => { const hd = new T.TorusGeometry(0.1, 0.014, 4, 10, Math.PI); add(hd, lk.dark, 30 + k, X, h + 0.02, Z + q * (wz / 2)); });
+  } else {
+    /* the grain bin: a sturdy open box with corner posts and a lid leaning on the fence */
+    const h = 0.18; add(box(dx, 0.04, wz), wood(lk.dark), 1, X, 0.03, Z);
+    [-1, 1].forEach((q, k) => { add(jit(box(0.05, h, wz + 0.05), 0.006, k), wood(lk.wood), 2 + k, X + q * (dx / 2), h / 2, Z); add(jit(box(dx, h, 0.05), 0.006, k + 4), wood(lk.wood), 4 + k, X, h / 2, Z + q * (wz / 2)); });
+    [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([p, q], k) => add(box(0.07, h + 0.04, 0.07), wood(lk.dark), 8 + k, X + p * dx / 2, (h + 0.04) / 2, Z + q * wz / 2));
+    const lid = box(0.04, 0.34, wz * 0.9); lid.rotateZ(sx * 0.28); add(lid, wood(lk.wood), 14, X + sx * (dx / 2 + 0.05), 0.2, Z);
+  }
+  /* a soft round mark for each place, so an empty place shows as a gap */
+  grid.forEach((q, k) => { if (q[2] > 0.15) return; const d = new T.CylinderGeometry(0.075, 0.075, 0.012, 10); add(d, lk.base, 40 + k, X - sx * q[0], 0.06, Z + q[1]); });
+  /* a picture label on the front of the holder, leaning back a little so it faces the camera */
+  const fz = Z + wz / 2 + 0.05, fy = s.t === 'hay' ? 0.2 : 0.17, bk = new T.BoxGeometry(0.34, 0.3, 0.03); bk.translate(0, 0, -0.018); bk.rotateX(-0.42); add(bk, '#6e4426', 60, X, fy, fz);
+  const sg = new T.Mesh(new T.PlaneGeometry(0.31, 0.27), stockSign(s.t)); sg.position.set(X, fy, fz); sg.rotation.x = -0.42; g.add(sg);
+  s.sign = sg;
+}
+/* the food pile of a pen: each item sits in its own food's spot, in the first free place */
+function stockPile(a, g) {
+  const sx = penSide(a), spots = stockSpots(a), by = {}, L = []; spots.forEach((s) => { by[s.t] = s; stockHolder(a, g, s, sx, L); }); merged(L, MAT, g);
+  const pile = new Pile(g, (i, m) => {
+    const t = m.userData.type, s = by[t] || spots[0], k = pile.items.slice(0, i).filter((o) => o.userData.type === t).length, grid = stockGrid(s.t, s.gap), q = grid[k % 6], up = Math.floor(k / 6) * 0.2;
+    return [s.x - sx * q[0], q[2] + up, s.z + q[1], q[3]];
+  });
+  pile.spots = by; return pile;
+}
+/* where food lands in a pen, and where an animal waits for a food */
+function stockAt(pen, t) { const s = pen.food.spots && pen.food.spots[t]; return s ? [s.x, s.z] : [0, 0]; }
+if (window.__farmTest) window.__stock = { fill: (a, t, n) => { const pen = pens[a] || buildPen(a); for (let k = 0; k < n; k++) pen.food.add(mk(t)); return pen.food.items.length; }, spots: (a) => stockSpots(a).map((s) => s.t + '@' + s.z.toFixed(2)).join(' ') };
 /* ---------- sky with clouds ----------
    Replaces the plain two-colour dome with one that follows the camera and is anchored to the *visible* horizon
    (with the curved world the sea edge sits well below eye level, so the gradient and clouds start there).
@@ -7955,7 +8036,9 @@ function step(dt) {
     if (an.asleep || an.lie > 0.01) { an.asleep = false; zzz(an, false, dt); }
     if (!an.want) { an.cd -= dt; if (an.cd <= 0) { const opts = DIET[an.a].filter(available); an.want = opts[Math.floor(Math.random() * opts.length)]; an.sp.material.map = bubble(an.want); an.sp.visible = true; an.wait = 0; Snd.play('blip', { gain: 0.15, f: 520 }, 0, 400); } }
     const p = penBox(an.a);
-    if (an.want) { an.wait += dt; const gap = an.a === 'hen' ? 0.5 : 0.78, tz = p.z + ((animals.filter((o) => o.a === an.a).indexOf(an) % 3) - 1) * gap; an.tx = an.pen.trough[0]; an.tz = tz; }
+    if (an.want) { an.wait += dt; /* wait at the spot of the food it wants, side by side if several want the same */
+      const q = stockAt(an.pen, an.want), same = animals.filter((o) => o.a === an.a && o.want === an.want), k = Math.max(0, same.indexOf(an)), sx = penSide(an.a);
+      an.tx = an.pen.trough[0] - sx * ((an.a === 'horse' || an.a === 'cow' || an.a === 'bull' ? 0.4 : 0.12) + Math.floor(k / 2) * 0.45); an.tz = PEN[an.a].z + q[1] + (k % 2 ? 0.22 : -0.22) * (k ? 1 : 0); }
     else if (Math.hypot(an.g.position.x - an.tx, an.g.position.z - an.tz) < 0.1 && Math.random() < dt * 0.4) { an.tx = p.x + (Math.random() - 0.5) * (p.w - 1.2); an.tz = p.z + (Math.random() - 0.5) * (p.d - 1.0); }
     const away = Math.abs(an.g.position.x - p.x) > p.w / 2 || Math.abs(an.g.position.z - p.z) > p.d / 2;
     const moving = !walkTo(an.g, an.tx, an.tz, dt, away ? 2.0 : an.a === 'hen' ? 0.8 : 0.6);
