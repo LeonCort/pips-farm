@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121143022">
+<meta name="app-ver" content="20261121145600">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -7968,13 +7968,15 @@ function step(dt) {
     if (an.want) an.sp.position.y = an.h + 0.35 + (reduced ? 0 : Math.sin(time * 3 + an.tx) * 0.05);
   });
 
+  /* safety net: anything left sitting on Pip's back that is no longer in the basket is cleared away */
+  carry.swT = (carry.swT || 0) - dt; if (carry.swT <= 0) { carry.swT = 0.5; for (let i = pip.children.length - 1; i >= 0; i--) { const o = pip.children[i]; if (o.userData && o.userData.type && carry.items.indexOf(o) < 0) pip.remove(o); } }
   /* Pip takes food from a source, and feeds animals that want what Pip carries (one item at a time) */
   xferT -= dt;
   if (xferT <= 0) {
     let did = false;
     for (const t in sources) { const s = sources[t]; if (!near(s.x, s.z, 0.95) || pickHeld()) continue;
       if (carry.items.length < cap()) { const m = mk(t); m.position.set(SRC[t].x, 0.6, SRC[t].z); sc.add(m); fly(m, () => { carry.parent.updateMatrixWorld(); return pip.localToWorld(tmpV.set(0, 0.72 + carry.items.reduce((a, b) => a + ITEM_H[b.userData.type], 0), -0.32)); }, () => carry.add(m)); Snd.play('pop', { gain: 0.45, f: 500 + carry.items.length * 60 }); did = true; }
-      else { /* basket full: put back something no box has room for */ const spare = carry.items.find((m) => SRC[m.userData.type] && m.userData.type !== t && !Object.keys(pens).some((a) => DIET[a].includes(m.userData.type) && boxCount(pens[a], m.userData.type) < BOX_MAX)) || carry.items.find((m) => SRC[m.userData.type] && m.userData.type !== t && !animals.some((an) => an.want === m.userData.type)); if (spare && spare.userData.type !== t) { carry.take(spare.userData.type); fly(spare, () => tmpV.set(SRC[spare.userData.type].x, 0.5, SRC[spare.userData.type].z), () => sc.remove(spare)); did = true; } }
+      else { /* basket full: put back something no box has room for */ const spare = carry.items.find((m) => SRC[m.userData.type] && m.userData.type !== t && !Object.keys(pens).some((a) => DIET[a].includes(m.userData.type) && boxCount(pens[a], m.userData.type) < BOX_MAX)) || carry.items.find((m) => SRC[m.userData.type] && m.userData.type !== t && !animals.some((an) => an.want === m.userData.type)); if (spare && spare.userData.type !== t) { carry.items.splice(carry.items.indexOf(spare), 1); carry.place(); /* take this very item: take(type) would pull a different one of the same kind and leave it stuck on Pip's back */ fly(spare, () => tmpV.set(SRC[spare.userData.type].x, 0.5, SRC[spare.userData.type].z), () => sc.remove(spare)); did = true; } }
       break; }
     /* at a pen, everything its animals eat goes into the feed box */
     if (!did) for (const a in pens) { const f = feedPos(a), pen = pens[a]; if (!near(f[0], f[1], 1.0)) continue;
