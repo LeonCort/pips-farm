@@ -229,7 +229,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121082314">
+<meta name="app-ver" content="20261121083406">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -714,6 +714,93 @@ const Snd = {
 const T = window.THREE;
 const wrap = $('scene'), canvas = $('gl');
 if (!T) { $('nogl').hidden = false; return; }
+/* ---------- curved world ("rolling log" horizon) ----------
+   A vertex-only effect: every outdoor vertex is pushed down by its squared distance from Pip, so the island bends away
+   like a log rolling under her feet and the sea dips below the sky at the top of the screen. Gameplay never sees it:
+   movement, collision, paths and pads all stay on the flat XZ plane. Indoors and in the dressing room the bend is 0.
+   How it reaches every material: the built-in three.js shader chunks are patched once here (before anything compiles),
+   and Material.onBuild hands every program the same two shared uniforms. So new meshes made later (guests, pops,
+   pets) curve automatically, and existing onBeforeCompile hooks (rim light, sway, ground texture) are untouched.
+   Hand-written ShaderMaterials go through applyWorldCurve(material). */
+const CURVE_DEF = { strength: 0.009, side: 0.25, pitch: 33, dist: 15.5, ahead: 1.4, fogNear: 20, fogFar: 46, detail: 20, on: true };
+const CURVE = Object.assign({}, CURVE_DEF, { u: { origin: { value: new T.Vector3() }, strength: { value: 0 }, side: { value: CURVE_DEF.side } } });
+try { const s = JSON.parse(localStorage.getItem('pips-curve') || 'null'); if (s) Object.keys(CURVE_DEF).forEach((k) => { if (typeof s[k] === typeof CURVE_DEF[k]) CURVE[k] = s[k]; }); } catch (e) {}
+const CURVE_GLSL = '\nuniform vec3 uCurveOrigin; uniform float uCurveStrength; uniform float uCurveSide;\nfloat worldCurveDrop(vec3 w) { float dz = w.z - uCurveOrigin.z; float dx = w.x - uCurveOrigin.x; return (dz * dz + dx * dx * uCurveSide) * uCurveStrength; }\n';
+{
+  const SC = T.ShaderChunk, put = (name, from, to) => { if (SC[name].indexOf(from) < 0) { console.warn('curve: chunk changed', name); return; } SC[name] = SC[name].replace(from, to); };
+  /* vertex-only chunk that every built-in vertex shader includes (basic, lambert, standard, depth, distance, sprite, points) */
+  SC.logdepthbuf_pars_vertex = CURVE_GLSL + SC.logdepthbuf_pars_vertex;
+  /* the projected position: model -> world, bend, world -> view */
+  put('project_vertex', 'mvPosition = modelViewMatrix * mvPosition;', 'mvPosition = modelMatrix * mvPosition;\nmvPosition.y -= worldCurveDrop( mvPosition.xyz );\nmvPosition = viewMatrix * mvPosition;');
+  /* the world position used for shadow lookups, so curved receivers read the curved shadow map */
+  put('worldpos_vertex', 'worldPosition = modelMatrix * worldPosition;', 'worldPosition = modelMatrix * worldPosition;\n\tworldPosition.y -= worldCurveDrop( worldPosition.xyz );');
+  /* sprites (speech bubbles, icons, zz) keep their own vertex shader */
+  const SP = 'vec4 mvPosition = modelViewMatrix * vec4( 0.0, 0.0, 0.0, 1.0 );', SPC = 'vec4 mvPosition = modelMatrix * vec4( 0.0, 0.0, 0.0, 1.0 );\n\tmvPosition.y -= worldCurveDrop( mvPosition.xyz );\n\tmvPosition = viewMatrix * mvPosition;';
+  if (T.ShaderLib.sprite.vertexShader.indexOf(SP) >= 0) T.ShaderLib.sprite.vertexShader = T.ShaderLib.sprite.vertexShader.replace(SP, SPC); else console.warn('curve: sprite shader changed');
+  /* every program gets the same uniform objects, so one write per frame moves them all */
+  T.Material.prototype.onBuild = function (p) { p.uniforms.uCurveOrigin = CURVE.u.origin; p.uniforms.uCurveStrength = CURVE.u.strength; p.uniforms.uCurveSide = CURVE.u.side; };
+  /* frustum culling uses the flat positions; test the bent ones so far trees do not pop at the horizon */
+  const fSphere = T.Frustum.prototype.intersectsSphere, cs = new T.Sphere();
+  T.Frustum.prototype.intersectsSphere = function (s) {
+    if (!CURVE.u.strength.value) return fSphere.call(this, s);
+    /* past the fog end everything is fog-coloured anyway: skip it (the sky dome contains the camera, so it stays) */
+    const cd = s.center.distanceTo(cam.position) - s.radius; if (cd > CURVE.fogFar || cd > CURVE.detail + s.radius * 8) return false; /* small things fade out sooner */
+    const o = CURVE.u.origin.value, dx = s.center.x - o.x, dz = s.center.z - o.z, d = Math.sqrt(dz * dz + dx * dx * CURVE.u.side.value), near = Math.max(0, d - s.radius);
+    cs.center.copy(s.center); cs.center.y -= near * near * CURVE.u.strength.value; cs.radius = s.radius; return fSphere.call(this, cs);
+  };
+}
+/* for hand-written ShaderMaterials: declare the uniforms and bend the usual `projectionMatrix * modelViewMatrix * vec4(position, 1.0)` */
+function applyWorldCurve(material) {
+  if (!material.isShaderMaterial || material.__curved) return material; /* built-in materials are already curved by the chunk patch */
+  const vs = material.vertexShader, re = /projectionMatrix\s*\*\s*modelViewMatrix\s*\*\s*vec4\(\s*position\s*,\s*1\.0\s*\)/;
+  if (!re.test(vs)) { console.warn('curve: shader not recognised'); return material; }
+  material.vertexShader = CURVE_GLSL + vs.replace(re, 'projectionMatrix * viewMatrix * (modelMatrix * vec4(position, 1.0) - vec4(0.0, worldCurveDrop((modelMatrix * vec4(position, 1.0)).xyz), 0.0, 0.0))');
+  material.__curved = true; material.needsUpdate = true; return material;
+}
+/* the same drop on the CPU, for anything placed or projected by hand (fly-up coins, lamp lights) */
+function curveDrop(x, z) { const s = CURVE.u.strength.value; if (!s) return 0; const o = CURVE.u.origin.value, dx = x - o.x, dz = z - o.z; return (dz * dz + dx * dx * CURVE.u.side.value) * s; }
+/* a tap ray against the bent ground y = -drop(x, z): a quadratic in the ray parameter */
+function curveHit(r, out) {
+  const s = CURVE.u.strength.value, o = r.origin, d = r.direction;
+  if (!s) return r.intersectPlane(groundPlane, out);
+  const c0 = CURVE.u.origin.value, k = CURVE.u.side.value, ox = o.x - c0.x, oz = o.z - c0.z;
+  const A = s * (k * d.x * d.x + d.z * d.z), B = d.y + 2 * s * (k * ox * d.x + oz * d.z), C = o.y + s * (k * ox * ox + oz * oz);
+  let t; if (A < 1e-9) t = -C / B; else { const D = B * B - 4 * A * C; if (D < 0) return null; t = (-B - Math.sqrt(D)) / (2 * A); if (t < 0) t = (-B + Math.sqrt(D)) / (2 * A); }
+  if (!(t > 0)) return null; return out.copy(d).multiplyScalar(t).add(o);
+}
+const curveLive = () => CURVE.on && !inHouse && !(typeof ED !== 'undefined' && ED.on);
+/* called once a frame after the stock camera: bend origin, outdoor camera, shadow box nudged forward */
+function curveFrame(aspectK) {
+  CURVE.u.strength.value = curveLive() ? CURVE.strength : 0; CURVE.u.side.value = CURVE.side;
+  CURVE.u.origin.value.set(pip.position.x, 0, pip.position.z);
+  if (inHouse || window.__camTop) return;
+  const D = CURVE.dist * aspectK, p = CURVE.pitch * Math.PI / 180, tx = camFocus.x, ty = 0.4, tz = camFocus.z - CURVE.ahead;
+  cam.position.set(tx, ty + D * Math.sin(p), tz + D * Math.cos(p)); cam.lookAt(tx, ty, tz);
+  sun.position.z -= 3; sun.target.position.z -= 3;
+}
+/* the debug panel: a small globe button on the left; sliders for bend, pitch, distance and fog, saved on this device */
+function curveSave() { try { const o = {}; Object.keys(CURVE_DEF).forEach((k) => { o[k] = CURVE[k]; }); localStorage.setItem('pips-curve', JSON.stringify(o)); } catch (e) {} }
+{
+  const css = document.createElement('style');
+  css.textContent = '#curveBtn{position:fixed;left:max(12px,env(safe-area-inset-left,0px));top:50%;width:48px;height:48px;margin-top:-24px;border-radius:50%;border:3px solid #22303c;background:#fffaf0;font-size:24px;line-height:1;box-shadow:0 4px 0 rgba(34,48,60,.25);z-index:30;padding:0}'
+    + '#curvePan{position:fixed;left:max(70px,calc(env(safe-area-inset-left,0px) + 70px));top:50%;transform:translateY(-50%);width:min(300px,calc(100vw - 90px));padding:12px 14px;border-radius:18px;border:3px solid #22303c;background:#fbf3e2;font:600 14px Fredoka,system-ui,sans-serif;color:#22303c;z-index:30;box-shadow:0 5px 0 rgba(34,48,60,.25)}'
+    + '#curvePan label{display:block;margin:6px 0 2px}#curvePan label b{float:right;font-weight:700}#curvePan input[type=range]{width:100%;accent-color:#c8643a;height:28px}#curvePan .row{display:flex;gap:8px;margin-top:8px;align-items:center}#curvePan button{flex:1;padding:8px;border-radius:12px;border:2px solid #22303c;background:#fffaf0;font:inherit}';
+  document.head.appendChild(css);
+  const btn = document.createElement('button'); btn.id = 'curveBtn'; btn.type = 'button'; btn.textContent = '\u{1F30D}'; btn.setAttribute('aria-label', 'Curve settings');
+  const pan = document.createElement('div'); pan.id = 'curvePan'; pan.hidden = true;
+  const S = [['strength', 'Bend (uCurveStrength)', 0, 0.03, 0.0005, 4], ['side', 'Side bend (x factor)', 0, 1, 0.05, 2], ['pitch', 'Camera pitch (deg)', 15, 60, 1, 0], ['dist', 'Camera distance', 8, 26, 0.5, 1], ['ahead', 'Look ahead', -2, 5, 0.1, 1], ['fogNear', 'Fog start', 6, 60, 1, 0], ['fogFar', 'Fog end', 20, 120, 1, 0], ['detail', 'Small-prop draw distance', 10, 60, 1, 0]];
+  pan.innerHTML = S.map(([k, l, a, b, st]) => '<label>' + l + ' <b data-v="' + k + '"></b></label><input type="range" data-k="' + k + '" min="' + a + '" max="' + b + '" step="' + st + '">').join('')
+    + '<div class="row"><label style="margin:0;flex:1"><input type="checkbox" data-on> Curve on</label><button type="button" data-reset>Reset</button><button type="button" data-close>Close</button></div>';
+  const sync = () => { S.forEach(([k, , , , , dp]) => { pan.querySelector('[data-k="' + k + '"]').value = CURVE[k]; pan.querySelector('[data-v="' + k + '"]').textContent = (+CURVE[k]).toFixed(dp); }); pan.querySelector('[data-on]').checked = CURVE.on; };
+  pan.addEventListener('input', (e) => { const k = e.target.dataset.k; if (k) CURVE[k] = +e.target.value; else if (e.target.hasAttribute('data-on')) CURVE.on = e.target.checked; sync(); curveSave(); });
+  pan.addEventListener('click', (e) => { if (e.target.hasAttribute('data-reset')) { Object.assign(CURVE, CURVE_DEF); sync(); curveSave(); } if (e.target.hasAttribute('data-close')) pan.hidden = true; });
+  btn.addEventListener('click', () => { pan.hidden = !pan.hidden; if (!pan.hidden) sync(); });
+  ['pointerdown', 'keydown'].forEach((ev) => pan.addEventListener(ev, (e) => e.stopPropagation()));
+  document.body.appendChild(btn); document.body.appendChild(pan);
+  window.CURVE = CURVE;
+}
+if (window.__farmTest) window.__curve = { scr: (x, y, z) => { const v = new T.Vector3(x, y - curveDrop(x, z), z).project(cam), r = canvas.getBoundingClientRect(); return [(v.x + 1) / 2 * r.width + r.left, (1 - v.y) / 2 * r.height + r.top]; }, inside: (to) => goInside(to), hit: (sx, sy) => { const r = canvas.getBoundingClientRect(); ndc.set((sx - r.left) / r.width * 2 - 1, -(sy - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, cam); const h = curveHit(ray.ray, new T.Vector3()); return h && [h.x, h.z]; }, diag: () => { let n = 0, nc = 0, big = 0; sc.traverseVisible((o) => { if (!o.isMesh && !o.isSprite && !o.isPoints) return; n++; if (!o.frustumCulled) nc++; else if (o.geometry && o.geometry.boundingSphere && o.geometry.boundingSphere.radius > 15) big++; }); return { n, nc, big, shadowCast: sun.castShadow }; }, st: () => ({ s: CURVE.u.strength.value, inHouse, ed: typeof ED !== 'undefined' && ED.on }) };
+
 let renderer; try { renderer = new T.WebGLRenderer({ canvas, antialias: true }); } catch (e) { $('nogl').hidden = false; return; }
 /* battery: a lower pixel ratio and a frame cap the player picks in settings (20, 30 or 60 per second) */
 const FPS_OPTS = [30, 60, 20]; let fpsCap = 30; try { const v = +localStorage.getItem('pips-fps'); if (FPS_OPTS.includes(v)) fpsCap = v; } catch (e) {}
@@ -874,7 +961,7 @@ function groundShade(list) {
     d.save(); d.translate(px, py); d.scale(sx / r, sz / r); const g = d.createRadialGradient(0, 0, r * 0.15, 0, 0, r); const a = k == null ? 0.42 : k; g.addColorStop(0, 'rgba(70,80,60,' + a + ')'); g.addColorStop(0.6, 'rgba(120,130,100,' + a * 0.45 + ')'); g.addColorStop(1, 'rgba(255,255,255,0)'); d.fillStyle = g; d.beginPath(); d.arc(0, 0, r, 0, 6.283); d.fill(); d.restore(); });
   d.restore(); GU.det.value.needsUpdate = true;
 }
-let wg = new T.PlaneGeometry(160, 160, 40, 40); wg.rotateX(-Math.PI / 2);
+let wg = new T.PlaneGeometry(160, 160, 56, 56); wg.rotateX(-Math.PI / 2);
 wg = fac(wg, (cx, cy, cz, i) => { const d = HERE_T === 'farm' ? Math.hypot(cx / 1.6, cz) * 0.8 : Math.max(Math.abs(cx) / 1.4, Math.abs(cz)); return tone(d < 16 ? PAL.seaShallow : d < 28 ? PAL.sea : PAL.seaDeep, i, 0.9); });
 const water = new T.Mesh(wg, new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.28, metalness: 0.05 })); water.position.y = -0.45; water.receiveShadow = true; sc.add(water);
 const wp = wg.attributes.position, wn = wg.attributes.normal;
@@ -2169,7 +2256,7 @@ function thumb(a, i) {
   m.g.rotation.y = 0.75; thumbScene.add(m.g);
   const h = m.h * (baby ? 0.7 : 1), dist = 0.55 + h * 1.15; thumbCam.position.set(dist * 0.15, h * 0.55 + dist * 0.35, dist); thumbCam.lookAt(0, h * 0.45, 0);
   const old = renderer.getClearColor(new T.Color()).getHex(), oldA = renderer.getClearAlpha();
-  renderer.setRenderTarget(thumbRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(thumbScene, thumbCam);
+  renderer.setRenderTarget(thumbRT); renderer.setClearColor(0x000000, 0); renderer.clear(); { const cs0 = CURVE.u.strength.value; CURVE.u.strength.value = 0; renderer.render(thumbScene, thumbCam); CURVE.u.strength.value = cs0; }
   const px = new Uint8Array(160 * 160 * 4); renderer.readRenderTargetPixels(thumbRT, 0, 0, 160, 160, px); renderer.setRenderTarget(null); renderer.setClearColor(old, oldA);
   thumbScene.remove(m.g);
   const c = document.createElement('canvas'); c.width = c.height = 160; const x = c.getContext('2d'), img = x.createImageData(160, 160);
@@ -2622,7 +2709,7 @@ function weatherStep(dt) {
   sc.fog.color.copy(sc.background);
   /* fog: autumn, early mornings, rain, snow and mist */
   const f = dayFrac(), fogT = clamp((season === 'autumn' ? 0.55 : 0) + (f < 0.12 ? 0.3 : 0) + rainAmt * 0.35 + (out ? mistAmt * 0.4 + snowAmt * 0.3 : 0), 0, 1);
-  fogAmt += (fogT - fogAmt) * Math.min(1, dt * 0.3); sc.fog.near = 28 - 20 * fogAmt; sc.fog.far = 70 - 42 * fogAmt;
+  fogAmt += (fogT - fogAmt) * Math.min(1, dt * 0.3); { const fN = curveLive() ? CURVE.fogNear : 28, fF = curveLive() ? Math.max(CURVE.fogFar, fN + 4) : 70; sc.fog.near = fN * (1 - 0.714 * fogAmt); sc.fog.far = fF * (1 - 0.6 * fogAmt); }
   /* the falling rain follows the camera and slants with the wind */
   const rn = Math.round(RAIN_N * Math.min(1, rainAmt) * (reduced ? 0.35 : 1));
   rainLines.visible = rn > 2 && out; rainMat.opacity = 0.35 + rainAmt * 0.3;
@@ -3172,7 +3259,7 @@ document.body.appendChild(coinPill);
 function placeCoinPill() { const h = document.querySelector('.coins:not(.gold)'); if (!h) return; const r = h.getBoundingClientRect(); /* on a narrow screen the coins go under the hearts, so they do not cover the buttons */ if (innerWidth < 600) { coinPill.style.left = Math.round(r.left) + 'px'; coinPill.style.top = Math.round(r.bottom + 8) + 'px'; } else { coinPill.style.left = Math.round(r.right + 10) + 'px'; coinPill.style.top = ''; } }
 function earnCoins(n) { shop().coins += n; shop().total += n; const el = $('coins2'); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
 function coinFly(wx, wy, wz, n) {
-  tmpV.set(wx, wy, wz).project(cam); const r = wrap.getBoundingClientRect(), hud = $('coinIcon2').getBoundingClientRect();
+  tmpV.set(wx, wy - curveDrop(wx, wz), wz).project(cam); const r = wrap.getBoundingClientRect(), hud = $('coinIcon2').getBoundingClientRect();
   const sx = (tmpV.x * 0.5 + 0.5) * r.width + r.left, sy = (-tmpV.y * 0.5 + 0.5) * r.height + r.top;
   for (let k = 0; k < Math.min(n, 6); k++) {
     const d = document.createElement('span'); d.className = 'flycoin gold'; d.style.left = sx + 'px'; d.style.top = sy + 'px'; document.body.appendChild(d);
@@ -4034,7 +4121,7 @@ const dogBlob = new T.Mesh(blobGeo, blobMat); dogBlob.scale.set(0.5, 1, 0.75); d
 
 /* the fountain: rippling water with foam rings round the pillar, and streams falling from the top basin */
 const FU = { t: { value: 0 }, light: { value: new T.Color(1, 1, 1) }, ice: { value: 0 } };
-const waterVS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
+const waterVS = CURVE_GLSL + 'varying vec2 vUv; void main(){ vUv = uv; vec4 cw = modelMatrix * vec4(position, 1.0); cw.y -= worldCurveDrop(cw.xyz); gl_Position = projectionMatrix * viewMatrix * cw; }';
 function fPoolMat(inner, foamAt) {
   return new T.ShaderMaterial({ uniforms: { t: FU.t, light: FU.light, ice: FU.ice }, vertexShader: waterVS, fragmentShader: `
     varying vec2 vUv; uniform float t; uniform vec3 light; uniform float ice;
@@ -4096,7 +4183,7 @@ function polishStep(dt) {
   RIM.value.copy(sun.color).multiplyScalar(0.3 * sun.intensity * (1 - 0.6 * nightAmt));
   /* outside, the four lights sit in the square's lamps; inside the house they become the desk candles, the stove, the fire and the hall */
   if (inHouse) { LAMP_LIGHTS.forEach((l, i) => { const p = INT.lights[i]; l.position.set(HO.x + p[0], p[1], HO.z + p[2]); l.intensity = 2.2 * (0.9 + 0.1 * Math.sin(time * 9 + i * 2)); l.distance = 5.5; }); sun.intensity *= 0.6; if (hemi) hemi.intensity *= 0.75; }
-  else { const k = clamp(nightAmt * 2.6, 0, 1); LAMP_LIGHTS.forEach((l, i) => { l.position.set(LAMP_AT[i][0], 1.6, LAMP_AT[i][1]); l.intensity = 2.4 * k; l.distance = 5; }); }
+  else { const k = clamp(nightAmt * 2.6, 0, 1); LAMP_LIGHTS.forEach((l, i) => { l.position.set(LAMP_AT[i][0], 1.6 - curveDrop(LAMP_AT[i][0], LAMP_AT[i][1]), LAMP_AT[i][1]); l.intensity = 2.4 * k; l.distance = 5; }); }
   pipBlob.position.set(pip.position.x, pip.position.y + 0.05, pip.position.z); pipBlob.visible = !inHouse;
   dogBlob.position.set(dog.g.position.x, dog.g.position.y + 0.05, dog.g.position.z); dogBlob.rotation.y = dog.g.rotation.y; dogBlob.visible = dog.g.visible && !inHouse;
 }
@@ -4170,7 +4257,7 @@ function flFloorTex(a, w, d) {
 /* rough-hewn post-and-rail fence, merged into one mesh; plus straw, a hay heap, a water trough and (pigs) shiny mud */
 function flPen(a, fg, b) {
   /* the floor first: sky.js tints fence.children[0] for snow */
-  const pw = b.w + 0.5, pd = b.d + 0.5, geo = new T.PlaneGeometry(pw, pd); geo.rotateX(-Math.PI / 2);
+  const pw = b.w + 0.5, pd = b.d + 0.5, geo = new T.PlaneGeometry(pw, pd, Math.ceil(pw), Math.ceil(pd)); geo.rotateX(-Math.PI / 2);
   const floor = new T.Mesh(geo, new T.MeshStandardMaterial({ color: '#ffffff', map: flFloorTex(a, pw, pd), roughness: 1, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }));
   floor.position.y = 0.05; floor.receiveShadow = true; floor.renderOrder = 1; fg.add(floor);
   const L = [], P = at(0, 0, 0, L), CL = [], C = at(0, 0, 0, CL), seed = a.length * 31 + Math.round(b.w * 10);
@@ -5548,7 +5635,7 @@ const dragMode = () => state.ctrl !== 'tap';
 const joyEl = $('joy'), JOY_R = 56;
 function joyShow() { if (!joyEl) return; joyEl.hidden = false; joyEl.style.left = joy.x0 + 'px'; joyEl.style.top = joy.y0 + 'px'; joyKnob(); }
 function joyKnob() { if (!joyEl) return; const l = Math.hypot(joy.dx, joy.dy), k = l > JOY_R ? JOY_R / l : 1; joyEl.firstElementChild.style.transform = 'translate(' + joy.dx * k + 'px,' + joy.dy * k + 'px)'; }
-function aim(e) { const r = canvas.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, cam); if (ray.ray.intersectPlane(groundPlane, tmpV)) { target.set(tmpV.x, 0, tmpV.z); onIsle(target); if (typeof routeStop === 'function') routeStop(); } }
+function aim(e) { const r = canvas.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1); ray.setFromCamera(ndc, cam); if (curveHit(ray.ray, tmpV)) { target.set(tmpV.x, 0, tmpV.z); onIsle(target); if (typeof routeStop === 'function') routeStop(); } }
 wrap.addEventListener('pointerdown', (e) => { if (e.button && e.button !== 0) return; closeMenu(); Snd.init(); holding = true; try { wrap.setPointerCapture(e.pointerId); } catch (er) {} if (dragMode()) { joy = { x0: e.clientX, y0: e.clientY, dx: 0, dy: 0 }; joyShow(); } else aim(e); if (!state.moved) { state.moved = true; $('hint').hidden = true; } });
 wrap.addEventListener('pointermove', (e) => { if (!holding) return; if (joy) { joy.dx = e.clientX - joy.x0; joy.dy = e.clientY - joy.y0; /* the stick stays where the finger first touched; lift and touch again to move it */ joyKnob(); } else aim(e); });
 ['pointerup', 'pointercancel'].forEach((ev) => wrap.addEventListener(ev, () => { holding = false; if (joy) { joy = null; if (joyEl) joyEl.hidden = true; target.copy(pip.position); } }));
@@ -5558,7 +5645,7 @@ wrap.addEventListener('contextmenu', (e) => e.preventDefault());
 
 /* coins fly up to the counter in the corner */
 function coinToHud(wx, wy, wz, n) {
-  tmpV.set(wx, wy, wz).project(cam); const r = wrap.getBoundingClientRect(), hud = $('coinIcon').getBoundingClientRect();
+  tmpV.set(wx, wy - curveDrop(wx, wz), wz).project(cam); const r = wrap.getBoundingClientRect(), hud = $('coinIcon').getBoundingClientRect();
   const sx = (tmpV.x * 0.5 + 0.5) * r.width + r.left, sy = (-tmpV.y * 0.5 + 0.5) * r.height + r.top;
   for (let k = 0; k < Math.min(n, 6); k++) {
     const d = document.createElement('span'); d.className = 'flycoin'; d.style.left = sx + 'px'; d.style.top = sy + 'px'; document.body.appendChild(d);
@@ -5725,7 +5812,7 @@ function step(dt) {
   waterT -= dt; if (waterT <= 0) { waterT = 0.1; for (let i = 0; i < wp.count; i++) { const x = wp.getX(i), z = wp.getZ(i); wp.setY(i, Math.sin(x * 0.5 + time * 0.9) * 0.06 + Math.sin(z * 0.42 - time * 0.7) * 0.06); const ax = -Math.cos(x * 0.5 + time * 0.9) * 0.18, az = -Math.cos(z * 0.42 - time * 0.7) * 0.15, l = Math.hypot(ax, 1, az); wn.setXYZ(i, ax / l, 1 / l, az / l); } wp.needsUpdate = true; wn.needsUpdate = true; }
   camFocus.lerp(pip.position, 1 - Math.exp(-dt * 4)); if (inBarn) camFocus.z = Math.min(camFocus.z, BI.z + 0.9);
   dressT += ((dressing ? 1 : 0) - dressT) * Math.min(1, dt * 5); const k = (aspect < 1 ? 1.5 : 1.15) * (1 - 0.7 * dressT) * (inBarn ? 1.22 : 1); cam.position.set(camFocus.x, 9.5 * k, camFocus.z + 8.5 * k); cam.lookAt(camFocus.x + (aspect < 1 ? 0 : 0.75) * dressT, 0.55 * dressT, camFocus.z + 0.3 + (aspect < 1 ? 0.55 : -0.1) * dressT);
-  sun.position.set(camFocus.x - 10, 10, camFocus.z + 7.5); sun.target.position.copy(camFocus);
+  sun.position.set(camFocus.x - 10, 10, camFocus.z + 7.5); sun.target.position.copy(camFocus); curveFrame(aspect < 1 ? 1.15 : 1);
   if (window.__camTop) { const c = window.__camTop; cam.position.set(c[0], c[2], c[1] + (c[3] || 0)); cam.lookAt(c[0], 0, c[1]); cam.far = 300; }
   if (ED.on) edRender(dt); else renderer.render(sc, cam);
   $('coins').textContent = fmt(state.coins);
