@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121111619">
+<meta name="app-ver" content="20261121112822">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -6646,9 +6646,10 @@ if (window.__farmTest) window.__cat = catTest;
     const tick = () => { if (!t0) return; const f = Math.min(1, (performance.now() - t0) / 1000 / HOLD); draw(f); if (f >= 1) return restart(); if (Math.round(f * 10) !== Math.round((f - 0.016) * 10)) Snd.play('tick', { gain: 0.25, f: 600 + f * 900 }); raf = requestAnimationFrame(tick); };
     const restart = () => {
       done = true; Snd.play('whoosh', { gain: 0.4 });
+      /* the farm is wiped in place, so every later save (the page's own save on the way out included) writes the fresh farm */
       const keep = Object.assign(fresh(), { sound: state.sound, ctrl: state.ctrl });
-      save = () => {}; /* nothing may write the old farm back while the page reloads */
-      try { localStorage.setItem(KEY, JSON.stringify(keep)); } catch (e) {}
+      Object.keys(state).forEach((k) => { delete state[k]; }); Object.assign(state, keep); storeReady = true;
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
       fadeEl.style.opacity = '1'; setTimeout(() => location.reload(), 450);
     };
     b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); Snd.init(); if (done) return; t0 = performance.now(); raf = requestAnimationFrame(tick); });
