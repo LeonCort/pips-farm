@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121152205">
+<meta name="app-ver" content="20261121152609">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2333,18 +2333,7 @@ const dayFrac = () => (state.clock % DAY) / DAY;
 const pipLamp = new T.PointLight(0xffd8a0, 0, 4.5, 2); pipLamp.position.set(0, 1.6, 0.4); pip.add(pipLamp);
 const tractorLamp = new T.PointLight(0xfff0c0, 0, 6, 2); sc.add(tractorLamp);
 /* glows: a soft round sprite used for windows, Pip's lamp and fireflies */
-/* soft round textures computed pixel by pixel (no canvas gradients): Safari dithers canvas gradients, and where the alpha is
-   nearly zero that dither turns into random colours when WebGL un-premultiplies the canvas, which showed up as rainbow
-   confetti in the mist, glows and shadows. stops: [t, r, g, b, a] with t 0..1 from the centre, colours 0..255, a 0..1 */
-function gradTex(w, h, stops, lin) {
-  const d = new Uint8Array(w * h * 4);
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const t = lin ? 1 - (y + 0.5) / h : Math.min(1, Math.hypot((x + 0.5) / w * 2 - 1, (y + 0.5) / h * 2 - 1)); let i = 0; while (i < stops.length - 2 && t > stops[i + 1][0]) i++;
-    const A = stops[i], B = stops[i + 1], q = Math.max(0, Math.min(1, (t - A[0]) / Math.max(1e-6, B[0] - A[0]))), o = (y * w + x) * 4;
-    for (let k = 0; k < 3; k++) d[o + k] = Math.round(A[k + 1] + (B[k + 1] - A[k + 1]) * q); d[o + 3] = Math.round(255 * (A[4] + (B[4] - A[4]) * q)); }
-  const t = new T.DataTexture(d, w, h, T.RGBAFormat); t.magFilter = T.LinearFilter; t.minFilter = T.LinearMipmapLinearFilter; t.generateMipmaps = true; t.needsUpdate = true; return t;
-}
-const glowTex = gradTex(64, 64, [[0, 255, 230, 160, 1], [0.35, 255, 210, 120, 0.55], [1, 255, 200, 100, 0]]);
+const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,230,160,1)'); g.addColorStop(0.35, 'rgba(255,210,120,0.55)'); g.addColorStop(1, 'rgba(255,200,100,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
 const glowMat = new T.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: 0 });
 const lampMat = new T.MeshBasicMaterial({ color: '#4a3a2e' });
 const lampOff = new T.Color('#4a3a2e'), lampOn = new T.Color('#ffd27a');
@@ -3055,7 +3044,7 @@ const rainbowMat = applyWorldCurve(new T.ShaderMaterial({ transparent: false, bl
 const rainbow = new T.Mesh(new T.RingGeometry(RBOW.ri, RBOW.ro, 56, 1, 0, Math.PI), rainbowMat); rainbow.visible = false; rainbow.frustumCulled = false; rainbow.renderOrder = -1; sky.renderOrder = -2; sc.add(rainbow);
 if (window.__farmTest) window.__bow = (t) => { rainbowT = t == null ? 30 : t; };
 /* snow: soft round flakes that drift with the wind */
-const softTex = (w, h) => gradTex(w, h, [[0, 255, 255, 255, 1], [0.45, 255, 255, 255, 0.75], [1, 255, 255, 255, 0]]);
+const softTex = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.translate(w / 2, h / 2); x.scale(w / 2, h / 2); const g = x.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.45, 'rgba(255,255,255,0.75)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(-1, -1, 2, 2); return new T.CanvasTexture(c); };
 const SNOW_N = 300, snowPos = new Float32Array(SNOW_N * 3).fill(-99);
 const snowGeo = new T.BufferGeometry(); snowGeo.setAttribute('position', new T.BufferAttribute(snowPos, 3)); snowGeo.setDrawRange(0, 0);
 const snowMat = new T.PointsMaterial({ color: '#ffffff', size: 0.24, map: softTex(32, 32), transparent: true, depthWrite: false, opacity: 0.95 });
@@ -3304,7 +3293,7 @@ const SN = 760, sPos = new Float32Array(SN * 12), sHead = new Float32Array(SN * 
 const streakGeo = (() => { const g = new T.BufferGeometry(), uv = new Float32Array(SN * 8), idx = new Uint16Array(SN * 6);
   for (let k = 0; k < SN; k++) { uv.set([0, 1, 1, 1, 0, 0, 1, 0], k * 8); idx.set([k * 4, k * 4 + 2, k * 4 + 1, k * 4 + 1, k * 4 + 2, k * 4 + 3], k * 6); }
   g.setAttribute('position', new T.BufferAttribute(sPos, 3)); g.setAttribute('uv', new T.BufferAttribute(uv, 2)); g.setIndex(new T.BufferAttribute(idx, 1)); g.setDrawRange(0, 0); return g; })();
-const streakTex = gradTex(4, 64, [[0, 255, 255, 255, 0.95], [0.25, 255, 255, 255, 0.6], [1, 255, 255, 255, 0]], true);
+const streakTex = (() => { const c = document.createElement('canvas'); c.width = 4; c.height = 64; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 64); g.addColorStop(0, 'rgba(255,255,255,0.95)'); g.addColorStop(0.25, 'rgba(255,255,255,0.6)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 4, 64); return new T.CanvasTexture(c); })();
 const streakMat = new T.MeshBasicMaterial({ map: streakTex, color: '#d3e2ec', transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide });
 const streaks = new T.Mesh(streakGeo, streakMat); streaks.frustumCulled = false; streaks.visible = false; sc.add(streaks);
 
@@ -3313,7 +3302,7 @@ const RN = 56, rPos = new Float32Array(RN * 12), rCol = new Float32Array(RN * 12
 const ringGeo = (() => { const g = new T.BufferGeometry(), uv = new Float32Array(RN * 8), idx = new Uint16Array(RN * 6);
   for (let k = 0; k < RN; k++) { uv.set([0, 0, 1, 0, 0, 1, 1, 1], k * 8); idx.set([k * 4, k * 4 + 2, k * 4 + 1, k * 4 + 1, k * 4 + 2, k * 4 + 3], k * 6); RINGS.push({ t: 1, L: 1, x: 0, z: 0, y: 0, r: 0 }); }
   g.setAttribute('position', new T.BufferAttribute(rPos, 3)); g.setAttribute('color', new T.BufferAttribute(rCol, 3)); g.setAttribute('uv', new T.BufferAttribute(uv, 2)); g.setIndex(new T.BufferAttribute(idx, 1)); return g; })();
-const ringTex = gradTex(64, 64, [[0, 255, 255, 255, 0], [0.62, 255, 255, 255, 0], [0.8, 255, 255, 255, 1], [0.9, 255, 255, 255, 0.4], [1, 255, 255, 255, 0]]);
+const ringTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.62, 'rgba(255,255,255,0)'); g.addColorStop(0.8, 'rgba(255,255,255,1)'); g.addColorStop(0.9, 'rgba(255,255,255,0.4)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
 const ringMesh = new T.Mesh(ringGeo, new T.MeshBasicMaterial({ map: ringTex, vertexColors: true, transparent: true, depthWrite: false, blending: T.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -3 }));
 ringMesh.frustumCulled = false; ringMesh.visible = false; ringMesh.renderOrder = 3; sc.add(ringMesh);
 let ringI = 0;
@@ -3432,7 +3421,7 @@ function rainLate() {
 const wxBtn = (() => { const b = document.createElement('button'); b.id = 'wxBtn'; b.type = 'button'; b.textContent = '🌧'; b.setAttribute('aria-label', 'Byt väder');
   b.style.cssText = 'position:fixed;left:max(12px,env(safe-area-inset-left,0px));top:calc(50% + 34px);width:48px;height:48px;border-radius:50%;border:3px solid #22303c;background:#fffaf0;font-size:22px;line-height:1;box-shadow:0 4px 0 rgba(34,48,60,.25);z-index:30;padding:0';
   const order = ['clear', 'rain', 'heavy', 'mist', 'windy'];
-  b.addEventListener('click', (e) => { e.stopPropagation(); const i = order.indexOf(state.wx.k), k = order[(i + 1) % order.length]; wxSet(k, k === 'clear' ? 120 : 90); delete state.wx.nx; /* dev testing: jump straight to the new weather instead of a slow fade */ rainAmt = k === 'heavy' ? 1 : k === 'rain' ? 0.55 : 0; mistAmt = k === 'mist' ? 1 : 0; windAmt = WX_WIND[k]; fogAmt = clamp((k === 'mist' ? 0.4 : 0) + rainAmt * 0.85, 0, 1); if (raining()) { wet = Math.max(wet, 0.8); RS.gw = 1; } b.textContent = { clear: '🌧', rain: '⛈', heavy: '🌫', mist: '💨', windy: '☀️' }[k]; });
+  b.addEventListener('click', (e) => { e.stopPropagation(); const i = order.indexOf(state.wx.k), k = order[(i + 1) % order.length]; wxSet(k, k === 'clear' ? 120 : 90); delete state.wx.nx; b.textContent = { clear: '🌧', rain: '⛈', heavy: '🌫', mist: '💨', windy: '☀️' }[k]; });
   ['pointerdown', 'touchstart'].forEach((ev) => b.addEventListener(ev, (e) => e.stopPropagation(), { passive: true }));
   b.hidden = true; document.body.appendChild(b); return b; })();
 
@@ -4787,7 +4776,8 @@ sc.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => { m.ne
 const LAMP_LIGHTS = LAMP_AT.slice(0, 4).map(([x, z]) => { const l = new T.PointLight(0xffc27a, 0, 5, 2); l.position.set(x, 1.6, z); sc.add(l); return l; });
 
 /* contact shadows: a soft dark spot right under each bush, tree, bench, pot, lamp and house, so nothing floats on the grass */
-const blobTex = gradTex(64, 64, [[0, 255, 255, 255, 1], [0.5, 217, 217, 217, 0.85], [1, 0, 0, 0, 0]]); /* used as an alphaMap: the green channel is the alpha */
+const blobTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.5, 'rgba(255,255,255,0.85)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
 const blobMat = new T.MeshBasicMaterial({ color: '#1c2a20', alphaMap: blobTex, transparent: true, opacity: 0.7, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
 {
   const L = [];
@@ -5456,7 +5446,7 @@ const bpadC = document.createElement('canvas'); bpadC.width = bpadC.height = 256
 const bpad = new T.Mesh(new T.CircleGeometry(0.72, 32), new T.MeshBasicMaterial({ map: bpadT, transparent: true })); bpad.rotation.x = -Math.PI / 2; bpad.position.set(BPAD_AT.x, 0.09, BPAD_AT.z); sc.add(bpad);
 const bpadEdge = new T.Mesh(new T.RingGeometry(0.72, 0.82, 32), new T.MeshBasicMaterial({ color: PAL.ochre })); bpadEdge.rotation.x = -Math.PI / 2; bpadEdge.position.set(BPAD_AT.x, 0.085, BPAD_AT.z); sc.add(bpadEdge);
 let bpadShown = '', bpadTick = 0, bpadPoor = false, bpadGhost = null;
-const nextBPad = () => BPADS.find((p) => !barnS().owned[p.id]) || null;
+const nextBPad = () => tutOn() ? null : BPADS.find((p) => !barnS().owned[p.id]) || null;
 function drawBPad(p) {
   const left = p.cost - (barnS().paid[p.id] || 0), key = p.id + ':' + left; if (key === bpadShown) return; bpadShown = key;
   const x = bpadC.getContext('2d'); x.clearRect(0, 0, 256, 256);
@@ -6916,7 +6906,7 @@ function storeStep(dt) {
   if (!inStore) {
     storeSign.visible = !inHouse && !!affordable; storeSign.position.y = 3.4 + (reduced ? 0 : Math.abs(Math.sin(time * 3)) * 0.18);
     giftSign.visible = !inHouse && (pendOut().length > 0 || pendIn().length > 0); giftSign.position.set(HOUSE.x + 0.7, 3.4 + (reduced ? 0 : Math.abs(Math.sin(time * 3.2)) * 0.18), HOUSE.z + 0.4);
-    const ok = !inHouse && freeHands && stillOn(storeRing, dt);
+    const ok = !inHouse && freeHands && !(tutOn() && !tutAt('buy')) && stillOn(storeRing, dt);
     storeRing.w = ok ? Math.min(1, storeRing.w + dt / 0.5) : Math.max(0, storeRing.w - dt * 3); storeRing.f.scale.setScalar(Math.max(0.001, storeRing.w));
     if (storeRing.w >= 1) goStore(true);
     SGLOW.forEach((g) => { g.s.visible = false; });
@@ -7863,6 +7853,239 @@ function stockPile(a, g) {
 /* where food lands in a pen, and where an animal waits for a food */
 function stockAt(pen, t) { const s = pen.food.spots && pen.food.spots[t]; return s ? [s.x, s.z] : [0, 0]; }
 if (window.__farmTest) window.__stock = { fill: (a, t, n) => { const pen = pens[a] || buildPen(a); for (let k = 0; k < n; k++) pen.food.add(mk(t)); return pen.food.items.length; }, spots: (a) => stockSpots(a).map((s) => s.t + '@' + s.z.toFixed(2)).join(' ') };
+/* ---------- the first day: a guided start for a new farm ----------
+   A new game walks through the basics one step at a time, in this order: feed the animals, take eggs to the market,
+   pick apples and sell them, pick up the coins, buy the first thing in the store, feed the animals again, lead them
+   into the barn at dusk, sleep in the tent, fetch them out in the morning, and then a present: the first little house.
+   A picture card at the top shows the job (what to fetch -> where it goes) with dots that fill up, and a trail of the
+   whole day ending in the present. The guide arrow follows the current job. Until the present is opened nothing can be
+   bought on pads or spots, the store opens at its step, and the clock waits for the jobs (afternoon holds until the
+   buying is done, dusk comes on cue). Farms saved before this never see it: only a brand-new save gets state.tut. */
+const TUT = [
+  { id: 'feed', n: 3, a: 'grain', b: 'hen' },
+  { id: 'egg', n: 2, a: 'egg', b: 'stall' },
+  { id: 'apple', n: 3, a: 'apple', b: 'stall' },
+  { id: 'coin', n: 10, a: 'coin', b: null, bar: true },
+  { id: 'buy', n: 1, a: 'coin', b: 'bag' },
+  { id: 'feed2', n: 3, a: 'carrot', b: 'pig' },
+  { id: 'barn', n: 1, a: 'pig', b: 'barn', badge: 'moon' },
+  { id: 'bed', n: 1, a: 'moon', b: 'bed' },
+  { id: 'out', n: 1, a: 'barn', b: 'pig', badge: 'sun' },
+  { id: 'gift', n: 1, a: 'gift', b: 'house' }
+];
+const TUT_GEAR = 10; /* coins for the first thing in the store (Pip's speedy boots) */
+const tutS = () => state && state.tut && !state.tut.done ? state.tut : null;
+const tutOn = () => !!tutS();
+const tutId = () => { const t = tutS(); return t ? TUT[t.s].id : null; };
+const tutAt = (id) => { const t = tutS(); return !!t && TUT.findIndex((q) => q.id === id) <= t.s; };
+/* a brand-new save starts the first day; it gets the first pig for free, so the barn has someone to tuck in */
+function tutFresh(s) { s.tut = { s: 0, n: 0 }; s.owned.pig1 = true; s.store = { size: 0, seenIn: 0, furn: {}, deco: {}, paid: {}, pend: [] }; return s; }
+
+/* ---------- pictures ---------- */
+const tutPic = (() => { const cache = {}; return (name) => {
+  if (cache[name]) return cache[name];
+  if (name === 'gift') return (cache[name] = GIFT_IMG || actIcon('house'));
+  if (name === 'bag') { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.translate(64, 68); bagIcon(x, 1.7); return (cache[name] = c.toDataURL()); }
+  return (cache[name] = actIcon(name)); }; })();
+{ const st = document.createElement('style'); st.textContent = `
+.tut { position: fixed; left: 50%; top: max(12px, env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 8px 14px 9px; border-radius: 26px; background: var(--paper, #fff6e4); border: 3px solid var(--ink, #22303c); box-shadow: 0 5px 0 rgba(34,48,60,0.28); touch-action: none; user-select: none; -webkit-user-select: none; }
+.tut[hidden] { display: none; }
+.tut .job { display: flex; align-items: center; gap: 4px; height: 84px; position: relative; }
+.tut .job img { width: 92px; height: 92px; margin: -4px; display: block; }
+.tut .job .to { width: 30px; height: 30px; }
+.tut .job .bd { position: absolute; right: -10px; top: -6px; width: 36px; height: 36px; border-radius: 50%; background: #fffaf0; border: 3px solid #22303c; box-sizing: border-box; padding: 2px; }
+.tut .job .bd img { width: 100%; height: 100%; }
+.tut .dots { display: flex; gap: 8px; height: 20px; align-items: center; }
+.tut .dots i { width: 18px; height: 18px; border-radius: 50%; border: 3px solid #c9b38c; background: #fbf3e2; box-sizing: border-box; }
+.tut .dots i.on { border-color: #22303c; background: #e0a646; animation: tutDot 0.4s cubic-bezier(.2,1.8,.4,1); }
+.tut .bar { width: 150px; height: 16px; border-radius: 9px; border: 3px solid #22303c; background: #fbf3e2; overflow: hidden; box-sizing: border-box; }
+.tut .bar u { display: block; height: 100%; width: 0; background: #e0a646; transition: width 0.3s; }
+.tut .trail { display: flex; gap: 3px; align-items: center; padding-top: 4px; border-top: 2px dashed #e0cfa8; }
+.tut .trail b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #fbf3e2; border: 2px solid #c9b38c; box-sizing: border-box; overflow: hidden; }
+.tut .trail b img { width: 18px; height: 18px; opacity: 0.55; }
+.tut .trail b.done { background: #3f7d62; border-color: #22303c; }
+.tut .trail b.done img { display: none; }
+.tut .trail b.done::after { content: ''; width: 8px; height: 4px; border: solid #fffaf0; border-width: 0 0 3px 3px; transform: translateY(-1px) rotate(-45deg); }
+.tut .trail b.cur { width: 28px; height: 28px; border-color: #22303c; background: #fffaf0; }
+.tut .trail b.cur img { width: 24px; height: 24px; opacity: 1; }
+.tut .trail b.end { width: 30px; height: 30px; border-color: #e9684a; background: #fff0e6; }
+.tut .trail b.end img { width: 26px; height: 26px; opacity: 1; }
+.tut.pop { animation: tutPop 0.6s cubic-bezier(.2,1.6,.4,1); }
+.tut .skip { position: absolute; inset: -3px; border-radius: 26px; pointer-events: none; box-shadow: inset 0 0 0 0 rgba(233,104,74,0.0); }
+.tut.bye { animation: tutBye 0.7s ease-in forwards; }
+.tutGift { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; background: rgba(255,246,228,0.0); pointer-events: none; }
+.tutGift[hidden] { display: none; }
+.tutGift .g { width: 220px; height: 220px; border-radius: 50%; background: #fffaf0; border: 5px solid #22303c; box-shadow: 0 8px 0 rgba(34,48,60,0.3), 0 0 0 18px rgba(242,193,74,0.35); display: grid; place-items: center; animation: tutGiftIn 2.6s ease-in-out forwards; }
+.tutGift .g img { width: 160px; height: 160px; }
+@keyframes tutDot { from { transform: scale(0.3); } }
+@keyframes tutPop { 0% { transform: translateX(-50%) scale(1); } 35% { transform: translateX(-50%) scale(1.18); } 100% { transform: translateX(-50%) scale(1); } }
+@keyframes tutBye { to { transform: translateX(-50%) translateY(-160px) scale(0.6); opacity: 0; } }
+@keyframes tutGiftIn { 0% { transform: scale(0.2) rotate(-12deg); opacity: 0; } 18% { transform: scale(1.1) rotate(4deg); opacity: 1; } 28% { transform: scale(1) rotate(0); } 80% { transform: scale(1); opacity: 1; } 100% { transform: scale(0.4) translateY(200px); opacity: 0; } }
+@media (max-width: 900px) { .tut { top: calc(max(12px, env(safe-area-inset-top, 0px)) + 92px); } }
+@media (max-width: 560px) { .tut { transform: translateX(-50%) scale(0.78); transform-origin: 50% 0; } }
+@media (prefers-reduced-motion: reduce) { .tut.pop, .tut .dots i.on, .tutGift .g { animation: none; } }
+body.tutOn .stWish { display: none !important; }
+body.tutOn.tutShop .stWish { display: block !important; }
+`; document.head.appendChild(st); }
+const tutEl = document.createElement('div'); tutEl.className = 'tut'; tutEl.hidden = true; tutEl.setAttribute('role', 'status');
+tutEl.innerHTML = '<div class="job"></div><div class="dots"></div><div class="trail"></div>';
+document.body.appendChild(tutEl);
+const tutGiftEl = document.createElement('div'); tutGiftEl.className = 'tutGift'; tutGiftEl.hidden = true; tutGiftEl.innerHTML = '<div class="g"><img alt=""></div>'; document.body.appendChild(tutGiftEl);
+const TO_SVG = '<svg class="to" viewBox="0 0 30 30" aria-hidden="true"><path d="M4 15 H22 M15 7 L23 15 L15 23" fill="none" stroke="#22303c" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+let tutShown = '';
+function tutRender(force) {
+  const t = tutS(); document.body.classList.toggle('tutOn', !!t); if (!t) { tutEl.hidden = true; return; }
+  const q = TUT[t.s], have = tutHave(), key = t.s + ':' + have + ':' + (dressing ? 1 : 0);
+  tutEl.hidden = !!dressing || !!trip;
+  document.body.classList.toggle('tutShop', q.id === 'coin' || q.id === 'buy');
+  if (key === tutShown && !force) return; const stepChanged = !tutShown.startsWith(t.s + ':'); tutShown = key;
+  if (stepChanged || force) {
+    tutEl.querySelector('.job').innerHTML = '<img alt="" src="' + tutPic(q.a) + '">' + (q.b ? TO_SVG + '<img alt="" src="' + tutPic(q.b) + '">' : '') + (q.badge ? '<span class="bd"><img alt="" src="' + actIcon(q.badge) + '"></span>' : '');
+    tutEl.querySelector('.trail').innerHTML = TUT.map((s, i) => '<b class="' + (i < t.s ? 'done' : i === t.s ? 'cur' : '') + (i === TUT.length - 1 ? ' end' : '') + '"><img alt="" src="' + tutPic(s.b && s.id !== 'gift' && s.id !== 'out' ? s.b : s.a) + '"></b>').join('');
+    tutEl.setAttribute('aria-label', 'Steg ' + (t.s + 1) + ' av ' + TUT.length);
+    tutEl.querySelector('.dots').innerHTML = q.bar ? '<div class="bar"><u></u></div>' : q.n > 1 ? Array.from({ length: q.n }, () => '<i></i>').join('') : '';
+  }
+  if (q.bar) tutEl.querySelector('.bar u').style.width = Math.round(100 * clamp(have / q.n, 0, 1)) + '%';
+  else tutEl.querySelectorAll('.dots i').forEach((el, i) => { const on = i < have; if (on !== el.classList.contains('on')) el.classList.toggle('on', on); });
+}
+/* how far along the current step is (coins are counted from the purse, the rest from the events below) */
+function tutHave() { const t = tutS(); if (!t) return 0; return TUT[t.s].id === 'coin' ? Math.min(shop().coins, TUT_GEAR) : t.n; }
+
+/* ---------- moving on ---------- */
+let tutHold = 0; /* a short pause between steps so the tick and the pop can be seen */
+function tutCount(id, k) { const t = tutS(); if (!t || TUT[t.s].id !== id || tutHold > 0) return; t.n = Math.min(TUT[t.s].n, t.n + (k || 1)); tutRender(); if (t.n >= TUT[t.s].n) tutNext(); }
+function tutNext() {
+  const t = tutS(); if (!t) return;
+  tutHold = 1.1; tutRender(true);
+  tutEl.classList.remove('pop'); void tutEl.offsetWidth; tutEl.classList.add('pop');
+  Snd.init(); Snd.play('success', { gain: 0.45, f: 'G6' }); Snd.play('sparkle', { gain: 0.35, n: 5 }, 0.08);
+  if (!inHouse) confetti(pip.position.x, 1.6, pip.position.z, 22);
+  setTimeout(() => { const t2 = tutS(); if (!t2 || t2 !== t) return; if (t.s >= TUT.length - 1) { tutFinish(); return; } t.s++; t.n = 0; tutEnter(); tutRender(true); save(); }, 900);
+}
+/* things that happen as a step begins */
+let tutDusk = null, tutStepT = 0;
+function tutEnter() {
+  const id = tutId(); tutStepT = 0;
+  if (id === 'barn') { const f = dayFrac(), day = Math.floor(state.clock / DAY); if (f < 0.585) tutDusk = { from: state.clock, to: day * DAY + DAY * 0.585, t: 0 }; }
+  if (id === 'gift') tutGiftMake();
+}
+/* the coins step is skipped over at once when the purse already holds enough */
+function tutAuto() { const id = tutId(); if (id === 'coin' && shop().coins >= TUT_GEAR && tutHold <= 0) tutNext(); }
+
+/* ---------- the clock waits for the jobs ---------- */
+function tutClock(dt) {
+  const id = tutId(); if (!id) return;
+  const day = Math.floor(state.clock / DAY), f = dayFrac();
+  if (tutDusk) { tutDusk.t += dt; const q = Math.min(1, tutDusk.t / 4.5), e = q * q * (3 - 2 * q); state.clock = tutDusk.from + (tutDusk.to - tutDusk.from) * e; if (q >= 1) tutDusk = null; return; }
+  /* daytime jobs: the afternoon waits (the market stays open); evening jobs: dusk waits; morning jobs: the morning waits */
+  const cap = tutAt('barn') ? (id === 'out' || id === 'gift' ? 0.4 : 0.66) : 0.42;
+  if (f > cap && !sleep) state.clock = day * DAY + DAY * cap;
+}
+
+/* ---------- the present: a wrapped box by the tent; walking up to it opens it, and the little house is built ---------- */
+let tutGift = null;
+function tutGiftMake() {
+  if (tutGift) return; const g = new T.Group(), x = HDOOR.x + 2.2, z = HDOOR.z + 2.0; g.position.set(x, 0, z); sc.add(g);
+  part(fac(new T.BoxGeometry(0.9, 0.7, 0.9, 2, 2, 2), '#e9684a', 7101), g, 0, 0.35, 0);
+  part(fac(new T.BoxGeometry(1.0, 0.18, 1.0), '#c4473a', 7102), g, 0, 0.78, 0);
+  part(fac(new T.BoxGeometry(0.16, 0.74, 0.94), '#f2c14a', 7103), g, 0, 0.36, 0);
+  part(fac(new T.BoxGeometry(0.94, 0.74, 0.16), '#f2c14a', 7104), g, 0, 0.36, 0);
+  part(fac(new T.BoxGeometry(0.17, 0.2, 1.04), '#f2c14a', 7105), g, 0, 0.78, 0);
+  [-1, 1].forEach((s) => { const b = new T.TorusGeometry(0.16, 0.05, 6, 12); b.rotateY(Math.PI / 2); b.rotateX(s * 0.6); part(fac(b, '#f2c14a', 7106), g, 0, 0.98, s * 0.14); });
+  tutGift = { g, x, z, t: 0, open: false }; riseIn(g, 0.1, 0.8, true);
+}
+function tutGiftStep(dt) {
+  const G = tutGift; if (!G) return; G.t += dt;
+  if (!G.open) {
+    G.g.rotation.y = reduced ? 0 : Math.sin(G.t * 2) * 0.15; G.g.position.y = reduced ? 0 : Math.abs(Math.sin(G.t * 3)) * 0.12;
+    if (!inHouse && Math.hypot(pip.position.x - G.x, pip.position.z - G.z) < 1.25) {
+      G.open = true; G.ot = 0; confetti(G.x, 1.0, G.z, 60); fanfare(true);
+      tutGiftEl.querySelector('img').src = thumbOf('h:1', () => miniHouse(0, 1)); tutGiftEl.hidden = false; setTimeout(() => { tutGiftEl.hidden = true; }, 2700);
+      /* the present is the first house: it is built at once, with scaffolding, while Pip watches */
+      const S = stS(); if (S && S.size < 1) { S.size = 1; delete S.paid['h:1']; S.pend.push('size1'); } save();
+    }
+  } else {
+    G.ot += dt; const k = Math.min(1, G.ot / 0.5); G.g.scale.setScalar(Math.max(0.001, 1 + k * 0.4 - k * k * 1.4)); G.g.rotation.y += dt * 12;
+    if (k >= 1 && G.g.parent) sc.remove(G.g);
+    const S = stS(); if (S && S.size >= 1 && !S.pend.includes('size1') && !BUILD && G.ot > 1) { tutGift = null; tutCount('gift'); }
+  }
+}
+function tutFinish() {
+  const t = state.tut; if (!t) return; t.done = true; t.s = TUT.length;
+  tutEl.classList.add('bye'); setTimeout(() => { tutEl.hidden = true; tutEl.classList.remove('bye'); }, 750);
+  document.body.classList.remove('tutOn', 'tutShop');
+  /* everything opens up: pads come back */
+  showPad(); showSPad(); save();
+}
+
+/* ---------- where the arrow points ---------- */
+function tutGoal() {
+  const id = tutId(); if (!id) return null;
+  const outOf = () => inStore ? [SI.x, SI.z + 4.7] : inBarn ? [BI.x, BI.z + 5.2] : inHouse ? homeExit() : null;
+  const crateEggs = CRATES[0].pile.count('egg'), vanGoods = van && van.pile.items.length;
+  const anyFood = () => goal() || foodSpot(animals.find((an) => an.want) ? animals.find((an) => an.want).want : 'grain', animals.find((an) => an.want) ? animals.find((an) => an.want).a : 'hen');
+  if (id === 'feed' || id === 'feed2') return outOf() || anyFood();
+  if (id === 'egg') {
+    if (outOf()) return outOf();
+    if (carry.count('egg')) return stalls.egg ? sDrop('egg') : [SDROP.x, SDROP.z];
+    if (van && van.st === 'there' && vanGoods && van.prod) return [van.prod.x, van.prod.z];
+    if (crateEggs || (van && van.st !== 'home')) return van && van.st === 'home' ? [CRATES[0].x, CRATES[0].z + 1.2] : [SDROP.x, SDROP.z + 1.6];
+    if (carry.items.some((m) => SRC[m.userData.type])) return goal() || anyFood();
+    return animals.some((an) => an.a === 'hen' && an.want) ? anyFood() : [SDROP.x, SDROP.z + 1.6];
+  }
+  if (id === 'apple') {
+    if (outOf()) return outOf(); const tr = trees.find(Boolean);
+    if (carry.count('apple') && (carry.items.length >= cap() || !tr || !tr.pile.items.length)) return stalls.apple ? sDrop('apple') : [SDROP.x, SDROP.z];
+    return tr ? [tr.x, tr.z] : [SDROP.x, SDROP.z];
+  }
+  if (id === 'coin') { if (outOf()) return outOf(); const mp = mPiles.filter((o) => o.n > 0).sort((a, b) => b.n - a.n)[0]; if (mp) return [mp.x, mp.z]; if (carriesGoods()) return [SDROP.x, SDROP.z]; const tr = trees.find((q) => q && q.pile.items.length); return tr ? [tr.x, tr.z] : [SDROP.x, SDROP.z + 1.6]; }
+  if (id === 'buy') { if (inStore) { const c = cheapest(true); return c ? [c.s.padX, c.s.padZ] : [SI.x, SI.z + 4.7]; } return outOf() || [SDOOR.x, SDOOR.z]; }
+  if (id === 'barn' || id === 'out') { if (inStore) return [SI.x, SI.z + 4.7]; if (inHouse && !inBarn) return homeExit(); return barnGoal() || (id === 'out' ? [BDOOR.x, BDOOR.z] : null); }
+  if (id === 'bed') { if (inHouse && !inBarn && !inStore) return [bedRing.x, bedRing.z]; return outOf() || [HDOOR.x, HDOOR.z]; }
+  if (id === 'gift') { if (outOf()) return outOf(); return tutGift && !tutGift.open ? [tutGift.x, tutGift.z] : [HOUSE.x, HOUSE.z + 2.2]; }
+  return null;
+}
+/* the arrow normally hides inside the house; during the first day it still shows the way (to the bed, or out again) */
+const tutArrowIn = () => tutOn() && !!tutGoal();
+
+/* ---------- hooks into the game ---------- */
+{ const g0 = guideGoal; guideGoal = function () { if (tutOn()) return tutGoal(); return g0(); }; }
+{ const f0 = feed; feed = function (an, m) { const was = !!(an && an.want); f0(an, m); if (was && !an.want) { tutCount('feed'); tutCount('feed2'); } }; }
+{ const p0 = pipMarket; pipMarket = function (dt) { const e = carry.count('egg'), a = carry.count('apple'); p0(dt); if (!tutOn()) return; const de = e - carry.count('egg'), da = a - carry.count('apple'); if (de > 0 && inMarketTown()) tutCount('egg', de); if (da > 0 && inMarketTown()) tutCount('apple', da); }; }
+{ const b0 = storeBuy; storeBuy = function (s, o) { b0(s, o); tutCount('buy'); }; }
+{ const c0 = catBuy; catBuy = function (a) { const r = c0(a); if (r) tutCount('buy'); return r; }; }
+/* nothing is bought on the spot (house, landmarks, room corners) until the first day is over */
+{ const s0 = spotOffers; spotOffers = function () { return tutOn() ? [] : s0(); }; }
+/* the farm's heart pads wait too */
+{ const n0 = nextPad; nextPad = function () { return tutOn() ? null : n0(); }; }
+let tutSleptAt = -1, tutWasSleep = false, tutSkipT = 0;
+function tutStep(dt) {
+  if (!state.tut) return;
+  const t = tutS(); if (!t) { if (!tutEl.hidden && !tutEl.classList.contains('bye')) tutEl.hidden = true; return; }
+  tutStepT += dt; if (tutHold > 0) tutHold -= dt;
+  tutClock(dt); tutAuto(); tutGiftStep(dt);
+  const id = tutId();
+  /* bedtime: everyone who sleeps in the barn is in; morning: everyone is back out */
+  if (id === 'barn') { const big = animals.filter((an) => canBarn(an)); if (big.length && big.every((an) => an.inBarn) && !followers.length) tutCount('barn'); if (!big.length) tutCount('barn'); }
+  if (sleep) tutWasSleep = true; else if (tutWasSleep) { tutWasSleep = false; tutCount('bed'); }
+  if (id === 'out' && morning() && !animals.some((an) => an.inBarn) && !followers.length && !inBarn) tutCount('out');
+  if (id === 'gift' && !tutGift && !(stS() && stS().size >= 1)) tutGiftMake();
+  if (id === 'gift' && stS() && stS().size >= 1 && !stS().pend.includes('size1') && !tutGift) tutCount('gift');
+  /* the coins step: if the market runs dry, the bunny at the counter tips the last few coins */
+  if (id === 'coin' && tutStepT > 45 && tutHold <= 0 && !mPiles.some((o) => o.n > 0)) { tutStepT = 42; earnCoins(1); Snd.play('coin', { gain: 0.35 }); }
+  tutRender();
+}
+/* grown-ups: press and hold the card for three seconds to skip the first day */
+{ let hold = 0; const end = () => { clearTimeout(hold); hold = 0; };
+  tutEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); end(); hold = setTimeout(() => { const t = tutS(); if (!t) return; const S = stS(); if (S && S.size < 1) { S.size = 1; S.pend.push('size1'); } if (tutGift) { sc.remove(tutGift.g); tutGift = null; } tutFinish(); Snd.play('whoosh', { gain: 0.35 }); }, 3000); });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => tutEl.addEventListener(ev, end));
+  tutEl.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true }); }
+{ const e0 = extrasStep; extrasStep = function (dt) { e0(dt); tutStep(dt); }; }
+/* a saved first day picks up where it was left (the present comes back if it was not opened yet) */
+function tutInit() { const t = tutS(); if (!t) return; tutEnter(); tutRender(true); if (sPad) { sc.remove(sPad.g); sPad = null; } }
+if (window.__farmTest) window.__tut = () => ({ s: tutS() ? tutS().s : -1, id: tutId(), n: tutS() ? tutS().n : 0, have: tutHave(), goal: tutGoal(), f: +dayFrac().toFixed(3), size: stS() && stS().size, pend: stS() && stS().pend.join(','),
+  jump: (s) => { const t = tutS(); if (t) { t.s = s; t.n = 0; tutEnter(); tutRender(true); } }, next: () => tutNext(), gift: () => tutGift && [tutGift.x, tutGift.z], done: () => !!(state.tut && state.tut.done) });
 /* ---------- sky with clouds ----------
    Replaces the plain two-colour dome with one that follows the camera and is anchored to the *visible* horizon
    (with the curved world the sea edge sits well below eye level, so the gradient and clouds start there).
@@ -8106,7 +8329,7 @@ function step(dt) {
   for (let i = pops.length - 1; i >= 0; i--) { const m = pops[i], u = m.userData; u.t += dt; u.v.y -= 12 * dt; m.position.addScaledVector(u.v, dt); m.rotation.y += dt * 8; if (u.t > 1.2) { sc.remove(m); pops.splice(i, 1); } }
 
   /* guidance */
-  const g = inHouse && !inBarn && !inStore && !barnGoal() ? null : guideGoal();
+  const g = inHouse && !inBarn && !inStore && !barnGoal() && !tutArrowIn() ? null : guideGoal();
   arrow.visible = !!g; chevG.visible = !!g; goalRing.visible = !!g;
   if (g) {
     arrow.position.set(g[0], 2.0 + (reduced ? 0 : Math.abs(Math.sin(time * 3)) * 0.35), g[1]); arrow.rotation.y += dt * 2; const rq = reduced ? 0.5 : (time * 0.8) % 1; goalRing.position.set(g[0], 0.05, g[1]); goalRing.scale.setScalar(0.7 + rq * 0.5); goalRing.material.opacity = 0.9 * (1 - rq);
@@ -8132,11 +8355,11 @@ let started = false;
 function start(data) {
   if (started) return; started = true;
   const hot = data && data.state && data.state.v === 1 ? data.state : null;
-  state = hot || load() || fresh();
+  state = hot || load() || tutFresh(fresh());
   addSource('grain'); addSource('water'); addSource('carrot'); addAnimal('hen'); addAnimal('hen'); /* two hens from the start; the first pig is bought (farms from before keep theirs) */
   if (!state.owned.pig1 && (state.owned.hen3 || state.owned.pig2 || (state.total || 0) > 30)) state.owned.pig1 = true;
   PADS.forEach((p) => { if (own(p.id)) build(p); });
-  barnReady = true; barnInit();
+  barnReady = true; barnInit(); tutInit();
   restoreBabies(); extrasInit();
   showPad(); $('hint').hidden = !!state.moved; if (avNew) openWardrobe(true);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
