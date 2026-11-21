@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121152609">
+<meta name="app-ver" content="20261121154906">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2333,7 +2333,18 @@ const dayFrac = () => (state.clock % DAY) / DAY;
 const pipLamp = new T.PointLight(0xffd8a0, 0, 4.5, 2); pipLamp.position.set(0, 1.6, 0.4); pip.add(pipLamp);
 const tractorLamp = new T.PointLight(0xfff0c0, 0, 6, 2); sc.add(tractorLamp);
 /* glows: a soft round sprite used for windows, Pip's lamp and fireflies */
-const glowTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,230,160,1)'); g.addColorStop(0.35, 'rgba(255,210,120,0.55)'); g.addColorStop(1, 'rgba(255,200,100,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
+/* soft round textures computed pixel by pixel (no canvas gradients): Safari dithers canvas gradients, and where the alpha is
+   nearly zero that dither turns into random colours when WebGL un-premultiplies the canvas, which showed up as rainbow
+   confetti in the mist, glows and shadows. stops: [t, r, g, b, a] with t 0..1 from the centre, colours 0..255, a 0..1 */
+function gradTex(w, h, stops, lin) {
+  const d = new Uint8Array(w * h * 4);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const t = lin ? 1 - (y + 0.5) / h : Math.min(1, Math.hypot((x + 0.5) / w * 2 - 1, (y + 0.5) / h * 2 - 1)); let i = 0; while (i < stops.length - 2 && t > stops[i + 1][0]) i++;
+    const A = stops[i], B = stops[i + 1], q = Math.max(0, Math.min(1, (t - A[0]) / Math.max(1e-6, B[0] - A[0]))), o = (y * w + x) * 4;
+    for (let k = 0; k < 3; k++) d[o + k] = Math.round(A[k + 1] + (B[k + 1] - A[k + 1]) * q); d[o + 3] = Math.round(255 * (A[4] + (B[4] - A[4]) * q)); }
+  const t = new T.DataTexture(d, w, h, T.RGBAFormat); t.magFilter = T.LinearFilter; t.minFilter = T.LinearMipmapLinearFilter; t.generateMipmaps = true; t.needsUpdate = true; return t;
+}
+const glowTex = gradTex(64, 64, [[0, 255, 230, 160, 1], [0.35, 255, 210, 120, 0.55], [1, 255, 200, 100, 0]]);
 const glowMat = new T.SpriteMaterial({ map: glowTex, transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: 0 });
 const lampMat = new T.MeshBasicMaterial({ color: '#4a3a2e' });
 const lampOff = new T.Color('#4a3a2e'), lampOn = new T.Color('#ffd27a');
@@ -3044,7 +3055,7 @@ const rainbowMat = applyWorldCurve(new T.ShaderMaterial({ transparent: false, bl
 const rainbow = new T.Mesh(new T.RingGeometry(RBOW.ri, RBOW.ro, 56, 1, 0, Math.PI), rainbowMat); rainbow.visible = false; rainbow.frustumCulled = false; rainbow.renderOrder = -1; sky.renderOrder = -2; sc.add(rainbow);
 if (window.__farmTest) window.__bow = (t) => { rainbowT = t == null ? 30 : t; };
 /* snow: soft round flakes that drift with the wind */
-const softTex = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.translate(w / 2, h / 2); x.scale(w / 2, h / 2); const g = x.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.45, 'rgba(255,255,255,0.75)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(-1, -1, 2, 2); return new T.CanvasTexture(c); };
+const softTex = (w, h) => gradTex(w, h, [[0, 255, 255, 255, 1], [0.45, 255, 255, 255, 0.75], [1, 255, 255, 255, 0]]);
 const SNOW_N = 300, snowPos = new Float32Array(SNOW_N * 3).fill(-99);
 const snowGeo = new T.BufferGeometry(); snowGeo.setAttribute('position', new T.BufferAttribute(snowPos, 3)); snowGeo.setDrawRange(0, 0);
 const snowMat = new T.PointsMaterial({ color: '#ffffff', size: 0.24, map: softTex(32, 32), transparent: true, depthWrite: false, opacity: 0.95 });
@@ -3293,7 +3304,7 @@ const SN = 760, sPos = new Float32Array(SN * 12), sHead = new Float32Array(SN * 
 const streakGeo = (() => { const g = new T.BufferGeometry(), uv = new Float32Array(SN * 8), idx = new Uint16Array(SN * 6);
   for (let k = 0; k < SN; k++) { uv.set([0, 1, 1, 1, 0, 0, 1, 0], k * 8); idx.set([k * 4, k * 4 + 2, k * 4 + 1, k * 4 + 1, k * 4 + 2, k * 4 + 3], k * 6); }
   g.setAttribute('position', new T.BufferAttribute(sPos, 3)); g.setAttribute('uv', new T.BufferAttribute(uv, 2)); g.setIndex(new T.BufferAttribute(idx, 1)); g.setDrawRange(0, 0); return g; })();
-const streakTex = (() => { const c = document.createElement('canvas'); c.width = 4; c.height = 64; const x = c.getContext('2d'), g = x.createLinearGradient(0, 0, 0, 64); g.addColorStop(0, 'rgba(255,255,255,0.95)'); g.addColorStop(0.25, 'rgba(255,255,255,0.6)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 4, 64); return new T.CanvasTexture(c); })();
+const streakTex = gradTex(4, 64, [[0, 255, 255, 255, 0.95], [0.25, 255, 255, 255, 0.6], [1, 255, 255, 255, 0]], true);
 const streakMat = new T.MeshBasicMaterial({ map: streakTex, color: '#d3e2ec', transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide });
 const streaks = new T.Mesh(streakGeo, streakMat); streaks.frustumCulled = false; streaks.visible = false; sc.add(streaks);
 
@@ -3302,7 +3313,7 @@ const RN = 56, rPos = new Float32Array(RN * 12), rCol = new Float32Array(RN * 12
 const ringGeo = (() => { const g = new T.BufferGeometry(), uv = new Float32Array(RN * 8), idx = new Uint16Array(RN * 6);
   for (let k = 0; k < RN; k++) { uv.set([0, 0, 1, 0, 0, 1, 1, 1], k * 8); idx.set([k * 4, k * 4 + 2, k * 4 + 1, k * 4 + 1, k * 4 + 2, k * 4 + 3], k * 6); RINGS.push({ t: 1, L: 1, x: 0, z: 0, y: 0, r: 0 }); }
   g.setAttribute('position', new T.BufferAttribute(rPos, 3)); g.setAttribute('color', new T.BufferAttribute(rCol, 3)); g.setAttribute('uv', new T.BufferAttribute(uv, 2)); g.setIndex(new T.BufferAttribute(idx, 1)); return g; })();
-const ringTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.62, 'rgba(255,255,255,0)'); g.addColorStop(0.8, 'rgba(255,255,255,1)'); g.addColorStop(0.9, 'rgba(255,255,255,0.4)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
+const ringTex = gradTex(64, 64, [[0, 255, 255, 255, 0], [0.62, 255, 255, 255, 0], [0.8, 255, 255, 255, 1], [0.9, 255, 255, 255, 0.4], [1, 255, 255, 255, 0]]);
 const ringMesh = new T.Mesh(ringGeo, new T.MeshBasicMaterial({ map: ringTex, vertexColors: true, transparent: true, depthWrite: false, blending: T.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -3 }));
 ringMesh.frustumCulled = false; ringMesh.visible = false; ringMesh.renderOrder = 3; sc.add(ringMesh);
 let ringI = 0;
@@ -3421,7 +3432,7 @@ function rainLate() {
 const wxBtn = (() => { const b = document.createElement('button'); b.id = 'wxBtn'; b.type = 'button'; b.textContent = '🌧'; b.setAttribute('aria-label', 'Byt väder');
   b.style.cssText = 'position:fixed;left:max(12px,env(safe-area-inset-left,0px));top:calc(50% + 34px);width:48px;height:48px;border-radius:50%;border:3px solid #22303c;background:#fffaf0;font-size:22px;line-height:1;box-shadow:0 4px 0 rgba(34,48,60,.25);z-index:30;padding:0';
   const order = ['clear', 'rain', 'heavy', 'mist', 'windy'];
-  b.addEventListener('click', (e) => { e.stopPropagation(); const i = order.indexOf(state.wx.k), k = order[(i + 1) % order.length]; wxSet(k, k === 'clear' ? 120 : 90); delete state.wx.nx; b.textContent = { clear: '🌧', rain: '⛈', heavy: '🌫', mist: '💨', windy: '☀️' }[k]; });
+  b.addEventListener('click', (e) => { e.stopPropagation(); const i = order.indexOf(state.wx.k), k = order[(i + 1) % order.length]; wxSet(k, k === 'clear' ? 120 : 90); delete state.wx.nx; /* dev testing: jump straight to the new weather instead of a slow fade */ rainAmt = k === 'heavy' ? 1 : k === 'rain' ? 0.55 : 0; mistAmt = k === 'mist' ? 1 : 0; windAmt = WX_WIND[k]; fogAmt = clamp((k === 'mist' ? 0.4 : 0) + rainAmt * 0.85, 0, 1); if (raining()) { wet = Math.max(wet, 0.8); RS.gw = 1; } b.textContent = { clear: '🌧', rain: '⛈', heavy: '🌫', mist: '💨', windy: '☀️' }[k]; });
   ['pointerdown', 'touchstart'].forEach((ev) => b.addEventListener(ev, (e) => e.stopPropagation(), { passive: true }));
   b.hidden = true; document.body.appendChild(b); return b; })();
 
@@ -4776,8 +4787,7 @@ sc.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => { m.ne
 const LAMP_LIGHTS = LAMP_AT.slice(0, 4).map(([x, z]) => { const l = new T.PointLight(0xffc27a, 0, 5, 2); l.position.set(x, 1.6, z); sc.add(l); return l; });
 
 /* contact shadows: a soft dark spot right under each bush, tree, bench, pot, lamp and house, so nothing floats on the grass */
-const blobTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
-  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.5, 'rgba(255,255,255,0.85)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
+const blobTex = gradTex(64, 64, [[0, 255, 255, 255, 1], [0.5, 217, 217, 217, 0.85], [1, 0, 0, 0, 0]]); /* used as an alphaMap: the green channel is the alpha */
 const blobMat = new T.MeshBasicMaterial({ color: '#1c2a20', alphaMap: blobTex, transparent: true, opacity: 0.7, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
 {
   const L = [];
@@ -7856,10 +7866,10 @@ if (window.__farmTest) window.__stock = { fill: (a, t, n) => { const pen = pens[
 /* ---------- the first day: a guided start for a new farm ----------
    A new game walks through the basics one step at a time, in this order: feed the animals, take eggs to the market,
    pick apples and sell them, pick up the coins, buy the first thing in the store, feed the animals again, lead them
-   into the barn at dusk, sleep in the tent, fetch them out in the morning, and then a present: the first little house.
+   into the barn at dusk, sleep in the tent, fetch them out in the morning, and then a present: coins for the first little house, bought on the spot at the tent.
    A picture card at the top shows the job (what to fetch -> where it goes) with dots that fill up, and a trail of the
    whole day ending in the present. The guide arrow follows the current job. Until the present is opened nothing can be
-   bought on pads or spots, the store opens at its step, and the clock waits for the jobs (afternoon holds until the
+   bought on pads or spots (the house at its own step), the store opens at its step, and the clock waits for the jobs (afternoon holds until the
    buying is done, dusk comes on cue). Farms saved before this never see it: only a brand-new save gets state.tut. */
 const TUT = [
   { id: 'feed', n: 3, a: 'grain', b: 'hen' },
@@ -7871,7 +7881,8 @@ const TUT = [
   { id: 'barn', n: 1, a: 'pig', b: 'barn', badge: 'moon' },
   { id: 'bed', n: 1, a: 'moon', b: 'bed' },
   { id: 'out', n: 1, a: 'barn', b: 'pig', badge: 'sun' },
-  { id: 'gift', n: 1, a: 'gift', b: 'house' }
+  { id: 'gift', n: 1, a: 'gift', b: 'coin' },
+  { id: 'house', n: 1, a: 'coin', b: 'house' }
 ];
 const TUT_GEAR = 10; /* coins for the first thing in the store (Pip's speedy boots) */
 const tutS = () => state && state.tut && !state.tut.done ? state.tut : null;
@@ -7911,6 +7922,7 @@ const tutPic = (() => { const cache = {}; return (name) => {
 .tut .trail b.cur img { width: 24px; height: 24px; opacity: 1; }
 .tut .trail b.end { width: 30px; height: 30px; border-color: #e9684a; background: #fff0e6; }
 .tut .trail b.end img { width: 26px; height: 26px; opacity: 1; }
+.tut { transition: opacity 0.25s; } .tut.dim { opacity: 0.18; }
 .tut.pop { animation: tutPop 0.6s cubic-bezier(.2,1.6,.4,1); }
 .tut .skip { position: absolute; inset: -3px; border-radius: 26px; pointer-events: none; box-shadow: inset 0 0 0 0 rgba(233,104,74,0.0); }
 .tut.bye { animation: tutBye 0.7s ease-in forwards; }
@@ -7968,7 +7980,7 @@ let tutDusk = null, tutStepT = 0;
 function tutEnter() {
   const id = tutId(); tutStepT = 0;
   if (id === 'barn') { const f = dayFrac(), day = Math.floor(state.clock / DAY); if (f < 0.585) tutDusk = { from: state.clock, to: day * DAY + DAY * 0.585, t: 0 }; }
-  if (id === 'gift') tutGiftMake();
+  if (id === 'gift' && !(state.tut && state.tut.gave)) tutGiftMake();
 }
 /* the coins step is skipped over at once when the purse already holds enough */
 function tutAuto() { const id = tutId(); if (id === 'coin' && shop().coins >= TUT_GEAR && tutHold <= 0) tutNext(); }
@@ -8001,14 +8013,16 @@ function tutGiftStep(dt) {
     G.g.rotation.y = reduced ? 0 : Math.sin(G.t * 2) * 0.15; G.g.position.y = reduced ? 0 : Math.abs(Math.sin(G.t * 3)) * 0.12;
     if (!inHouse && Math.hypot(pip.position.x - G.x, pip.position.z - G.z) < 1.25) {
       G.open = true; G.ot = 0; confetti(G.x, 1.0, G.z, 60); fanfare(true);
-      tutGiftEl.querySelector('img').src = thumbOf('h:1', () => miniHouse(0, 1)); tutGiftEl.hidden = false; setTimeout(() => { tutGiftEl.hidden = true; }, 2700);
-      /* the present is the first house: it is built at once, with scaffolding, while Pip watches */
-      const S = stS(); if (S && S.size < 1) { S.size = 1; delete S.paid['h:1']; S.pend.push('size1'); } save();
+      tutGiftEl.querySelector('img').src = actIcon('coin'); tutGiftEl.hidden = false; setTimeout(() => { tutGiftEl.hidden = true; }, 2700);
+      /* the present is a pile of coins: enough for the first little house, which Pip then buys at the tent like anything else */
+      const gift = SIZES[1].cost; if (state.tut) state.tut.gave = 1; earnCoins(gift); coinPill && flash(coinPill, 'bump');
+      for (let k = 0; k < 12; k++) setTimeout(() => Snd.play('coin', { gain: 0.3 }, 0, 40), 120 + k * 90);
+      save();
     }
   } else {
     G.ot += dt; const k = Math.min(1, G.ot / 0.5); G.g.scale.setScalar(Math.max(0.001, 1 + k * 0.4 - k * k * 1.4)); G.g.rotation.y += dt * 12;
     if (k >= 1 && G.g.parent) sc.remove(G.g);
-    const S = stS(); if (S && S.size >= 1 && !S.pend.includes('size1') && !BUILD && G.ot > 1) { tutGift = null; tutCount('gift'); }
+    if (G.ot > 1.4) { tutGift = null; tutCount('gift'); }
   }
 }
 function tutFinish() {
@@ -8043,7 +8057,8 @@ function tutGoal() {
   if (id === 'buy') { if (inStore) { const c = cheapest(true); return c ? [c.s.padX, c.s.padZ] : [SI.x, SI.z + 4.7]; } return outOf() || [SDOOR.x, SDOOR.z]; }
   if (id === 'barn' || id === 'out') { if (inStore) return [SI.x, SI.z + 4.7]; if (inHouse && !inBarn) return homeExit(); return barnGoal() || (id === 'out' ? [BDOOR.x, BDOOR.z] : null); }
   if (id === 'bed') { if (inHouse && !inBarn && !inStore) return [bedRing.x, bedRing.z]; return outOf() || [HDOOR.x, HDOOR.z]; }
-  if (id === 'gift') { if (outOf()) return outOf(); return tutGift && !tutGift.open ? [tutGift.x, tutGift.z] : [HOUSE.x, HOUSE.z + 2.2]; }
+  if (id === 'gift') { if (outOf()) return outOf(); return tutGift && !tutGift.open ? [tutGift.x, tutGift.z] : null; }
+  if (id === 'house') { if (outOf()) return outOf(); return [HDOOR.x, HDOOR.z + 0.6]; }
   return null;
 }
 /* the arrow normally hides inside the house; during the first day it still shows the way (to the bed, or out again) */
@@ -8056,7 +8071,7 @@ const tutArrowIn = () => tutOn() && !!tutGoal();
 { const b0 = storeBuy; storeBuy = function (s, o) { b0(s, o); tutCount('buy'); }; }
 { const c0 = catBuy; catBuy = function (a) { const r = c0(a); if (r) tutCount('buy'); return r; }; }
 /* nothing is bought on the spot (house, landmarks, room corners) until the first day is over */
-{ const s0 = spotOffers; spotOffers = function () { return tutOn() ? [] : s0(); }; }
+{ const s0 = spotOffers; spotOffers = function () { if (!tutOn()) return s0(); return tutId() === 'house' ? s0().filter((o) => o.act && o.act.k === 'size') : []; }; }
 /* the farm's heart pads wait too */
 { const n0 = nextPad; nextPad = function () { return tutOn() ? null : n0(); }; }
 let tutSleptAt = -1, tutWasSleep = false, tutSkipT = 0;
@@ -8070,11 +8085,11 @@ function tutStep(dt) {
   if (id === 'barn') { const big = animals.filter((an) => canBarn(an)); if (big.length && big.every((an) => an.inBarn) && !followers.length) tutCount('barn'); if (!big.length) tutCount('barn'); }
   if (sleep) tutWasSleep = true; else if (tutWasSleep) { tutWasSleep = false; tutCount('bed'); }
   if (id === 'out' && morning() && !animals.some((an) => an.inBarn) && !followers.length && !inBarn) tutCount('out');
-  if (id === 'gift' && !tutGift && !(stS() && stS().size >= 1)) tutGiftMake();
-  if (id === 'gift' && stS() && stS().size >= 1 && !stS().pend.includes('size1') && !tutGift) tutCount('gift');
+  if (id === 'gift' && !tutGift && !t.gave) tutGiftMake();
+  if (id === 'house' && stS() && stS().size >= 1 && !stS().pend.includes('size1') && !BUILD) tutCount('house');
   /* the coins step: if the market runs dry, the bunny at the counter tips the last few coins */
   if (id === 'coin' && tutStepT > 45 && tutHold <= 0 && !mPiles.some((o) => o.n > 0)) { tutStepT = 42; earnCoins(1); Snd.play('coin', { gain: 0.35 }); }
-  tutRender();
+  tutRender(); tutEl.classList.toggle('dim', !spBtn.hidden); /* the buy bubble pops up near the top: the card steps back */
 }
 /* grown-ups: press and hold the card for three seconds to skip the first day */
 { let hold = 0; const end = () => { clearTimeout(hold); hold = 0; };
@@ -8086,6 +8101,14 @@ function tutStep(dt) {
 function tutInit() { const t = tutS(); if (!t) return; tutEnter(); tutRender(true); if (sPad) { sc.remove(sPad.g); sPad = null; } }
 if (window.__farmTest) window.__tut = () => ({ s: tutS() ? tutS().s : -1, id: tutId(), n: tutS() ? tutS().n : 0, have: tutHave(), goal: tutGoal(), f: +dayFrac().toFixed(3), size: stS() && stS().size, pend: stS() && stS().pend.join(','),
   jump: (s) => { const t = tutS(); if (t) { t.s = s; t.n = 0; tutEnter(); tutRender(true); } }, next: () => tutNext(), gift: () => tutGift && [tutGift.x, tutGift.z], done: () => !!(state.tut && state.tut.done) });
+/* test only: an autopilot goal for measuring a normal day (guide arrow by day, bed at night) and a snapshot of the purse and unlocks */
+if (window.__farmTest) window.__auto = () => {
+  let g = null;
+  if (sleepy() && !barnGoal() && !sleep) g = inHouse && !inBarn && !inStore ? [bedRing.x, bedRing.z] : inStore ? [SI.x, SI.z + 4.7] : inBarn ? [BI.x, BI.z + 5.2] : [HDOOR.x, HDOOR.z];
+  else g = (inHouse && !inBarn && !inStore && !barnGoal()) ? (guideGoal() || homeExit()) : guideGoal();
+  return { g, clock: state.clock, hearts: state.coins, hTot: state.total, coins: shop().coins, cTot: shop().total, owned: Object.keys(state.owned), sOwned: Object.keys(shop().owned), lv: state.lv, size: stS() && stS().size, furn: stS() && Object.keys(stS().furn).length, deco: stS() && Object.keys(stS().deco).length, isle: stS() && Object.keys(stS().isle || {}), barn: Object.keys(barnS().owned), cat: stS() && stS().cat ? Object.keys(stS().cat.own).length : 0, n: animals.length };
+};
+if (window.__farmTest) window.__autoCat = () => { const c = cheapest(true); if (c && c.o.act) catBuy(c.o.act); if (typeof catClose === 'function') catClose(); return c && c.o.id; };
 /* ---------- sky with clouds ----------
    Replaces the plain two-colour dome with one that follows the camera and is anchored to the *visible* horizon
    (with the curved world the sea edge sits well below eye level, so the gradient and clouds start there).
