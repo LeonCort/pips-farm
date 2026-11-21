@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121164435">
+<meta name="app-ver" content="20261121170611">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -8238,7 +8238,7 @@ if (window.__farmTest) window.__queue = () => ({ h: qHead('h'), c: qHead('c'), p
    the things after it show as dark silhouettes, so a child can see what is coming. One tap on a coloured one buys it right there.
    Out in normal play the floating "+" markers are gone; the ground pads and the store still work as before. */
 var buyOn = false;
-const BM = { p: 62 * Math.PI / 180, sel: null, prev: null, pt: 0, k: 0, area: 1, cx: 2, cz: 0, D: 40, els: [], key: '', t: 0, fogN: 0, fogF: 0 };
+const BM = { pan: 0, p: 62 * Math.PI / 180, sel: null, prev: null, pt: 0, k: 0, area: 1, cx: 2, cz: 0, D: 40, els: [], key: '', t: 0, fogN: 0, fogF: 0 };
 const BM_AREAS = [
   { id: 'top', x0: -17, x1: 21, z0: -12.5, z1: -3.6, cz: -7.2 },
   { id: 'mid', x0: -17, x1: 23, z0: -3.6, z1: 4.6, cz: 0.6 },
@@ -8345,29 +8345,36 @@ const bmTabSvg = (i) => '<svg viewBox="0 0 72 52" aria-hidden="true"><path d="M8
   + '<rect x="0" y="' + [0, 18, 34][i] + '" width="72" height="' + [18, 16, 18][i] + '" fill="#e9684a" opacity="0.85" clip-path="url(#bmc' + i + ')"/>'
   + '<path d="M8 26 Q6 8 26 6 Q46 3 62 10 Q70 20 66 36 Q60 48 38 47 Q12 48 8 26 Z" fill="none" stroke="#22303c" stroke-width="3"/><circle cx="36" cy="26" r="3.5" fill="#fffaf0" stroke="#22303c" stroke-width="2"/></svg>';
 const bmTabs = [0, 1, 2].map((i) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'bmTab'; b.setAttribute('aria-label', ['Norra delen', 'Mitten', 'Södra delen'][i]); b.innerHTML = bmTabSvg(i) + '<span class="dot"></span>'; bmBar.appendChild(b);
-  b.addEventListener('click', (e) => { e.stopPropagation(); Snd.play('pop', { gain: 0.3, f: 620 + i * 80 }); bmArea(i); }); return b; });
+  b.addEventListener('click', (e) => { e.stopPropagation(); Snd.play('pop', { gain: 0.3, f: 620 + i * 80 }); bmArea(i, false, BM.cx); }); return b; });
 const bmX = document.createElement('button'); bmX.type = 'button'; bmX.className = 'bmX'; bmX.setAttribute('aria-label', 'Tillbaka');
 bmX.innerHTML = '<svg viewBox="0 0 30 30" aria-hidden="true"><path d="M7 7 L23 23 M23 7 L7 23" stroke="#fffaf0" stroke-width="5" stroke-linecap="round"/></svg>'; bmBar.appendChild(bmX);
 [bmBtn, bmLay, bmBar].forEach((el) => ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup'].forEach((ev) => el.addEventListener(ev, (e) => { e.stopPropagation(); }, { passive: true })));
 bmBtn.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); buyMode(!buyOn); });
 bmX.addEventListener('click', (e) => { e.stopPropagation(); buyMode(false); });
 /* swipe up or down on the map to go to the next part */
-{ let y0 = null; bmLay.addEventListener('pointerdown', (e) => { y0 = e.clientY; }); bmLay.addEventListener('pointerup', (e) => { if (y0 == null) return; const dy = e.clientY - y0; y0 = null; if (Math.abs(dy) > 60) bmArea(clamp(BM.area + (dy > 0 ? -1 : 1), 0, 2)); }); }
+/* on a tall phone screen the view is narrower than the island: drag sideways to look along it */
+{ let y0 = null, x0 = 0, p0 = 0; bmLay.addEventListener('pointerdown', (e) => { y0 = e.clientY; x0 = e.clientX; p0 = BM.pan; });
+  bmLay.addEventListener('pointermove', (e) => { if (y0 == null) return; const r = wrap.getBoundingClientRect(), vw = bmHalfW() * 2; BM.pan = clamp(p0 - (e.clientX - x0) * vw / r.width, -bmPanMax(), bmPanMax()); });
+  bmLay.addEventListener('pointerup', (e) => { if (y0 == null) return; const dy = e.clientY - y0, dx = e.clientX - x0; y0 = null; if (Math.abs(dy) > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) bmArea(clamp(BM.area + (dy > 0 ? -1 : 1), 0, 2), false, BM.cx); });
+  bmLay.addEventListener('pointercancel', () => { y0 = null; }); }
+/* how much of the island's width shows, and how far the view may slide */
+const bmHalfW = () => BM.D * Math.tan(cam.fov * Math.PI / 360) * cam.aspect;
+function bmPanMax() { const a = BM_AREAS[BM.area]; return Math.max(0, (a.x1 - a.x0) / 2 + 1.5 - bmHalfW()); }
 function buyMode(on) {
   if (on === buyOn) return;
   if (on && (inHouse || trip || dressing || (typeof ED !== 'undefined' && ED.on))) return;
   bmSelect(null, true); buyOn = on; document.body.classList.toggle('buyOn', on); bmBtn.classList.toggle('on', on); bmLay.hidden = !on; bmBar.hidden = !on;
   Snd.play(on ? 'whoosh' : 'swish', { gain: 0.35 });
   if (on) { target.copy(pip.position); if (typeof routeStop === 'function') routeStop();
-    const L = bmList(), h = L.find((it) => it.head && bmPurse(it) >= it.left()); bmArea(h ? h.area : bmAreaOf(pip.position.z), true); }
+    const L = bmList(), h = L.find((it) => it.head && bmPurse(it) >= it.left()); bmArea(h ? h.area : bmAreaOf(pip.position.z), true, h ? h.x : pip.position.x); }
   BM.key = '';
 }
-function bmArea(i, snap) {
+function bmArea(i, snap, fx) {
   BM.area = i; bmTabs.forEach((b, k) => b.classList.toggle('on', k === i)); BM.key = '';
-  const a = BM_AREAS[i]; if (snap) { BM.cx = (a.x0 + a.x1) / 2; BM.cz = a.cz; BM.D = bmDist(a); }
+  const a = BM_AREAS[i]; if (snap) BM.D = bmDist(a); BM.pan = clamp((fx == null ? pip.position.x : fx) - (a.x0 + a.x1) / 2, -bmPanMax(), bmPanMax()); if (snap) { BM.cx = (a.x0 + a.x1) / 2 + BM.pan; BM.cz = a.cz; }
 }
 function bmDist(a) {
-  const t = Math.tan(cam.fov * Math.PI / 360), w = (a.x1 - a.x0) / 2 + 1.5, d = (a.z1 - a.z0) / 2 + 2.5;
+  const t = Math.tan(cam.fov * Math.PI / 360), w = Math.min((a.x1 - a.x0) / 2 + 1.5, cam.aspect < 1 ? 12 : 99), d = (a.z1 - a.z0) / 2 + 2.5;
   return Math.max(w / (t * cam.aspect), d * Math.sin(BM_PITCH) / t * 1.25, 14);
 }
 function bmTap(el, it) {
@@ -8409,7 +8416,7 @@ function buyCam(dt) {
   if (buyOn && (inHouse || trip)) buyMode(false);
   if (!BM.k) return false;
   const a = BM_AREAS[BM.area], f = Math.min(1, dt * 5);
-  const fo = BM.sel, tx = fo ? fo.fx : (a.x0 + a.x1) / 2, tz = fo ? fo.fz : a.cz, tD = fo ? fo.fD : bmDist(a);
+  const fo = BM.sel, tx = fo ? fo.fx : (a.x0 + a.x1) / 2 + BM.pan, tz = fo ? fo.fz : a.cz, tD = fo ? fo.fD : bmDist(a);
   BM.cx += (tx - BM.cx) * f; BM.cz += (tz - BM.cz) * f; BM.D += (tD - BM.D) * f; BM.p += ((fo ? 48 : 62) * Math.PI / 180 - BM.p) * f;
   if (BM.prev) { BM.pt += dt; const q = BM.prev.userData; BM.prev.position.y = q.y0 + (reduced ? 0 : Math.sin(BM.pt * 2.4) * 0.06); if (q.spin) BM.prev.rotation.y += dt * 0.9; if (q.ghost) ghostMat.opacity = 0.32 + (reduced ? 0 : Math.sin(BM.pt * 3) * 0.08); }
   const k = BM.k * BM.k * (3 - 2 * BM.k);
@@ -8529,6 +8536,85 @@ function bmSelect(it, quiet) {
   else { it.fx = it.x; it.fz = it.z; it.fD = 8; }
   bmPanel();
 }
+/* ---------- phones: the round buttons up top (shop, map, album, settings) go behind one button that opens a sheet from the bottom ----------
+   On a narrow screen the four buttons crowded the hearts and coins. Now there is one button in the top right corner; it shows a dot
+   when one of the four has news. The sheet holds the same four pictures, big, and a tap on one does what the old button did. */
+{ const st = document.createElement('style'); st.textContent = `
+.moreBtn { display: none; position: fixed; top: max(12px, env(safe-area-inset-top, 0px)); right: max(14px, env(safe-area-inset-right, 0px)); width: 62px; height: 62px; border-radius: 50%; padding: 0; z-index: 9;
+  border: 4px solid #fff3dc; background: radial-gradient(circle at 34% 28%, #fff8ea, #f3e3c4 60%, #d9bf94); box-shadow: 0 0 0 3px #4a2e1a, 0 7px 0 3px rgba(60,34,16,0.45), 0 12px 16px rgba(60,34,16,0.25), inset 0 -8px 12px rgba(0,0,0,0.12), inset 0 6px 10px rgba(255,255,255,0.5); touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.moreBtn svg { width: 100%; height: 100%; display: block; pointer-events: none; }
+.moreBtn:active { transform: translateY(4px); }
+.moreBtn .dot { display: none; position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; background: #e9684a; border: 3px solid #22303c; }
+.moreBtn.news .dot { display: block; } .moreBtn.buy .dot { background: #3f7d62; }
+.moreBtn.news { animation: bmBounce 1.4s ease-in-out infinite; }
+.moreLay { position: fixed; inset: 0; z-index: 40; background: rgba(34,24,14,0.35); opacity: 0; transition: opacity 0.22s; touch-action: none; }
+.moreLay.open { opacity: 1; }
+.moreLay[hidden] { display: none; }
+.moreSheet { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px max(18px, env(safe-area-inset-left, 0px)) calc(22px + env(safe-area-inset-bottom, 0px)); border-radius: 30px 30px 0 0; background: #fbf3e2; border-top: 4px solid #4a2e1a; box-shadow: 0 -8px 24px rgba(40,24,10,0.3); transform: translateY(105%); transition: transform 0.28s cubic-bezier(.2,1.2,.4,1); }
+.moreLay.open .moreSheet { transform: none; }
+.moreSheet .grab { width: 56px; height: 6px; border-radius: 3px; background: #d9c6a3; margin: 0 auto 14px; }
+.moreGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; max-width: 520px; margin: 0 auto; }
+.moreTile { position: relative; aspect-ratio: 1; border-radius: 24px; border: 3px solid #22303c; padding: 12%; box-shadow: 0 5px 0 rgba(34,48,60,0.28); touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.moreTile:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(34,48,60,0.28); }
+.moreTile > * { pointer-events: none; }
+.moreTile img, .moreTile svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 3px 0 rgba(40,24,10,0.3)); }
+.moreTile .dot, .moreTile .badge { display: none !important; }
+.moreTile .ndot { display: none; position: absolute; top: -8px; right: -8px; width: 24px; height: 24px; border-radius: 50%; background: #e9684a; border: 3px solid #22303c; }
+.moreTile.news .ndot { display: block; } .moreTile.t-shop.news .ndot { background: #3f7d62; }
+.moreTile.t-shop { background: radial-gradient(circle at 34% 28%, #ffe7a0, #f2c14a 55%, #c98a2c); }
+.moreTile.t-map { background: radial-gradient(circle at 34% 28%, #b6e08a, #6fb05a 55%, #3f7d46); }
+.moreTile.t-album { background: radial-gradient(circle at 34% 28%, #9fd0f0, #4f97c9 55%, #2f6a99); }
+.moreTile.t-menu { background: radial-gradient(circle at 34% 28%, #ffb9a4, #e9684a 55%, #a8432a); }
+.moreTile.off { opacity: 0.45; }
+@media (max-width: 600px) {
+  .moreBtn { display: block; }
+  .mapBtn, .albumBtn, #menuBtn, .bmBtn { display: none !important; }
+  body.buyOn .moreBtn { visibility: hidden; }
+}
+@media (prefers-reduced-motion: reduce) { .moreBtn.news { animation: none; } .moreSheet { transition: none; } }
+`; document.head.appendChild(st); }
+const moreBtn = document.createElement('button'); moreBtn.type = 'button'; moreBtn.className = 'moreBtn'; moreBtn.setAttribute('aria-label', 'Mer'); moreBtn.setAttribute('aria-expanded', 'false');
+moreBtn.innerHTML = '<svg viewBox="0 0 62 62" aria-hidden="true">' + [[21, 21, '#f2c14a'], [41, 21, '#6fb05a'], [21, 41, '#4f97c9'], [41, 41, '#e9684a']].map(([x, y, c]) => '<circle cx="' + (x - 2) + '" cy="' + (y - 2) + '" r="7.5" fill="' + c + '" stroke="#22303c" stroke-width="3"/>').join('') + '</svg><span class="dot"></span>';
+document.body.appendChild(moreBtn);
+const moreLay = document.createElement('div'); moreLay.className = 'moreLay'; moreLay.hidden = true;
+moreLay.innerHTML = '<div class="moreSheet" role="dialog" aria-label="Meny"><div class="grab"></div><div class="moreGrid"></div></div>';
+document.body.appendChild(moreLay);
+const MORE = [
+  { k: 'shop', el: () => bmBtn, news: (b) => b.classList.contains('ready'), label: 'Köp nya saker' },
+  { k: 'map', el: () => document.querySelector('.mapBtn'), news: (b) => b.classList.contains('wait'), label: 'Karta' },
+  { k: 'album', el: () => $('albumBtn'), news: (b) => b.classList.contains('new'), label: 'Album' },
+  { k: 'menu', el: () => $('menuBtn'), news: (b) => b.classList.contains('ready'), label: 'Inställningar' }
+];
+const moreGrid = moreLay.querySelector('.moreGrid');
+MORE.forEach((m) => { const t = document.createElement('button'); t.type = 'button'; t.className = 'moreTile t-' + m.k; t.setAttribute('aria-label', m.label); moreGrid.appendChild(t); m.tile = t;
+  t.addEventListener('click', (e) => { e.stopPropagation(); const b = m.el(); moreClose(true); if (b && !b.hidden) setTimeout(() => b.click(), 60); }); });
+function moreFill() {
+  MORE.forEach((m) => { const b = m.el(); if (!b) return; if (!m.filled) { const img = b.querySelector('img, svg'); if (img) { m.tile.innerHTML = ''; m.tile.appendChild(img.cloneNode(true)); m.tile.insertAdjacentHTML('beforeend', '<span class="ndot"></span>'); m.filled = true; } }
+    m.tile.classList.toggle('news', m.news(b)); m.tile.classList.toggle('off', !!b.hidden); });
+}
+function moreOpen() {
+  if (buyOn) return; Snd.init(); Snd.play('pop', { gain: 0.35, f: 700 }); moreFill(); moreLay.hidden = false; void moreLay.offsetWidth; moreLay.classList.add('open'); moreBtn.setAttribute('aria-expanded', 'true');
+  target.copy(pip.position);
+}
+function moreClose(quiet) {
+  if (moreLay.hidden) return; if (!quiet) Snd.play('swish', { gain: 0.25 }); moreLay.classList.remove('open'); moreBtn.setAttribute('aria-expanded', 'false');
+  setTimeout(() => { if (!moreLay.classList.contains('open')) moreLay.hidden = true; }, 260);
+}
+[moreBtn, moreLay].forEach((el) => ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup'].forEach((ev) => el.addEventListener(ev, (e) => { e.stopPropagation(); }, { passive: true })));
+moreBtn.addEventListener('click', (e) => { e.stopPropagation(); if (moreLay.hidden) moreOpen(); else moreClose(); });
+moreLay.addEventListener('click', (e) => { e.stopPropagation(); if (e.target === moreLay) moreClose(); });
+/* swipe the sheet down to close it */
+{ let y0 = null; const sh = moreLay.querySelector('.moreSheet'); sh.addEventListener('pointerdown', (e) => { y0 = e.clientY; }); sh.addEventListener('pointerup', (e) => { if (y0 != null && e.clientY - y0 > 50) moreClose(); y0 = null; }); }
+/* the corner button's dot: green when something can be bought, red for other news */
+let moreT = 0;
+function moreStep(dt) {
+  moreT -= dt; if (moreT > 0) return; moreT = 0.5;
+  let news = false, buy = false; MORE.forEach((m) => { const b = m.el(); if (b && !b.hidden && m.news(b)) { news = true; if (m.k === 'shop') buy = true; } });
+  moreBtn.classList.toggle('news', news); moreBtn.classList.toggle('buy', buy && news);
+  if (!moreLay.hidden) moreFill();
+}
+{ const s0 = storeStep; storeStep = function (dt) { s0(dt); moreStep(dt); }; }
+if (window.__farmTest) window.__more = { open: () => moreOpen(), close: () => moreClose(), tap: (k) => { const m = MORE.find((q) => q.k === k); m.tile.click(); }, state: () => ({ shown: getComputedStyle(moreBtn).display, open: !moreLay.hidden, news: moreBtn.className }) };
 /* ---------- sky with clouds ----------
    Replaces the plain two-colour dome with one that follows the camera and is anchored to the *visible* horizon
    (with the curved world the sea edge sits well below eye level, so the gradient and clouds start there).
