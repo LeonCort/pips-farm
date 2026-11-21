@@ -599,7 +599,7 @@ const CROPS = {
 const BEDS = [[8.8, -5.4, 'carrot'], [10.0, -5.4, 'strawberry'], [11.2, -5.4, 'pumpkin'], [8.8, -4.2, 'sunflower'], [10.0, -4.2, 'carrot'], [11.2, -4.2, 'strawberry']];
 let mount = null; /* what Pip is sitting on: an animal or the tractor */
 /* food sources in the middle of the farm; Pip can take as much as fits in the basket */
-const SRC = { grain: { x: -10.4, z: -2.4 }, water: { x: -10.4, z: 2.4 }, carrot: { x: -10.4, z: -5.6 }, hay: { x: -10.4, z: 5.4 } };
+const SRC = { grain: { x: -10.4, z: -2.4 }, water: { x: -10.4, z: 2.4 }, carrot: { x: -10.4, z: 5.4 }, hay: { x: -10.4, z: -5.6 } }; /* carrots by the pig pen, hay by the cow pen */
 const PADS = [
   { id: 'hen3', kind: 'animal', a: 'hen', cost: 8 }, { id: 'pig1', kind: 'animal', a: 'pig', cost: 12 }, { id: 'pig2', kind: 'animal', a: 'pig', cost: 20 },
   { id: 'house-hen', kind: 'house', a: 'hen', cost: 25 }, { id: 'tractor', kind: 'tractor', cost: 35 },
@@ -3489,11 +3489,11 @@ const MKT = VARIANT === 'near' ? {
   entry: [23.0, -0.35], exit: [23.0, 0.35]
 } : {
   /* 'van': the truck parks in a yard right behind the south stalls (egg, milk, cake) and the counter,
-     so unloading is a few steps; the apple trees stand behind the apple stall and the bakery behind the cake stall */
+     so unloading is a few steps; the apple trees stand in a row below the stalls and the bakery behind the cake stall */
   shop: { x: 10.4, z: 2.75 },
   stalls: { egg: { x: 13.6, z: 2.6, f: 1 }, milk: { x: 16.4, z: 2.6, f: 1 }, cake: { x: 19.0, z: 2.6, f: 1 }, apple: { x: 13.6, z: -2.6, f: -1 } },
   bakery: { x: 19.6, z: 6.4, f: 1 },
-  trees: [[12.9, -6.2], [14.6, -6.7], [16.3, -6.0]],
+  trees: [[11.9, 8.0], [13.8, 7.7], [15.7, 7.6]], /* in a row below the stalls, south of the truck's yard */
   signs: [[8.9, -2.0], [21.0, -2.3], [21.4, 2.3]],
   helpers: [[9.2, 5.2], [11.4, 5.0]],
   entry: [23.0, -0.35], exit: [23.0, 0.35]
