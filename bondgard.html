@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121090215">
+<meta name="app-ver" content="20261121095812">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -724,23 +724,23 @@ if (!T) { $('nogl').hidden = false; return; }
    and Material.onBuild hands every program the same two shared uniforms. So new meshes made later (guests, pops,
    pets) curve automatically, and existing onBeforeCompile hooks (rim light, sway, ground texture) are untouched.
    Hand-written ShaderMaterials go through applyWorldCurve(material). */
-const CURVE_DEF = { strength: 0.0135, side: 0, pitch: 37, dist: 10, ahead: 1.2, on: true }; /* Leon's picks, 2026-11-21 */
-const CURVE = Object.assign({}, CURVE_DEF, { fogNear: 50, fogFar: 88, detail: 49, u: { origin: { value: new T.Vector3() }, strength: { value: 0 }, side: { value: CURVE_DEF.side }, horD: { value: 1e6 } } });
+const CURVE_DEF = { strength: 0.0135, side: 0, pitch: 37, dist: 12, ahead: 1, shopPitch: 60, shopDist: 12, shopAhead: 2.4, awnFade: 0.55, on: true }; /* Leon's picks, 2026-11-21 */
+const CURVE = Object.assign({}, CURVE_DEF, { fogNear: 50, fogFar: 88, detail: 49, shopW: 0, u: { origin: { value: new T.Vector3() }, strength: { value: 0 }, side: { value: CURVE_DEF.side }, horD: { value: 1e6 } } });
 /* dev mode (settings menu): shows the tuning panel and the fps counter; tweaks are saved on this device only and apply only while dev mode is on */
 let devOn = false; try { devOn = localStorage.getItem('pips-dev') === '1'; } catch (e) {}
 function curveLoadDev() { Object.assign(CURVE, CURVE_DEF); if (!devOn) return; try { const s = JSON.parse(localStorage.getItem('pips-curve2') || 'null'); if (s) Object.keys(CURVE_DEF).forEach((k) => { if (typeof s[k] === typeof CURVE_DEF[k]) CURVE[k] = s[k]; }); } catch (e) {} }
 curveLoadDev();
-const CURVE_GLSL = '\nuniform vec3 uCurveOrigin; uniform float uCurveStrength; uniform float uCurveSide;\nfloat worldCurveDrop(vec3 w) { float dz = w.z - uCurveOrigin.z; float dx = w.x - uCurveOrigin.x; return (dz * dz + dx * dx * uCurveSide) * uCurveStrength; }\n';
+const CURVE_GLSL = '\nuniform vec3 uCurveOrigin; uniform float uCurveStrength; uniform float uCurveSide;\nfloat worldCurveDrop(vec3 w) { float dz = w.z - uCurveOrigin.z; float dx = w.x - uCurveOrigin.x; return (dz * dz + dx * dx * uCurveSide) * uCurveStrength; }\n/* world up in view space without viewMatrix (three only sets that for some materials): V = MV * inverse(M) */\nvec3 curveUpView() { vec3 a0 = modelMatrix[0].xyz, a1 = modelMatrix[1].xyz, a2 = modelMatrix[2].xyz; vec3 c12 = cross(a1, a2); vec3 x = vec3(c12.y, cross(a2, a0).y, cross(a0, a1).y) / dot(a0, c12); return mat3(modelViewMatrix) * x; }\n';
 {
   const SC = T.ShaderChunk, put = (name, from, to) => { if (SC[name].indexOf(from) < 0) { console.warn('curve: chunk changed', name); return; } SC[name] = SC[name].replace(from, to); };
   /* vertex-only chunk that every built-in vertex shader includes (basic, lambert, standard, depth, distance, sprite, points) */
   SC.logdepthbuf_pars_vertex = CURVE_GLSL + SC.logdepthbuf_pars_vertex;
   /* the projected position: model -> world, bend, world -> view */
-  put('project_vertex', 'mvPosition = modelViewMatrix * mvPosition;', 'mvPosition = modelMatrix * mvPosition;\nmvPosition.y -= worldCurveDrop( mvPosition.xyz );\nmvPosition = viewMatrix * mvPosition;');
+  put('project_vertex', 'mvPosition = modelViewMatrix * mvPosition;', 'vec3 cwP = ( modelMatrix * mvPosition ).xyz;\nmvPosition = modelViewMatrix * mvPosition;\nif ( uCurveStrength > 0.0 ) mvPosition.xyz -= curveUpView() * worldCurveDrop( cwP );');
   /* the world position used for shadow lookups, so curved receivers read the curved shadow map */
   put('worldpos_vertex', 'worldPosition = modelMatrix * worldPosition;', 'worldPosition = modelMatrix * worldPosition;\n\tworldPosition.y -= worldCurveDrop( worldPosition.xyz );');
   /* sprites (speech bubbles, icons, zz) keep their own vertex shader */
-  const SP = 'vec4 mvPosition = modelViewMatrix * vec4( 0.0, 0.0, 0.0, 1.0 );', SPC = 'vec4 mvPosition = modelMatrix * vec4( 0.0, 0.0, 0.0, 1.0 );\n\tmvPosition.y -= worldCurveDrop( mvPosition.xyz );\n\tmvPosition = viewMatrix * mvPosition;';
+  const SP = 'vec4 mvPosition = modelViewMatrix * vec4( 0.0, 0.0, 0.0, 1.0 );', SPC = 'vec4 mvPosition = modelViewMatrix * vec4( 0.0, 0.0, 0.0, 1.0 );\n\tif ( uCurveStrength > 0.0 ) mvPosition.xyz -= curveUpView() * worldCurveDrop( modelMatrix[3].xyz );';
   if (T.ShaderLib.sprite.vertexShader.indexOf(SP) >= 0) T.ShaderLib.sprite.vertexShader = T.ShaderLib.sprite.vertexShader.replace(SP, SPC); else console.warn('curve: sprite shader changed');
   /* horizon haze: whatever sits near the visible (bent) horizon fades into the fog colour, so the sea edge never
      cuts hard against the sky even when the fog itself starts far away */
@@ -781,12 +781,19 @@ function curveHit(r, out) {
 }
 const curveLive = () => CURVE.on && !inHouse && !(typeof ED !== 'undefined' && ED.on);
 /* called once a frame after the stock camera: bend origin, outdoor camera, shadow box nudged forward */
-function curveFrame(aspectK) {
+function curveFrame(aspectK, dt0) {
   fpsTick();
   CURVE.u.strength.value = curveLive() ? CURVE.strength : 0; CURVE.u.side.value = CURVE.side;
   CURVE.u.origin.value.set(pip.position.x, 0, pip.position.z);
   if (inHouse || window.__camTop) return;
-  const D = CURVE.dist * aspectK, p = CURVE.pitch * Math.PI / 180, tx = camFocus.x, ty = 0.4, tz = camFocus.z - CURVE.ahead;
+  /* at the counter and the stalls the guests stand behind the awning: ease up to a higher view there so they and their orders show */
+  let wNear = 0; if (typeof SHOP !== 'undefined') { const pp = pip.position, at = (x, z) => { const d = Math.hypot(pp.x - x, pp.z - z); wNear = Math.max(wNear, clamp((4.2 - d) / 1.6, 0, 1)); };
+    at(SHOP.x, SHOP.z); STALL_T.forEach((t) => { if (stalls[t]) at(STL[t].x, STL[t].z); }); }
+  CURVE.shopW += (wNear - CURVE.shopW) * Math.min(1, (dt0 || 0.033) * 3);
+  const sw = CURVE.shopW * CURVE.shopW * (3 - 2 * CURVE.shopW);
+  /* the striped awnings turn see-through while Pip serves, so the guests behind them show */
+  if (typeof FL !== 'undefined' && FL && FL.awn) for (const k in FL.awn) { const m = FL.awn[k]; if (!m.__fade) { m.__fade = true; m.transparent = true; m.alphaTest = 0.15; m.needsUpdate = true; } m.opacity = 1 - CURVE.awnFade * sw; m.depthWrite = m.opacity > 0.98; }
+  const D = (CURVE.dist + (CURVE.shopDist - CURVE.dist) * sw) * aspectK, p = (CURVE.pitch + (CURVE.shopPitch - CURVE.pitch) * sw) * Math.PI / 180, tx = camFocus.x, ty = 0.4, tz = camFocus.z - (CURVE.ahead + (CURVE.shopAhead - CURVE.ahead) * sw);
   cam.position.set(tx, ty + D * Math.sin(p), tz + D * Math.cos(p)); cam.lookAt(tx, ty, tz);
   sun.position.z -= 3; sun.target.position.z -= 3;
 }
@@ -800,7 +807,7 @@ function curveSave() { try { const o = {}; Object.keys(CURVE_DEF).forEach((k) =>
   document.head.appendChild(css);
   const btn = document.createElement('button'); btn.id = 'curveBtn'; btn.hidden = !devOn; btn.type = 'button'; btn.textContent = '\u{1F30D}'; btn.setAttribute('aria-label', 'Curve settings');
   const pan = document.createElement('div'); pan.id = 'curvePan'; pan.hidden = true;
-  const S = [['strength', 'Bend (uCurveStrength)', 0, 0.03, 0.0005, 4], ['side', 'Side bend (x factor)', 0, 1, 0.05, 2], ['pitch', 'Camera pitch (deg)', 15, 60, 1, 0], ['dist', 'Camera distance', 8, 26, 0.5, 1], ['ahead', 'Look ahead', -2, 5, 0.1, 1]];
+  const S = [['strength', 'Bend (uCurveStrength)', 0, 0.03, 0.0005, 4], ['side', 'Side bend (x factor)', 0, 1, 0.05, 2], ['pitch', 'Camera pitch (deg)', 15, 60, 1, 0], ['dist', 'Camera distance', 8, 26, 0.5, 1], ['ahead', 'Look ahead', -2, 5, 0.1, 1], ['shopPitch', 'Pitch at counter/stalls', 15, 70, 1, 0], ['shopDist', 'Distance at counter/stalls', 8, 26, 0.5, 1], ['shopAhead', 'Look ahead at counter/stalls', -2, 5, 0.1, 1], ['awnFade', 'Awning see-through at stalls', 0, 1, 0.05, 2]];
   pan.innerHTML = S.map(([k, l, a, b, st]) => '<label>' + l + ' <b data-v="' + k + '"></b></label><input type="range" data-k="' + k + '" min="' + a + '" max="' + b + '" step="' + st + '">').join('')
     + '<div class="row"><label style="margin:0;flex:1"><input type="checkbox" data-on> Curve on</label><button type="button" data-reset>Reset</button><button type="button" data-close>Close</button></div>';
   const sync = () => { S.forEach(([k, , , , , dp]) => { pan.querySelector('[data-k="' + k + '"]').value = CURVE[k]; pan.querySelector('[data-v="' + k + '"]').textContent = (+CURVE[k]).toFixed(dp); }); pan.querySelector('[data-on]').checked = CURVE.on; };
@@ -5913,7 +5920,7 @@ function step(dt) {
   waterT -= dt; if (waterT <= 0) { waterT = 0.1; for (let i = 0; i < wp.count; i++) { const x = wp.getX(i), z = wp.getZ(i); wp.setY(i, Math.sin(x * 0.5 + time * 0.9) * 0.06 + Math.sin(z * 0.42 - time * 0.7) * 0.06); const ax = -Math.cos(x * 0.5 + time * 0.9) * 0.18, az = -Math.cos(z * 0.42 - time * 0.7) * 0.15, l = Math.hypot(ax, 1, az); wn.setXYZ(i, ax / l, 1 / l, az / l); } wp.needsUpdate = true; wn.needsUpdate = true; }
   camFocus.lerp(pip.position, 1 - Math.exp(-dt * 4)); if (inBarn) camFocus.z = Math.min(camFocus.z, BI.z + 0.9);
   dressT += ((dressing ? 1 : 0) - dressT) * Math.min(1, dt * 5); const k = (aspect < 1 ? 1.5 : 1.15) * (1 - 0.7 * dressT) * (inBarn ? 1.22 : 1); cam.position.set(camFocus.x, 9.5 * k, camFocus.z + 8.5 * k); cam.lookAt(camFocus.x + (aspect < 1 ? 0 : 0.75) * dressT, 0.55 * dressT, camFocus.z + 0.3 + (aspect < 1 ? 0.55 : -0.1) * dressT);
-  sun.position.set(camFocus.x - 10, 10, camFocus.z + 7.5); sun.target.position.copy(camFocus); curveFrame(aspect < 1 ? 1.15 : 1); skyFrame(dt);
+  sun.position.set(camFocus.x - 10, 10, camFocus.z + 7.5); sun.target.position.copy(camFocus); curveFrame(aspect < 1 ? 1.15 : 1, dt); skyFrame(dt);
   if (window.__camTop) { const c = window.__camTop; cam.position.set(c[0], c[2], c[1] + (c[3] || 0)); cam.lookAt(c[0], 0, c[1]); cam.far = 300; }
   if (ED.on) edRender(dt); else renderer.render(sc, cam);
   $('coins').textContent = fmt(state.coins);
