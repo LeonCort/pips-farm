@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121170611">
+<meta name="app-ver" content="20261121192035">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -7490,6 +7490,8 @@ function homeStep(dt) {
   HOUSE_DECO.visible = !tent; HOUSE_HIDE.forEach((o) => { o.visible = !tent; });
   HOME_G[1].visible = S.size >= 1; if (RIGHT.bushes) RIGHT.bushes.visible = false;
   if (homeMode !== tent) { homeMode = tent; placeHome(tent); }
+  /* in the house: the walk area always follows the house as it is now (after the tent, and after every new size) */
+  if (!tent && home) { IN_B.x0 = HOUSE_IN.x0; IN_B.x1 = HOUSE_IN.x1; IN_B.z0 = HOUSE_IN.z0; IN_B.z1 = HOUSE_IN.z1; }
   if (!tent || !home) return;
   /* in the tent: keep the walls, find the door */
   HOUSE_IN.x0 = IN_B.x0 = TENT_B.x0; HOUSE_IN.x1 = IN_B.x1 = TENT_B.x1; HOUSE_IN.z0 = IN_B.z0 = TENT_B.z0; HOUSE_IN.z1 = IN_B.z1 = TENT_B.z1;
@@ -7500,6 +7502,7 @@ function homeStep(dt) {
   if (homeLZ > 2.7 && doorT <= 0 && !dressing) goInside(false);
 }
 if (window.__farmTest) window.__home = () => ({ tent: isTent(), mode: homeMode, ready: homeReady, inHouse, inBarn, inStore, pip: [pip.position.x, pip.position.z], tv: TENT_OUT.visible, hv: houseG.visible });
+if (window.__farmTest) window.__walk = { inside: (v) => goInside(v !== false), b: () => ({ IN_B: Object.assign({}, IN_B), HOUSE_IN: Object.assign({}, HOUSE_IN), HO: [HO.x, HO.z], ring: [bedRing.x, bedRing.z], inHouse }), S: () => stS(), tap: (x, z) => { target.set(x, 0, z); onIsle(target); }, place: (x, z) => { pip.position.set(x, 0, z); target.copy(pip.position); lastP.copy(pip.position); } };
 /* ---------- the island grows too: its landmarks and pretty things are bought in the shop's island tab ----------
    A new game starts with a bare square, the market counter and a basic farm. The landmarks come in sets (ISETS), each bought
    at once, in four tiers that open with the house: tier 0 at once, tier 1 with the cottage, tier 2 with the kitchen, tier 3
