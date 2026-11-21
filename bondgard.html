@@ -223,7 +223,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Done"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M11 25 L20 34 L37 14" fill="none" stroke="#fff6e4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121064643">
+<meta name="app-ver" content="20261121065201">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1441,7 +1441,7 @@ function addSource(t) {
   if (t === 'grain') { let c = new T.CylinderGeometry(0.55, 0.6, 1.3, 8); c.translate(0, 0.65, 0); part(fac(jit(c, 0.02, 1), PAL.paper, 31), g); c = new T.ConeGeometry(0.7, 0.55, 8); c.translate(0, 1.55, 0); part(fac(c, PAL.accent, 32), g); c = new T.ConeGeometry(0.74, 0.58, 8, 1, true); c.translate(0, 1.575, 0); snowCap(g, c); for (let k = 0; k < 3; k++) { const m = PROTO.grain.clone(); m.position.set(-0.35 + k * 0.35, 0, 0.6); g.add(m); } }
   if (t === 'water') { let c = new T.CylinderGeometry(0.5, 0.55, 0.5, 9, 1, true); c.translate(0, 0.25, 0); part(fac(jit(c, 0.03, 2), PAL.rock, 33), g); c = new T.CylinderGeometry(0.46, 0.46, 0.04, 9); part(fac(c, PAL.sea, 34), g, 0, 0.4, 0); [-0.45, 0.45].forEach((x) => { const p = new T.BoxGeometry(0.08, 1.1, 0.08); p.translate(0, 0.55, 0); part(fac(p, PAL.trunk, 35), g, x, 0, 0); }); c = new T.ConeGeometry(0.75, 0.4, 4); c.rotateY(Math.PI / 4); part(fac(c, PAL.accent, 36), g, 0, 1.3, 0); c = new T.ConeGeometry(0.8, 0.43, 4, 1, true); c.rotateY(Math.PI / 4); snowCap(g, c, 0, 1.32, 0); const m = PROTO.water.clone(); m.position.set(0.25, 0, 0.62); g.add(m); }
   if (t === 'carrot') { let c = new T.BoxGeometry(1.4, 0.1, 1.0); c.translate(0, 0.05, 0); part(fac(jit(c, 0.02, 3), '#8a6248', 37), g); for (let k = 0; k < 6; k++) { const l = new T.ConeGeometry(0.06, 0.24, 4); part(fac(l, PAL.leaf, 38 + k), g, -0.45 + (k % 3) * 0.45, 0.2, -0.2 + Math.floor(k / 3) * 0.4); } }
-  if (t === 'hay') { for (let k = 0; k < 5; k++) { const b = new T.BoxGeometry(0.7, 0.4, 0.5); part(fac(jit(b, 0.02, k), PAL.ochre, 40 + k), g, k < 3 ? -0.72 + k * 0.72 : -0.36 + (k - 3) * 0.72, k < 3 ? 0.2 : 0.6, 0); } }
+  if (t === 'hay') { for (let k = 0; k < 5; k++) { const b = new T.CylinderGeometry(0.27, 0.27, 0.6, 14, 1); b.rotateZ(Math.PI / 2); part(fac(jit(b, 0.012, k), (cx, cy, cz, i) => tone(Math.abs(cx) > 0.28 ? '#d7a84e' : PAL.ochre, i, 0.7).multiplyScalar(0.82 + 0.3 * clamp(cy / 0.55, 0, 1))), g, k < 3 ? -0.66 + k * 0.66 : -0.33 + (k - 3) * 0.66, k < 3 ? 0.27 : 0.74, 0); } }
   ring(s.x, s.z + 1.0, 0.85); sources[t] = { t, g, x: s.x, z: s.z + 1.0 };
 }
 
@@ -1533,15 +1533,29 @@ function buildPen(a) {
 /* food on its way to a box counts too, so a box never overfills */
 function boxCount(pen, t) { return pen.food.count(t) + (pen.inbound[t] || 0); }
 function boxIn(pen, m, dur) { const t = m.userData.type; pen.inbound[t] = (pen.inbound[t] || 0) + 1; fly(m, () => pen.g.localToWorld(tmpV.set(0, 0.4, 0)), () => { pen.inbound[t]--; pen.food.add(m); }, dur); }
+/* walls a touch darker at the foot and lighter under the eaves, like the cozy house */
+function wallY(hex, y, h, key) { const c = tone(hex, key, 0.5), q = clamp(y / h, 0, 1); return c.multiplyScalar(0.8 + 0.28 * q); }
 function setHouse(a, big) {
   const pen = pens[a]; if (!pen) return; if (pen.house) sc.remove(pen.house); pen.big = big;
   const h = housePos(a), g = new T.Group(); g.position.set(h[0], 0, h[1]); sc.add(g); pen.house = g;
-  const s = big ? 1.5 : 1, wall = big ? PAL.accent : PAL.trunk;
-  let geo = new T.BoxGeometry(0.9 * s, 0.6 * s, 0.7 * s, 2, 1, 1); geo.translate(0, 0.3 * s, 0); part(fac(jit(geo, 0.02, 3), wall, 70), g);
-  geo = new T.CylinderGeometry(0.01, 0.62 * s, 0.4 * s, 4, 1); geo.rotateY(Math.PI / 4); geo.scale(1.05, 1, 0.82); geo.translate(0, 0.8 * s, 0); part(fac(geo, big ? PAL.paper : PAL.accent, 71), g);
-  geo = new T.CylinderGeometry(0.01, 0.66 * s, 0.43 * s, 4, 1, true); geo.rotateY(Math.PI / 4); geo.scale(1.05, 1, 0.82); geo.translate(0, 0.825 * s, 0); snowCap(g, geo); /* snow on the roof in winter */
-  const door = new T.Mesh(new T.BoxGeometry(0.26 * s, 0.36 * s, 0.02), ink); door.position.set(0, 0.18 * s, 0.36 * s); g.add(door);
-  if (big) { [-0.32, 0.32].forEach((x) => { const tr = new T.BoxGeometry(0.06, 0.9, 0.02); const m = part(fac(tr, PAL.paper, 72), g, x * s, 0.45, 0.36 * s); m.rotation.z = 0; }); }
+  const s = big ? 1.5 : 1, wall = big ? PAL.accent : '#b07a55', roof = big ? '#8a5a3a' : PAL.accent, DK = '#6b4630', W = 0.9 * s, H = 0.6 * s, D = 0.7 * s, RH = 0.32 * s, OV = 0.08 * s;
+  let geo = new T.BoxGeometry(W + 0.08 * s, 0.08 * s, D + 0.08 * s); geo.translate(0, 0.04 * s, 0); part(fac(geo, '#b8aa98', 69), g); /* stone plinth */
+  geo = new T.BoxGeometry(W, H, D, 2, 2, 1); geo.translate(0, H / 2, 0); part(fac(jit(geo, 0.012, 3), (cx, cy, cz, i) => wallY(wall, cy, H, i)), g);
+  const gable = new T.BufferGeometry(); gable.setAttribute('position', new T.BufferAttribute(new Float32Array([-W / 2, 0, 0, W / 2, 0, 0, 0, RH, 0]), 3));
+  [1, -1].forEach((k) => { const q = gable.clone(); if (k < 0) q.rotateY(Math.PI); q.translate(0, H, k * D / 2); part(fac(q, (cx, cy, cz, i) => wallY(wall, cy, H + RH, i)), g); });
+  /* corner beams, a gable roof of two boards with an overhang, and a ridge beam */
+  [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([x, z]) => { geo = new T.BoxGeometry(0.06 * s, H, 0.06 * s); part(fac(geo, DK, 75), g, x * W / 2, H / 2, z * D / 2); });
+  const span = W / 2 + OV, ang = Math.atan2(RH, span), L = Math.hypot(span, RH) + 0.02;
+  [-1, 1].forEach((k) => { geo = new T.BoxGeometry(L, 0.06 * s, D + 0.2 * s); geo.rotateZ(-k * ang); part(fac(geo, (cx, cy, cz, i) => tone(roof, i, 0.6).multiplyScalar(0.86 + 0.2 * clamp((cy + 0.2 * s) / (0.4 * s), 0, 1))), g, k * span / 2, H + RH / 2 + 0.04 * s, 0);
+    const sc2 = new T.BoxGeometry(L, 0.05 * s, D + 0.22 * s); sc2.rotateZ(-k * ang); snowCap(g, sc2, k * span / 2, H + RH / 2 + 0.085 * s, 0); });
+  geo = new T.BoxGeometry(0.07 * s, 0.07 * s, D + 0.24 * s); part(fac(geo, DK, 76), g, 0, H + RH + 0.06 * s, 0);
+  /* a wooden door in a dark frame with a brass knob */
+  geo = new T.BoxGeometry(0.32 * s, 0.42 * s, 0.03); part(fac(geo, DK, 77), g, 0, 0.21 * s + 0.04 * s, D / 2 + 0.005);
+  geo = new T.BoxGeometry(0.24 * s, 0.36 * s, 0.03); part(fac(geo, '#9a6542', 78), g, 0, 0.2 * s + 0.04 * s, D / 2 + 0.02);
+  geo = new T.SphereGeometry(0.018 * s, 6, 4); part(fac(geo, '#e8b84a', 79), g, 0.07 * s, 0.22 * s, D / 2 + 0.04);
+  /* little flower boxes under the windows */
+  [-0.3, 0.3].forEach((x, k) => { geo = new T.BoxGeometry(0.2 * s, 0.05 * s, 0.07 * s); part(fac(geo, '#9a6542', 80), g, x * s, 0.27 * s, D / 2 + 0.035 * s);
+    for (let j = 0; j < 3; j++) { geo = new T.IcosahedronGeometry(0.03 * s, 0); part(fac(geo, j === 1 ? '#5d9160' : ['#f6b8c8', '#f2c14a', '#fffbf4'][(j + k) % 3], 81 + j), g, x * s + (j - 1) * 0.06 * s, 0.31 * s, D / 2 + 0.04 * s, true); } });
   lightHouse(g, big); g.scale.setScalar(a === 'hen' ? 0.85 : 1);
 }
 function addAnimal(a) {
@@ -1659,10 +1673,10 @@ function goal() {
 /* ---------- the hay meadow: tall grass that Pip or the tractor can mow into bales ---------- */
 const tufts = [];
 {
-  const geo = new T.ConeGeometry(0.09, 0.55, 4); geo.translate(0, 0.27, 0);
+  const geo = new T.ConeGeometry(0.085, 0.55, 6, 3); geo.translate(0, 0.27, 0);
   for (let x = MEADOW.x0; x <= MEADOW.x1; x += 0.62) for (let z = MEADOW.z0; z <= MEADOW.z1; z += 0.62) {
     const g = new T.Group(), jx = x + (hash(x, z) - 0.5) * 0.3, jz = z + (hash(z, x) - 0.5) * 0.3; g.position.set(jx, 0, jz); sc.add(g);
-    for (let k = 0; k < 3; k++) { const m = part(fac(geo.clone(), k ? '#b9c75a' : '#a5b84e', k + Math.round(x * 3)), g, (k - 1) * 0.1, 0, (k % 2) * 0.08 - 0.04, true); m.rotation.z = (k - 1) * 0.25; }
+    for (let k = 0; k < 3; k++) { const m = part(fac(geo.clone(), (cx, cy, cz, i) => tone(k ? '#b9c75a' : '#a5b84e', i + k, 0.5).lerp(_lyLo, 0.35 * (1 - cy / 0.55)).lerp(_lyHi, 0.3 * Math.pow(cy / 0.55, 2))), g, (k - 1) * 0.1, 0, (k % 2) * 0.08 - 0.04, true); m.rotation.z = (k - 1) * 0.25; }
     tufts.push({ g, x: jx, z: jz, h: 1 });
   }
   /* a low fence along the meadow edge */
@@ -2157,7 +2171,7 @@ const ripples = [];
 const KENNEL = { x: -1.9, z: 8.4 };
 {
   const g = new T.Group(); g.position.set(KENNEL.x, 0, KENNEL.z); sc.add(g);
-  let q = new T.BoxGeometry(1.0, 0.62, 0.9); q.translate(0, 0.31, 0); part(fac(jit(q, 0.015, 411), PAL.accent, 411), g);
+  let q = new T.BoxGeometry(1.0, 0.62, 0.9); q.translate(0, 0.31, 0); part(fac(jit(q, 0.015, 411), (cx, cy, cz, i) => wallY(PAL.accent, cy, 0.62, i)), g);
   [-1, 1].forEach((s) => { q = new T.BoxGeometry(0.66, 0.07, 1.04); q.translate(0, 0, 0); const m = part(fac(q, PAL.trunk, 412), g, s * 0.27, 0.8, 0); m.rotation.z = -s * 0.62; });
   q = new T.CircleGeometry(0.2, 12); const door = part(fac(q, PAL.ink, 413), g, 0, 0.26, 0.452); door.scale.y = 1.25;
   q = new T.CylinderGeometry(0.2, 0.2, 0.06, 12); part(fac(q, '#d8d0c0', 414), g, 0.42, 0.03, 0.72);
@@ -2764,7 +2778,7 @@ LAMP_AT.forEach(([x, z], k) => {
 const MILL = { x: 5.7, z: -12.6 };
 const millSails = (() => {
   const ry = faceTo(MILL.x, MILL.z, 0, 0), P = at(MILL.x, MILL.z, ry), cap = capAt(MILL.x, MILL.z, ry);
-  P(jit(cyl(0.62, 0.95, 2.6, 8), 0.02, 801), PAL.paper, 801, 0, 1.3, 0); P(cyl(0.98, 1.02, 0.2, 8), PAL.rock, 802, 0, 0.1, 0);
+  P(jit(new T.CylinderGeometry(0.62, 0.95, 2.6, 14, 4), 0.015, 801), (cx, cy, cz, i) => wallY(PAL.paper, cy + 1.3, 2.6, i), 801, 0, 1.3, 0); P(cyl(0.98, 1.02, 0.2, 8), PAL.rock, 802, 0, 0.1, 0);
   P(new T.ConeGeometry(0.82, 0.9, 8), PAL.accent, 803, 0, 3.05, 0); snowCap(cap, new T.ConeGeometry(0.86, 0.94, 8, 1, true), 0, 3.07, 0);
   P(box(0.42, 0.62, 0.06), PAL.trunk, 804, 0, 0.31, 0.9); P(box(0.28, 0.28, 0.05), '#5a7fb0', 805, 0, 1.75, 0.76);
   const g = new T.Group(); g.position.set(MILL.x, 2.55, MILL.z); g.rotation.y = ry; sc.add(g);
@@ -2779,7 +2793,7 @@ const millSails = (() => {
 const BARN = { x: -13.4, z: -9.1 };
 {
   const P = at(BARN.x, BARN.z, 0), cap = capAt(BARN.x, BARN.z, 0), R = '#c4553f';
-  P(jit(box(3.0, 1.7, 2.4, 3, 2, 3), 0.02, 811), R, 811, 0, 0.85, 0);
+  P(jit(box(3.0, 1.7, 2.4, 3, 2, 3), 0.02, 811), (cx, cy, cz, i) => wallY(R, cy + 0.85, 1.7, i), 811, 0, 0.85, 0);
   const gable = new T.BufferGeometry(); gable.setAttribute('position', new T.BufferAttribute(new Float32Array([-1.5, 0, 0, 1.5, 0, 0, 0, 1.0, 0]), 3));
   [1.2, -1.2].forEach((z, k) => { const g = gable.clone(); if (k) g.rotateY(Math.PI); P(g, R, 812, 0, 1.7, z); });
   [-1, 1].forEach((s) => { P(box(1.85, 0.08, 2.7), '#6b4a3c', 813, s * 0.78, 2.22, 0, { rz: -s * 0.58 }); snowCap(cap, box(1.9, 0.06, 2.75).rotateZ(-s * 0.58), s * 0.78, 2.28, 0); });
@@ -2794,7 +2808,7 @@ const BARN = { x: -13.4, z: -9.1 };
 const HUT = { x: 2.9, z: 11.7 };
 {
   const P = at(HUT.x, HUT.z, -Math.PI / 2), cap = capAt(HUT.x, HUT.z, -Math.PI / 2), B = '#5f8ea0';
-  P(jit(box(1.5, 1.0, 1.2), 0.015, 821), B, 821, 0, 0.5, 0);
+  P(jit(box(1.5, 1.0, 1.2, 2, 2, 2), 0.015, 821), (cx, cy, cz, i) => wallY(B, cy + 0.5, 1.0, i), 821, 0, 0.5, 0);
   const gable = new T.BufferGeometry(); gable.setAttribute('position', new T.BufferAttribute(new Float32Array([-0.75, 0, 0, 0.75, 0, 0, 0, 0.55, 0]), 3));
   [0.6, -0.6].forEach((z, k) => { const g = gable.clone(); if (k) g.rotateY(Math.PI); P(g, B, 822, 0, 1.0, z); });
   [-1, 1].forEach((s) => { P(box(0.98, 0.06, 1.42), PAL.accent, 823, s * 0.4, 1.3, 0, { rz: -s * 0.62 }); snowCap(cap, box(1.0, 0.05, 1.45).rotateZ(-s * 0.62), s * 0.4, 1.35, 0); });
@@ -3710,6 +3724,47 @@ function cozyStep(dt) {
 .sheet { background: linear-gradient(#fdf3dc, #f3e2bf); border-color: #6e4426; box-shadow: inset 0 0 0 3px rgba(255,255,255,0.45); }
 `;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+}
+/* ---------- restyle: older buildings get the cozy house's details (plinths, corner beams, frames, flower boxes, props) ---------- */
+{
+  const L = [], DK = '#6b4630', WD = '#9a6542', ST = '#b8aa98', POT = '#c8734a';
+  const flowers = (P, x, y, z, n, w, seed) => { for (let j = 0; j < n; j++) P(ico(0.045, 0, seed + j), ['#f6b8c8', '#e9684a', '#fffbf4', '#f2c14a'][(j + seed) % 4], seed + j, x - w / 2 + (j + 0.5) * w / n, y, z + (j % 2) * 0.03); };
+  const pot = (P, x, z, seed, s) => { s = s || 1; P(new T.CylinderGeometry(0.15 * s, 0.11 * s, 0.24 * s, 10), POT, seed, x, 0.12 * s, z); P(fluff(0.15 * s, seed + 1, 5).scale(1, 1.2, 1), (cx, cy, cz, i) => leafY('#5d9160', cy, -0.12 * s, 0.18 * s, i), seed + 1, x, 0.36 * s, z); flowers(P, x, 0.52 * s, z - 0.04, 3, 0.18 * s, seed + 2); };
+  const barrel = (P, x, z, seed) => { P(new T.CylinderGeometry(0.2, 0.2, 0.5, 12, 3).scale(1, 1, 1), (cx, cy, cz, i) => tone(WD, i, 0.5).multiplyScalar(0.8 + 0.25 * clamp((cy + 0.25) / 0.5, 0, 1)), seed, x, 0.25, z);
+    [0.1, 0.4].forEach((y) => P(new T.TorusGeometry(0.205, 0.018, 4, 14).rotateX(Math.PI / 2), '#3a3f48', seed + 1, x, y, z)); };
+  /* the barn: stone plinth, white corner trim, a ridge beam, a lantern over the doors, barrels and pots */
+  { const P = at(BARN.x, BARN.z, 0, L);
+    P(box(3.14, 0.14, 2.54), ST, 960, 0, 0.07, 0);
+    [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([x, z]) => P(box(0.12, 1.72, 0.12), PAL.paper, 961, x * 1.5, 0.86, z * 1.2));
+    P(box(3.1, 0.1, 0.1), PAL.paper, 962, 0, 1.68, 1.22); P(box(0.16, 0.16, 2.9), DK, 963, 0, 2.76, 0);
+    P(box(0.14, 0.2, 0.14), '#3a3f48', 964, 0, 1.42, 1.32); P(box(0.1, 0.14, 0.1), '#ffd27a', 965, 0, 1.42, 1.32);
+    barrel(P, -1.85, 0.95, 966); barrel(P, -1.95, 0.4, 968); pot(P, 0.85, 1.6, 970); pot(P, -0.85, 1.6, 975); }
+  /* the fish hut: plinth, corner beams, a flower box, a life ring and a crate of fish */
+  { const P = at(HUT.x, HUT.z, -Math.PI / 2, L);
+    P(box(1.6, 0.1, 1.3), ST, 980, 0, 0.05, 0);
+    [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([x, z]) => P(box(0.07, 1.0, 0.07), DK, 981, x * 0.75, 0.5, z * 0.6));
+    P(box(0.38, 0.06, 0.12), WD, 982, 0.48, 0.47, 0.66); flowers(P, 0.48, 0.53, 0.66, 4, 0.32, 983);
+    P(new T.TorusGeometry(0.15, 0.04, 6, 14), '#fff6e4', 987, -0.42, 0.62, 0.63); [0, 1, 2, 3].forEach((k) => P(box(0.05, 0.05, 0.05), PAL.accent, 988, -0.42 + Math.cos(k * 1.571) * 0.15, 0.62 + Math.sin(k * 1.571) * 0.15, 0.66));
+    P(box(0.24, 0.42, 0.06), DK, 989, 0, 0.38, 0.64); }
+  /* the dog kennel: a plinth, a name board with a paw and a ridge */
+  { const P = at(KENNEL.x, KENNEL.z, 0, L);
+    P(box(1.08, 0.06, 0.98), ST, 990, 0, 0.03, 0); P(box(0.07, 0.07, 1.1), DK, 991, 0, 1.0, 0);
+    P(box(0.42, 0.14, 0.03), '#fff6e4', 992, 0, 0.55, 0.465); [[-0.1, 0], [0, 0.02], [0.1, 0]].forEach(([x, y], k) => P(ico(0.025, 0), '#6b4630', 993 + k, x, 0.55 + y, 0.485)); }
+  /* the lighthouse: a balcony railing, framed windows and a door frame */
+  { const P = at(LIGHT.x, LIGHT.z, 0, L);
+    P(new T.TorusGeometry(0.74, 0.025, 4, 24).rotateX(Math.PI / 2), '#3a3f48', 1000, 0, 4.12, 0);
+    for (let k = 0; k < 12; k++) { const a = k / 12 * 6.283; P(box(0.03, 0.24, 0.03), '#3a3f48', 1001, Math.cos(a) * 0.74, 4.0, Math.sin(a) * 0.74); }
+    [1.6, 2.7].forEach((y, k) => { const a = k ? 2.2 : 0.9, r = 0.7 - y * 0.07; P(box(0.2, 0.26, 0.06), DK, 1002, Math.cos(a) * r, y, Math.sin(a) * r, { ry: Math.PI / 2 - a }); P(box(0.14, 0.2, 0.06), '#3d5a66', 1003, Math.cos(a) * (r + 0.01), y, Math.sin(a) * (r + 0.01), { ry: Math.PI / 2 - a }); });
+    P(box(0.4, 0.6, 0.04), DK, 1004, 0, 0.62, 0.69); pot(P, 0.45, 0.95, 1005, 0.8); }
+  /* the windmill: stone foot ring, a door and window frame, pots by the door */
+  { const ry = faceTo(MILL.x, MILL.z, 0, 0), P = at(MILL.x, MILL.z, ry, L);
+    P(box(0.54, 0.74, 0.05), DK, 1010, 0, 0.37, 0.925); P(box(0.38, 0.38, 0.05), DK, 1011, 0, 1.75, 0.74);
+    pot(P, -0.55, 1.15, 1012, 0.9); pot(P, 0.55, 1.15, 1016, 0.9); }
+  /* the grain silo: metal bands and a little ladder */
+  { const s = SRC.grain, P = at(s.x, s.z, 0, L);
+    [0.3, 0.75, 1.15].forEach((y, k) => P(new T.TorusGeometry(0.58 - y * 0.04, 0.025, 4, 20).rotateX(Math.PI / 2), '#8a8f98', 1020 + k, 0, y, 0));
+    [-0.1, 0.1].forEach((x) => P(box(0.03, 1.25, 0.03), '#6b6f78', 1024, x, 0.63, -0.58)); for (let k = 0; k < 5; k++) P(box(0.22, 0.025, 0.025), '#6b6f78', 1025, 0, 0.2 + k * 0.24, -0.58); }
+  if (L.length) merged(L);
 }
 /* ---------- polish: tinted soft shadows, rim light, contact shadows and a living fountain ---------- */
 /* all cheap on an iPad: no post-processing, two extra draw calls for the contact shadows, the fountain is two small shaders */
