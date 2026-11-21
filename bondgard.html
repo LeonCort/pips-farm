@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121121342">
+<meta name="app-ver" content="20261121124001">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -3067,7 +3067,7 @@ function at(ox, oz, ry, list) {
   return (geo, col, seed, x, y, z, o) => { const g = fac(geo, col, seed); o = o || {}; if (o.rx) g.rotateX(o.rx); if (o.rz) g.rotateZ(o.rz); if (o.ry) g.rotateY(o.ry); g.translate(x || 0, y || 0, z || 0); if (ry) g.rotateY(ry); g.translate(ox, 0, oz); list.push(g);
     g.computeBoundingBox(); const b = g.boundingBox; rec.x0 = Math.min(rec.x0, b.min.x); rec.x1 = Math.max(rec.x1, b.max.x); rec.z0 = Math.min(rec.z0, b.min.z); rec.z1 = Math.max(rec.z1, b.max.z); rec.y0 = Math.min(rec.y0, b.min.y); rec.y1 = Math.max(rec.y1, b.max.y); return g; };
 }
-function capAt(ox, oz, ry) { const g = new T.Group(); g.position.set(ox, 0, oz); g.rotation.y = ry || 0; sc.add(g); return g; }
+function capAt(ox, oz, ry) { const g = new T.Group(); g.userData.cap = 1; g.position.set(ox, 0, oz); g.rotation.y = ry || 0; sc.add(g); return g; }
 const box = (w, h, d, a, b, c) => new T.BoxGeometry(w, h, d, a || 1, b || 1, c || 1);
 const cyl = (r0, r1, h, n, open) => new T.CylinderGeometry(r0, r1, h, n || 8, 1, !!open);
 /* the market street layout (used by market.js): facilities on the south side face north (f 1), on the north side face south (f -1) */
@@ -4050,13 +4050,14 @@ wateringCan(PLANTER.x + 0.75, PLANTER.z + 0.35, 2.2, '#e0a646');
 const cozyMesh = merged(COZY_PROPS); COZY_PROPS.length = 0;
 
 /* contact shade on the ground: under every town object, tree and animal house */
+const COZY_SHADE = [];
 {
   const L = [];
   ATREC.forEach((r) => { if (r.y0 > 0.3 || r.x1 < r.x0) return; const w = r.x1 - r.x0, d = r.z1 - r.z0; if (w > 6 || d > 6 || r.y1 - r.y0 < 0.12) return; L.push([(r.x0 + r.x1) / 2, (r.z0 + r.z1) / 2, w / 2 + 0.3, d / 2 + 0.3, 0.38]); });
   leafs.forEach((m) => { const g = m.parent; if (!g || g.parent !== sc) return; const s = g.scale.x; L.push([g.position.x, g.position.z, (m.userData.pine ? 0.75 : 0.95) * s, (m.userData.pine ? 0.75 : 0.95) * s, 0.5]); });
   for (const a in pens) { const h = pens[a].house; if (h) L.push([h.position.x, h.position.z, 1.1, 1.0, 0.4]); }
   L.push([0, 0, 1.6, 1.6, 0.3]);
-  groundShade(L);
+  COZY_SHADE.push(...L); /* painted by island.js once it knows which landmarks are built */
 }
 
 /* pollen: tiny warm specks drifting in the sunlight round Pip */
@@ -4428,7 +4429,7 @@ function polishStep(dt) {
   if (!reduced) SWAY.t.value += dt; SWAY.wind.value.set(WIND.x, WIND.z, WIND.g); dustStep(dt);
   if (!frozen && !reduced) FU.t.value += dt;
   FU.ice.value += ((frozen ? 1 : 0) - FU.ice.value) * Math.min(1, dt * 2);
-  streams.visible = !frozen && !inHouse;
+  streams.visible = !frozen && !inHouse && !streams.userData.off;
   /* the water and rim follow the light of the day */
   FU.light.value.copy(sun.color).multiplyScalar(sun.intensity * 0.55); if (hemi) { _fl.copy(hemi.color).multiplyScalar(hemi.intensity * 0.55); FU.light.value.add(_fl); }
   RIM.value.copy(sun.color).multiplyScalar(0.3 * sun.intensity * (1 - 0.6 * nightAmt));
@@ -6364,7 +6365,7 @@ function buildStep(dt) {
 }
 function finishBuild() { const S = stS(), i = S.pend.indexOf(BUILD.what); if (i >= 0) S.pend.splice(i, 1); BUILD = null; save(); }
 const pendIn = () => stS().pend.filter((p) => p.startsWith('f:') || p.startsWith('c:'));
-const pendOut = () => stS().pend.filter((p) => !p.startsWith('f:') && !p.startsWith('c:'));
+const pendOut = () => stS().pend.filter((p) => !p.startsWith('f:') && !p.startsWith('c:') && !p.startsWith('i:'));
 let revealT = 0;
 function houseSync() {
   const S = stS(), open2 = S.size >= 2, building = (n) => BUILD && BUILD.what === 'size' + n, home = inHouse && !inBarn && !inStore;
@@ -6424,6 +6425,7 @@ function storeGoal() {
   if (!state.store) return null;
   if (inStore) { const c = cheapest(true); if (c) return [c.s.padX, c.s.padZ]; return [SI.x, SI.z + 4.7]; }
   if (inHouse) return null;
+  { const ig = isleGoal(); if (ig) return ig; }
   if (pendOut().length) return [HOUSE.x + (BUILD ? 0 : 0), HOUSE.z + 2.2];
   if (pendIn().length) return [HDOOR.x, HDOOR.z];
   if (cheapest(true) && !carriesGoods()) return [SDOOR.x, SDOOR.z];
@@ -6443,7 +6445,7 @@ function celebrateNew(n0, pos, skip) {
 /* ---------- the picture map: the store is a place too ---------- */
 PLACES.store = { x: SDOOR.x, z: SDOOR.z + 0.4, mx: 20.2, mz: -6.4, sv: 'Affären' };
 { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.translate(64, 68); bagIcon(x, 1.35); PLACE_PIC.store = c.toDataURL(); }
-{ const p0 = placeNeeds; placeNeeds = function () { const n = p0(); if (state.store) { if (stS().pend.length) n.home = GIFT_IMG; else if (cheapest(true)) n.store = actIcon('coin'); } return n; }; }
+{ const p0 = placeNeeds; placeNeeds = function () { const n = p0(); if (state.store) { if (pendOut().length || pendIn().length) n.home = GIFT_IMG; else if (cheapest(true)) n.store = actIcon('coin'); } return n; }; }
 
 /* ---------- every frame ---------- */
 let storeReady = false;
@@ -6459,7 +6461,7 @@ function storeStep(dt) {
   const S = stS(), affordable = cheapest(true);
   if (!inStore) {
     storeSign.visible = !inHouse && !!affordable; storeSign.position.y = 3.4 + (reduced ? 0 : Math.abs(Math.sin(time * 3)) * 0.18);
-    giftSign.visible = !inHouse && S.pend.length > 0; giftSign.position.set(HOUSE.x + 0.7, 3.4 + (reduced ? 0 : Math.abs(Math.sin(time * 3.2)) * 0.18), HOUSE.z + 0.4);
+    giftSign.visible = !inHouse && (pendOut().length > 0 || pendIn().length > 0); giftSign.position.set(HOUSE.x + 0.7, 3.4 + (reduced ? 0 : Math.abs(Math.sin(time * 3.2)) * 0.18), HOUSE.z + 0.4);
     const ok = !inHouse && freeHands && stillOn(storeRing, dt);
     storeRing.w = ok ? Math.min(1, storeRing.w + dt / 0.5) : Math.max(0, storeRing.w - dt * 3); storeRing.f.scale.setScalar(Math.max(0.001, storeRing.w));
     if (storeRing.w >= 1) goStore(true);
@@ -6580,6 +6582,7 @@ function catOffers() {
   CROOMS.forEach((r) => { if (!roomOpen(r)) return;
     r.sp.forEach((s) => { for (let t = 0; t < 4; t++) { if (typeState(s, t) === 'buy') { out.push({ id: 'c:' + s.id + ':' + t, cost: typeCost(s, t), make: () => catModel(s.fam, t, 0), act: { k: 'type', s: s.id, t } }); break; } } });
     for (let k = 0; k < r.ex.length; k++) { if (exState(r, k) === 'buy') { const f = r.ex[k]; out.push({ id: 'f:' + f.id, cost: f.cost, make: () => furnModel(f), act: { k: 'ex', id: f.id } }); break; } } });
+  { const l = isleNext(); if (l) out.push({ id: 'i:' + l.id, cost: l.cost, make: () => isleModel(l), act: { k: 'isle', id: l.id } }); }
   const d = decoNext(); if (d) out.push({ id: 'd:' + d.id, cost: d.cost, make: () => offerOf({ kind: 'deco' }).make(), act: { k: 'deco', id: d.id } });
   return out;
 }
@@ -6632,6 +6635,7 @@ function catBuy(a) {
     go = () => { own.push(a.c); if (a.w) C.paint.w = a.c; else C.paint.r = a.c; if (!S.pend.includes('p:house')) S.pend.push('p:house'); }; }
   else if (a.k === 'size') { const z = SIZES[a.n]; if (!z || a.n !== S.size + 1) return false; cost = z.cost - (S.paid['h:' + a.n] || 0); pic = thumbOf('h:' + a.n, () => miniHouse(S.size, a.n));
     go = () => { delete S.paid['h:' + a.n]; S.size = a.n; S.pend.push('size' + a.n); }; }
+  else if (a.k === 'isle') { const q = islePrep(a); if (!q) return false; cost = q.cost; pic = q.pic; go = q.go; }
   if (!go) return false;
   if (shop().coins < cost) { Snd.play('tock', { gain: 0.3, f: 300 }); flash(coinPill, 'no'); return false; }
   shop().coins -= cost; go(); Snd.play('coin', { gain: 0.4 }); catCelebrate(pic, a.k === 'size' || a.k === 'type'); return true;
@@ -6649,6 +6653,7 @@ const ICO = {
   x: '<svg viewBox="0 0 26 26" aria-hidden="true"><path d="M5 5 L21 21 M21 5 L5 21" stroke="#3a2e2a" stroke-width="4" stroke-linecap="round"/></svg>',
   prev: '<svg viewBox="0 0 28 28" aria-hidden="true"><path d="M24 14 H6 M12 7 L5 14 L12 21" fill="none" stroke="#3a2e2a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   tabHouse: '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M6 19 L20 7 L34 19" fill="none" stroke="#3a2e2a" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="10" y="18" width="20" height="15" rx="2" fill="#fff6e4" stroke="#3a2e2a" stroke-width="3"/><rect x="17" y="23" width="6" height="10" fill="#c0563a"/></svg>',
+  tabIsle: '<svg viewBox="0 0 40 40" aria-hidden="true"><ellipse cx="20" cy="29" rx="17" ry="7" fill="#8fd0e8" stroke="#3a2e2a" stroke-width="2.5"/><ellipse cx="20" cy="27" rx="11" ry="4.5" fill="#f2d48a"/><path d="M12 27 Q14 20 20 22 Q26 20 28 27 Z" fill="#74a857" stroke="#3a2e2a" stroke-width="2"/><rect x="22" y="9" width="5" height="15" fill="#fff6e4" stroke="#3a2e2a" stroke-width="2"/><rect x="22" y="13" width="5" height="3.5" fill="#e9684a"/><path d="M21 9 L24.5 4 L28 9 Z" fill="#e9684a" stroke="#3a2e2a" stroke-width="2" stroke-linejoin="round"/></svg>',
   tabYard: '<svg viewBox="0 0 40 40" aria-hidden="true"><rect x="18" y="22" width="4" height="13" fill="#6b4630"/><circle cx="20" cy="16" r="11" fill="#74a857" stroke="#3a2e2a" stroke-width="3"/><rect x="4" y="33" width="32" height="3" rx="1.5" fill="#3a2e2a"/></svg>',
   spark: '<svg class="spk" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 2 L24 16 L38 20 L24 24 L20 38 L16 24 L2 20 L16 16 Z" fill="#ffe28a" stroke="#3a2e2a" stroke-width="2.5" stroke-linejoin="round"/></svg>'
 };
@@ -6732,10 +6737,12 @@ function catRender() {
   const S = stS(), wish = catWish(), head = `<div class="ch"><div class="row">${CV.room ? `<button type="button" class="rb" data-act="back" aria-label="Tillbaka">${ICO.back}</button>` : ''}
     <button type="button" class="tab${CV.tab === 'house' ? ' on' : ''}" data-act="tab" data-v="house" aria-label="Huset">${ICO.tabHouse}</button>
     <button type="button" class="tab${CV.tab === 'yard' ? ' on' : ''}" data-act="tab" data-v="yard" aria-label="Gården">${ICO.tabYard}</button>
+    <button type="button" class="tab${CV.tab === 'isle' ? ' on' : ''}" data-act="tab" data-v="isle" aria-label="Ön">${ICO.tabIsle}</button>
     ${CV.room ? `<span class="pill"><img src="${roomIcon(CV.room)}" alt="" style="width:40px;height:40px">${ICO.star}${roomStars(CV.room)}</span>` : ''}</div>
     <div class="row"><span class="pill">${ICO.coin}${fmtC(shop().coins)}</span><button type="button" class="rb" data-act="close" aria-label="Stäng">${ICO.x}</button></div></div>`;
   let body = '';
   if (CV.tab === 'yard') body = yardHTML(wish);
+  else if (CV.tab === 'isle') body = isleHTML(wish);
   else if (CV.room) body = roomHTML(CV.room, wish);
   else body = housePlanHTML(wish);
   catEl.innerHTML = `<div class="cp">${head}<div class="cb">${body}</div></div>`;
@@ -6792,6 +6799,7 @@ catEl.addEventListener('click', (e) => {
   if (act === 'col') { catBuy({ k: 'col', s: d.s, t: +d.t, c: +d.c }); return catRender(); }
   if (act === 'ex') { catBuy({ k: 'ex', id: d.id }); return catRender(); }
   if (act === 'deco') { catBuy({ k: 'deco', id: d.id }); return catRender(); }
+  if (act === 'isle') { catBuy({ k: 'isle', id: d.id }); return catRender(); }
   if (act === 'paint') { catBuy({ k: 'paint', w: d.w === '1', c: +d.c }); return catRender(); }
   if (act === 'eq' || act === 'eqc') { const o = C.own[d.s][+d.t], c = act === 'eqc' ? +d.c : o[o.length - 1]; C.eq[d.s] = [+d.t, c]; if (!stS().pend.includes('c:' + d.s)) applySpot(d.s); Snd.play('pop', { gain: 0.35, f: 760 }); save(); return catRender(); }
   if (act === 'peq') { const P = C.paint; if (d.w === '1') P.w = +d.c; else P.r = +d.c; if (!stS().pend.includes('p:house')) stS().pend.push('p:house'); Snd.play('pop', { gain: 0.35, f: 760 }); save(); return catRender(); }
@@ -7037,6 +7045,112 @@ function homeStep(dt) {
   if (homeLZ > 2.7 && doorT <= 0 && !dressing) goInside(false);
 }
 if (window.__farmTest) window.__home = () => ({ tent: isTent(), mode: homeMode, ready: homeReady, inHouse, inBarn, inStore, pip: [pip.position.x, pip.position.z], tv: TENT_OUT.visible, hv: houseG.visible });
+/* ---------- the island grows too: its landmarks and pretty things are bought in the shop's island tab ----------
+   A new game starts with a bare square, the market counter and a basic farm. Benches, lamps, the fountain, hedges,
+   beehives, the windmill, the pond, the bunting, the fish hut and the lighthouse are bought one by one, in four tiers
+   that open with the house: tier 0 at once, tier 1 with the cottage, tier 2 with the kitchen, tier 3 with the east wing.
+   Nothing is rebuilt: at load every merged mesh is split so each landmark's triangles sit in their own mesh. */
+const ILOTS = [
+  { id: 'bench', tier: 0, cost: 25, at: [[2.75, 2.05, 0.85], [-2.75, -2.05, 0.85]] },
+  { id: 'planter', tier: 0, cost: 35, at: [[-2.35, 2.6, 0.8]] },
+  { id: 'lampSq', tier: 0, cost: 60, at: LAMP_AT.slice(0, 4).map(([x, z]) => [x, z, 0.5]) },
+  { id: 'fountain', tier: 1, cost: 150, at: [[0, 0, 1.75]], obj: () => [fountain.water].concat(fountain.drops) },
+  { id: 'hedge', tier: 1, cost: 110, at: [[-1.5, 5.55, 0.32, 1.3], [1.5, 5.55, 0.32, 1.3], [-1.5, 10.0, 0.32, 1.65], [1.5, 10.0, 0.32, 1.65]] },
+  { id: 'lampRing', tier: 1, cost: 90, at: LAMP_AT.slice(4, 10).map(([x, z]) => [x, z, 0.5]) },
+  { id: 'hives', tier: 1, cost: 140, at: [[8.75, -6.95, 0.55], [11.25, -6.95, 0.55], [10.0, -6.85, 0.6]] },
+  { id: 'pond', tier: 2, cost: 300, at: [[-4.4, 10.9, 2.45]], obj: () => [pond.water].concat(pond.ducks) },
+  { id: 'mill', tier: 2, cost: 400, at: [[5.7, -12.6, 1.5]] },
+  { id: 'lampSt', tier: 2, cost: 160, at: LAMP_AT.slice(10, 18).map(([x, z]) => [x, z, 0.5]) },
+  { id: 'bunting', tier: 2, cost: 220, at: [[15.2, 1.5, 6.4, 0.22], [15.2, -1.5, 6.4, 0.22]], minY: 0.3 },
+  { id: 'hut', tier: 3, cost: 500, at: [[2.9, 11.7, 1.25]] },
+  { id: 'light', tier: 3, cost: 900, at: [[12.8, 12.4, 1.45]], obj: () => [beam.g] }
+];
+const ISLE_BY = {}; ILOTS.forEach((l) => { ISLE_BY[l.id] = l; l.meshes = []; l.objs = []; l.solids = []; l.c = [l.at[0][0], l.at[0][1]]; });
+const ISLE_KEEP = [[KENNEL.x, KENNEL.z, 0.9]]; /* never cut into these */
+/* a region is [x, z, r] (a circle) or [x, z, hw, hd] (a box) */
+const inReg = (g, x, z) => g.length === 3 ? Math.hypot(x - g[0], z - g[1]) < g[2] : Math.abs(x - g[0]) < g[2] && Math.abs(z - g[1]) < g[3];
+function lotAt(x, y, z, flat) {
+  if (ISLE_KEEP.some(([a, b, r]) => Math.hypot(x - a, z - b) < r)) return null;
+  for (const l of ILOTS) { if (!flat && y < (l.minY || 0.06)) continue; for (let k = 0; k < l.at.length; k++) if (inReg(l.at[k], x, z)) return [l, k]; }
+  return null;
+}
+const isleS = () => { const S = stS(); if (!S) return null; if (!S.isle) { const old = S.size >= 2 || (state.total || 0) > 300; S.isle = {}; if (old) ILOTS.forEach((l) => { S.isle[l.id] = 1; }); } return S.isle; };
+const isleOpen = (l) => l.tier <= (stS() ? stS().size : 0);
+const isleOwn = (l) => !!(isleS() || {})[l.id];
+function isleSplit() {
+  sc.children.slice().forEach((m) => {
+    if (!m.isMesh || m.position.lengthSq() > 1e-6 || m.geometry.index) return;
+    const at = Object.keys(m.geometry.attributes).sort().join(','), blob = typeof blobMat !== 'undefined' && m.material === blobMat; if (at !== 'color,normal,position' && !(blob && at === 'position,uv')) return;
+    const A = blob ? ['position', 'uv'] : ['position', 'normal', 'color'], S = A.map((k) => m.geometry.attributes[k]), p = S[0], keep = A.map(() => []), cut = new Map(); let any = false;
+    for (let i = 0; i < p.count; i += 3) {
+      const hit = lotAt((p.getX(i) + p.getX(i + 1) + p.getX(i + 2)) / 3, (p.getY(i) + p.getY(i + 1) + p.getY(i + 2)) / 3, (p.getZ(i) + p.getZ(i + 1) + p.getZ(i + 2)) / 3, blob);
+      let D = keep; if (hit) { any = true; const key = hit[0].id + ':' + hit[1]; if (!cut.has(key)) cut.set(key, { l: hit[0], k: hit[1], D: A.map(() => []) }); D = cut.get(key).D; }
+      for (let j = i; j < i + 3; j++) S.forEach((s, q) => { for (let e = 0; e < s.itemSize; e++) D[q].push(s.array[j * s.itemSize + e]); });
+    }
+    if (!any) return;
+    const mk = (D) => { const g = new T.BufferGeometry(); A.forEach((k, q) => g.setAttribute(k, new T.Float32BufferAttribute(D[q], S[q].itemSize))); g.computeBoundingSphere(); return g; };
+    m.geometry = mk(keep);
+    cut.forEach(({ l, k, D }) => { const r = new T.Mesh(mk(D), m.material); r.castShadow = m.castShadow; r.receiveShadow = m.receiveShadow; r.renderOrder = m.renderOrder; r.userData.reg = k; sc.add(r); l.meshes.push(r); });
+  });
+  /* separate pieces standing in a lot: sails, caps, glows, the fountain top */
+  sc.children.forEach((o) => { if (o.position.lengthSq() < 1e-6 || o === pip || o.isLight) return; if (!o.isSprite && !o.userData.cap && o.position.y < 0.25) return; const h = lotAt(o.position.x, o.userData.cap ? 1 : o.position.y, o.position.z); if (h && !h[0].objs.includes(o)) { o.userData.reg = h[1]; h[0].objs.push(o); } });
+  /* ground shade: painted now for everything outside the lots, and for each lot once it is built */
+  ILOTS.forEach((l) => { l.shade = []; });
+  groundShade(COZY_SHADE.filter((e) => { const h = lotAt(e[0], 1, e[1]); if (h) h[0].shade.push(e); return !h; }));
+  ILOTS.forEach((l) => { if (l.obj) l.obj().map((o) => (o && !o.isObject3D && o.g ? o.g : o)).filter((o) => { if (!o) console.error('isle: missing piece in ' + l.id); return !!o; }).forEach((o) => { if (!l.objs.includes(o)) { o.userData.reg = 0; l.objs.push(o); } }); });
+  /* what Pip bumps into */
+  for (let i = SOLIDS.length - 1; i >= 0; i--) { const s = SOLIDS[i], h = lotAt(s.x, 1, s.z); if (h) h[0].solids.push(s); }
+}
+function isleShow(l, on) {
+  if (on && !l.shaded && l.shade) { l.shaded = true; groundShade(l.shade); }
+  l.shown = on; l.meshes.forEach((m) => { m.visible = on; }); l.objs.forEach((o) => { o.visible = on; o.userData.off = !on; });
+  l.solids.forEach((s) => { const i = SOLIDS.indexOf(s); if (on && i < 0) SOLIDS.push(s); if (!on && i >= 0) SOLIDS.splice(i, 1); });
+}
+/* the shop picture: the first spot of the lot, with its pieces */
+function isleModel(l) {
+  const g = new T.Group(), c = l.at[0];
+  l.meshes.filter((m) => m.userData.reg === 0).forEach((m) => { const q = new T.Mesh(m.geometry.clone().translate(-c[0], 0, -c[1]), MAT); g.add(q); });
+  l.objs.filter((o) => o.userData.reg === 0 && (o.isMesh || o.isGroup) && o !== beam.g && !(pond.ducks || []).some((d) => d === o || d.g === o) && !(fountain.drops || []).includes(o)).forEach((o) => { const q = o.clone(true); q.visible = true; q.position.x -= c[0]; q.position.z -= c[1]; g.add(q); });
+  return g;
+}
+const isleThumb = (l) => thumbOf('i:' + l.id, () => isleModel(l));
+/* buying: through the catalog (catBuy kind 'isle') */
+function isleNext() { let best = null; ILOTS.forEach((l) => { if (!isleOwn(l) && isleOpen(l) && (!best || l.cost < best.cost)) best = l; }); return best; }
+function islePrep(a) {
+  const l = ISLE_BY[a.id], S = stS(); if (!l || isleOwn(l) || !isleOpen(l)) return null;
+  return { cost: l.cost, pic: isleThumb(l), go: () => { isleS()[l.id] = 1; S.pend.push('i:' + l.id); } };
+}
+function isleGoal() {
+  if (inHouse) return null; const p = stS() && stS().pend.find((q) => q.startsWith('i:')); if (!p) return null;
+  const l = ISLE_BY[p.slice(2)]; return l ? [l.c[0], l.c[1] + (l.at[0][2] || 1) + 0.6] : null;
+}
+/* the catalog page: four columns, one per tier */
+function isleHTML(wish) {
+  const S = stS(), cols = [0, 1, 2, 3].map((t) => `<div class="col">${ILOTS.filter((l) => l.tier === t).map((l) => {
+    const img = isleThumb(l), w = wish && wish.k === 'isle' && wish.id === l.id ? ICO.spark : '';
+    if (isleOwn(l)) return `<div class="cc"><img src="${img}" alt=""><div class="ci"><span class="ck">${ICO.check}</span></div></div>`;
+    if (isleOpen(l)) return `<button type="button" class="cc buy" data-act="isle" data-id="${l.id}" aria-label="Köp"><img src="${img}" alt=""><div class="ci">${priceH(l.cost)}</div>${w}</button>`;
+    return `<div class="cc lock"><img src="${img}" alt=""><div class="ci">${lockH('house')}</div></div>`; }).join('')}</div>`);
+  return `<div class="cols" style="grid-template-columns:repeat(4,minmax(0,1fr))">${cols.join('')}</div>`;
+}
+/* every frame (after the town has moved its windmill, lighthouse and ducks) */
+let isleReady = false;
+function isleLate() {
+  const S = stS(), own = isleS(); if (!S || !own) return;
+  if (!isleReady) { isleReady = true; isleSplit(); ILOTS.forEach((l) => isleShow(l, !!own[l.id] && !S.pend.includes('i:' + l.id))); }
+  ILOTS.forEach((l) => {
+    const pend = S.pend.includes('i:' + l.id), want = !!own[l.id] && !pend;
+    if (pend && !inHouse && !BUILD && Math.hypot(pip.position.x - l.c[0], pip.position.z - l.c[1]) < 9) {
+      S.pend.splice(S.pend.indexOf('i:' + l.id), 1); isleShow(l, true);
+      l.meshes.concat(l.objs.filter((o) => o.isMesh || o.isGroup)).forEach((m, k) => riseIn(m, 0.1 + (m.userData.reg || 0) * 0.15, 0.9));
+      l.at.forEach((g, k) => setTimeout(() => confetti(g[0], 1.0, g[1], 40, 3), 350 + k * 150)); setTimeout(() => fanfare(l.tier >= 2), 500); save(); return;
+    }
+    if (l.shown !== want) isleShow(l, want);
+    if (!want) l.objs.forEach((o) => { if (o.visible) o.visible = false; });
+  });
+}
+{ const t0 = townStep; townStep = function (dt) { t0(dt); isleLate(); }; }
+if (window.__farmTest) window.__isle = () => ({ sc, own: JSON.stringify(isleS()), lots: ILOTS.map((l) => l.id + ':' + l.meshes.length + '/' + l.objs.length + '/' + l.solids.length + (l.shown ? '+' : '-')).join(' '), goal: isleGoal(), buy: (id) => catBuy({ k: 'isle', id }) });
 /* ---------- sky with clouds ----------
    Replaces the plain two-colour dome with one that follows the camera and is anchored to the *visible* horizon
    (with the curved world the sea edge sits well below eye level, so the gradient and clouds start there).
