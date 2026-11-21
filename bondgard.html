@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121112822">
+<meta name="app-ver" content="20261121113157">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -6657,6 +6657,8 @@ if (window.__farmTest) window.__cat = catTest;
     b.addEventListener('click', (e) => { e.stopPropagation(); if (!done && !t0) { Snd.play('tock', { gain: 0.3, f: 420 }); b.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-12deg)' }, { transform: 'rotate(10deg)' }, { transform: 'rotate(0)' }], { duration: 300 }); } });
   }
 }
+/* the joystick also lets go when the browser takes the finger away (iPad gestures), so Pip never walks on by itself */
+{ const w = wrap; if (w) w.addEventListener('lostpointercapture', () => { if (joy) { joy = null; holding = false; if (joyEl) joyEl.hidden = true; target.copy(pip.position); } }); }
 /* ---------- sky with clouds ----------
    Replaces the plain two-colour dome with one that follows the camera and is anchored to the *visible* horizon
    (with the curved world the sea edge sits well below eye level, so the gradient and clouds start there).
@@ -6906,7 +6908,7 @@ function step(dt) {
 
   /* water and camera */
   waterT -= dt; if (waterT <= 0) { waterT = 0.1; for (let i = 0; i < wp.count; i++) { const x = wp.getX(i), z = wp.getZ(i); wp.setY(i, Math.sin(x * 0.5 + time * 0.9) * 0.06 + Math.sin(z * 0.42 - time * 0.7) * 0.06); const ax = -Math.cos(x * 0.5 + time * 0.9) * 0.18, az = -Math.cos(z * 0.42 - time * 0.7) * 0.15, l = Math.hypot(ax, 1, az); wn.setXYZ(i, ax / l, 1 / l, az / l); } wp.needsUpdate = true; wn.needsUpdate = true; }
-  camFocus.lerp(pip.position, 1 - Math.exp(-dt * 4)); if (inBarn) camFocus.z = Math.min(camFocus.z, BI.z + 0.9); if (inStore) camFocus.z = Math.min(camFocus.z, SI.z + 1.2);
+  /* the camera keeps up closely, so it stops with Pip instead of gliding on after the finger lifts */ camFocus.lerp(pip.position, 1 - Math.exp(-dt * 10)); if (inBarn) camFocus.z = Math.min(camFocus.z, BI.z + 0.9); if (inStore) camFocus.z = Math.min(camFocus.z, SI.z + 1.2);
   dressT += ((dressing ? 1 : 0) - dressT) * Math.min(1, dt * 5); const k = (aspect < 1 ? 1.5 : 1.15) * (1 - 0.7 * dressT) * (inBarn ? 1.22 : 1); cam.position.set(camFocus.x, 9.5 * k, camFocus.z + 8.5 * k); cam.lookAt(camFocus.x + (aspect < 1 ? 0 : 0.75) * dressT, 0.55 * dressT, camFocus.z + 0.3 + (aspect < 1 ? 0.55 : -0.1) * dressT);
   sun.position.set(camFocus.x - 10, 10, camFocus.z + 7.5); sun.target.position.copy(camFocus); curveFrame(aspect < 1 ? 1.15 : 1, dt); skyFrame(dt);
   if (window.__camTop) { const c = window.__camTop; cam.position.set(c[0], c[2], c[1] + (c[3] || 0)); cam.lookAt(c[0], 0, c[1]); cam.far = 300; }
