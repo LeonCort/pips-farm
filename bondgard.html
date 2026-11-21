@@ -230,7 +230,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121083914">
+<meta name="app-ver" content="20261121084209">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -772,6 +772,7 @@ function curveHit(r, out) {
 const curveLive = () => CURVE.on && !inHouse && !(typeof ED !== 'undefined' && ED.on);
 /* called once a frame after the stock camera: bend origin, outdoor camera, shadow box nudged forward */
 function curveFrame(aspectK) {
+  fpsTick();
   CURVE.u.strength.value = curveLive() ? CURVE.strength : 0; CURVE.u.side.value = CURVE.side;
   CURVE.u.origin.value.set(pip.position.x, 0, pip.position.z);
   if (inHouse || window.__camTop) return;
@@ -785,7 +786,7 @@ function curveSave() { try { const o = {}; Object.keys(CURVE_DEF).forEach((k) =>
   const css = document.createElement('style');
   css.textContent = '#curveBtn{position:fixed;left:max(12px,env(safe-area-inset-left,0px));top:50%;width:48px;height:48px;margin-top:-24px;border-radius:50%;border:3px solid #22303c;background:#fffaf0;font-size:24px;line-height:1;box-shadow:0 4px 0 rgba(34,48,60,.25);z-index:30;padding:0}'
     + '#curvePan{position:fixed;left:max(70px,calc(env(safe-area-inset-left,0px) + 70px));top:50%;transform:translateY(-50%);width:min(300px,calc(100vw - 90px));padding:12px 14px;border-radius:18px;border:3px solid #22303c;background:#fbf3e2;font:600 14px Fredoka,system-ui,sans-serif;color:#22303c;z-index:30;box-shadow:0 5px 0 rgba(34,48,60,.25)}'
-    + '#curvePan label{display:block;margin:6px 0 2px}#curvePan label b{float:right;font-weight:700}#curvePan input[type=range]{width:100%;accent-color:#c8643a;height:28px}#curvePan .row{display:flex;gap:8px;margin-top:8px;align-items:center}#curvePan button{flex:1;padding:8px;border-radius:12px;border:2px solid #22303c;background:#fffaf0;font:inherit}';
+    + '#curvePan label{display:block;margin:6px 0 2px}#curvePan label b{float:right;font-weight:700}#curvePan input[type=range]{width:100%;accent-color:#c8643a;height:28px}#curvePan .row{display:flex;gap:8px;margin-top:8px;align-items:center}#curvePan .row label{white-space:nowrap}#curvePan button{flex:1;padding:8px;border-radius:12px;border:2px solid #22303c;background:#fffaf0;font:inherit}';
   document.head.appendChild(css);
   const btn = document.createElement('button'); btn.id = 'curveBtn'; btn.type = 'button'; btn.textContent = '\u{1F30D}'; btn.setAttribute('aria-label', 'Curve settings');
   const pan = document.createElement('div'); pan.id = 'curvePan'; pan.hidden = true;
@@ -809,6 +810,18 @@ function setDraw(i, keepSliders) { drawLv = i; const o = DRAW_OPTS[i]; if (!keep
 setDraw(drawLv, true);
 { const b = document.getElementById('drawBtn'); if (b) b.addEventListener('click', () => { setDraw((drawLv + 1) % DRAW_OPTS.length); try { localStorage.setItem('pips-draw', drawLv); } catch (e) {} Snd.play('pop', { gain: 0.4, f: 500 + drawLv * 160 }); }); }
 { const st = document.createElement('style'); st.textContent = '.drawBtn{position:relative}.drawBtn b{position:absolute;left:0;right:0;bottom:3px;font:800 13px/1 system-ui,sans-serif;color:var(--ink);text-align:center}.drawBtn .h2,.drawBtn .h3{transition:opacity .2s}.drawBtn[data-lv="0"] .h2,.drawBtn[data-lv="0"] .h3{opacity:.15}.drawBtn[data-lv="1"] .h3{opacity:.15}'; document.head.appendChild(st); }
+/* fps counter: frames actually drawn per second (after the frame cap), plus draw calls and triangles of the last frame */
+let fpsShow = true; try { fpsShow = localStorage.getItem('pips-fpsmeter') !== '0'; } catch (e) {}
+const fpsEl = document.createElement('div'); fpsEl.id = 'fpsMeter'; fpsEl.setAttribute('aria-hidden', 'true'); fpsEl.hidden = !fpsShow; document.body.appendChild(fpsEl);
+{ const st = document.createElement('style'); st.textContent = '#fpsMeter{position:fixed;left:50%;transform:translateX(-50%);top:max(14px,env(safe-area-inset-top,0px));padding:4px 8px;border-radius:10px;background:rgba(34,48,60,.78);color:#fffaf0;font:700 12px/1.35 ui-monospace,Menlo,monospace;z-index:30;pointer-events:none;white-space:pre}#fpsMeter.bad{background:rgba(184,64,31,.85)}'; document.head.appendChild(st); }
+let fpsN = 0, fpsT0 = performance.now(), fpsMin = 1e9, fpsLast = 0;
+function fpsTick() {
+  const now = performance.now(); if (fpsLast) fpsMin = Math.min(fpsMin, 1000 / Math.max(1, now - fpsLast)); fpsLast = now; fpsN++;
+  if (now - fpsT0 < 500) return; const fps = fpsN * 1000 / (now - fpsT0); fpsN = 0; fpsT0 = now;
+  if (fpsShow) { const ri = renderer.info.render; fpsEl.textContent = Math.round(fps) + ' fps  (low ' + Math.round(fpsMin) + ')  cap ' + fpsCap + '\n' + ri.calls + ' draws  ' + Math.round(ri.triangles / 1000) + 'k tris'; fpsEl.classList.toggle('bad', fps < fpsCap * 0.8); }
+  fpsMin = 1e9;
+}
+{ const row = document.querySelector('#curvePan .row'); if (row) { const l = document.createElement('label'); l.style.cssText = 'margin:0;flex:1'; l.innerHTML = '<input type="checkbox" data-fps> FPS'; row.insertBefore(l, row.children[1]); const c = l.querySelector('input'); c.checked = fpsShow; c.addEventListener('change', () => { fpsShow = c.checked; fpsEl.hidden = !fpsShow; try { localStorage.setItem('pips-fpsmeter', fpsShow ? '1' : '0'); } catch (e) {} }); } }
 
 
 let renderer; try { renderer = new T.WebGLRenderer({ canvas, antialias: true }); } catch (e) { $('nogl').hidden = false; return; }
