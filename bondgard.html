@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121095812">
+<meta name="app-ver" content="20261121100103">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -724,7 +724,7 @@ if (!T) { $('nogl').hidden = false; return; }
    and Material.onBuild hands every program the same two shared uniforms. So new meshes made later (guests, pops,
    pets) curve automatically, and existing onBeforeCompile hooks (rim light, sway, ground texture) are untouched.
    Hand-written ShaderMaterials go through applyWorldCurve(material). */
-const CURVE_DEF = { strength: 0.0135, side: 0, pitch: 37, dist: 12, ahead: 1, shopPitch: 60, shopDist: 12, shopAhead: 2.4, awnFade: 0.55, on: true }; /* Leon's picks, 2026-11-21 */
+const CURVE_DEF = { strength: 0.0135, side: 0, pitch: 37, dist: 12, ahead: 1, shopPitch: 60, shopDist: 14, shopAhead: 0.8, awnFade: 0.55, on: true }; /* Leon's picks, 2026-11-21 */
 const CURVE = Object.assign({}, CURVE_DEF, { fogNear: 50, fogFar: 88, detail: 49, shopW: 0, u: { origin: { value: new T.Vector3() }, strength: { value: 0 }, side: { value: CURVE_DEF.side }, horD: { value: 1e6 } } });
 /* dev mode (settings menu): shows the tuning panel and the fps counter; tweaks are saved on this device only and apply only while dev mode is on */
 let devOn = false; try { devOn = localStorage.getItem('pips-dev') === '1'; } catch (e) {}
