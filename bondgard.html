@@ -229,7 +229,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121075949">
+<meta name="app-ver" content="20261121080329">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -4522,6 +4522,31 @@ if (typeof CRATES !== 'undefined') CRATES.forEach((c) => { const g = c.g; if (!g
   const m = new T.Mesh(aw, mlAwningMat(PAL.accent)); m.position.set(0, 0.92, -0.38); m.castShadow = true; g.add(m);
   const va = new T.PlaneGeometry(1.2, 0.14), vu = va.attributes.uv; for (let i = 0; i < vu.count; i++) vu.setY(i, vu.getY(i) * 0.2);
   const v = new T.Mesh(va, mlAwningMat(PAL.accent)); v.position.set(0, 0.86, -0.38 + 0.08); g.add(v); });
+/* the day dial in the corner: compact by default (just the dial), a tap opens the season row for a few seconds */
+{
+  const css = `
+.clock { pointer-events: auto !important; cursor: pointer; -webkit-tap-highlight-color: transparent; padding-right: 6px !important; transition: padding 0.25s ease; }
+.clock .cal { max-width: 0; max-height: 0; opacity: 0; overflow: hidden; transition: max-width 0.3s ease, max-height 0.3s ease, opacity 0.2s ease; }
+.clock.open { padding-right: 14px !important; }
+.clock.open .cal { max-width: 320px; max-height: 120px; opacity: 1; overflow: visible; }
+.clock:not(.open) { gap: 0 !important; padding: 5px !important; border-radius: 50% !important; }
+.clock:active .dial { transform: scale(0.94); }
+.clock .dial { transition: transform 0.12s ease; }
+@media (prefers-reduced-motion: reduce) { .clock, .clock .cal, .clock .dial { transition: none; } }
+`;
+  const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+  const el = $('clock');
+  if (el) {
+    let t = 0; const set = (open) => { el.classList.toggle('open', open); el.setAttribute('aria-expanded', String(open)); clearTimeout(t); if (open) t = setTimeout(() => set(false), 6000); };
+    el.setAttribute('role', 'button'); el.tabIndex = 0; set(false);
+    const tap = (e) => { e.stopPropagation(); e.preventDefault(); set(!el.classList.contains('open')); if (typeof Snd !== 'undefined') Snd.play('pop', { gain: 0.3, f: 520 }); };
+    el.addEventListener('pointerdown', (e) => e.stopPropagation()); el.addEventListener('click', tap);
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') tap(e); });
+    FL.clockOpen = set;
+  }
+}
+/* when a new season starts, open the season row for a moment so the change is seen */
+{ const st0 = seasonToast; seasonToast = (s) => { st0(s); if (FL.clockOpen) FL.clockOpen(true); }; }
 /* ---------- the walk-in barn: stalls for the bigger animals, goats, and leading animals in at night and out in the morning ---------- */
 /* Pip walks into the barn through a doormat ring by its doors. Inside (built far out at sea, like the house) there are stalls.
    In the evening the bigger animals wait by their pen gate with a moon bubble: walk up to them and they follow Pip in a line,
