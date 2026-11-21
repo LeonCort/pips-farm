@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121113157">
+<meta name="app-ver" content="20261121113911">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -6385,7 +6385,7 @@ function catOffers() {
 /* ---------- the pieces in the house ---------- */
 const SPOTM = {};
 let catReady = false, origBed = null;
-function spotRing(s) { const r = s.room, dx = r.c[0] - s.x, dz = r.c[1] - s.z, d = Math.hypot(dx, dz); if (s.fam === 'bed') return [s.x + 1.2, s.z + 0.9]; if (d < 0.95) return [s.x, s.z + 0.95]; return [s.x + dx / d * 0.95, s.z + dz / d * 0.95]; }
+function spotRing(s) { const r = s.room, dx = r.c[0] - s.x, dz = r.c[1] - s.z, d = Math.hypot(dx, dz); if (s.fam === 'bed') return [s.x + 0.35, s.z + 1.35]; if (d < 0.95) return [s.x, s.z + 0.95]; return [s.x + dx / d * 0.95, s.z + dz / d * 0.95]; }
 function applySpot(id) {
   const s = CSPOT[id], C = catS(), e = C.eq[id], old = SPOTM[id];
   if (old) { sc.remove(old); SPOTM[id] = null; }
@@ -6467,12 +6467,14 @@ const ICO = {
 .cat .cb{flex:1;min-height:0;overflow:auto}
 .cat .house{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:10px;height:100%;background:#e6d2ae;border:4px solid #3a2e2a;border-radius:18px;padding:10px;box-sizing:border-box}
 .cat .rt{position:relative;border:4px solid #3a2e2a;border-radius:16px;background:#fffaf0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 4px 0 #3a2e2a;min-height:0}
-.cat .rt img{width:min(96px,60%);aspect-ratio:1;object-fit:contain}
+.cat .rt img{width:min(96px,60%);aspect-ratio:1;object-fit:contain;min-height:0;flex:0 1 auto}
 .cat .rt.shut{background:#cdbb98;border-style:dashed;border-color:#8a7454;box-shadow:none}
 .cat .rt.shut img{opacity:.45;filter:grayscale(.6)}
-.cat .need{width:max-content;display:flex;align-items:center;gap:4px;font-size:20px;font-weight:700;background:#fffaf0;border:3px solid #3a2e2a;border-radius:12px;padding:2px 8px}
-.cat .need svg{width:24px;height:24px}
-.cat .need.next{box-shadow:0 0 0 5px #ffe28a}
+.cat .cneed{flex:none;max-width:calc(100% - 8px);box-sizing:border-box;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 4px;font-size:18px;line-height:1.1;font-weight:700;background:#fffaf0;border:3px solid #3a2e2a;border-radius:12px;padding:2px 8px}
+.cat .cneed svg{width:22px;height:22px;flex:none}
+.cat .cneed .pr{display:flex;align-items:center;gap:2px;flex:none}
+.cat .rt.shut img{width:min(72px,42%)}
+.cat .cneed.next{box-shadow:0 0 0 5px #ffe28a}
 .cat .stars{display:flex;align-items:center;gap:3px;font-size:22px;font-weight:700}
 .cat .stars svg{width:24px;height:24px}
 .cat .spk{position:absolute;top:-12px;right:-10px;width:34px;height:34px;animation:catSpk 1.4s ease-in-out infinite}
@@ -6543,7 +6545,7 @@ function housePlanHTML(wish) {
     const open = roomOpen(r), hasWish = wish && ((wish.s && CSPOT[wish.s].room === r) || (wish.k === 'ex' && r.ex.some((f) => f.id === wish.id)));
     if (open) return `<button type="button" class="rt" style="grid-area:${AREA[r.id]}" data-act="room" data-v="${r.id}" aria-label="Rum"><img src="${roomIcon(r)}" alt=""><span class="stars">${ICO.star}${roomStars(r)}</span>${hasWish ? ICO.spark : ''}</button>`;
     const next = r.need === S.size + 1, cost = next ? SIZES[r.need].cost - (S.paid['h:' + r.need] || 0) : 0, first = next && !shown[r.need]; shown[r.need] = 1;
-    return `<button type="button" class="rt shut" style="grid-area:${AREA[r.id]}" data-act="${next ? 'size' : 'none'}" data-v="${r.need}" aria-label="Större hus"><img src="${roomIcon(r)}" alt=""><span class="need${next ? ' next' : ''}">${ICO.lock}${ICO.house}${next ? `${ICO.coin}${fmtC(cost)}` : ''}</span>${first && cheapestSize() ? ICO.spark : ''}</button>`;
+    return `<button type="button" class="rt shut" style="grid-area:${AREA[r.id]}" data-act="${next ? 'size' : 'none'}" data-v="${r.need}" aria-label="Större hus"><img src="${roomIcon(r)}" alt=""><span class="cneed${next ? ' next' : ''}">${ICO.lock}${ICO.house}${next ? `<span class="pr">${ICO.coin}${fmtC(cost)}</span>` : ''}</span>${first && cheapestSize() ? ICO.spark : ''}</button>`;
   }).join('')}</div>`;
 }
 function cheapestSize() { const w = cheapest(false); return w && w.o.size; }
@@ -6658,6 +6660,9 @@ if (window.__farmTest) window.__cat = catTest;
   }
 }
 /* the joystick also lets go when the browser takes the finger away (iPad gestures), so Pip never walks on by itself */
+/* iPad: keep Safari from treating a swipe on the farm as a page scroll, which held back the finger moves until the scroll gesture ended */
+{ const w = wrap; if (w) { const stopT = (e) => { if (e.cancelable) e.preventDefault(); }; w.addEventListener('touchstart', stopT, { passive: false }); w.addEventListener('touchmove', stopT, { passive: false }); }
+  try { document.documentElement.style.overscrollBehavior = 'none'; document.body.style.overscrollBehavior = 'none'; } catch (e) {} }
 { const w = wrap; if (w) w.addEventListener('lostpointercapture', () => { if (joy) { joy = null; holding = false; if (joyEl) joyEl.hidden = true; target.copy(pip.position); } }); }
 /* ---------- sky with clouds ----------
    Replaces the plain two-colour dome with one that follows the camera and is anchored to the *visible* horizon
