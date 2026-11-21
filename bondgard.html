@@ -223,7 +223,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Done"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M11 25 L20 34 L37 14" fill="none" stroke="#fff6e4" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
   </div>
 </div>
-<meta name="app-ver" content="20261120225046">
+<meta name="app-ver" content="20261121062749">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -739,8 +739,10 @@ function part(geo, parent, x, y, z, noShadow) { const m = new T.Mesh(geo, MAT); 
 const ico = (r, d, seed, j) => jit(new T.IcosahedronGeometry(r, d), j == null ? r * 0.12 : j, seed);
 const ink = new T.MeshBasicMaterial({ color: PAL.ink });
 
+/* a smaller shadow map on the farm: blurrier, softer shadow edges (and cheaper) */
+const HERE_SHADOW = HERE_T === 'farm' ? 640 : 1024;
 sc.add(new T.HemisphereLight(0xc4d6f2, 0xa8a070, 0.6));
-const sun = new T.DirectionalLight(0xffd6a0, 1.05); sun.position.set(-11, 9, 7.5); sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024);
+const sun = new T.DirectionalLight(0xffd6a0, 1.05); sun.position.set(-11, 9, 7.5); sun.castShadow = true; sun.shadow.mapSize.set(HERE_SHADOW, HERE_SHADOW);
 Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 12, bottom: -12, near: 1, far: 50 }); sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03; sc.add(sun); sc.add(sun.target);
 const sky = new T.Mesh(new T.SphereGeometry(150, 32, 16), new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: false, uniforms: { top: { value: new T.Color('#7db7dd') }, hor: { value: new T.Color('#ffe2c4') } }, vertexShader: 'varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }', fragmentShader: 'varying vec3 vD; uniform vec3 top; uniform vec3 hor; void main(){ float y = max(normalize(vD).y, 0.0); gl_FragColor = vec4(mix(hor, top, pow(y, 0.55)), 1.0); }' })); sc.add(sky);
 
@@ -781,7 +783,7 @@ const tg = HERE_T === 'farm' ? new T.PlaneGeometry(58, 40, 112, 78) : new T.Plan
 const GRASS_WARM = new T.Color('#d9c45a');
 function vkey(x, y, z) { return Math.round(x * 8) * 7.31 + Math.round(z * 8) * 3.17 + Math.round(y * 8) * 1.13; }
 function grassAt(x, z, base, key, warm) { const c = tone(base, key, 0.35); const n = 0.5 + 0.5 * Math.sin(x * 0.23 + Math.sin(z * 0.31) * 1.7) * Math.cos(z * 0.19 - x * 0.07), m = 0.5 + 0.5 * Math.sin(x * 0.61 + z * 0.47 + Math.sin(x * 0.2) * 2);
-  c.lerp(GRASS_WARM, (warm == null ? 1 : warm) * (0.1 + 0.5 * n * n)); c.multiplyScalar(0.88 + 0.14 * m); return c; }
+  c.lerp(GRASS_WARM, (warm == null ? 1 : warm) * (0.04 + 0.26 * n * n)); c.multiplyScalar(0.88 + 0.14 * m); return c; }
 function groundCol(x, y, z, key, grass, beach, warm) { return y < -0.6 ? tone(PAL.bed, key, 0.4) : y < -0.05 ? tone(beach || PAL.sand, key, 0.4) : grassAt(x, z, grass || PAL.grass, key, warm); }
 function repaintV(mesh, paint) { const p = mesh.geometry.attributes.position, col = mesh.geometry.attributes.color; if (!col) return; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), c = paint(x, y, z, vkey(x, y, z)); col.setXYZ(i, c.r, c.g, c.b); } col.needsUpdate = true; }
 const GU = { path: { value: new T.Color(PAL.sand) }, cob: { value: new T.Color('#dcc7a2') }, mask: { value: null }, det: { value: null } };
@@ -872,17 +874,21 @@ function fluff(r, seed, n, flat) {
 }
 const _sy = new T.Color('#ffe9a0');
 function shadeY(hex, y, y0, y1, key, amt) { const c = tone(hex, key, amt == null ? 0.6 : amt), q = clamp((y - y0) / (y1 - y0), 0, 1); c.multiplyScalar(0.62 + 0.5 * q); c.lerp(_sy, 0.18 * q * q); return c; }
+/* foliage: a stronger vertical gradient than shadeY, cool deep green at the bottom of a crown and sunny yellow-green on top, so a
+   cluster of round blobs reads as layers of leaves instead of one smooth plastic ball */
+const _lyLo = new T.Color('#2e5a50'), _lyHi = new T.Color('#dfe98a');
+function leafY(hex, y, y0, y1, key, amt) { const c = tone(hex, key, amt == null ? 0.6 : amt), q = clamp((y - y0) / (y1 - y0), 0, 1); c.lerp(_lyLo, 0.32 * (1 - q) * (1 - q)); c.multiplyScalar(0.54 + 0.46 * q); c.lerp(_lyHi, 0.22 * q * q * q); return c; }
 function tree(kind, s) {
   const g = new T.Group(); let geo; const LF = typeof leafs !== 'undefined' ? leafs : null;
   if (kind === 'pine') {
     geo = new T.CylinderGeometry(0.06, 0.1, 0.4, 7); geo.translate(0, 0.2, 0); part(fac(geo, PAL.trunk, s), g);
     const L = []; for (let i = 0; i < 4; i++) { const c = new T.ConeGeometry(0.56 - i * 0.11, 0.62 - i * 0.04, 9, 2); c.translate(0, 0.62 + i * 0.3, 0); L.push(jit(c, 0.025, s + i)); }
-    const base = s % 2 ? PAL.pine : PAL.forest, y0 = 0.3, y1 = 1.85, m = part(fac(mergeGeos(L), (cx, cy, cz, i) => shadeY(base, cy, y0, y1, i)), g);
+    const base = s % 2 ? PAL.pine : PAL.forest, y0 = 0.3, y1 = 1.85, m = part(fac(mergeGeos(L), (cx, cy, cz, i) => leafY(base, cy, y0, y1, i)), g);
     m.userData = { pine: 1, base, y0, y1 }; if (LF) LF.push(m);
   } else {
     geo = new T.CylinderGeometry(0.07, 0.13, 0.85, 7); geo.translate(0, 0.42, 0); part(fac(jit(geo, 0.012, s), PAL.trunk, s), g);
     geo = new T.CylinderGeometry(0.03, 0.05, 0.4, 5); geo.translate(0, 0.2, 0); geo.rotateZ(0.7); geo.translate(0.02, 0.6, 0); part(fac(geo, PAL.trunk, s + 1), g);
-    const y0 = 0.7, y1 = 1.85, m = part(fac(fluff(0.62, s, 7), (cx, cy, cz, i) => shadeY(PAL.forest, cy + 1.25, y0, y1, i)), g, 0, 1.25, 0);
+    const y0 = 0.7, y1 = 1.85, m = part(fac(fluff(0.62, s, 7), (cx, cy, cz, i) => leafY(PAL.forest, cy + 1.25, y0, y1, i)), g, 0, 1.25, 0);
     m.userData = { base: PAL.forest, y0: y0 - 1.25, y1: y1 - 1.25 }; if (LF) LF.push(m);
   }
   return g;
@@ -1740,13 +1746,13 @@ const DAY = 480, SEASONS = ['spring', 'summer', 'autumn', 'winter'], SEASON_SV =
 const hemi = sc.children.find((o) => o.isHemisphereLight);
 const SKY_KEYS = [
   /* f: 0 is sunrise, 0.5 late afternoon, 0.62 sunset, 0.7 to 0.94 night */
-  { f: 0.0, top: '#8fb3d9', hor: '#ffc9a0', sun: '#ffc08a', si: 0.6, hs: '#a9c9ff', hg: '#8fa98a', hi: 0.55, n: 0.25 },
-  { f: 0.08, top: '#86bde0', hor: '#ffdcb4', sun: '#ffd8a4', si: 0.92, hs: '#c8d8f2', hg: '#aca274', hi: 0.74, n: 0 },
-  { f: 0.52, top: '#8ab8dc', hor: '#ffd2a2', sun: '#ffc888', si: 0.95, hs: '#d4d2e8', hg: '#ac9e6c', hi: 0.7, n: 0 },
-  { f: 0.62, top: '#6a78b8', hor: '#ff9f6e', sun: '#ff9a5c', si: 0.6, hs: '#c9a6d9', hg: '#8a7a6a', hi: 0.55, n: 0.2 },
+  { f: 0.0, top: '#8fb3d9', hor: '#ffc9a0', sun: '#ffc08a', si: 0.6, hs: '#ffd9bc', hg: '#6f9a92', hi: 0.62, n: 0.25 },
+  { f: 0.08, top: '#86bde0', hor: '#ffdcb4', sun: '#ffd8a4', si: 0.92, hs: '#ffefd6', hg: '#5f948a', hi: 0.8, n: 0 },
+  { f: 0.52, top: '#8ab8dc', hor: '#ffd2a2', sun: '#ffc888', si: 0.95, hs: '#ffe8c8', hg: '#5f9088', hi: 0.78, n: 0 },
+  { f: 0.62, top: '#6a78b8', hor: '#ff9f6e', sun: '#ff9a5c', si: 0.6, hs: '#f2bcc4', hg: '#5a7c8a', hi: 0.6, n: 0.2 },
   { f: 0.7, top: '#1c2650', hor: '#3a4478', sun: '#9fb4ff', si: 0.38, hs: '#7086c9', hg: '#3a4458', hi: 0.6, n: 1 },
   { f: 0.94, top: '#1c2650', hor: '#3a4478', sun: '#9fb4ff', si: 0.38, hs: '#7086c9', hg: '#3a4458', hi: 0.6, n: 1 },
-  { f: 1.0, top: '#8fb3d9', hor: '#ffc9a0', sun: '#ffc08a', si: 0.6, hs: '#a9c9ff', hg: '#8fa98a', hi: 0.55, n: 0.25 }
+  { f: 1.0, top: '#8fb3d9', hor: '#ffc9a0', sun: '#ffc08a', si: 0.6, hs: '#ffd9bc', hg: '#6f9a92', hi: 0.62, n: 0.25 }
 ];
 const _ca = new T.Color(), _cb = new T.Color();
 const mixHex = (a, b, q, out) => out.copy(_ca.set(a)).lerp(_cb.set(b), q);
@@ -1785,9 +1791,9 @@ const FALL = { spring: { c: '#f6b8c8', size: 0.1, v: 0.5, sway: 0.8, n: 70, drif
 const WIND = { x: 1, z: 0, g: 0, amt: 0 };
 /* repaint the ground, trees and pen floors for a season (per corner, so the colours stay soft gradients) */
 const _lw = new T.Color('#ffe9a0');
-function leafShade(m, c, y) { const u = m.userData; if (u.y1 == null) return c; const q = clamp((y - u.y0) / (u.y1 - u.y0), 0, 1); c.multiplyScalar(0.62 + 0.5 * q); if (season !== 'winter') c.lerp(_lw, 0.18 * q * q); return c; }
+function leafShade(m, c, y) { const u = m.userData; if (u.y1 == null) return c; const q = clamp((y - u.y0) / (u.y1 - u.y0), 0, 1); if (season !== 'winter') c.lerp(_lyLo, 0.32 * (1 - q) * (1 - q)); c.multiplyScalar(0.54 + 0.46 * q); if (season !== 'winter') c.lerp(_lyHi, 0.3 * q * q * q); return c; }
 function repaint(mesh, paint) { repaintV(mesh, (x, y, z, k) => leafShade(mesh, paint(x, y, z, k), y)); }
-const GRASS = { spring: '#a5bf66', summer: '#b2c25a', autumn: '#bdb35f', winter: '#dde6ea' };
+const GRASS = { spring: '#6fa352', summer: '#6a9f4a', autumn: '#8f9a4e', winter: '#dde6ea' };
 const GRASS_WARMTH = { spring: 1, summer: 1.1, autumn: 0.8, winter: 0.04 };
 const LEAF = { spring: ['#8cc46a', '#f6b8c8'], summer: ['#5d9160', '#5d9160'], autumn: ['#e0893a', '#d9b03f', '#c45a32'], winter: ['#eef3f6', '#c9d6dc'] };
 const FLOOR = { spring: null, summer: null, autumn: null, winter: '#e6ecee' };
@@ -2364,7 +2370,7 @@ function extrasInit() {
   dog.g.position.set(KENNEL.x - 0.6, 0, KENNEL.z + 0.9);
   marketInit();
 }
-function extrasStep(dt) { dogStep(dt); fishStep(dt); weatherStep(dt); gardenStep(dt); animalAmbience(dt); townStep(dt); marketStep(dt); cozyStep(dt); }
+function extrasStep(dt) { dogStep(dt); fishStep(dt); weatherStep(dt); gardenStep(dt); animalAmbience(dt); townStep(dt); marketStep(dt); cozyStep(dt); polishStep(dt); }
 function extrasTest() {
   return {
     dog: () => [dog.g.position.x, dog.g.position.z, dog.chase, dog.asleep], 
@@ -2722,7 +2728,7 @@ LAMP_AT.forEach(([x, z], k) => {
 [-1.5, 1.5].forEach((x) => [[4.3, 6.8], [8.4, 11.6]].forEach(([z0, z1], k) => {
   const L = z1 - z0, P = at(x, (z0 + z1) / 2, 0), B = [];
   for (let z = -L / 2 + 0.18; z <= L / 2 - 0.12; z += 0.2) { const r = 0.2 + hash(z, k + 3) * 0.06, sd = hash(z, k + 5) > 0.5 ? 1 : -1; B.push(ico(r, 1, 751 + z * 10, r * 0.1).translate(sd * 0.09, 0.24 + hash(k, z) * 0.06, z)); B.push(ico(r * 0.85, 1, 761 + z * 10, r * 0.1).translate(-sd * 0.1, 0.42 + hash(z, 9) * 0.08, z + 0.1)); if (hash(z, 11) > 0.5) B.push(ico(r * 0.7, 1, 771 + z * 10, r * 0.1).translate((hash(z, 13) - 0.5) * 0.12, 0.58, z)); }
-  P(mergeGeos(B), (cx, cy, cz, i) => shadeY(PAL.forest, cy, 0.0, 0.7, i), 751 + k, 0, 0, 0);
+  P(mergeGeos(B), (cx, cy, cz, i) => leafY(PAL.forest, cy, 0.0, 0.7, i), 751 + k, 0, 0, 0);
   for (let z = z0; z <= z1; z += 0.5) deco(x, z, 0.45);
 }));
 
@@ -3019,7 +3025,7 @@ function townStep(dt) {
   beam.g.visible = nightAmt > 0.05; if (beam.g.visible) { beam.mat.opacity = nightAmt * 0.22; beam.g.rotation.y += dt * 0.6; }
   pond.ducks.forEach((d) => { d.g.visible = !frozen; if (frozen) return; const a = time * d.s + d.p; d.g.position.set(POND.x + Math.cos(a) * d.r * 1.2, 0.02 + (reduced ? 0 : Math.sin(time * 2 + d.p) * 0.02), POND.z + Math.sin(a) * d.r); d.g.rotation.y = Math.atan2(-Math.sin(a) * d.s * 1.2, Math.cos(a) * d.s); });
   if (season !== townSeason) { townSeason = season; flowerMesh.visible = season !== 'winter';
-    fountain.water.material.color.set(frozen ? '#d9ecf2' : PAL.seaShallow); pond.water.material.color.set(frozen ? '#d9ecf2' : PAL.sea); }
+    if (fountain.water.material.color) fountain.water.material.color.set(frozen ? '#d9ecf2' : PAL.seaShallow); pond.water.material.color.set(frozen ? '#d9ecf2' : PAL.sea); }
   harbourIdle = fishing ? 0 : harbourIdle + dt;
   bedSign.visible = !inHouse && sleepy(); if (bedSign.visible) bedSign.position.set(HOUSE.x - 0.8, 3.2 + (reduced ? 0 : Math.sin(time * 2.4) * 0.12), HOUSE.z + 0.4);
   mapBtn.hidden = inHouse || !!trip;
@@ -3090,7 +3096,7 @@ const trees = [];
 function appleTree(i) {
   if (trees[i]) return; const s = MKT.trees[i], g = new T.Group(); g.position.set(s[0], 0, s[1]); sc.add(g);
   let geo = new T.CylinderGeometry(0.1, 0.14, 0.8, 5); geo.translate(0, 0.4, 0); part(fac(geo, PAL.trunk, 900 + i), g);
-  const crown = part(fac(fluff(0.68, 910 + i, 7), (cx, cy, cz, k) => shadeY(PAL.leaf, cy, -0.6, 0.6, k)), g, 0, 1.35, 0); crown.userData = { base: PAL.leaf, y0: -0.6, y1: 0.6 }; leafs.push(crown);
+  const crown = part(fac(fluff(0.68, 910 + i, 7), (cx, cy, cz, k) => leafY(PAL.leaf, cy, -0.6, 0.6, k)), g, 0, 1.35, 0); crown.userData = { base: PAL.leaf, y0: -0.6, y1: 0.6 }; leafs.push(crown);
   for (let k = 0; k < 6; k++) part(fac(new T.IcosahedronGeometry(0.08, 0), PAL.accent, k), g, Math.cos(k * 1.05) * 0.6, 1.1 + hash(k, i) * 0.4, Math.sin(k * 1.05) * 0.6, true);
   geo = new T.BoxGeometry(0.7, 0.18, 0.45); geo.translate(0, 0.09, 0); part(fac(geo, PAL.trunk, 920 + i), g, 0, 0, 1.0);
   const pile = new Pile(g, (k) => [-0.2 + (k % 3) * 0.2, 0.16 + Math.floor(k / 6) * 0.2, 0.92 + (Math.floor(k / 3) % 2) * 0.17]);
@@ -3509,7 +3515,7 @@ const MOSS = '#4a6a2c', STONE = '#c9c1b6', TERRA = '#c8734a', WOOD = '#a8714d';
   P(ico(0.06, 1, 640).scale(1.4, 0.5, 1.4), MOSS, 640, 0.12, 1.16, 0.2);
   [0.55, 2.2, 3.75, 5.4].forEach((a, k) => { const x = Math.cos(a) * 1.4, z = Math.sin(a) * 1.4, Q = at(x, z, 0, COZY_PROPS);
     Q(new T.CylinderGeometry(0.15, 0.11, 0.22, 10), TERRA, 650 + k, 0, 0.11, 0); Q(new T.CylinderGeometry(0.165, 0.165, 0.05, 10), '#b9653f', 655 + k, 0, 0.21, 0);
-    Q(fluff(0.15, 660 + k, 5), (cx, cy, cz, i) => shadeY(k % 2 ? '#6a9a4c' : '#5d9160', cy, 0.2, 0.5, i), 660 + k, 0, 0.34, 0);
+    Q(fluff(0.15, 660 + k, 5), (cx, cy, cz, i) => leafY(k % 2 ? '#6a9a4c' : '#5d9160', cy, 0.2, 0.5, i), 660 + k, 0, 0.34, 0);
     if (k % 2 === 0) for (let j = 0; j < 3; j++) Q(ico(0.04, 0, 670 + j), j ? '#f6b8c8' : '#f2c14a', 670 + j, Math.cos(j * 2.1) * 0.09, 0.45, Math.sin(j * 2.1) * 0.09);
     solid(x, z, 0.22); });
 }
@@ -3554,7 +3560,7 @@ wateringCan(PLANTER.x + 0.75, PLANTER.z + 0.35, 2.2, '#e0a646');
 /* round bushes in the lawns round the square */
 [[-4.6, -4.4], [4.6, 4.4], [-4.3, 4.7], [4.5, -4.6], [-6.4, 0.9], [6.4, -0.9], [-3.4, -5.6], [3.4, 5.7]].forEach(([x, z], k) => {
   if (!cozyFree(x, z, 0.4)) return; const P = at(x, z, hash(k, 3) * 6, COZY_PROPS), r = 0.3 + hash(k, 5) * 0.12;
-  P(fluff(r, 800 + k, 6).scale(1.2, 0.85, 1.2), (cx, cy, cz, i) => shadeY(k % 2 ? '#5d9160' : '#6a9a4c', cy, 0, r * 1.7, i), 800 + k, 0, r * 0.75, 0); deco(x, z, r + 0.2);
+  P(fluff(r, 800 + k, 6).scale(1.2, 0.85, 1.2), (cx, cy, cz, i) => leafY(k % 2 ? '#5d9160' : '#6a9a4c', cy, 0, r * 1.7, i), 800 + k, 0, r * 0.75, 0); deco(x, z, r + 0.2);
 });
 const cozyMesh = merged(COZY_PROPS); COZY_PROPS.length = 0;
 
@@ -3641,6 +3647,97 @@ function cozyStep(dt) {
 .sheet { background: linear-gradient(#fdf3dc, #f3e2bf); border-color: #6e4426; box-shadow: inset 0 0 0 3px rgba(255,255,255,0.45); }
 `;
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+}
+/* ---------- polish: tinted soft shadows, rim light, contact shadows and a living fountain ---------- */
+/* all cheap on an iPad: no post-processing, two extra draw calls for the contact shadows, the fountain is two small shaders */
+
+/* shadows: where the sun is blocked a little cool blue-green light still gets through, so shade reads tinted instead of grey */
+{
+  const k = 'lights_fragment_begin', src = T.ShaderChunk[k];
+  const a = 'directLight.color *= all( bvec2( directLight.visible, receiveShadow ) ) ? getShadow( directionalShadowMap[ i ], directionalLightShadow.shadowMapSize, directionalLightShadow.shadowBias, directionalLightShadow.shadowRadius, vDirectionalShadowCoord[ i ] ) : 1.0;';
+  if (src.indexOf(a) >= 0) T.ShaderChunk[k] = src.replace(a, 'directLight.color *= all( bvec2( directLight.visible, receiveShadow ) ) ? mix( vec3( 0.24, 0.33, 0.40 ), vec3( 1.0 ), getShadow( directionalShadowMap[ i ], directionalLightShadow.shadowMapSize, directionalLightShadow.shadowBias, directionalLightShadow.shadowRadius, vDirectionalShadowCoord[ i ] ) ) : vec3( 1.0 );');
+}
+
+/* rim light: a soft warm edge on round things (foliage, Pip, the animals), like the outline in the hand-drawn UI */
+const RIM = { value: new T.Color('#ffe2b0') };
+MAT.onBeforeCompile = (sh) => {
+  sh.uniforms.rimCol = RIM;
+  sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform vec3 rimCol;')
+    .replace('gl_FragColor = vec4( outgoingLight, diffuseColor.a );', 'float rimF = 1.0 - saturate( dot( normal, normalize( vViewPosition ) ) ); float rim3 = rimF * rimF * rimF; outgoingLight += rimCol * ( 0.3 + diffuseColor.rgb ) * rim3 * rimF;\n\tgl_FragColor = vec4( outgoingLight, diffuseColor.a );');
+};
+sc.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => { m.needsUpdate = true; }); });
+
+/* contact shadows: a soft dark spot right under each bush, tree, bench, pot, lamp and house, so nothing floats on the grass */
+const blobTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.45, 'rgba(255,255,255,0.75)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new T.CanvasTexture(c); })();
+const blobMat = new T.MeshBasicMaterial({ color: '#1c2a20', alphaMap: blobTex, transparent: true, opacity: 0.5, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+{
+  const L = [];
+  ATREC.forEach((r) => { if (r.y0 > 0.3 || r.x1 < r.x0) return; const w = r.x1 - r.x0, d = r.z1 - r.z0; if (w > 3.4 || d > 3.4 || r.y1 - r.y0 < 0.12) return;
+    const s = Math.min(1, 0.55 + (r.y1 - r.y0) * 0.25); L.push([(r.x0 + r.x1) / 2, (r.z0 + r.z1) / 2, w * 0.5 * s + 0.1, d * 0.5 * s + 0.1]); });
+  leafs.forEach((m) => { const g = m.parent; if (!g || g.parent !== sc) return; const s = g.scale.x, r = (m.userData.pine ? 0.55 : 0.62) * s; L.push([g.position.x, g.position.z, r, r]); });
+  for (const a in pens) { const h = pens[a].house; if (h) L.push([h.position.x, h.position.z, 0.9, 0.8]); }
+  const n = L.length, P = new Float32Array(n * 18), U = new Float32Array(n * 12);
+  L.forEach(([x, z, rx, rz], i) => { const y = 0.05, q = [[-1, -1], [1, -1], [1, 1], [-1, -1], [1, 1], [-1, 1]];
+    q.forEach(([a, b], j) => { P.set([x + a * rx, y, z + b * rz], i * 18 + j * 3); U.set([(a + 1) / 2, (b + 1) / 2], i * 12 + j * 2); }); });
+  const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(P, 3)); geo.setAttribute('uv', new T.BufferAttribute(U, 2)); geo.computeBoundingSphere();
+  const m = new T.Mesh(geo, blobMat); m.renderOrder = 1; sc.add(m);
+}
+/* the same soft spot under Pip and the dog, following them */
+const blobGeo = new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
+const pipBlob = new T.Mesh(blobGeo, blobMat); pipBlob.scale.set(0.55, 1, 0.5); pipBlob.renderOrder = 1; sc.add(pipBlob);
+const dogBlob = new T.Mesh(blobGeo, blobMat); dogBlob.scale.set(0.5, 1, 0.75); dogBlob.renderOrder = 1; sc.add(dogBlob);
+
+/* the fountain: rippling water with foam rings round the pillar, and streams falling from the top basin */
+const FU = { t: { value: 0 }, light: { value: new T.Color(1, 1, 1) }, ice: { value: 0 } };
+const waterVS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
+function fPoolMat(inner, foamAt) {
+  return new T.ShaderMaterial({ uniforms: { t: FU.t, light: FU.light, ice: FU.ice }, vertexShader: waterVS, fragmentShader: `
+    varying vec2 vUv; uniform float t; uniform vec3 light; uniform float ice;
+    void main(){
+      vec2 p = (vUv - 0.5) * 2.0; float r = length(p), a = atan(p.y, p.x);
+      vec3 deep = vec3(0.20, 0.58, 0.62), shal = vec3(0.50, 0.82, 0.78);
+      vec3 col = mix(deep, shal, smoothstep(1.0, 0.2, r) * 0.5 + 0.25);
+      float wob = sin(a * 5.0 + t * 0.7) * 0.35 + sin(a * 3.0 - t * 0.5) * 0.25;
+      float rip = sin(r * 17.0 - t * 2.2 + wob * 1.6) * 0.5 + 0.5;
+      float glint = sin(p.x * 17.0 + t * 1.1 + sin(p.y * 9.0 + t)) * sin(p.y * 15.0 - t * 0.9);
+      col += vec3(0.55, 0.75, 0.72) * smoothstep(0.78, 1.05, rip * 0.8 + glint * 0.3) * 0.3;
+      col -= vec3(0.03, 0.04, 0.03) * smoothstep(0.3, 0.0, rip);
+      float foam = 0.0;
+      for (int k = 0; k < 3; k++) { float ph = fract(t * 0.32 + float(k) / 3.0), rr = ${inner.toFixed(3)} + ph * 0.62;
+        foam += smoothstep(0.045, 0.0, abs(r - rr)) * (1.0 - ph) * (0.55 + 0.45 * sin(a * 11.0 + float(k) * 2.1 + t)); }
+      foam += smoothstep(0.09, 0.0, r - ${inner.toFixed(3)}) * (0.7 + 0.3 * sin(a * 13.0 - t * 3.0));
+      ${foamAt > 0 ? `foam += smoothstep(0.07, 0.0, abs(r - ${foamAt.toFixed(3)})) * (0.55 + 0.45 * sin(a * 23.0 + t * 5.0));` : ''}
+      foam += smoothstep(0.9, 1.0, r) * 0.6;
+      col = mix(col, vec3(0.97, 1.0, 1.0), clamp(foam, 0.0, 1.0) * 0.85);
+      col = mix(col, vec3(0.86, 0.93, 0.96) + vec3(0.05) * rip, ice);
+      gl_FragColor = vec4(col * light, 1.0);
+    }` });
+}
+fountain.water.material = fPoolMat(0.24, 0.55);
+{ const top = sc.children.find((o) => o.isMesh && o.geometry.type === 'CircleGeometry' && Math.abs(o.position.y - 1.17) < 0.01 && Math.hypot(o.position.x, o.position.z) < 0.01); if (top) top.material = fPoolMat(0.05, 0); }
+const streamMat = new T.ShaderMaterial({ uniforms: { t: FU.t, light: FU.light }, transparent: true, depthWrite: false, side: T.DoubleSide, vertexShader: waterVS, fragmentShader: `
+  varying vec2 vUv; uniform float t; uniform vec3 light;
+  void main(){
+    float cols = 14.0, c = floor(vUv.x * cols), h = fract(sin(c * 12.9898) * 43758.5453);
+    float s = smoothstep(0.42, 0.08, abs(fract(vUv.x * cols) - 0.5));
+    float fall = fract(vUv.y * 2.2 + t * (1.4 + h * 0.6) + h);
+    float a = s * (0.55 + 0.45 * smoothstep(0.0, 0.5, fall)) * smoothstep(0.0, 0.12, vUv.y) * (0.6 + 0.4 * h);
+    gl_FragColor = vec4(mix(vec3(0.8, 0.95, 0.97), vec3(1.0), fall * 0.6) * light * 1.15, a);
+  }` });
+const streams = new T.Mesh(new T.CylinderGeometry(0.47, 0.6, 0.8, 28, 1, true), streamMat); streams.position.set(0, 0.75, 0); streams.renderOrder = 2; sc.add(streams);
+
+const _fl = new T.Color();
+function polishStep(dt) {
+  const frozen = season === 'winter';
+  if (!frozen && !reduced) FU.t.value += dt;
+  FU.ice.value += ((frozen ? 1 : 0) - FU.ice.value) * Math.min(1, dt * 2);
+  streams.visible = !frozen && !inHouse;
+  /* the water and rim follow the light of the day */
+  FU.light.value.copy(sun.color).multiplyScalar(sun.intensity * 0.55); if (hemi) { _fl.copy(hemi.color).multiplyScalar(hemi.intensity * 0.55); FU.light.value.add(_fl); }
+  RIM.value.copy(sun.color).multiplyScalar(0.3 * sun.intensity * (1 - 0.6 * nightAmt));
+  pipBlob.position.set(pip.position.x, pip.position.y + 0.05, pip.position.z); pipBlob.visible = !inHouse;
+  dogBlob.position.set(dog.g.position.x, dog.g.position.y + 0.05, dog.g.position.z); dogBlob.rotation.y = dog.g.rotation.y; dogBlob.visible = dog.g.visible && !inHouse;
 }
 /* ---------- camera and input ---------- */
 let aspect = 1;
