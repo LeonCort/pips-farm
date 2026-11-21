@@ -231,7 +231,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261121141648">
+<meta name="app-ver" content="20261121143022">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -3036,10 +3036,12 @@ function wxInit() {
    curved world), so the island, trees and the horizon line hide its feet and only the top rises into the sky strip. The bands
    are a smooth spectrum with soft edges, the feet melt into the haze, and it draws itself across the sky from one foot. */
 const RBOW = { ri: 3.0, ro: 4.1, grow: 0 };
-const rainbowMat = applyWorldCurve(new T.ShaderMaterial({ transparent: true, depthWrite: false, side: T.DoubleSide, uniforms: { uAmt: { value: 0 }, uGrow: { value: 0 }, uRi: { value: RBOW.ri }, uRo: { value: RBOW.ro } },
+/* Drawn in the sky pass (right after the dome, before the world, no depth test), so everything on the island simply paints over
+   it. Depth-testing it against the bent ground 25 units away speckled the whole view with rainbow confetti in Safari. */
+const rainbowMat = applyWorldCurve(new T.ShaderMaterial({ transparent: false, blending: T.CustomBlending, blendSrc: T.SrcAlphaFactor, blendDst: T.OneMinusSrcAlphaFactor, depthTest: false, depthWrite: false, side: T.DoubleSide, uniforms: { uAmt: { value: 0 }, uGrow: { value: 0 }, uRi: { value: RBOW.ri }, uRo: { value: RBOW.ro } },
   vertexShader: 'varying vec2 vP; void main(){ vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-  fragmentShader: 'varying vec2 vP; uniform float uAmt; uniform float uGrow; uniform float uRi; uniform float uRo;\nvec3 band(float t){ vec3 c = mix(vec3(0.55, 0.40, 0.86), vec3(0.32, 0.60, 0.92), smoothstep(0.0, 0.2, t)); c = mix(c, vec3(0.45, 0.80, 0.45), smoothstep(0.2, 0.42, t)); c = mix(c, vec3(1.0, 0.86, 0.36), smoothstep(0.42, 0.62, t)); c = mix(c, vec3(0.98, 0.62, 0.26), smoothstep(0.62, 0.8, t)); return mix(c, vec3(0.93, 0.36, 0.30), smoothstep(0.8, 1.0, t)); }\nvoid main(){ float r = length(vP), t = (r - uRi) / (uRo - uRi); if (t < 0.0 || t > 1.0) discard; float ang = atan(vP.y, -vP.x) / 3.14159265; float a = pow(sin(t * 3.14159265), 0.7) * smoothstep(0.02, 0.5, vP.y / uRo) * (1.0 - smoothstep(uGrow * 1.25 - 0.25, uGrow * 1.25, ang)); gl_FragColor = vec4(band(t) * 1.08, a * uAmt * 0.62); }' }));
-const rainbow = new T.Mesh(new T.RingGeometry(RBOW.ri, RBOW.ro, 56, 1, 0, Math.PI), rainbowMat); rainbow.visible = false; rainbow.frustumCulled = false; rainbow.renderOrder = 3; sc.add(rainbow);
+  fragmentShader: 'varying vec2 vP; uniform float uAmt; uniform float uGrow; uniform float uRi; uniform float uRo;\nvec3 band(float t){ vec3 c = mix(vec3(0.55, 0.40, 0.86), vec3(0.32, 0.60, 0.92), smoothstep(0.0, 0.2, t)); c = mix(c, vec3(0.45, 0.80, 0.45), smoothstep(0.2, 0.42, t)); c = mix(c, vec3(1.0, 0.86, 0.36), smoothstep(0.42, 0.62, t)); c = mix(c, vec3(0.98, 0.62, 0.26), smoothstep(0.62, 0.8, t)); return mix(c, vec3(0.93, 0.36, 0.30), smoothstep(0.8, 1.0, t)); }\nvoid main(){ float r = length(vP), t = (r - uRi) / (uRo - uRi); if (t < 0.0 || t > 1.0) discard; float ang = atan(vP.y, -vP.x) / 3.14159265; float a = pow(max(sin(t * 3.14159265), 0.0), 0.7) * smoothstep(0.02, 0.5, vP.y / uRo) * (1.0 - smoothstep(uGrow * 1.25 - 0.25, uGrow * 1.25, ang)); gl_FragColor = vec4(band(t) * 1.08, a * uAmt * 0.62); }' }));
+const rainbow = new T.Mesh(new T.RingGeometry(RBOW.ri, RBOW.ro, 56, 1, 0, Math.PI), rainbowMat); rainbow.visible = false; rainbow.frustumCulled = false; rainbow.renderOrder = -1; sky.renderOrder = -2; sc.add(rainbow);
 if (window.__farmTest) window.__bow = (t) => { rainbowT = t == null ? 30 : t; };
 /* snow: soft round flakes that drift with the wind */
 const softTex = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); x.translate(w / 2, h / 2); x.scale(w / 2, h / 2); const g = x.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.45, 'rgba(255,255,255,0.75)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(-1, -1, 2, 2); return new T.CanvasTexture(c); };
