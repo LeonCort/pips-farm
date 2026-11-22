@@ -547,7 +547,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122075040">
+<meta name="app-ver" content="20261122081152">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -879,8 +879,10 @@ const PEN = {
   hen: { x: -15.2, z: 0, w: 3.4, d: 2.6, n: 4 },
   pig: { x: -15.2, z: 5.2, w: 3.4, d: 2.4, n: 3 },
   /* paddocks by the meadow and down by the woods */
-  horse: { x: -8.5, z: -10.2, w: 3.6, d: 2.8, n: 2 },
-  sheep: { x: 8.6, z: -9.8, w: 3.4, d: 2.6, n: 3 },
+  /* the big animals get roomier paddocks that grow more with every animal (g: extra width, depth per animal),
+     up to a cap (mw, md) so they never run into the barn, the meadow or the beach; zs 1 grows south only */
+  horse: { x: -8.3, z: -10.3, w: 4.2, d: 3.2, n: 2, g: [0.9, 0.6], mw: 4.9, md: 3.9 },
+  sheep: { x: 8.6, z: -9.9, w: 3.8, d: 2.8, n: 3, g: [1.0, 0.35], mw: 6.0, md: 3.6, zs: 1 },
   bull: { x: -9.5, z: 10.0, w: 3.4, d: 2.4, n: 1 },
   /* the goats live in the barn and spend the day in a little paddock next to it (bought inside the barn) */
   goat: { x: -8.9, z: -7.3, w: 2.6, d: 1.9, n: 3, fix: 1 }
@@ -896,8 +898,16 @@ if (VARIANT === 'near') {
 const STATIONS = VARIANT === 'near' ? [{ a: 'hen', x: 17.3, z: 3.9, foods: ['grain', 'water'], i: 0 }, { a: 'cow', x: 12.6, z: -9.2, foods: ['hay', 'water'], i: 0 }] : [];
 /* which side of a pen the trough and feed box are on: toward the middle of the island (x) */
 const penSide = (a) => PEN[a].s || -Math.sign(PEN[a].x);
+/* a pen's size for n animals (babies count as half): it grows outward from the feeding fence, which stays put */
+function penSize(a, n) {
+  const p = PEN[a], g = p.g || [0.75, 0.3], k = Math.max(0, n - 1), sx = penSide(a), inner = p.x + sx * p.w / 2;
+  const w = p.fix ? p.w : Math.min(p.mw || 99, p.w + g[0] * k), d = p.fix ? p.d : Math.min(p.md || 99, p.d + g[1] * k);
+  return { x: inner - sx * w / 2, z: p.z + (p.zs || 0) * (d - p.d) / 2, w, d };
+}
+/* the biggest a pen can get: decorations keep clear of it from the start */
+const penMax = (a) => penSize(a, PEN[a].n * 1.5);
 /* the bigger farm: a hay meadow to mow and a tractor shed */
-const MEADOW = { x0: -4.2, x1: 4.4, z0: -12.6, z1: -9.2 }, TRACTOR_HOME = [12.4, -8.8];
+const MEADOW = { x0: -4.2, x1: 4.4, z0: -12.6, z1: -9.2 }, TRACTOR_HOME = [14.0, -9.0]; /* east of the sheep paddock, clear of it when it is fully grown */
 const RIDE = { horse: 1.9, pig: 1.35, sheep: 1.35, bull: 1.6 };
 /* fish you can catch from the end of the dock: common ones often, the golden one rarely */
 const FISH = [
@@ -2322,8 +2332,8 @@ function animalModel(a, i, coat) {
 const pens = {}, animals = [];
 /* the pen grows outward with every animal; the trough side toward the middle stays put */
 function penBox(a) {
-  const p = PEN[a], n = Math.max(1, animals.filter((o) => o.a === a).length), sx = penSide(a), inner = p.x + sx * p.w / 2;
-  const w = p.fix ? p.w : p.w + 0.75 * (n - 1), d = p.fix ? p.d : p.d + 0.3 * (n - 1); return { x: inner - sx * w / 2, z: p.z, w, d };
+  const kids = typeof babies !== 'undefined' ? babies.filter((b) => b.a === a).length : 0;
+  return penSize(a, Math.max(1, animals.filter((o) => o.a === a).length + kids * 0.5));
 }
 function fencePen(a) {
   const pen = pens[a]; if (pen.fence) sc.remove(pen.fence);
@@ -2369,7 +2379,7 @@ function setHouse(a, big) {
 }
 function addAnimal(a) {
   const pen = buildPen(a), k = animals.filter((o) => o.a === a).length, m = animalModel(a, k + 1);
-  const p0 = PEN[a], sx0 = penSide(a), w0 = p0.w + 0.75 * k, p = { x: p0.x + sx0 * p0.w / 2 - sx0 * w0 / 2, z: p0.z, w: w0, d: p0.d + 0.3 * k };
+  const p = penSize(a, k + 1);
   const x = p.x + (hash(k, 7) - 0.5) * (p.w - 1.2), z = p.z + (hash(k, 9) - 0.5) * (p.d - 1.0); m.g.position.set(x, 0, z); m.g.rotation.y = hash(k, 3) * 6; sc.add(m.g);
   const sp = new T.Sprite(new T.SpriteMaterial({ map: bubble('heart'), depthTest: false })); sp.scale.set(0.62, 0.62, 1); sp.position.y = m.h + 0.35; sp.renderOrder = 5; sp.visible = false; m.g.add(sp);
   const an = { a, pen, g: m.g, body: m.body, h: m.h, sp, want: null, cd: 1 + hash(k, 4) * 3, tx: x, tz: z, hop: 0, wait: 0, glad: 0, incoming: 0 }; animals.push(an); if (k > 0) fencePen(a); return an;
@@ -4016,7 +4026,7 @@ const pond = (() => {
 /* flowers: along the roads and round the square, wild in the grass, never on paths, pens, pads or buildings */
 function blocked(x, z) {
   if (isleD(x, z) > 0.93 || roadKind(x, z)) return true;
-  for (const a in PEN) { const p = PEN[a]; if (Math.abs(x - p.x) < p.w / 2 + 1.3 && Math.abs(z - p.z) < p.d / 2 + 0.9) return true; }
+  for (const a in PEN) { const p = penMax(a); if (Math.abs(x - p.x) < p.w / 2 + 1.3 && Math.abs(z - p.z) < p.d / 2 + 0.9) return true; }
   for (const t in SRC) if (Math.hypot(x - SRC[t].x, z - SRC[t].z) < 1.5) return true;
   for (const p of PADS) { const q = padPos(p); if (Math.hypot(x - q[0], z - q[1]) < 0.9) return true; }
   if (Math.abs(x - HOUSE.x) < 2.3 && z > HOUSE.z - 2.2 && z < HOUSE.z + 2.3) return true;
@@ -5482,7 +5492,7 @@ if (GU.detC) {
 function flFree(x, z, r) {
   if (roadKind(x, z)) return false;
   for (const b of ATREC) if (x > b.x0 - r && x < b.x1 + r && z > b.z0 - r && z < b.z1 + r) return false;
-  for (const a in PEN) { const p = PEN[a]; if (Math.abs(x - p.x) < p.w / 2 + 1.6 && Math.abs(z - p.z) < p.d / 2 + 0.9) return false; }
+  for (const a in PEN) { const p = penMax(a); if (Math.abs(x - p.x) < p.w / 2 + 1.6 && Math.abs(z - p.z) < p.d / 2 + 0.9) return false; }
   if (Math.abs(x - DOCK.x) < 1.6 && z > 0) return false;
   return true;
 }
@@ -6295,6 +6305,118 @@ body.dressing > *:not(#ward):not(#scene) { visibility: hidden !important; }
 `; document.head.appendChild(st); }
 
 if (window.__farmTest) window.__ed = { open: () => openWardrobe(), close: () => closeWardrobe(), info: () => renderer.info.render.calls, scr: (w) => { const v = new T.Vector3(); (w === 'dog' ? ED.dog.g : w === 'pip' ? ED.rig : ED.arrows[w]).getWorldPosition(v); v.project(ED.cam); const r = renderer.domElement.getBoundingClientRect(); return [(v.x + 1) / 2 * r.width + r.left, (1 - v.y) / 2 * r.height + r.top]; }, st: () => ({ rot: ED.rotTo, hop: ED.dogHop, av }) };
+/* ---------- haul: the truck is always unloaded in full, the old well by the house gives water, and pens grow with babies too ----------
+   Leon's play test (2026-11-22): a stall robot only took its own goods off the truck, so the milk stayed on the bed and the
+   truck waited at the market until Pip came by. Now a stall robot that sees the truck parked takes everything on it and
+   carries each thing to the right place: its own stall first, then any other stall with room, then the counter or the
+   storage crate. Assembled before robots.js, so sleeping robots still sleep. */
+const HAUL_MAX = 8;
+const vanProd = () => (typeof van !== 'undefined' && van && van.st === 'there' && van.prod && van.pile.items.length ? van.prod : null);
+/* where one item goes: its own stall when it has room, otherwise the counter shelf, otherwise the storage crate */
+function haulDest(t) {
+  const s = stalls[t]; if (s && s.shelf.items.length < SHELF_MAX) return { k: 'stall:' + t, at: sDrop(t) };
+  if (shelf[t] && shelf[t].items.length < SHELF_MAX) return { k: 'counter', at: [SDROP.x, SDROP.z] };
+  if (back.items.length < BACK_MAX) return { k: 'crate', at: [SBACK.x, SBACK.z + 0.8] };
+  return null;
+}
+/* drop one item at the stop k, if anything in the pile belongs there; true if one went */
+function haulDrop(h, k) {
+  for (let i = h.pile.items.length - 1; i >= 0; i--) {
+    const m = h.pile.items[i], t = m.userData.type, d = haulDest(t); if (!d || d.k !== k) continue;
+    h.pile.take(t);
+    if (k === 'counter') fly(m, () => counterG.localToWorld(tmpV.set(SHELF_X[t] || 0, 1.0, 0)), () => shelf[t].add(m));
+    else if (k === 'crate') fly(m, () => backG.localToWorld(tmpV.set(0, 0.5, 0)), () => back.add(m));
+    else { const s = stalls[t]; fly(m, () => s.g.localToWorld(tmpV.set(0, 1.0, 0)), () => s.shelf.add(m)); }
+    return true;
+  }
+  return false;
+}
+/* the next stop for what the robot carries: its own goods first, then the nearest other stop */
+function haulNext(h) {
+  const own = h.pile.items.find((m) => m.userData.type === h.t), first = own ? haulDest(h.t) : null; if (first) return first;
+  let best = null, bd = 1e9;
+  h.pile.items.forEach((m) => { const d = haulDest(m.userData.type); if (!d) return; const r = Math.hypot(d.at[0] - h.g.position.x, d.at[1] - h.g.position.z); if (r < bd) { bd = r; best = d; } });
+  return best;
+}
+const mixedPile = (h) => h.pile.items.some((m) => m.userData.type !== h.t);
+function haulLayout(h) { if (h.mixed) return; h.mixed = true; h.pile.layout = (k) => { let y = 0.52; for (let q = 0; q < k; q++) y += ITEM_H[h.pile.items[q].userData.type] || 0.18; return [0, y, -0.28]; }; h.pile.place(); }
+{
+  const r0 = runStocker;
+  runStocker = function (h, dt) {
+    haulLayout(h);
+    const vp = vanProd();
+    /* idle: the truck comes first, since the farm waits for it. Several robots share a big load */
+    if (h.st === 'idle' && vp) {
+      const busy = Object.values(stalls).filter((s) => s.stocker && s.stocker !== h && s.stocker.vsrc === vp && (s.stocker.st === 'vgo' || s.stocker.st === 'vload')).length;
+      if (busy * HAUL_MAX < vp.pile.items.length) { h.vsrc = vp; h.st = 'vgo'; }
+    }
+    /* carrying other goods than its own (from the truck, or woken up with them): deliver them the haul way */
+    if ((h.st === 'ret' || h.st === 'drop') && mixedPile(h)) h.st = 'vret';
+    if (h.st === 'vgo') {
+      if (!vp || h.vsrc !== vp) { h.vsrc = null; h.st = h.pile.items.length ? 'vret' : 'idle'; }
+      else if (walkTo(h.g, vp.x + 0.5, vp.z + 0.3, dt, 2.6)) { h.st = 'vload'; h.t2 = 0; }
+    } else if (h.st === 'vload') {
+      h.t2 -= dt; if (h.t2 <= 0) { h.t2 = 0.15;
+        const src = h.vsrc && h.vsrc.pile;
+        if (src && src.items.length && h.pile.items.length < HAUL_MAX) { const m = src.take(src.count(h.t) ? h.t : null); fly(m, () => h.g.localToWorld(tmpV.set(0, 0.6 + h.pile.items.length * 0.18, -0.28)), () => h.pile.add(m)); }
+        else { h.vsrc = null; h.st = h.pile.items.length ? 'vret' : 'idle'; } }
+    } else if (h.st === 'vret') {
+      if (!h.pile.items.length) { h.st = 'idle'; h.stop = null; }
+      else { const d = haulNext(h); h.stop = d;
+        if (!d) { h.t2 = (h.t2 || 0) - dt; walkTo(h.g, SDROP.x - 0.8, SDROP.z + 0.6, dt, 2); } /* nowhere has room: wait by the counter */
+        else if (walkTo(h.g, d.at[0] - 0.5, d.at[1], dt, 2.6)) { h.st = 'vdrop'; h.t2 = 0; } }
+    } else if (h.st === 'vdrop') {
+      h.t2 -= dt; if (h.t2 <= 0) { h.t2 = 0.12; if (!h.stop || !haulDrop(h, h.stop.k)) h.st = h.pile.items.length ? 'vret' : 'idle'; }
+    } else { r0(h, dt); return; }
+    h.g.position.y = h.st === 'vgo' || h.st === 'vret' ? Math.abs(Math.sin(time * 12 + 3)) * 0.04 : 0;
+  };
+}
+
+/* ---------- the old stone well by the house: Pip (and the water robot) fill up with water here ----------
+   It stands right of the house, toward the paddocks in the north-east, so the sheep and horses get water without the walk
+   to the farm well. A rope ring in front of it shows where to stand. */
+const HWELL = typeof WELL !== 'undefined' && WELL ? { x: WELL[0], z: WELL[1] + 1.0, wx: WELL[0], wz: WELL[1] } : null;
+const hwell = HWELL ? { rg: ring(HWELL.x, HWELL.z, 0.6), t: 0 } : null;
+/* every place Pip can fill up with water right now (the pickup spot, where a robot or Pip stands) */
+function waterSpots() {
+  const L = [[SRC.water.x, SRC.water.z + 1.0]];
+  if (HWELL) L.push([HWELL.x, HWELL.z]);
+  if (typeof gwell !== 'undefined' && gwell.on) L.push([GW_PICK.x, GW_PICK.z]);
+  return L;
+}
+/* the water spot closest to a pen's feeding fence, or null when that is the farm well anyway */
+function waterFor(a) {
+  const f = feedPos(a), L = waterSpots(); let best = 0, bd = 1e9;
+  L.forEach((q, i) => { const d = Math.hypot(q[0] - f[0], q[1] - f[1]); if (d < bd) { bd = d; best = i; } });
+  return best ? L[best] : null;
+}
+function hwellStep(dt) {
+  if (!hwell || !state) return;
+  hwell.t -= dt; if (hwell.t > 0 || inHouse || mount) return;
+  if (Math.hypot(pip.position.x - HWELL.x, pip.position.z - HWELL.z) > 0.85 && Math.hypot(pip.position.x - HWELL.wx, pip.position.z - HWELL.wz) > 1.15) return;
+  if ((typeof pickHeld === 'function' && pickHeld()) || carry.items.length >= cap()) return;
+  const m = mk('water'); m.position.set(HWELL.wx, 0.6, HWELL.wz); sc.add(m);
+  fly(m, () => { carry.parent.updateMatrixWorld(); return pip.localToWorld(tmpV.set(0, 0.72 + carry.items.reduce((a, b) => a + ITEM_H[b.userData.type], 0), -0.32)); }, () => carry.add(m));
+  Snd.play('pop', { gain: 0.45, f: 500 + carry.items.length * 60 }); hwell.t = 0.12;
+}
+{ const s0 = storeStep; storeStep = function (dt) { s0(dt); hwellStep(dt); }; }
+/* the water robot fetches from the water spot nearest the pen it is filling */
+{
+  const r0 = runHelper;
+  runHelper = function (h, dt) {
+    const w = h.t === 'water' && h.st === 'get' && h.target ? waterFor(h.target.a) : null;
+    if (!w) { r0(h, dt); return; }
+    const ox = SRC.water.x, oz = SRC.water.z; SRC.water.x = w[0] - 0.5; SRC.water.z = w[1] - 0.8;
+    try { r0(h, dt); } finally { SRC.water.x = ox; SRC.water.z = oz; }
+  };
+}
+/* the arrow points Pip to the nearest water too */
+{ const f0 = foodSpot; foodSpot = function (t, a) { if (t === 'water' && a && sources.water) { const w = waterFor(a); if (w) return w; } return f0(t, a); }; }
+
+/* ---------- pens: a new baby makes room for itself too (penBox counts babies as half an animal) ---------- */
+{ const m0 = makeBaby; makeBaby = function (mum, coatI, quiet) { const b = m0(mum, coatI, quiet); if (pens[mum.a] && !PEN[mum.a].fix) fencePen(mum.a); return b; }; }
+
+if (window.__farmTest) window.__haul = { waterSpots, waterFor, HWELL, haulDest, vanProd, stalls: () => Object.values(stalls).map((s) => s.stocker ? s.t + ':' + s.stocker.st + ':' + s.stocker.pile.items.map((m) => m.userData.type[0]).join('') : s.t) };
 /* ---------- robots are a choice: each one sleeps until the player switches it on ----------
    Leon's daughter felt the robots took over the fun jobs, so every helper robot (farm food helpers,
    market stocking robots, market carry helpers) starts asleep, even after buying it. Walk up to a robot
