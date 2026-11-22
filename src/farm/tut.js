@@ -32,69 +32,94 @@ const tutPic = (() => { const cache = {}; return (name) => {
   if (name === 'gift') return (cache[name] = GIFT_IMG || actIcon('house'));
   if (name === 'bag') { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); x.translate(64, 68); bagIcon(x, 1.7); return (cache[name] = c.toDataURL()); }
   return (cache[name] = actIcon(name)); }; })();
+/* the job is Pip's own thought: a little cloud above Pip's head with the pictures (what to fetch -> where it goes) and dots
+   that fill up, joined to the head by three small puffs. It follows Pip around the screen, so it stays small and never
+   covers the top of the screen. */
 { const st = document.createElement('style'); st.textContent = `
-.tut { position: fixed; left: 50%; top: max(12px, env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 6; display: flex; flex-direction: column; align-items: center; gap: 6px;
-  padding: 8px 14px 9px; border-radius: 26px; background: var(--paper, #fff6e4); border: 3px solid var(--ink, #22303c); box-shadow: 0 5px 0 rgba(34,48,60,0.28); touch-action: none; user-select: none; -webkit-user-select: none; }
+.tut { position: fixed; left: 0; top: 0; width: 0; height: 0; z-index: 6; pointer-events: none; touch-action: none; user-select: none; -webkit-user-select: none; --s: 1; }
 .tut[hidden] { display: none; }
-.tut .job { display: flex; align-items: center; gap: 4px; height: 84px; position: relative; }
-.tut .job img { width: 92px; height: 92px; margin: -4px; display: block; }
-.tut .job .to { width: 30px; height: 30px; }
-.tut .job .bd { position: absolute; right: -10px; top: -6px; width: 36px; height: 36px; border-radius: 50%; background: #fffaf0; border: 3px solid #22303c; box-sizing: border-box; padding: 2px; }
-.tut .job .bd img { width: 100%; height: 100%; }
-.tut .dots { display: flex; gap: 8px; height: 20px; align-items: center; }
-.tut .dots i { width: 18px; height: 18px; border-radius: 50%; border: 3px solid #c9b38c; background: #fbf3e2; box-sizing: border-box; }
+.tut .bb { position: absolute; left: 0; bottom: 0; transform: translate(-50%, 0) scale(var(--s)); transform-origin: 50% 100%; pointer-events: auto; transition: opacity 0.25s; }
+.tut .cl { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 16px 8px; }
+.tut .cl > b { position: absolute; display: block; border-radius: 999px; background: var(--paper, #fff6e4); }
+.tut .cl > b.k { box-shadow: 0 0 0 3px var(--ink, #22303c); }
+.tut .cl > b.k.p { box-shadow: 0 0 0 3px var(--ink, #22303c), 0 6px 0 1px rgba(34,48,60,0.22); }
+.tut .cl > b.p { inset: 0; }
+.tut .cl > b.a { width: 46px; height: 46px; left: 16px; top: -14px; }
+.tut .cl > b.c { width: 36px; height: 36px; right: 22px; top: -11px; }
+.tut .cl > .job, .tut .cl > .dots { position: relative; }
+.tut .job { display: flex; align-items: center; gap: 0; height: 58px; position: relative; }
+.tut .job img { width: 64px; height: 64px; margin: -3px; display: block; }
+.tut .job .to { width: 22px; height: 22px; margin: 0 1px; }
+.tut .job .bd { position: absolute; right: -12px; top: -8px; width: 28px; height: 28px; border-radius: 50%; background: #fffaf0; border: 3px solid #22303c; box-sizing: border-box; padding: 2px; }
+.tut .job .bd img { width: 100%; height: 100%; margin: 0; }
+.tut .dots { display: flex; gap: 5px; height: 12px; align-items: center; }
+.tut .dots:empty { display: none; }
+.tut .dots i { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #c9b38c; background: #fbf3e2; box-sizing: border-box; }
 .tut .dots i.on { border-color: #22303c; background: #e0a646; animation: tutDot 0.4s cubic-bezier(.2,1.8,.4,1); }
-.tut .bar { width: 150px; height: 16px; border-radius: 9px; border: 3px solid #22303c; background: #fbf3e2; overflow: hidden; box-sizing: border-box; }
-.tut .bar u { display: block; height: 100%; width: 0; background: #e0a646; transition: width 0.3s; }
-.tut .trail { display: flex; gap: 3px; align-items: center; padding-top: 4px; border-top: 2px dashed #e0cfa8; }
-.tut .trail b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: #fbf3e2; border: 2px solid #c9b38c; box-sizing: border-box; overflow: hidden; }
-.tut .trail b img { width: 18px; height: 18px; opacity: 0.55; }
-.tut .trail b.done { background: #3f7d62; border-color: #22303c; }
-.tut .trail b.done img { display: none; }
-.tut .trail b.done::after { content: ''; width: 8px; height: 4px; border: solid #fffaf0; border-width: 0 0 3px 3px; transform: translateY(-1px) rotate(-45deg); }
-.tut .trail b.cur { width: 28px; height: 28px; border-color: #22303c; background: #fffaf0; }
-.tut .trail b.cur img { width: 24px; height: 24px; opacity: 1; }
-.tut .trail b.end { width: 30px; height: 30px; border-color: #e9684a; background: #fff0e6; }
-.tut .trail b.end img { width: 26px; height: 26px; opacity: 1; }
-.tut { transition: opacity 0.25s; } .tut.dim { opacity: 0.18; }
-.tut.pop { animation: tutPop 0.6s cubic-bezier(.2,1.6,.4,1); }
-.tut .skip { position: absolute; inset: -3px; border-radius: 26px; pointer-events: none; box-shadow: inset 0 0 0 0 rgba(233,104,74,0.0); }
-.tut.bye { animation: tutBye 0.7s ease-in forwards; }
+.tut .tl { position: absolute; left: 0; top: 0; pointer-events: none; }
+.tut .tl i { position: absolute; border-radius: 50%; background: var(--paper, #fff6e4); border: 3px solid var(--ink, #22303c); box-sizing: border-box; box-shadow: 0 2px 0 rgba(34,48,60,0.18); transition: opacity 0.25s; }
+.tut .tl i:nth-child(1) { width: 10px; height: 10px; margin: -5px 0 0 -5px; }
+.tut .tl i:nth-child(2) { width: 15px; height: 15px; margin: -7.5px 0 0 -7.5px; }
+.tut .tl i:nth-child(3) { width: 21px; height: 21px; margin: -10.5px 0 0 -10.5px; }
+.tut.dim .bb, .tut.dim .tl i { opacity: 0.15; }
+.tut .bb { animation: tutBob 2.4s ease-in-out infinite; }
+.tut.pop .cl { animation: tutPop 0.6s cubic-bezier(.2,1.6,.4,1); }
+.tut.in .cl { animation: tutIn 0.45s cubic-bezier(.2,1.6,.4,1); }
+.tut.bye .bb { animation: tutBye 0.7s ease-in forwards; } .tut.bye .tl { opacity: 0; transition: opacity 0.2s; }
 .tutGift { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; background: rgba(255,246,228,0.0); pointer-events: none; }
 .tutGift[hidden] { display: none; }
 .tutGift .g { width: 220px; height: 220px; border-radius: 50%; background: #fffaf0; border: 5px solid #22303c; box-shadow: 0 8px 0 rgba(34,48,60,0.3), 0 0 0 18px rgba(242,193,74,0.35); display: grid; place-items: center; animation: tutGiftIn 2.6s ease-in-out forwards; }
 .tutGift .g img { width: 160px; height: 160px; }
 @keyframes tutDot { from { transform: scale(0.3); } }
-@keyframes tutPop { 0% { transform: translateX(-50%) scale(1); } 35% { transform: translateX(-50%) scale(1.18); } 100% { transform: translateX(-50%) scale(1); } }
-@keyframes tutBye { to { transform: translateX(-50%) translateY(-160px) scale(0.6); opacity: 0; } }
+@keyframes tutBob { 50% { margin-bottom: 4px; } }
+@keyframes tutPop { 0% { transform: scale(1); } 35% { transform: scale(1.22); } 100% { transform: scale(1); } }
+@keyframes tutIn { from { transform: scale(0.3); opacity: 0; } }
+@keyframes tutBye { to { margin-bottom: 120px; opacity: 0; } }
 @keyframes tutGiftIn { 0% { transform: scale(0.2) rotate(-12deg); opacity: 0; } 18% { transform: scale(1.1) rotate(4deg); opacity: 1; } 28% { transform: scale(1) rotate(0); } 80% { transform: scale(1); opacity: 1; } 100% { transform: scale(0.4) translateY(200px); opacity: 0; } }
-@media (max-width: 900px) { .tut { top: calc(max(12px, env(safe-area-inset-top, 0px)) + 92px); } }
-@media (max-width: 560px) { .tut { transform: translateX(-50%) scale(0.78); transform-origin: 50% 0; } }
-@media (prefers-reduced-motion: reduce) { .tut.pop, .tut .dots i.on, .tutGift .g { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .tut .bb, .tut.pop .cl, .tut.in .cl, .tut .dots i.on, .tutGift .g { animation: none; } }
 body.tutOn .stWish { display: none !important; }
 body.tutOn.tutShop .stWish { display: block !important; }
 `; document.head.appendChild(st); }
 const tutEl = document.createElement('div'); tutEl.className = 'tut'; tutEl.hidden = true; tutEl.setAttribute('role', 'status');
-tutEl.innerHTML = '<div class="job"></div><div class="dots"></div><div class="trail"></div>';
+tutEl.innerHTML = '<div class="tl"><i></i><i></i><i></i></div><div class="bb"><div class="cl"><b class="k p"></b><b class="k a"></b><b class="k c"></b><b class="p"></b><b class="a"></b><b class="c"></b><div class="job"></div><div class="dots"></div></div></div>';
 document.body.appendChild(tutEl);
+const tutBB = tutEl.querySelector('.bb'), tutPuffs = [...tutEl.querySelectorAll('.tl i')];
 const tutGiftEl = document.createElement('div'); tutGiftEl.className = 'tutGift'; tutGiftEl.hidden = true; tutGiftEl.innerHTML = '<div class="g"><img alt=""></div>'; document.body.appendChild(tutGiftEl);
 const TO_SVG = '<svg class="to" viewBox="0 0 30 30" aria-hidden="true"><path d="M4 15 H22 M15 7 L23 15 L15 23" fill="none" stroke="#22303c" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 let tutShown = '';
 function tutRender(force) {
   const t = tutS(); document.body.classList.toggle('tutOn', !!t); if (!t) { tutEl.hidden = true; return; }
   const q = TUT[t.s], have = tutHave(), key = t.s + ':' + have + ':' + (dressing ? 1 : 0);
-  tutEl.hidden = !!dressing || !!trip;
+  const hide = !!dressing || !!trip || document.body.classList.contains('buyOn'); if (hide !== tutEl.hidden) { tutEl.hidden = hide; if (!hide) { tutEl.classList.remove('in'); void tutEl.offsetWidth; tutEl.classList.add('in'); tutPlace(); } }
   document.body.classList.toggle('tutShop', q.id === 'coin' || q.id === 'buy');
   if (key === tutShown && !force) return; const stepChanged = !tutShown.startsWith(t.s + ':'); tutShown = key;
   if (stepChanged || force) {
     tutEl.querySelector('.job').innerHTML = '<img alt="" src="' + tutPic(q.a) + '">' + (q.b ? TO_SVG + '<img alt="" src="' + tutPic(q.b) + '">' : '') + (q.badge ? '<span class="bd"><img alt="" src="' + actIcon(q.badge) + '"></span>' : '');
-    tutEl.querySelector('.trail').innerHTML = TUT.map((s, i) => '<b class="' + (i < t.s ? 'done' : i === t.s ? 'cur' : '') + (i === TUT.length - 1 ? ' end' : '') + '"><img alt="" src="' + tutPic(s.b && s.id !== 'gift' && s.id !== 'out' ? s.b : s.a) + '"></b>').join('');
     tutEl.setAttribute('aria-label', 'Steg ' + (t.s + 1) + ' av ' + TUT.length);
-    tutEl.querySelector('.dots').innerHTML = q.bar ? '<div class="bar"><u></u></div>' : q.n > 1 ? Array.from({ length: q.n }, () => '<i></i>').join('') : '';
+    tutEl.querySelector('.dots').innerHTML = q.n > 1 ? Array.from({ length: q.n }, () => '<i></i>').join('') : '';
   }
-  if (q.bar) tutEl.querySelector('.bar u').style.width = Math.round(100 * clamp(have / q.n, 0, 1)) + '%';
-  else tutEl.querySelectorAll('.dots i').forEach((el, i) => { const on = i < have; if (on !== el.classList.contains('on')) el.classList.toggle('on', on); });
+  tutEl.querySelectorAll('.dots i').forEach((el, i) => { const on = i < have; if (on !== el.classList.contains('on')) el.classList.toggle('on', on); });
 }
+/* where the cloud sits: the puffs start just above Pip's head (or the top of a tall stack on Pip's back) and lead up and a
+   little to the side, to the cloud. It is kept inside the screen and clear of the buttons along the top. */
+const tutV = new T.Vector3();
+function tutPlace() {
+  if (tutEl.hidden || !tutS()) return;
+  let top = 1.6; if (carry.items.length) { let y = 0.72; carry.items.forEach((m) => { y += ITEM_H[m.userData.type] || 0.3; }); top = Math.max(top, y * 0.6 + 0.9); }
+  const px = pip.position.x, pz = pip.position.z;
+  tutV.set(px, pip.position.y + top - (typeof curveDrop === 'function' ? curveDrop(px, pz) : 0), pz).project(cam);
+  const r = wrap.getBoundingClientRect(), W = r.width, H = r.height, small = Math.min(W, H) < 560, s = H < 450 ? 0.7 : small ? 0.8 : 1;
+  const hx = (tutV.x + 1) / 2 * W + r.left, hy = (1 - tutV.y) / 2 * H + r.top;
+  const bw = 196 * s, bh = (82 + 16) * s, side = hx > r.left + W * 0.62 ? -1 : 1; /* the cloud leans away from the nearer edge */
+  let bx = hx + side * 34 * s, by = hy - 40 * s; /* bx, by: the middle of the cloud's bottom edge */
+  const topMin = r.top + (H < 450 ? 6 : small ? 74 : 86); /* (short screens: the cloud may sit between the buttons) */
+  bx = Math.max(r.left + bw / 2 + 8, Math.min(r.left + W - bw / 2 - 8, bx)); by = Math.max(topMin + bh, Math.min(r.top + H - 10, by));
+  tutEl.style.transform = 'translate(' + bx.toFixed(1) + 'px,' + by.toFixed(1) + 'px)'; tutEl.style.setProperty('--s', s);
+  /* the three puffs, from the head (small) up to the cloud (bigger); they hide when the cloud had to move away from Pip */
+  const far = Math.hypot(bx - hx, by - hy) > 90 * s, ex = bx - side * 30 * s, ey = by - 4 * s;
+  tutPuffs.forEach((p, i) => { const k = [0.12, 0.42, 0.74][i], x = hx + (ex - hx) * k - bx, y = hy - 8 * s + (ey - hy + 8 * s) * k - by; p.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(' + s + ')'; p.style.visibility = far ? 'hidden' : ''; });
+}
+{ const f0 = fxFrame; fxFrame = function (dt) { f0(dt); tutPlace(); }; }
 /* how far along the current step is (coins are counted from the purse, the rest from the events below) */
 function tutHave() { const t = tutS(); if (!t) return 0; return TUT[t.s].id === 'coin' ? Math.min(shop().coins, TUT_GEAR) : t.n; }
 
