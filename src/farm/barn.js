@@ -27,6 +27,24 @@ const sizeOf = (an) => GAP[an.a] || 0.9;
 const keyOf = (an) => an.a + ':' + animals.filter((o) => o.a === an.a).indexOf(an);
 const canBarn = (an) => BARN_KINDS.includes(an.a) && !an.baby;
 function freeStall() { for (let i = 0; i < openStalls(); i++) if (!STALLS[i].an && !STALLS[i].held) return STALLS[i]; return null; }
+/* the stalls in the order they stand side by side: down the left wall, along the back, up the right wall */
+const STALL_ROW = [10, 8, 6, 4, 2, 0, 1, 3, 5, 7, 9, 11];
+/* a free stall, next to one of the same kind when there is one, so a kind sleeps in a row */
+function stallNear(kind) {
+  const open = STALL_ROW.filter((i) => i < openStalls()).map((i) => STALLS[i]), who = (st) => (st.an || st.held || {}).a;
+  const free = open.filter((st) => !st.an && !st.held);
+  return free.find((st, k) => { const j = open.indexOf(st); return who(open[j - 1] || {}) === kind || who(open[j + 1] || {}) === kind; }) || free[0] || null;
+}
+/* put everyone sleeping (and everyone walking in) in rows by kind: pigs together, sheep together, and so on,
+   so in the morning one walk along a row brings out a whole kind for one pen. Done while the screen is faded. */
+function regroup() {
+  const pool = STALL_ROW.filter((i) => i < openStalls()).map((i) => STALLS[i]).filter((st) => !(st.an && st.an.follow));
+  const list = animals.filter((an) => (an.inBarn && an.stall && !an.follow) || an.walkIn);
+  list.sort((a, b) => BARN_KINDS.indexOf(a.a) - BARN_KINDS.indexOf(b.a) || animals.indexOf(a) - animals.indexOf(b));
+  pool.forEach((st) => { st.an = null; st.held = null; });
+  list.forEach((an, k) => { const st = pool[k]; if (!st) return; an.stall = null;
+    if (an.walkIn) { st.held = an; an.walkIn = st; } else putInStall(an, st, true); });
+}
 function roomLeft() { let n = 0; for (let i = 0; i < openStalls(); i++) if (!STALLS[i].an && !STALLS[i].held) n++; return n; }
 
 /* ---------- inside: a warm, lantern-lit barn with stalls ---------- */
@@ -116,7 +134,7 @@ function drawBPad(p) {
 function buyBPad(p) {
   barnS().owned[p.id] = true; delete barnS().paid[p.id];
   Snd.play('success', { gain: 0.6, f: 'E6' }); Snd.play('sparkle', { gain: 0.6 }, 0.12); pop([BPAD_AT.x, BPAD_AT.z]);
-  if (p.kind === 'goat') { const an = addAnimal('goat'), st = freeStall() || STALLS[0]; putInStall(an, st, true); burst(st.x, 1, st.z, 8); Snd.animal('sheep', { gain: 0.6, rate: 1.25 }); }
+  if (p.kind === 'goat') { const an = addAnimal('goat'), st = stallNear('goat') || STALLS[0]; putInStall(an, st, true); burst(st.x, 1, st.z, 8); Snd.animal('sheep', { gain: 0.6, rate: 1.25 }); }
   else syncStalls(true);
   bpadShown = ''; save();
 }
@@ -158,6 +176,7 @@ function goBarn(to) {
     target.copy(pip.position); camFocus.copy(pip.position); lastP.copy(pip.position); barnRing.w = 0; doorRing.w = 0;
     /* everyone who followed Pip in heads for their stall */
     if (to) followers.slice().forEach((an) => { if (an.follow.mode === 'in') { const st = an.follow.st || freeStall(); unfollow(an); if (st) { st.held = an; an.walkIn = st; } } });
+    if (to) regroup();
     setTimeout(() => { fadeEl.style.opacity = '0'; doorT = 0; }, 120);
   }, 420);
 }
@@ -229,9 +248,15 @@ function barnInit() {
   const s = barnS(); s.owned = s.owned || {}; s.paid = s.paid || {};
   BPADS.forEach((p) => { if (p.kind === 'goat' && s.owned[p.id]) addAnimal('goat'); });
   (s.in || []).forEach((k) => { const [a, i] = k.split(':'), an = animals.filter((o) => o.a === a)[+i]; const st = freeStall(); if (an && st) putInStall(an, st, true); });
-  syncStalls(false);
+  regroup(); syncStalls(false);
 }
 
+/* morning: a kind Pip is already leading out comes first; another kind only joins once that kind's row is empty */
+function sameTrip(an) {
+  const kinds = new Set(followers.filter((o) => o.follow.mode === 'out').map((o) => o.a));
+  if (!kinds.size || kinds.has(an.a)) return true;
+  return !animals.some((o) => kinds.has(o.a) && o.inBarn && o.stall && !o.follow);
+}
 /* ---------- every frame ---------- */
 function barnStep(dt) {
   if (!barnReady) { barnReady = true; barnInit(); }
@@ -264,6 +289,7 @@ function barnStep(dt) {
     if (Math.abs(pip.position.x - BI.x) >= 1.2) pip.position.z = Math.min(pip.position.z, BI.z + 4.45);
     /* morning: animals in their stalls come along when Pip walks by */
     if (freeHands && morning()) for (const an of animals) { if (followers.length >= FOLLOW_MAX) break; if (!an.inBarn || an.follow || isNight) continue;
+      if (!sameTrip(an)) continue;
       const st = an.stall; if (st && Math.hypot(st.x - pip.position.x, st.z - pip.position.z) < 2.4) join(an, 'out'); }
     const p = nextBPad();
     bpad.visible = bpadEdge.visible = !!p; if (bpadGhost) bpadGhost.visible = !!p;
@@ -285,7 +311,7 @@ function barnGoal() {
   if (inBarn) {
     const p = nextBPad();
     if (followers.some((o) => o.follow.mode === 'out')) return [BI.x, BI.z + 5.2];
-    if (morning() && followers.length < FOLLOW_MAX) { const an = animals.find((o) => o.inBarn && !o.follow && o.stall); if (an) return [an.stall.x + (an.stall.side ? -an.stall.side * 1.6 : 0), an.stall.z + (an.stall.side ? 0 : 1.6)]; }
+    if (morning() && followers.length < FOLLOW_MAX) { const an = animals.find((o) => o.inBarn && !o.follow && o.stall && followers.some((f) => f.a === o.a)) || animals.find((o) => o.inBarn && !o.follow && o.stall && sameTrip(o)); if (an) return [an.stall.x + (an.stall.side ? -an.stall.side * 1.6 : 0), an.stall.z + (an.stall.side ? 0 : 1.6)]; }
     if (p && state.coins >= p.cost - (barnS().paid[p.id] || 0)) return [BPAD_AT.x, BPAD_AT.z];
     return [BI.x, BI.z + 5.2];
   }
