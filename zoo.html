@@ -738,7 +738,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122210726">
+<meta name="app-ver" content="20261122212244">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1627,6 +1627,12 @@ function drawIcon(cx, t, x, y, s) {
     cx.lineWidth = 13; path(); cx.stroke(); cx.strokeStyle = '#dfe6ea'; cx.lineWidth = 7; path(); cx.stroke();
   }
   else if (t === 'moon') { cx.fillStyle = '#f4d76a'; const mn = new Path2D('M4 -28 A26 26 0 1 0 28 8 A19 19 0 1 1 4 -28 Z'); cx.fill(mn); cx.stroke(mn); cx.fillStyle = '#fff6e4'; [[-20, -22, 3], [24, -24, 2.5]].forEach(([a, b, r]) => { cx.beginPath(); cx.arc(a, b, r, 0, 7); cx.fill(); }); }
+  else if (t === 'market') { /* a market stall: striped awning on two posts, a counter with an apple and an egg */
+    cx.fillStyle = PAL.trunk; cx.fillRect(-27, -16, 6, 42); cx.strokeRect(-27, -16, 6, 42); cx.fillRect(21, -16, 6, 42); cx.strokeRect(21, -16, 6, 42);
+    cx.fillStyle = PAL.accent; cx.beginPath(); cx.arc(-11, 2, 8, 0, 7); cx.fill(); cx.stroke(); cx.fillStyle = PAL.snow; cx.beginPath(); cx.ellipse(8, 1, 6.5, 8.5, 0, 0, 7); cx.fill(); cx.stroke();
+    cx.fillStyle = '#c98a4b'; cx.fillRect(-32, 8, 64, 18); cx.strokeRect(-32, 8, 64, 18); cx.beginPath(); cx.moveTo(-32, 15); cx.lineTo(32, 15); cx.stroke();
+    for (let k = 0; k < 4; k++) { const x0 = -32 + k * 16; cx.fillStyle = k % 2 ? PAL.paper : '#e9684a'; cx.beginPath(); cx.moveTo(x0, -30); cx.lineTo(x0 + 16, -30); cx.lineTo(x0 + 16, -18); cx.arc(x0 + 8, -18, 8, 0, Math.PI); cx.closePath(); cx.fill(); }
+    cx.beginPath(); cx.moveTo(-32, -18); cx.lineTo(-32, -30); cx.lineTo(32, -30); cx.lineTo(32, -18); for (let k = 3; k >= 0; k--) cx.arc(-32 + k * 16 + 8, -18, 8, 0, Math.PI); cx.closePath(); cx.stroke(); }
   else if (t === 'barn' || t === 'stall') { cx.fillStyle = '#c4553f'; cx.beginPath(); cx.moveTo(-28, 26); cx.lineTo(-28, -6); cx.lineTo(-16, -22); cx.lineTo(16, -22); cx.lineTo(28, -6); cx.lineTo(28, 26); cx.closePath(); cx.fill(); cx.stroke(); cx.fillStyle = '#6b4a3c'; cx.beginPath(); cx.moveTo(-32, -4); cx.lineTo(-17, -26); cx.lineTo(17, -26); cx.lineTo(32, -4); cx.lineTo(26, -4); cx.lineTo(14, -20); cx.lineTo(-14, -20); cx.lineTo(-26, -4); cx.closePath(); cx.fill(); cx.stroke(); cx.fillStyle = PAL.paper; cx.fillRect(-12, 2, 24, 24); cx.strokeRect(-12, 2, 24, 24); cx.lineWidth = 3; cx.beginPath(); cx.moveTo(-12, 2); cx.lineTo(12, 26); cx.moveTo(12, 2); cx.lineTo(-12, 26); cx.stroke();
     if (t === 'stall') { cx.lineWidth = 4; cx.fillStyle = '#74a857'; cx.beginPath(); cx.arc(22, -24, 12, 0, 7); cx.fill(); cx.stroke(); cx.fillStyle = PAL.paper; cx.fillRect(19.5, -31, 5, 14); cx.fillRect(15, -26.5, 14, 5); } }
   else if (t === 'goat') { const col = '#f3ede2'; cx.fillStyle = PAL.sand; [-1, 1].forEach((q) => { cx.beginPath(); cx.moveTo(q * 8, -18); cx.quadraticCurveTo(q * 20, -40, q * 28, -26); cx.lineTo(q * 14, -16); cx.closePath(); cx.fill(); cx.stroke(); }); cx.fillStyle = col; [-1, 1].forEach((q) => { cx.beginPath(); cx.ellipse(q * 26, -4, 12, 6, q * 0.4, 0, 7); cx.fill(); cx.stroke(); }); cx.beginPath(); cx.ellipse(0, 0, 20, 25, 0, 0, 7); cx.fill(); cx.stroke(); cx.fillStyle = '#d8cfc0'; cx.beginPath(); cx.moveTo(-7, 20); cx.lineTo(7, 20); cx.lineTo(0, 36); cx.closePath(); cx.fill(); cx.stroke(); cx.fillStyle = PAL.ink; cx.beginPath(); cx.arc(-8, -4, 3.5, 0, 7); cx.arc(8, -4, 3.5, 0, 7); cx.fill(); cx.fillStyle = PAL.blush; cx.beginPath(); cx.ellipse(0, 11, 8, 5, 0, 0, 7); cx.fill(); cx.stroke(); }
