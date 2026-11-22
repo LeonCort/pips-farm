@@ -193,7 +193,7 @@ function buyCam(dt) {
   CURVE.u.strength.value *= 1 - k;
   CURVE.u.horD.value += (1e6 - CURVE.u.horD.value) * k; sc.fog.near += (400 - sc.fog.near) * k; sc.fog.far += (600 - sc.fog.far) * k;
   if (k > 0.3) { arrow.visible = chevG.visible = goalRing.visible = false; if (BM.prev && BM.prev.userData.tent) TENT_OUT.visible = false; }
-  if (k > 0.5) { sun.position.set(BM.cx - 10, 10, BM.cz + 7.5); sun.target.position.set(BM.cx, 0, BM.cz); }
+  if (k > 0.5) { sun.position.set(BM.cx + SUN_OFF.x, SUN_OFF.y, BM.cz + SUN_OFF.z); sun.target.position.set(BM.cx, 0, BM.cz); }
   if (buyOn && !BM.sel) bmRender(); if (BM.sel) bmPanel();
   return true;
 }

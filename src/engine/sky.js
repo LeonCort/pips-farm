@@ -17,6 +17,15 @@ const _ca = new T.Color(), _cb = new T.Color();
 const mixHex = (a, b, q, out) => out.copy(_ca.set(a)).lerp(_cb.set(b), q);
 let nightAmt = 0, isNight = false, season = 'spring', seasonShown = null;
 const dayFrac = () => (state.clock % DAY) / DAY;
+/* the sun crosses the sky: it rises in the east (right), is high in the south (behind the camera) at midday and sets in
+   the west (left), low and with long shadows morning and evening, so the shadows show the time of day.
+   The moon then goes back from west to east, so the shadows never jump at dusk or dawn. Indoors it stays where it was. */
+const SUN_HOME = new T.Vector3(-10, 10, 7.5), SUN_OFF = SUN_HOME.clone();
+if (window.__farmTest) window.__sun = () => SUN_OFF.toArray().map((v) => +v.toFixed(2));
+function sunArc(f) {
+  const p = f < 0.64 ? f / 0.64 : 1 - (f - 0.64) / 0.36, az = Math.PI * p, el = (18 + 37 * Math.sin(Math.PI * p)) * Math.PI / 180, d = 16;
+  SUN_OFF.set(Math.cos(az) * Math.cos(el) * d, Math.sin(el) * d, Math.sin(az) * Math.cos(el) * d);
+}
 /* a soft warm light that follows Pip at night, and one for the tractor's headlights */
 const pipLamp = new T.PointLight(0xffd8a0, 0, 4.5, 2); pipLamp.position.set(0, 1.6, 0.4); pip.add(pipLamp);
 const tractorLamp = new T.PointLight(0xfff0c0, 0, 6, 2); sc.add(tractorLamp);
@@ -160,6 +169,7 @@ function skyStep(dt) {
   bedStep(dt);
   state.clock += dt;
   const f = dayFrac(); let i = 0; while (i < SKY_KEYS.length - 2 && f > SKY_KEYS[i + 1].f) i++;
+  if (inHouse) SUN_OFF.copy(SUN_HOME); else sunArc(f);
   const a = SKY_KEYS[i], b = SKY_KEYS[i + 1], q = clamp((f - a.f) / (b.f - a.f), 0, 1), e = q * q * (3 - 2 * q);
   mixHex(a.top, b.top, e, sky.material.uniforms.top.value); mixHex(a.hor, b.hor, e, sky.material.uniforms.hor.value);
   { const dd = 1 - (a.n + (b.n - a.n) * e) * 2; if (dd > 0) { sky.material.uniforms.hor.value.lerp(SKY_ULTRA.hor, 0.6 * dd); sky.material.uniforms.top.value.lerp(SKY_ULTRA.top, 0.3 * dd); } }

@@ -747,7 +747,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122212503">
+<meta name="app-ver" content="20261122214926">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -3025,6 +3025,15 @@ const _ca = new T.Color(), _cb = new T.Color();
 const mixHex = (a, b, q, out) => out.copy(_ca.set(a)).lerp(_cb.set(b), q);
 let nightAmt = 0, isNight = false, season = 'spring', seasonShown = null;
 const dayFrac = () => (state.clock % DAY) / DAY;
+/* the sun crosses the sky: it rises in the east (right), is high in the south (behind the camera) at midday and sets in
+   the west (left), low and with long shadows morning and evening, so the shadows show the time of day.
+   The moon then goes back from west to east, so the shadows never jump at dusk or dawn. Indoors it stays where it was. */
+const SUN_HOME = new T.Vector3(-10, 10, 7.5), SUN_OFF = SUN_HOME.clone();
+if (window.__farmTest) window.__sun = () => SUN_OFF.toArray().map((v) => +v.toFixed(2));
+function sunArc(f) {
+  const p = f < 0.64 ? f / 0.64 : 1 - (f - 0.64) / 0.36, az = Math.PI * p, el = (18 + 37 * Math.sin(Math.PI * p)) * Math.PI / 180, d = 16;
+  SUN_OFF.set(Math.cos(az) * Math.cos(el) * d, Math.sin(el) * d, Math.sin(az) * Math.cos(el) * d);
+}
 /* a soft warm light that follows Pip at night, and one for the tractor's headlights */
 const pipLamp = new T.PointLight(0xffd8a0, 0, 4.5, 2); pipLamp.position.set(0, 1.6, 0.4); pip.add(pipLamp);
 const tractorLamp = new T.PointLight(0xfff0c0, 0, 6, 2); sc.add(tractorLamp);
@@ -3168,6 +3177,7 @@ function skyStep(dt) {
   bedStep(dt);
   state.clock += dt;
   const f = dayFrac(); let i = 0; while (i < SKY_KEYS.length - 2 && f > SKY_KEYS[i + 1].f) i++;
+  if (inHouse) SUN_OFF.copy(SUN_HOME); else sunArc(f);
   const a = SKY_KEYS[i], b = SKY_KEYS[i + 1], q = clamp((f - a.f) / (b.f - a.f), 0, 1), e = q * q * (3 - 2 * q);
   mixHex(a.top, b.top, e, sky.material.uniforms.top.value); mixHex(a.hor, b.hor, e, sky.material.uniforms.hor.value);
   { const dd = 1 - (a.n + (b.n - a.n) * e) * 2; if (dd > 0) { sky.material.uniforms.hor.value.lerp(SKY_ULTRA.hor, 0.6 * dd); sky.material.uniforms.top.value.lerp(SKY_ULTRA.top, 0.3 * dd); } }
@@ -10111,7 +10121,7 @@ function buyCam(dt) {
   CURVE.u.strength.value *= 1 - k;
   CURVE.u.horD.value += (1e6 - CURVE.u.horD.value) * k; sc.fog.near += (400 - sc.fog.near) * k; sc.fog.far += (600 - sc.fog.far) * k;
   if (k > 0.3) { arrow.visible = chevG.visible = goalRing.visible = false; if (BM.prev && BM.prev.userData.tent) TENT_OUT.visible = false; }
-  if (k > 0.5) { sun.position.set(BM.cx - 10, 10, BM.cz + 7.5); sun.target.position.set(BM.cx, 0, BM.cz); }
+  if (k > 0.5) { sun.position.set(BM.cx + SUN_OFF.x, SUN_OFF.y, BM.cz + SUN_OFF.z); sun.target.position.set(BM.cx, 0, BM.cz); }
   if (buyOn && !BM.sel) bmRender(); if (BM.sel) bmPanel();
   return true;
 }
@@ -11754,7 +11764,7 @@ function step(dt) {
   waterT -= dt; if (waterT <= 0) { waterT = 0.1; for (let i = 0; i < wp.count; i++) { const x = wp.getX(i), z = wp.getZ(i); wp.setY(i, Math.sin(x * 0.5 + time * 0.9) * 0.06 + Math.sin(z * 0.42 - time * 0.7) * 0.06); const ax = -Math.cos(x * 0.5 + time * 0.9) * 0.18, az = -Math.cos(z * 0.42 - time * 0.7) * 0.15, l = Math.hypot(ax, 1, az); wn.setXYZ(i, ax / l, 1 / l, az / l); } wp.needsUpdate = true; wn.needsUpdate = true; }
   /* the camera keeps up closely, so it stops with Pip instead of gliding on after the finger lifts */ camFocus.lerp(pip.position, 1 - Math.exp(-dt * 10)); if (inBarn) camFocus.z = Math.min(camFocus.z, BI.z + 0.9); if (inStore) camFocus.z = Math.min(camFocus.z, SI.z + 1.2);
   dressT += ((dressing ? 1 : 0) - dressT) * Math.min(1, dt * 5); const k = (aspect < 1 ? 1.5 : 1.15) * (1 - 0.7 * dressT) * (inBarn ? 1.22 : 1); cam.position.set(camFocus.x, 9.5 * k, camFocus.z + 8.5 * k); cam.lookAt(camFocus.x + (aspect < 1 ? 0 : 0.75) * dressT, 0.55 * dressT, camFocus.z + 0.3 + (aspect < 1 ? 0.55 : -0.1) * dressT);
-  sun.position.set(camFocus.x - 10, 10, camFocus.z + 7.5); sun.target.position.copy(camFocus); curveFrame(aspect < 1 ? 1.15 : 1, dt); skyFrame(dt);
+  sun.position.set(camFocus.x + SUN_OFF.x, SUN_OFF.y, camFocus.z + SUN_OFF.z); sun.target.position.copy(camFocus); curveFrame(aspect < 1 ? 1.15 : 1, dt); skyFrame(dt);
   if (buyCam(dt)) {} else if (window.__camTop) { const c = window.__camTop; cam.position.set(c[0], c[2], c[1] + (c[3] || 0)); cam.lookAt(c[0], 0, c[1]); cam.far = 300; }
   if (ED.on) edRender(dt); else fxFrame(dt);
   $('coins').textContent = fmt(state.coins);
