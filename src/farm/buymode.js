@@ -13,8 +13,8 @@ const BM_AREAS = [
 const bmAreaOf = (z) => z < BM_AREAS[0].z1 ? 0 : z < BM_AREAS[1].z1 ? 1 : 2;
 const BM_PITCH = 62 * Math.PI / 180;
 /* the pictures */
-const BM_PIC = {};
-function bmIcon(key, draw) { if (BM_PIC[key]) return BM_PIC[key]; const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); draw(x); return (BM_PIC[key] = c.toDataURL()); }
+const BM_PIC = {}, BM_CV = {}; /* BM_CV keeps the canvas too, for the floating price tags (ptag.js) */
+function bmIcon(key, draw) { if (BM_PIC[key]) return BM_PIC[key]; const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'); draw(x); BM_CV[key] = c; return (BM_PIC[key] = c.toDataURL()); }
 function bmPadPic(p) { return bmIcon('p:' + p.id, (x) => {
   if (p.kind === 'animal') drawIcon(x, p.a, 64, 66, 1.35);
   else if (p.kind === 'tractor') drawIcon(x, 'tractor', 64, 66, 1.25);
