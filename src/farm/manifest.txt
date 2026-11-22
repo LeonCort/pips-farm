@@ -5,6 +5,7 @@
 ../engine/game.js
 rules.js
 expand0.js
+corners.js
 ../engine/setup.js
 ../engine/curve.js
 ../engine/cloudchunk.js

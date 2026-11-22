@@ -277,9 +277,11 @@ function pipMarket(dt) {
   mxT -= dt; if (mxT > 0) return; let did = false;
   if (carry.items.length < cap() && !pickHeld()) for (const q of mProd) { if (q.pile.items.length && (q.near ? q.near() : nearP(q.x, q.z, q.r))) { const m = q.pile.take(); toBasket(m); Snd.play('pop', { gain: 0.45, f: 500 + carry.items.length * 60 }); did = true; break; } }
   /* 'near': the feed station by a pen hands out the food that pen's box is lowest on */
-  if (!did && carry.items.length < cap() && !pickHeld()) for (const st of STATIONS) { if (!nearP(st.x, st.z, 0.95)) continue; const pen = pens[st.a];
+  if (!did && carry.items.length < cap() && !pickHeld()) for (const st of STATIONS) { if (!nearP(st.x, st.z, 0.95)) continue;
+    /* a station can feed more than one pen (st.also): hand out the food the emptiest of them needs most */
     const opts = st.foods.filter((t) => sources[t]); if (!opts.length) break;
-    const have = (a) => (pen ? boxCount(pen, a) : 0) + carry.count(a), t = opts.slice().sort((a, b) => have(a) - have(b))[0]; if (pen && have(t) >= BOX_MAX) break;
+    const P = [st.a].concat(st.also || []).map((a) => pens[a]).filter(Boolean);
+    const have = (t) => (P.length ? Math.min(...P.map((pen) => boxCount(pen, t))) : 0) + carry.count(t), t = opts.slice().sort((a, b) => have(a) - have(b))[0]; if (P.length && have(t) >= BOX_MAX) break;
     const m = mk(t); m.position.set(st.x, 0.6, st.z - 0.7); sc.add(m); toBasket(m); Snd.play('pop', { gain: 0.45, f: 500 + carry.items.length * 60 }); did = true; break; }
   if (!did && bakery && nearP(B_IN.x, B_IN.z, 0.95) && carry.count('egg') && bakery.inp.items.length < 12) { const m = carry.take('egg'); fly(m, () => tmpV.set(B_IN.x, 0.2, B_IN.z), () => bakery.inp.add(m)); Snd.play('tick', { gain: 0.4 }); did = true; }
   if (!did) for (const t in stalls) { const d = sDrop(t), s = stalls[t]; if (nearP(d[0], d[1], 0.9) && carry.count(t) && s.shelf.items.length < SHELF_MAX) { const m = carry.take(t); fly(m, () => s.g.localToWorld(tmpV.set(0, 1.0, 0)), () => s.shelf.add(m)); Snd.play('tick', { gain: 0.45, f: 900 }); did = true; break; } }
