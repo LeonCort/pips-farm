@@ -547,7 +547,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122081152">
+<meta name="app-ver" content="20261122082749">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -4225,14 +4225,48 @@ function townStep(dt) {
 function townTest() {
   return { route: (k) => routeTo(k), routing: () => ROUTE.pts ? ROUTE.dest + ' ' + ROUTE.i + '/' + ROUTE.pts.length : null, path: (k) => roadPath(pip.position.x, pip.position.z, PLACES[k].x, PLACES[k].z), places: () => Object.keys(PLACES), needs: () => Object.keys(placeNeeds()), openMap, closeMap, flowers: () => flowerN, nodes: () => RG.n.length };
 }
+/* ---------- the animal economy, part 1 (read before the market is built) ----------
+   Every animal feeds the economy: it gives hearts, and the ones in ANIMAL_GOODS also give something to sell.
+   To add a new animal that makes a product, give it a line here (product, how many per meal, where it lands),
+   an item model and icon for the product, and a place in MKT.stalls; the stall, its robot and its seller then come
+   from the coin queue like the others. at: 'farm' = the farm crate the truck takes, 'pen' = its own basket by the pen. */
+const ANIMAL_GOODS = {
+  hen: { t: 'egg', n: 2, at: 'farm' },
+  cow: { t: 'milk', n: 2, at: 'farm' },
+  goat: { t: 'milk', n: 1, at: 'farm' },
+  sheep: { t: 'wool', n: 1, at: 'pen' }
+};
+/* animals with nothing to sell give a lot more hearts instead (pig 3 -> 5, horse 6 -> 10, bull 9 -> 14) */
+Object.keys(HEARTS).forEach((a) => { if (!ANIMAL_GOODS[a]) HEARTS[a] = Math.round(HEARTS[a] * 1.6); });
+/* wool: a soft bundle of fleece tied with a pink ribbon */
+{ const g = new T.Group();
+  [[0, 0.1, 0, 0.1], [-0.085, 0.085, 0.03, 0.075], [0.085, 0.08, -0.02, 0.078], [0.01, 0.17, 0.02, 0.072], [-0.02, 0.08, -0.08, 0.07]].forEach(([x, y, z, r], k) => part(fac(ico(r, 1, 40 + k, 0.01), k % 2 ? '#f4efe4' : '#fbf8f1', 40 + k), g, x, y, z, true));
+  const rb = new T.TorusGeometry(0.1, 0.018, 4, 12); rb.rotateY(Math.PI / 2); part(fac(rb, '#e98aa0', 46), g, 0, 0.1, 0, true);
+  PROTO.wool = g; }
+ITEM_H.wool = 0.22; GOODS.push('wool');
+/* the wool stall: in the street's north row next to the apples (the apple stall moves a little west to make room) */
+if (VARIANT === 'van') { MKT.stalls.apple.x = 12.1; MKT.stalls.wool = { x: 15.05, z: -2.6, f: -1 }; }
+else MKT.stalls.wool = { x: 11.0, z: -2.6, f: -1 };
+/* the wool picture: a fleece cloud with curls and a little pink bow */
+{ const d0 = drawIcon; drawIcon = function (cx, t, x, y, s) {
+  if (t !== 'wool') return d0(cx, t, x, y, s);
+  cx.save(); cx.translate(x, y); cx.scale(s, s); cx.lineWidth = 4; cx.strokeStyle = PAL.ink; cx.lineJoin = 'round';
+  const C = [[-17, 6, 13], [-6, -8, 14], [9, -9, 14], [19, 5, 13], [0, 13, 14]];
+  cx.fillStyle = '#fbf8f1'; C.forEach(([a, b, r]) => { cx.beginPath(); cx.arc(a, b, r, 0, 7); cx.fill(); cx.stroke(); });
+  C.forEach(([a, b, r]) => { cx.beginPath(); cx.arc(a, b, r - 2, 0, 7); cx.fill(); });
+  cx.strokeStyle = '#cbbd9f'; cx.lineWidth = 2.5; [[-15, 6], [-4, -6], [10, -6], [17, 6], [1, 12]].forEach(([a, b]) => { cx.beginPath(); cx.arc(a, b, 5, 0.6, 4.4); cx.stroke(); });
+  cx.strokeStyle = PAL.ink; cx.lineWidth = 3; cx.fillStyle = '#e98aa0';
+  [-1, 1].forEach((q) => { cx.beginPath(); cx.moveTo(0, -22); cx.lineTo(q * 13, -30); cx.lineTo(q * 13, -15); cx.closePath(); cx.fill(); cx.stroke(); });
+  cx.beginPath(); cx.arc(0, -22, 4.5, 0, 7); cx.fill(); cx.stroke();
+  cx.restore(); }; }
 /* ---------- the market street: Pip's shop, now on the farm island ----------
    The same system as the shop game: goods come from producers (the egg crate in the farmyard, apple trees, the bakery),
    Pip carries them to the counter or a stall, animal guests buy them, and coins pay for new things on coin pads.
    Hearts (from happy animals) and coins (from selling) are kept apart. */
-const VALUE = { egg: 1, apple: 2, milk: 4, cake: 8 };
+const VALUE = { egg: 1, apple: 2, milk: 4, cake: 8, wool: 5 };
 const SHOP = MKT.shop, SDROP = { x: SHOP.x, z: SHOP.z + 1.25 }, SMONEY = { x: SHOP.x - 2.1, z: SHOP.z + 1.6 }, SBACK = { x: (SHOP.x + MKT.stalls.egg.x) / 2, z: SHOP.z + 1.75 }; /* the storage crate in the yard between the counter and the egg stall */
 const BAKE = MKT.bakery, B_IN = { x: BAKE.x - 1.0, z: BAKE.z - 1.4 * BAKE.f }, B_OUT = { x: BAKE.x + 1.0, z: BAKE.z - 1.4 * BAKE.f };
-const STL = MKT.stalls, STALL_T = ['egg', 'apple', 'milk', 'cake'];
+const STL = MKT.stalls, STALL_T = ['egg', 'apple', 'milk', 'cake', 'wool'];
 const sDrop = (t) => [STL[t].x, STL[t].z + 1.25 * STL[t].f];
 const sHome = (t) => [STL[t].x + 0.65, STL[t].z + 2.1 * STL[t].f];
 const sSeller = (t) => [STL[t].x + 1.1, STL[t].z - 0.1 * STL[t].f];
@@ -4327,7 +4361,7 @@ const counterG = new T.Group(); counterG.position.set(SHOP.x, 0, SHOP.z); sc.add
   mlBooth(counterG, cap, { W: 2.8, H: 0.75, D: 0.8, px: 1.35, pz: 0.35, ay: 1.72, col: PAL.accent }); /* plank booth, scalloped awning (marketlook.js) */
   solid(SHOP.x - 0.8, SHOP.z, 0.6); solid(SHOP.x + 0.8, SHOP.z, 0.6); solid(SHOP.x, SHOP.z, 0.6);
 }
-const SHELF_X = { egg: -0.95, apple: -0.32, milk: 0.32, cake: 0.95 }, SHELF_MAX = 16;
+const SHELF_X = { egg: -1.0, apple: -0.5, milk: 0, cake: 0.5, wool: 1.0 }, SHELF_MAX = 16;
 const shelf = {}; GOODS.forEach((t) => { shelf[t] = new Pile(counterG, (k) => [SHELF_X[t] - 0.12 + (k % 2) * 0.24, 0.82 + Math.floor(k / 4) * ITEM_H[t], -0.12 + (Math.floor(k / 2) % 2) * 0.24]); });
 const BACK_MAX = 80, backG = new T.Group(); backG.position.set(SBACK.x, 0, SBACK.z); sc.add(backG);
 /* the storage crate ("förråd"): a big open wooden crate that takes whatever Pip carries that no stall can take right now,
@@ -4373,7 +4407,7 @@ function makeMoney(x, z) {
 const money = makeMoney(SMONEY.x, SMONEY.z);
 
 /* ---------- stalls, stocking robots, sellers, signs, helpers and the cashier ---------- */
-const stalls = {}, STALL_COL = { egg: PAL.ochre, apple: PAL.accent, milk: PAL.sea, cake: PAL.blush };
+const stalls = {}, STALL_COL = { egg: PAL.ochre, apple: PAL.accent, milk: PAL.sea, cake: PAL.blush, wool: '#a98fcf' };
 function addStall(t) {
   if (stalls[t]) return; const a = STL[t], g = new T.Group(); g.position.set(a.x, 0, a.z); g.rotation.y = a.f > 0 ? 0 : Math.PI; sc.add(g); const cap = new T.Group(); g.add(cap);
   mlBooth(g, cap, { W: 1.6, H: 0.7, D: 0.7, px: 0.78, pz: 0.3, ay: 1.52, col: STALL_COL[t] }); mlStallProps(g, t, STALL_COL[t]); /* (marketlook.js) */
@@ -4401,7 +4435,7 @@ function guestModel(kind) {
   return g;
 }
 function addSeller(t) {
-  const s = stalls[t]; if (!s || s.seller) return; const kinds = { egg: 'duck', apple: 'fox', milk: 'frog', cake: 'bunny' }, p = sSeller(t), g = guestModel(kinds[t]);
+  const s = stalls[t]; if (!s || s.seller) return; const kinds = { egg: 'duck', apple: 'fox', milk: 'frog', cake: 'bunny', wool: 'bear' }, p = sSeller(t), g = guestModel(kinds[t]);
   g.position.set(p[0], 0, p[1]); g.rotation.y = STL[t].f > 0 ? Math.PI + 0.5 : -0.5; sc.add(g);
   const hat = new T.CylinderGeometry(0.16, 0.2, 0.12, 8); part(fac(hat, STALL_COL[t], 3), g, 0, 1.0, 0.02); s.seller = g;
   if (s.money.n) { earnCoins(s.money.n); s.money.n = 0; s.money.show(); }
@@ -4478,7 +4512,7 @@ const customers = [];
 let spawnT = 1;
 const haveCows = () => animals.some((an) => an.a === 'cow');
 function wants() {
-  const kinds = ['egg']; if (trees.some(Boolean)) kinds.push('apple'); if (haveCows() || shelf.milk.items.length + back.count('milk') > 0) kinds.push('milk'); if (bakery) kinds.push('cake');
+  const kinds = ['egg']; if (trees.some(Boolean)) kinds.push('apple'); if (haveCows() || shelf.milk.items.length + back.count('milk') > 0) kinds.push('milk'); if (bakery) kinds.push('cake'); if (animals.some((an) => an.a === 'sheep') || shelf.wool.items.length + back.count('wool') > 0) kinds.push('wool');
   const have = (k) => shelf[k].items.length + back.count(k), anyStock = kinds.some((k) => have(k) > 0);
   const w = kinds.map((k, i) => (1 + i * 0.8) * (!anyStock || have(k) > 0 ? 1 : 0.08) * (1 + Math.min(3, have(k) / 8))), sum = w.reduce((a, b) => a + b, 0); let r = Math.random() * sum;
   for (let i = 0; i < kinds.length; i++) { r -= w[i]; if (r <= 0) return kinds[i]; } return kinds[0];
@@ -8362,7 +8396,7 @@ function stockAt(pen, t) { const s = pen.food.spots && pen.food.spots[t]; return
 if (window.__farmTest) window.__stock = { fill: (a, t, n) => { const pen = pens[a] || buildPen(a); for (let k = 0; k < n; k++) pen.food.add(mk(t)); return pen.food.items.length; }, spots: (a) => stockSpots(a).map((s) => s.t + '@' + s.z.toFixed(2)).join(' ') };
 /* ---------- the garden's water hole: once the kitchen garden is unlocked, a small pond with a stone rim, reeds and a bucket
    appears just east of its fence, so Pip can fetch water for the beds without walking back to the farm well ---------- */
-const GWELL = { x: 13.45, z: -6.35 }, GW_PICK = { x: 12.6, z: -5.35 }; /* clear of the apple stall's drop ring and robot pad */
+const GWELL = { x: 13.45, z: -6.35 }, GW_PICK = { x: 14.55, z: -5.45 }; /* on the east bank: the apple stall moved west for the wool stall, and its robot now stands where the old ring was */
 const gwell = (() => {
   const g = new T.Group(); g.position.set(GWELL.x, 0, GWELL.z); sc.add(g);
   /* a soft muddy bank, then a ring of round stones */
@@ -8399,6 +8433,75 @@ function gwellStep(dt) {
   Snd.play('pop', { gain: 0.45, f: 500 + carry.items.length * 60 }); gwell.t = 0.12;
 }
 { const s0 = storeStep; storeStep = function (dt) { s0(dt); gwellStep(dt); }; }
+/* ---------- the animal economy, part 2: products, pen baskets, feed portions, the wool stall ---------- */
+/* the wool stall, its stocking robot and its seller: bought with coins, placed in the coin queue (queue.js) */
+SPADS.push({ id: 'stall-wool', kind: 'stall', t: 'wool', cost: 380 }, { id: 'stock-wool', kind: 'stock', t: 'wool', cost: 1300 }, { id: 'sell-wool', kind: 'seller', t: 'wool', cost: 1600 });
+
+/* ---- a basket by the pen for animals whose product is collected right there (sheep: wool) ----
+   It stands just outside the pen's fence on the side facing the farm lane, where it stays when the pen grows.
+   Pip picks the goods up by walking past it, and the wool stall's robot fetches from it once bought. */
+const PEN_BASKETS = {}, BASKET_MAX = 12;
+function basketPos(a) {
+  /* outside the pen at its biggest (penMax once pens grow to fixed sizes; otherwise the old growth rule) */
+  const p = PEN[a], sx = penSide(a), inner = p.x + sx * p.w / 2;
+  if (typeof penMax === 'function') { const b = penMax(a); return [inner - sx * 0.95, b.z + b.d / 2 + 0.8]; }
+  const d = p.fix ? p.d : p.d + 0.3 * (p.n - 1);
+  return [inner - sx * 0.95, p.z + d / 2 + 0.8];
+}
+function penBasket(a) {
+  if (PEN_BASKETS[a]) return PEN_BASKETS[a];
+  const G = ANIMAL_GOODS[a], [x, z] = basketPos(a), g = new T.Group(); g.position.set(x, 0, z); sc.add(g);
+  const L = [], P = at(x, z, 0, L);
+  /* a round wicker basket: woven rings in two straw tones, a darker rim and two rope handles */
+  P(new T.CylinderGeometry(0.42, 0.34, 0.36, 16, 3, true), (cx, cy, cz, i) => tone(hash(Math.floor((Math.atan2(cz, cx) + 4) * 5), Math.floor(cy * 18)) > 0.5 ? '#c9a46a' : '#a8804a', i, 0.3), 1800, 0, 0.18, 0);
+  P(new T.CylinderGeometry(0.34, 0.34, 0.03, 16), '#8a6444', 1801, 0, 0.02, 0);
+  P(new T.TorusGeometry(0.42, 0.035, 5, 20).rotateX(Math.PI / 2), '#7a5438', 1802, 0, 0.36, 0);
+  [-1, 1].forEach((q) => P(new T.TorusGeometry(0.09, 0.022, 4, 8, Math.PI).rotateY(Math.PI / 2), '#7a5438', 1803, q * 0.42, 0.36, 0));
+  /* a little picture sign on a post behind it */
+  P(box(0.07, 1.0, 0.07), PAL.trunk, 1805, 0, 0.5, -0.5);
+  const merge = merged(L, MAT); merge.castShadow = true;
+  const c = document.createElement('canvas'); c.width = 256; c.height = 160; const cx = c.getContext('2d'); void cx;
+  const sg = new T.Mesh(new T.PlaneGeometry(0.62, 0.39), new T.MeshBasicMaterial({ map: mlSignTex(G.t), transparent: true })); sg.position.set(0, 1.05, -0.46); sg.rotation.x = -0.25; g.add(sg);
+  const pile = new Pile(g, (k) => { const L2 = Math.floor(k / 6), r = k % 6, a2 = r / 6 * 6.283 + L2 * 0.5, rr = r === 5 ? 0 : 0.19; return [Math.cos(a2) * rr, 0.08 + L2 * 0.17, Math.sin(a2) * rr, a2]; });
+  ring(x, z + 0.75, 0.75); solid(x, z, 0.42);
+  const b = { a, t: G.t, g, pile, x, z, max: BASKET_MAX, inbound: 0 };
+  /* Pip picks up from the front of the basket; robots and helpers fetch from it like from an apple tree */
+  b.prod = { kind: 'basket', pile, x, z: z + 0.75, r: 0.9 }; mProd.push(b.prod);
+  PEN_BASKETS[a] = b; return b;
+}
+
+/* ---- what a fed animal gives: its product flies to the farm crate (for the truck) or to its own pen basket ---- */
+produce = function (an) {
+  const G = ANIMAL_GOODS[an.a]; if (!G) return;
+  const cr = G.at === 'pen' ? penBasket(an.a) : crateFor(G.t), max = G.at === 'pen' ? BASKET_MAX : SHIP_MAX;
+  for (let k = 0; k < G.n; k++) {
+    if (cr.pile.items.length + cr.inbound >= max) return;
+    const m = mk(G.t), p = an.g.position; m.position.set(p.x, an.h * 0.5, p.z); sc.add(m); cr.inbound++;
+    fly(m, () => cr.g.localToWorld(tmpV.set(0, 0.5, 0)), () => { cr.inbound--; cr.pile.add(m); }, 0.9 + k * 0.15);
+  }
+};
+/* the basket is there as soon as its animal lives on the farm */
+{ const a0 = addAnimal; addAnimal = function (a) { const an = a0(a); if (ANIMAL_GOODS[a] && ANIMAL_GOODS[a].at === 'pen') penBasket(a); return an; }; }
+
+/* ---- feed portions: one scoop of food in a pen's box feeds an animal three times ----
+   The scoop shrinks a little with each meal and is gone after the third, so a box filled in the morning
+   lasts about three times as long and the hens keep laying while Pip does other things. */
+const PORTIONS = 3;
+{ const s0 = stockPile; stockPile = function (a, g) {
+  const pile = s0(a, g), take0 = pile.take;
+  pile.take = function (t) {
+    if (!t) return take0.call(this, t);
+    const mine = this.items.filter((o) => o.userData.type === t); if (!mine.length) return null;
+    const top = mine.find((o) => o.userData.bites) || mine[mine.length - 1], b = (top.userData.bites || 0) + 1;
+    if (b < PORTIONS) { top.userData.bites = b; top.scale.setScalar(1 - 0.2 * b); const m = mk(t); top.getWorldPosition(m.position); m.scale.setScalar(0.55); sc.add(m); return m; }
+    this.items.splice(this.items.indexOf(top), 1); this.place(); top.userData.bites = 0; top.scale.setScalar(1); return top;
+  };
+  return pile; }; }
+
+if (window.__farmTest) {
+  window.__ev = (s) => eval(s);
+  window.__econ = () => ({ baskets: Object.keys(PEN_BASKETS).map((a) => a + ':' + PEN_BASKETS[a].pile.items.length).join(' '), crate: CRATES[0].pile.items.length, hearts: JSON.stringify(HEARTS) });
+}
 /* ---------- the first day: a guided start for a new farm ----------
    A new game walks through the basics one step at a time, in this order: feed the animals, take eggs to the market,
    pick apples and sell them, buy the first thing in the store with hearts, feed the animals again, lead them
@@ -8650,7 +8753,7 @@ if (window.__farmTest) window.__autoCat = () => { const c = cheapest(true); if (
    who only farms still gets the house and the island along. Furniture, colours and decorations stay a free shop. */
 const QUEUE = {
   h: [["gear:speed1", 10], ["pig1", 12], ["hen3", 20], ["pig2", 30], ["gear:bag1", 40], ["house-hen", 45], ["help-water", 70], ["gear:farm1", 85], ["hay", 115], ["sheep1", 120], ["gear:speed2", 160], ["tractor", 175], ["cow1", 190], ["gear:guests1", 250], ["goat1", 270], ["sheep2", 330], ["gear:bag2", 390], ["house-pig", 430], ["cow2", 540], ["gear:farm2", 650], ["stall6", 840], ["hen4", 890], ["gear:speed3", 1050], ["help-grain", 1150], ["horse1", 1350], ["gear:guests2", 1600], ["house-sheep", 1750], ["goat2", 2100], ["gear:bag3", 2400], ["house-cow", 2650], ["pig3", 3250], ["gear:farm3", 3700], ["stall8", 4650], ["horse2", 4950], ["gear:speed4", 5700], ["sheep3", 6300], ["help-hay", 7300], ["gear:guests3", 7500], ["bull1", 8100], ["gear:bag4", 8800], ["goat3", 8800], ["house-horse", 9400], ["gear:farm4", 10300], ["stall10", 11800], ["cow3", 11800], ["gear:speed5", 12700], ["help-carrot", 12700], ["house-bull", 12700], ["gear:guests4", 13500], ["stall12", 13500], ["gear:farm5", 13500], ["gear:bag6", 15100], ["gear:speed6", 16900], ["gear:guests6", 19000], ["gear:farm6", 21200], ["gear:bag7", 23800], ["gear:speed7", 26600], ["gear:guests7", 29800], ["gear:farm7", 33400], ["gear:bag8", 37400], ["gear:speed8", 41900], ["gear:guests8", 47000], ["gear:farm8", 52600]],
-  c: [["tree2", 20], ["sign1", 40], ["stall-egg", 45], ["isle:garden", 45], ["tree3", 50], ["isle:square", 90], ["stock-egg", 95], ["house:kitchen", 105], ["stall-apple", 115], ["sell-egg", 125], ["helper1", 170], ["stock-apple", 185], ["isle:style1", 200], ["sign2", 220], ["isle:fountain-set", 230], ["sell-apple", 250], ["bakery", 270], ["stall-milk", 580], ["house:east-wing", 860], ["cashier", 920], ["stock-milk", 1150], ["isle:style2", 1250], ["sell-milk", 1450], ["sign3", 1550], ["isle:pond-set", 1650], ["stall-cake", 1750], ["helper2", 1900], ["house:west-wing", 2050], ["stock-cake", 2200], ["sell-cake", 2350], ["isle:lighthouse-set", 2950]]
+  c: [["tree2", 20], ["sign1", 40], ["stall-egg", 45], ["isle:garden", 45], ["tree3", 50], ["isle:square", 90], ["stock-egg", 95], ["house:kitchen", 105], ["stall-apple", 115], ["sell-egg", 125], ["helper1", 170], ["stock-apple", 185], ["isle:style1", 200], ["sign2", 220], ["isle:fountain-set", 230], ["sell-apple", 250], ["bakery", 270], ["stall-wool", 380], ["stall-milk", 580], ["house:east-wing", 860], ["cashier", 920], ["stock-milk", 1150], ["stock-wool", 1300], ["isle:style2", 1250], ["sell-milk", 1450], ["sign3", 1550], ["sell-wool", 1600], ["isle:pond-set", 1650], ["stall-cake", 1750], ["helper2", 1900], ["house:west-wing", 2050], ["stock-cake", 2200], ["sell-cake", 2350], ["isle:lighthouse-set", 2950]]
 };
 
 const Q_ISLE = { 'isle:garden': 'sg', 'isle:square': 's1', 'isle:fountain-set': 's2', 'isle:pond-set': 's3', 'isle:lighthouse-set': 's4', 'isle:style1': 'p1', 'isle:style2': 'p2' };
