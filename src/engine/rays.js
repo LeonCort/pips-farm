@@ -420,11 +420,11 @@ function fxRender(dt) {
   if (!post) { renderer.setRenderTarget(null); renderer.render(sc, cam); return; }
   fxTargets(); renderer.setRenderTarget(fxMain); renderer.render(sc, cam);
   const k = FX.k, rays = fxUse('rays') && k.sun > 0.02, bloom = fxUse('bloom'), qw = fxA.width, qh = fxA.height;
-  if (rays || bloom) { const b = fxBright.uniforms; b.tS.value = fxMain.texture; b.uPx.value.set(1 / fxSize.x, 1 / fxSize.y); b.uThr.value = 0.72 + 0.1 * k.night; fxPass(fxBright, fxA); }
+  if (rays || bloom) { const b = fxBright.uniforms; b.tS.value = fxMain.texture; b.uPx.value.set(1 / fxSize.x, 1 / fxSize.y); b.uThr.value = 0.84 + 0.1 * k.night; /* the bright sky no longer blooms into a white wash */ fxPass(fxBright, fxA); }
   if (rays) { fxSource(); fxRays.uniforms.tM.value = fxA.texture; fxPass(fxRays, fxR); const u = fxBlur.uniforms; u.tS.value = fxR.texture; u.uDir.value.set(1.5 / qw, 0); fxPass(fxBlur, fxR2); u.tS.value = fxR2.texture; u.uDir.value.set(0, 1.5 / qh); fxPass(fxBlur, fxR); }
   if (bloom) { const u = fxBlur.uniforms; for (let i = 0; i < 2; i++) { const s = 1 + i * 1.6; u.tS.value = fxA.texture; u.uDir.value.set(s / qw, 0); fxPass(fxBlur, fxB); u.tS.value = fxB.texture; u.uDir.value.set(0, s / qh); fxPass(fxBlur, fxA); } }
   const c = fxComp.uniforms; c.tS.value = fxMain.texture; c.tB.value = fxA.texture; c.tR.value = fxR.texture;
-  c.uBloom.value = bloom ? 0.8 + 0.1 * k.night + 0.25 * k.gold : 0; c.uRays.value = rays ? k.sun * (2.2 + 0.8 * k.gold) : 0;
+  c.uBloom.value = bloom ? (0.8 + 0.1 * k.night + 0.25 * k.gold) * 0.6 : 0; c.uRays.value = rays ? k.sun * (2.2 + 0.8 * k.gold) * 0.55 : 0;
   c.uRayCol.value.copy(sun.color).lerp(_fxc.set('#fff0d0'), 0.35);
   c.uGrade.value = fxUse('grade') ? 1 : 0; c.uGold.value = fxUse('grade') ? k.gold * 0.55 : 0; c.uAsp.value = fxSize.x / fxSize.y;
   if (!rays) fxSource();

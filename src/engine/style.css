@@ -129,7 +129,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 #menu #fpsBtn::before, #menu #updBtn::before, #menu #restartBtn::before { content: ''; position: absolute; left: 0; top: -12px; width: min(270px, calc(86vw - 40px)); border-top: 2px dashed var(--line); }
 #menu #updBtn[hidden] + #logBtn { margin-top: 14px; }
 #menu .sheetTop > #soundBtn::after { content: 'Ljud'; } #menu .sheetTop > #wardBtn::after { content: 'Kläder och hår'; } #menu .sheetTop > #ctrlBtn::after { content: 'Styrning'; }
-#menu .sheetTop > #fpsBtn::after { content: 'Bilder per sekund'; } #menu .sheetTop > #gfxBtn::after { content: 'Grafik: full / lätt'; } #menu .sheetTop > #drawBtn::after { content: 'Hur långt man ser'; } #menu .sheetTop > #fxQBtn::after { content: 'Ljuseffekter'; }
+#menu .sheetTop > #fpsBtn::after { content: 'Bilder per sekund'; } #menu .sheetTop > #gfxBtn::after { content: 'Grafik: lätt / full / ultra'; } #menu .sheetTop > #drawBtn::after { content: 'Hur långt man ser'; } #menu .sheetTop > #fxQBtn::after { content: 'Ljuseffekter'; }
 #menu .sheetTop > #updBtn::after { content: 'Sök uppdatering'; } #menu .sheetTop > #logBtn::after { content: 'Kopiera loggen'; } #menu .sheetTop > #logBtn.ok::after { content: 'Kopierad!'; color: #2f7d4f; }
 #menu .sheetTop > #homeBtn::after { content: 'Välj spel'; } #menu .sheetTop > #devBtn::after { content: 'Utvecklarläge'; } #menu .sheetTop > #restartBtn::after { content: 'Börja om (håll inne)'; color: #b8401f; }
 #menu #menuClose::after { content: none; }

@@ -7,7 +7,7 @@
    pets) curve automatically, and existing onBeforeCompile hooks (rim light, sway, ground texture) are untouched.
    Hand-written ShaderMaterials go through applyWorldCurve(material). */
 const CURVE_DEF = { strength: 0.0135, side: 0, pitch: 37, dist: 12, ahead: 1, shopPitch: 60, shopDist: 14, shopAhead: 0.8, awnFade: 0.55, on: true }; /* Leon's picks, 2026-11-21 */
-const CURVE = Object.assign({}, CURVE_DEF, { fogNear: 50, fogFar: 88, detail: 49, shopW: 0, u: { origin: { value: new T.Vector3() }, strength: { value: 0 }, side: { value: CURVE_DEF.side }, horD: { value: 1e6 } } });
+const CURVE = Object.assign({}, CURVE_DEF, { fogNear: 50, fogFar: 88, detail: 49, wxFog: 1, ultra: false, shopW: 0, u: { origin: { value: new T.Vector3() }, strength: { value: 0 }, side: { value: CURVE_DEF.side }, horD: { value: 1e6 } } });
 /* dev mode (settings menu): shows the tuning panel and the fps counter; tweaks are saved on this device only and apply only while dev mode is on */
 let devOn = false; try { devOn = localStorage.getItem('pips-dev') === '1'; } catch (e) {}
 function curveLoadDev() { Object.assign(CURVE, CURVE_DEF); if (!devOn) return; try { const s = JSON.parse(localStorage.getItem('pips-curve2') || 'null'); if (s) Object.keys(CURVE_DEF).forEach((k) => { if (typeof s[k] === typeof CURVE_DEF[k]) CURVE[k] = s[k]; }); } catch (e) {} }
