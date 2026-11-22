@@ -29,6 +29,8 @@ const canBarn = (an) => BARN_KINDS.includes(an.a) && !an.baby;
 function freeStall() { for (let i = 0; i < openStalls(); i++) if (!STALLS[i].an && !STALLS[i].held) return STALLS[i]; return null; }
 /* the stalls in the order they stand side by side: down the left wall, along the back, up the right wall */
 const STALL_ROW = [10, 8, 6, 4, 2, 0, 1, 3, 5, 7, 9, 11];
+/* which side of the island a kind's pen is on: -1 left (the farmyard), 1 right (the wool corner and the market side) */
+const penSideOf = (a) => ((PEN[a] && PEN[a].x) || 0) > 0 ? 1 : -1;
 /* a free stall, next to one of the same kind when there is one, so a kind sleeps in a row */
 function stallNear(kind) {
   const open = STALL_ROW.filter((i) => i < openStalls()).map((i) => STALLS[i]), who = (st) => (st.an || st.held || {}).a;
@@ -36,14 +38,21 @@ function stallNear(kind) {
   return free.find((st, k) => { const j = open.indexOf(st); return who(open[j - 1] || {}) === kind || who(open[j + 1] || {}) === kind; }) || free[0] || null;
 }
 /* put everyone sleeping (and everyone walking in) in rows by kind: pigs together, sheep together, and so on,
-   so in the morning one walk along a row brings out a whole kind for one pen. Done while the screen is faded. */
+   so in the morning one walk along a row brings out a whole kind for one pen. The barn mirrors the island:
+   animals whose pen is on the left of the island sleep at the left end of the row, the ones from the right side
+   at the right end, so one morning trip picks up animals that all walk the same way. Done while nobody is looking. */
 function regroup() {
   const pool = STALL_ROW.filter((i) => i < openStalls()).map((i) => STALLS[i]).filter((st) => !(st.an && st.an.follow));
-  const list = animals.filter((an) => (an.inBarn && an.stall && !an.follow) || an.walkIn);
-  list.sort((a, b) => BARN_KINDS.indexOf(a.a) - BARN_KINDS.indexOf(b.a) || animals.indexOf(a) - animals.indexOf(b));
+  const list = animals.filter((an) => (an.inBarn && an.stall && !an.follow) || an.walkIn || an.goIn);
+  const px = (an) => (PEN[an.a] && PEN[an.a].x) || 0, by = (a, b) => BARN_KINDS.indexOf(a.a) - BARN_KINDS.indexOf(b.a) || animals.indexOf(a) - animals.indexOf(b);
+  const left = list.filter((an) => penSideOf(an.a) < 0).sort((a, b) => px(a) - px(b) || by(a, b));
+  const right = list.filter((an) => penSideOf(an.a) > 0).sort((a, b) => px(b) - px(a) || by(a, b));
   pool.forEach((st) => { st.an = null; st.held = null; });
-  list.forEach((an, k) => { const st = pool[k]; if (!st) return; an.stall = null;
-    if (an.walkIn) { st.held = an; an.walkIn = st; } else putInStall(an, st, true); });
+  const place = (an, st) => { if (!st) return; an.stall = null;
+    if (an.walkIn) { st.held = an; an.walkIn = st; } else if (an.goIn) { st.held = an; an.goIn = st; } else putInStall(an, st, true); };
+  /* the left side fills from the left end, the right side from the right end; they meet in the middle */
+  left.forEach((an, k) => place(an, pool[k]));
+  right.forEach((an, k) => { const j = pool.length - 1 - k; if (j >= left.length) place(an, pool[j]); });
 }
 function roomLeft() { let n = 0; for (let i = 0; i < openStalls(); i++) if (!STALLS[i].an && !STALLS[i].held) n++; return n; }
 
@@ -110,6 +119,11 @@ const BLIGHTS = [[-2.0, 1.2, -2.3], [2.0, 1.2, -2.3], [-1.15, 1.75, 4.62], [1.15
 
 /* ---------- outside: a doormat ring at the barn doors and a picture over the barn when there is something to do ---------- */
 const barnRing = mkRing(BDOOR.x, BDOOR.z);
+/* the open doorway: a dark opening over the painted doors, shown while animals walk in on their own */
+const barnDoorOpen = new T.Group(); barnDoorOpen.visible = false; sc.add(barnDoorOpen);
+{ const m = new T.Mesh(new T.BoxGeometry(1.1, 1.16, 0.04), new T.MeshBasicMaterial({ color: '#2a1a12' })); m.position.set(BARN.x, 0.6, BARN.z + 1.29); barnDoorOpen.add(m);
+  const warm = new T.Mesh(new T.PlaneGeometry(0.9, 0.5), new T.MeshBasicMaterial({ color: '#6b4426', transparent: true, opacity: 0.6 })); warm.position.set(BARN.x, 0.3, BARN.z + 1.315); barnDoorOpen.add(warm);
+  [-1, 1].forEach((s) => { const d = new T.Mesh(new T.BoxGeometry(0.56, 1.1, 0.05), new T.MeshStandardMaterial({ color: '#a8442f', roughness: 0.8 })); d.position.set(BARN.x + s * 0.83, 0.6, BARN.z + 1.52); d.rotation.y = s * 1.1; barnDoorOpen.add(d); }); }
 const barnSign = new T.Sprite(new T.SpriteMaterial({ map: bubble('moon'), depthTest: false })); barnSign.renderOrder = 5; barnSign.scale.set(1.0, 1.0, 1); barnSign.visible = false; sc.add(barnSign);
 
 /* ---------- the pad inside: pay hearts for a goat or more stalls ---------- */
@@ -176,6 +190,9 @@ function goBarn(to) {
     target.copy(pip.position); camFocus.copy(pip.position); lastP.copy(pip.position); barnRing.w = 0; doorRing.w = 0;
     /* everyone who followed Pip in heads for their stall */
     if (to) followers.slice().forEach((an) => { if (an.follow.mode === 'in') { const st = an.follow.st || freeStall(); unfollow(an); if (st) { st.held = an; an.walkIn = st; } } });
+    /* and the ones already walking in on their own come in with Pip, just inside the door */
+    if (to) animals.filter((an) => an.goIn).forEach((an, k) => { const st = an.goIn; an.goIn = null; an.goInP = 0; st.held = an; an.walkIn = st;
+      an.g.position.set(BI.x + (k % 2 ? 0.7 : -0.7), 0, BI.z + 4.1 - Math.floor(k / 2) * 0.9); an.g.rotation.y = Math.PI; });
     if (to) regroup();
     setTimeout(() => { fadeEl.style.opacity = '0'; doorT = 0; }, 120);
   }, 420);
@@ -187,6 +204,14 @@ function barnAnimal(an, dt) {
     const st = an.walkIn, moving = !walkTo(an.g, st.x, st.z + (st.side ? 0 : 0.15), dt, 2.6);
     an.body.position.y = reduced ? 0 : Math.abs(Math.sin(time * 9)) * 0.05; an.sp.visible = false;
     if (!moving) { an.walkIn = null; putInStall(an, st); reward(an, true); tuckCheck(); }
+    return true;
+  }
+  if (an.goIn) { /* Pip stopped by the barn: walk up to the doors and in by itself */
+    const st = an.goIn;
+    if (!an.goInP && Math.hypot(BARN.x - an.g.position.x, BARN.z + 1.7 - an.g.position.z) < 0.3) an.goInP = 1;
+    walkTo(an.g, BARN.x, an.goInP ? BARN.z + 0.2 : BARN.z + 1.7, dt, 2.4);
+    an.body.position.y = Math.sin(an.hop * Math.PI) * 0.3 + (reduced ? 0 : Math.abs(Math.sin(time * 9 + an.tx)) * 0.05); an.sp.visible = false; zzz(an, false, dt);
+    if (an.goInP && an.g.position.z < BARN.z + 0.6) { an.goIn = null; an.goInP = 0; reward(an, true); putInStall(an, st); tuckCheck(); if (!inBarn) regroup(); }
     return true;
   }
   if (an.follow) {
@@ -236,7 +261,7 @@ function barnAnimal(an, dt) {
 let tuckedTonight = 0;
 function tuckCheck() {
   tuckedTonight++;
-  const outside = animals.filter((an) => canBarn(an) && !an.inBarn && !an.walkIn).length;
+  const outside = animals.filter((an) => canBarn(an) && !an.inBarn && !an.walkIn && !an.goIn).length;
   if (!outside || !roomLeft()) { toastIcon('moon', 'Godnatt!'); Snd.play('success', { gain: 0.5, f: 'C6' }, 0.3); }
 }
 function syncStalls(pop) {
@@ -255,7 +280,10 @@ function barnInit() {
 function sameTrip(an) {
   const kinds = new Set(followers.filter((o) => o.follow.mode === 'out').map((o) => o.a));
   if (!kinds.size || kinds.has(an.a)) return true;
-  return !animals.some((o) => kinds.has(o.a) && o.inBarn && o.stall && !o.follow);
+  if (animals.some((o) => kinds.has(o.a) && o.inBarn && o.stall && !o.follow)) return false;
+  /* then a kind from the same side of the island; the other side waits for its own trip */
+  const sides = new Set([...kinds].map(penSideOf));
+  return sides.has(penSideOf(an.a)) || !animals.some((o) => sides.has(penSideOf(o.a)) && o.inBarn && o.stall && !o.follow);
 }
 /* ---------- every frame ---------- */
 function barnStep(dt) {
@@ -268,13 +296,20 @@ function barnStep(dt) {
     const ok = !inHouse && freeHands && stillOn(barnRing, dt);
     barnRing.w = ok ? Math.min(1, barnRing.w + dt / 0.5) : Math.max(0, barnRing.w - dt * 3); barnRing.f.scale.setScalar(Math.max(0.001, barnRing.w));
     if (barnRing.w >= 1) goBarn(true);
+    /* Pip only has to come to the barn doors: the animals behind leave the line and walk in by themselves
+       (step onto the doormat as well to go in with them and watch them find their stalls) */
+    if (!inHouse && doorT <= 0 && Math.hypot(pip.position.x - BDOOR.x, pip.position.z - BDOOR.z) < 2.6)
+      followers.slice().forEach((an) => { if (an.follow.mode !== 'in') return; const st = an.follow.st || freeStall(); if (!st) return;
+        unfollow(an); st.held = an; an.goIn = st; an.hop = 1; Snd.animal(an.a === 'goat' ? 'sheep' : an.a, { gain: 0.4, gap: 500, rate: an.a === 'goat' ? 1.25 : 1 }); });
+    /* the barn doors stand open while animals walk in */
+    const going = animals.some((an) => an.goIn); if (going !== barnDoorOpen.visible) { barnDoorOpen.visible = going; Snd.play('tock', { gain: 0.25, f: going ? 260 : 200 }); }
     /* evening: pick up waiting animals as Pip walks past */
     if (!inHouse && freeHands && bedtime() && followers.length < FOLLOW_MAX)
       for (const an of animals) { if (followers.length >= FOLLOW_MAX || roomLeft() <= followers.filter((o) => o.follow.mode === 'in' && !o.follow.st).length) break;
-        if (!canBarn(an) || an.inBarn || an.follow || an.walkIn || an.ridden) continue;
+        if (!canBarn(an) || an.inBarn || an.follow || an.walkIn || an.goIn || an.ridden) continue;
         if (Math.hypot(an.g.position.x - pip.position.x, an.g.position.z - pip.position.z) < 2.0) join(an, 'in'); }
     /* the picture over the barn: a moon when animals are waiting to come in, a sun when animals inside want out */
-    const waitIn = bedtime() && roomLeft() > 0 && animals.some((an) => canBarn(an) && !an.inBarn);
+    const waitIn = bedtime() && roomLeft() > 0 && animals.some((an) => canBarn(an) && !an.inBarn && !an.goIn);
     const waitOut = morning() && animals.some((an) => an.inBarn && !an.follow);
     const icon = followers.some((o) => o.follow.mode === 'in') || waitIn ? 'moon' : waitOut ? 'sun' : null;
     barnSign.visible = !!icon && !inHouse; if (icon && barnSign.material.map !== bubble(icon)) barnSign.material.map = bubble(icon);
@@ -317,13 +352,13 @@ function barnGoal() {
   }
   const inF = followers.filter((o) => o.follow.mode === 'in'), outF = followers.filter((o) => o.follow.mode === 'out');
   if (outF.length) { const b = penBox(outF[0].a); return [b.x, b.z]; }
-  if (inF.length >= FOLLOW_MAX || (inF.length && (roomLeft() <= inF.length || !animals.some((an) => canBarn(an) && !an.inBarn && !an.follow)))) return [BDOOR.x, BDOOR.z];
+  if (inF.length >= FOLLOW_MAX || (inF.length && (roomLeft() <= inF.length || !animals.some((an) => canBarn(an) && !an.inBarn && !an.follow && !an.goIn)))) return [BDOOR.x, BDOOR.z];
   if (bedtime() && roomLeft() > inF.length) {
-    let best = null, bd = 1e9; animals.forEach((an) => { if (!canBarn(an) || an.inBarn || an.follow || an.walkIn) return; const d = Math.hypot(an.g.position.x - pip.position.x, an.g.position.z - pip.position.z); if (d < bd) { bd = d; best = an; } });
+    let best = null, bd = 1e9; animals.forEach((an) => { if (!canBarn(an) || an.inBarn || an.follow || an.walkIn || an.goIn) return; const d = Math.hypot(an.g.position.x - pip.position.x, an.g.position.z - pip.position.z); if (d < bd) { bd = d; best = an; } });
     if (best) return feedPos(best.a);
     if (inF.length) return [BDOOR.x, BDOOR.z];
   }
   if (morning() && animals.some((an) => an.inBarn)) return [BDOOR.x, BDOOR.z];
   return null;
 }
-const barnTest = () => ({ barn: () => ({ inBarn, stalls: openStalls(), in: animals.filter((an) => an.inBarn).map(keyOf), fol: followers.map((an) => an.a + ':' + an.follow.mode + '@' + an.g.position.x.toFixed(1) + ',' + an.g.position.z.toFixed(1)), f: dayFrac().toFixed(2) }), goBarn, barnGoal: () => barnGoal() });
+const barnTest = () => ({ barn: () => ({ inBarn, stalls: openStalls(), in: animals.filter((an) => an.inBarn).map(keyOf), going: animals.filter((an) => an.goIn).map(keyOf), stallOf: STALLS.filter((st) => st.an).map((st) => (st.x - BI.x).toFixed(1) + ',' + (st.z - BI.z).toFixed(1) + ':' + st.an.a), fol: followers.map((an) => an.a + ':' + an.follow.mode + '@' + an.g.position.x.toFixed(1) + ',' + an.g.position.z.toFixed(1)), f: dayFrac().toFixed(2) }), goBarn, barnGoal: () => barnGoal() });
