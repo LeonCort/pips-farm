@@ -309,7 +309,7 @@ function miniHouse(size, next) {
   g.scale.setScalar(0.27); g.position.x = -0.05; const w = new T.Group(); w.add(g); return w;
 }
 function drawPad(s, o) {
-  const S = stS(), paid = o && o.cost ? (S.paid[o.id] || 0) : 0, can = o && o.cost && shop().coins >= o.cost - paid, key = (o ? o.id + ':' + (o.max ? 'max' : o.cost - paid) : '-') + ':' + can;
+  const S = stS(), paid = o && o.cost ? (S.paid[o.id] || 0) : 0, can = o && o.cost && purse(o) >= o.cost - paid, key = (o ? o.id + ':' + (o.max ? 'max' : o.cost - paid) : '-') + ':' + can;
   if (key === s.shown) return; s.shown = key;
   const x = s.c.getContext('2d'); x.clearRect(0, 0, 192, 192); s.pad.visible = !!o;
   if (!o) return;
@@ -317,7 +317,7 @@ function drawPad(s, o) {
   x.fillStyle = o.max ? '#fff2c2' : can ? 'rgba(236,250,226,0.96)' : 'rgba(255,246,228,0.95)'; x.beginPath(); x.arc(96, 96, 90, 0, 7); x.fill();
   if (o.max) { x.fillStyle = PAL.ochre; x.font = '700 90px Fredoka, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('★', 96, 100); }
   else { x.lineWidth = 10; x.strokeStyle = can ? '#3f7d62' : PAL.ochre; x.beginPath(); x.arc(96, 96, 84, -Math.PI / 2, -Math.PI / 2 + 6.2832 * paid / o.cost); x.stroke();
-    drawIcon(x, 'coin', 50, 98, 0.72); x.fillStyle = PAL.ink; x.font = '700 52px Fredoka, sans-serif'; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillText(fmt(o.cost - paid), 74, 102); }
+    drawIcon(x, o.gear ? 'heart' : 'coin', 50, 98, 0.72); x.fillStyle = PAL.ink; x.font = '700 52px Fredoka, sans-serif'; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillText(fmt(o.cost - paid), 74, 102); }
   s.tex.needsUpdate = true;
 }
 function drawDots(s) {
@@ -333,7 +333,7 @@ function syncStation(s) {
 }
 /* the cheapest thing that can be bought right now, and the cheapest thing at all (for the wish bubble) */
 function storeOffers() { const cs = STATIONS_S.find((q) => q.kind === 'cat'); return STATIONS_S.filter((s) => s.kind !== 'cat').map((s) => ({ s, o: offerOf(s) })).filter((q) => q.o && q.o.cost).concat(catOffers().map((o) => ({ s: cs, o }))); }
-function cheapest(onlyAfford) { let best = null; storeOffers().forEach((q) => { const left = q.o.cost - (stS().paid[q.o.id] || 0); if (onlyAfford && shop().coins < left) return; if (!best || left < best.left) best = { s: q.s, o: q.o, left }; }); return best; }
+function cheapest(onlyAfford) { let best = null; storeOffers().forEach((q) => { const left = q.o.cost - (stS().paid[q.o.id] || 0); if (onlyAfford && purse(q.o) < left) return; if (!best || left < best.left) best = { s: q.s, o: q.o, left }; }); return best; }
 
 /* ---------- buying ---------- */
 let spinT = 0;
@@ -350,12 +350,12 @@ function payStation(s, dt) {
   const o = s.item; if (!o || !o.cost || o.cat) return;
   const S = stS(), on = Math.hypot(pip.position.x - s.padX, pip.position.z - s.padZ) < 0.62, still = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) < 0.15;
   s.pad.scale.setScalar(on ? 1.08 : 1 + (reduced ? 0 : Math.sin(time * 3 + s.spin) * 0.03));
-  if (on && still && shop().coins > 0) {
-    const left = o.cost - (S.paid[o.id] || 0), amt = Math.min(shop().coins, left, Math.max(1, Math.ceil(o.cost * dt / 1.4)));
-    shop().coins -= amt; S.paid[o.id] = (S.paid[o.id] || 0) + amt; s.tick -= dt; if (s.tick <= 0) { s.tick = 0.08; Snd.play('coin', { gain: 0.18 }, 0, 70); }
+  if (on && still && purse(o) > 0) {
+    const left = o.cost - (S.paid[o.id] || 0), amt = Math.min(purse(o), left, Math.max(1, Math.ceil(o.cost * dt / 1.4)));
+    spend(o, amt); S.paid[o.id] = (S.paid[o.id] || 0) + amt; s.tick -= dt; if (s.tick <= 0) { s.tick = 0.08; Snd.play('coin', { gain: 0.18 }, 0, 70); }
     if (S.paid[o.id] >= o.cost) storeBuy(s, o);
   }
-  if (on && still && shop().coins <= 0 && !s.poor && o.cost) { s.poor = true; Snd.play('tock', { gain: 0.3, f: 300 }); flash(coinPill, 'no'); }
+  if (on && still && purse(o) <= 0 && !s.poor && o.cost) { s.poor = true; Snd.play('tock', { gain: 0.3, f: 300 }); flash(coinPill, 'no'); }
   if (!on) s.poor = false;
 }
 
@@ -540,7 +540,7 @@ function wishStep(dt) {
   wishEl.hidden = hide; if (hide) return;
   const r = coinPill.getBoundingClientRect(); wishEl.style.left = Math.round(r.left + r.width / 2 - 35) + 'px'; wishEl.style.top = Math.round(r.bottom + 10) + 'px';
   if (wishK !== c.o.id + (c.o.lv || '')) { wishK = c.o.id + (c.o.lv || ''); wishEl.querySelector('img').src = thumbOf(wishK, c.o.make); }
-  const f = clamp(shop().coins / Math.max(1, c.left), 0, 1), L = 2 * Math.PI * 31; wishEl.querySelector('.arc').setAttribute('stroke-dasharray', (f * L).toFixed(1) + ' 999'); wishEl.querySelector('.arc').setAttribute('stroke', f >= 1 ? '#3f7d62' : '#e0a646');
+  const f = clamp(purse(c.o) / Math.max(1, c.left), 0, 1), L = 2 * Math.PI * 31; wishEl.querySelector('.arc').setAttribute('stroke-dasharray', (f * L).toFixed(1) + ' 999'); wishEl.querySelector('.arc').setAttribute('stroke', f >= 1 ? '#3f7d62' : '#e0a646');
   wishEl.classList.toggle('ready', f >= 1);
 }
 
@@ -586,7 +586,7 @@ function storeStep(dt) {
   if (!inStore) {
     storeSign.visible = !inHouse && !!affordable; storeSign.position.y = 3.4 + (reduced ? 0 : Math.abs(Math.sin(time * 3)) * 0.18);
     giftSign.visible = !inHouse && (pendOut().length > 0 || pendIn().length > 0); giftSign.position.set(HOUSE.x + 0.7, 3.4 + (reduced ? 0 : Math.abs(Math.sin(time * 3.2)) * 0.18), HOUSE.z + 0.4);
-    const ok = !inHouse && freeHands && stillOn(storeRing, dt);
+    const ok = !inHouse && freeHands && !(tutOn() && !tutAt('buy')) && stillOn(storeRing, dt);
     storeRing.w = ok ? Math.min(1, storeRing.w + dt / 0.5) : Math.max(0, storeRing.w - dt * 3); storeRing.f.scale.setScalar(Math.max(0.001, storeRing.w));
     if (storeRing.w >= 1) goStore(true);
     SGLOW.forEach((g) => { g.s.visible = false; });

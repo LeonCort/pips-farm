@@ -68,7 +68,7 @@ function flFloorTex(a, w, d) {
 /* rough-hewn post-and-rail fence, merged into one mesh; plus straw, a hay heap, a water trough and (pigs) shiny mud */
 function flPen(a, fg, b) {
   /* the floor first: sky.js tints fence.children[0] for snow */
-  const pw = b.w + 0.5, pd = b.d + 0.5, geo = new T.PlaneGeometry(pw, pd); geo.rotateX(-Math.PI / 2);
+  const pw = b.w + 0.5, pd = b.d + 0.5, geo = new T.PlaneGeometry(pw, pd, Math.ceil(pw), Math.ceil(pd)); geo.rotateX(-Math.PI / 2);
   const floor = new T.Mesh(geo, new T.MeshStandardMaterial({ color: '#ffffff', map: flFloorTex(a, pw, pd), roughness: 1, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }));
   floor.position.y = 0.05; floor.receiveShadow = true; floor.renderOrder = 1; fg.add(floor);
   const L = [], P = at(0, 0, 0, L), CL = [], C = at(0, 0, 0, CL), seed = a.length * 31 + Math.round(b.w * 10);

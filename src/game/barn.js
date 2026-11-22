@@ -100,7 +100,7 @@ const bpadC = document.createElement('canvas'); bpadC.width = bpadC.height = 256
 const bpad = new T.Mesh(new T.CircleGeometry(0.72, 32), new T.MeshBasicMaterial({ map: bpadT, transparent: true })); bpad.rotation.x = -Math.PI / 2; bpad.position.set(BPAD_AT.x, 0.09, BPAD_AT.z); sc.add(bpad);
 const bpadEdge = new T.Mesh(new T.RingGeometry(0.72, 0.82, 32), new T.MeshBasicMaterial({ color: PAL.ochre })); bpadEdge.rotation.x = -Math.PI / 2; bpadEdge.position.set(BPAD_AT.x, 0.085, BPAD_AT.z); sc.add(bpadEdge);
 let bpadShown = '', bpadTick = 0, bpadPoor = false, bpadGhost = null;
-const nextBPad = () => BPADS.find((p) => !barnS().owned[p.id]) || null;
+const nextBPad = () => tutOn() ? null : qPad('h', BPADS);
 function drawBPad(p) {
   const left = p.cost - (barnS().paid[p.id] || 0), key = p.id + ':' + left; if (key === bpadShown) return; bpadShown = key;
   const x = bpadC.getContext('2d'); x.clearRect(0, 0, 256, 256);

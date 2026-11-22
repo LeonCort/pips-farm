@@ -86,7 +86,7 @@ const dogBlob = new T.Mesh(blobGeo, blobMat); dogBlob.scale.set(0.5, 1, 0.75); d
 
 /* the fountain: rippling water with foam rings round the pillar, and streams falling from the top basin */
 const FU = { t: { value: 0 }, light: { value: new T.Color(1, 1, 1) }, ice: { value: 0 } };
-const waterVS = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
+const waterVS = CURVE_GLSL + 'varying vec2 vUv; void main(){ vUv = uv; vec4 cw = modelMatrix * vec4(position, 1.0); cw.y -= worldCurveDrop(cw.xyz); gl_Position = projectionMatrix * viewMatrix * cw; }';
 function fPoolMat(inner, foamAt) {
   return new T.ShaderMaterial({ uniforms: { t: FU.t, light: FU.light, ice: FU.ice }, vertexShader: waterVS, fragmentShader: `
     varying vec2 vUv; uniform float t; uniform vec3 light; uniform float ice;
@@ -148,7 +148,7 @@ function polishStep(dt) {
   RIM.value.copy(sun.color).multiplyScalar(0.3 * sun.intensity * (1 - 0.6 * nightAmt));
   /* outside, the four lights sit in the square's lamps; inside the house they become the desk candles, the stove, the fire and the hall */
   if (inHouse) { LAMP_LIGHTS.forEach((l, i) => { const p = INT.lights[i]; l.position.set(HO.x + p[0], p[1], HO.z + p[2]); l.intensity = 2.2 * (0.9 + 0.1 * Math.sin(time * 9 + i * 2)); l.distance = 5.5; }); sun.intensity *= 0.6; if (hemi) hemi.intensity *= 0.75; }
-  else { const k = clamp(nightAmt * 2.6, 0, 1); LAMP_LIGHTS.forEach((l, i) => { l.position.set(LAMP_AT[i][0], 1.6, LAMP_AT[i][1]); l.intensity = 2.4 * k; l.distance = 5; }); }
+  else { const k = clamp(nightAmt * 2.6, 0, 1); LAMP_LIGHTS.forEach((l, i) => { l.position.set(LAMP_AT[i][0], 1.6 - curveDrop(LAMP_AT[i][0], LAMP_AT[i][1]), LAMP_AT[i][1]); l.intensity = 2.4 * k; l.distance = 5; }); }
   pipBlob.position.set(pip.position.x, pip.position.y + 0.05, pip.position.z); pipBlob.visible = !inHouse;
   dogBlob.position.set(dog.g.position.x, dog.g.position.y + 0.05, dog.g.position.z); dogBlob.rotation.y = dog.g.rotation.y; dogBlob.visible = dog.g.visible && !inHouse;
 }

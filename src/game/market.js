@@ -32,7 +32,7 @@ function sPadPos(p) {
 }
 const shop = () => state.shop;
 const sOwn = (id) => !!shop().owned[id];
-const nextSPad = () => { for (const p of SPADS) if (!sOwn(p.id)) return p; return null; };
+const nextSPad = () => qPad('c', SPADS);
 const mFarm = () => 1 + 0.25 * state.lv.farm;
 
 /* ---------- coins: their own counter next to the hearts ---------- */
@@ -43,7 +43,7 @@ document.body.appendChild(coinPill);
 function placeCoinPill() { const h = document.querySelector('.coins:not(.gold)'); if (!h) return; const r = h.getBoundingClientRect(); /* on a narrow screen the coins go under the hearts, so they do not cover the buttons */ if (innerWidth < 600) { coinPill.style.left = Math.round(r.left) + 'px'; coinPill.style.top = Math.round(r.bottom + 8) + 'px'; } else { coinPill.style.left = Math.round(r.right + 10) + 'px'; coinPill.style.top = ''; } }
 function earnCoins(n) { shop().coins += n; shop().total += n; const el = $('coins2'); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
 function coinFly(wx, wy, wz, n) {
-  tmpV.set(wx, wy, wz).project(cam); const r = wrap.getBoundingClientRect(), hud = $('coinIcon2').getBoundingClientRect();
+  tmpV.set(wx, wy - curveDrop(wx, wz), wz).project(cam); const r = wrap.getBoundingClientRect(), hud = $('coinIcon2').getBoundingClientRect();
   const sx = (tmpV.x * 0.5 + 0.5) * r.width + r.left, sy = (-tmpV.y * 0.5 + 0.5) * r.height + r.top;
   for (let k = 0; k < Math.min(n, 6); k++) {
     const d = document.createElement('span'); d.className = 'flycoin gold'; d.style.left = sx + 'px'; d.style.top = sy + 'px'; document.body.appendChild(d);

@@ -232,7 +232,7 @@ function extrasInit() {
   dog.g.position.set(KENNEL.x - 0.6, 0, KENNEL.z + 0.9); petsInit();
   marketInit();
 }
-function extrasStep(dt) { dogStep(dt); fishStep(dt); weatherStep(dt); gardenStep(dt); animalAmbience(dt); townStep(dt); marketStep(dt); hoursStep(dt); cozyStep(dt); polishStep(dt); farmlookStep(dt); interiorStep(dt); barnStep(dt); petsStep(dt); storeStep(dt); }
+function extrasStep(dt) { dogStep(dt); fishStep(dt); weatherStep(dt); gardenStep(dt); animalAmbience(dt); townStep(dt); marketStep(dt); hoursStep(dt); cozyStep(dt); polishStep(dt); rainLate(); farmlookStep(dt); interiorStep(dt); barnStep(dt); petsStep(dt); storeStep(dt); }
 function extrasTest() {
   return {
     dog: () => [dog.g.position.x, dog.g.position.z, dog.chase, dog.asleep], 

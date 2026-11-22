@@ -97,7 +97,7 @@ function thumb(a, i) {
   m.g.rotation.y = 0.75; thumbScene.add(m.g);
   const h = m.h * (baby ? 0.7 : 1), dist = 0.55 + h * 1.15; thumbCam.position.set(dist * 0.15, h * 0.55 + dist * 0.35, dist); thumbCam.lookAt(0, h * 0.45, 0);
   const old = renderer.getClearColor(new T.Color()).getHex(), oldA = renderer.getClearAlpha();
-  renderer.setRenderTarget(thumbRT); renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.render(thumbScene, thumbCam);
+  renderer.setRenderTarget(thumbRT); renderer.setClearColor(0x000000, 0); renderer.clear(); { const cs0 = CURVE.u.strength.value; CURVE.u.strength.value = 0; renderer.render(thumbScene, thumbCam); CURVE.u.strength.value = cs0; }
   const px = new Uint8Array(160 * 160 * 4); renderer.readRenderTargetPixels(thumbRT, 0, 0, 160, 160, px); renderer.setRenderTarget(null); renderer.setClearColor(old, oldA);
   thumbScene.remove(m.g);
   const c = document.createElement('canvas'); c.width = c.height = 160; const x = c.getContext('2d'), img = x.createImageData(160, 160);

@@ -58,3 +58,4 @@ function skyFrame(dt) {
   SKYU.uNight.value = nightAmt; SKYU.uT.value = time;
   SKYU.uSun.value.copy(_sk.copy(sun.position).sub(sun.target.position)).normalize();
 }
+

@@ -4,11 +4,11 @@ let started = false;
 function start(data) {
   if (started) return; started = true;
   const hot = data && data.state && data.state.v === 1 ? data.state : null;
-  state = hot || load() || fresh();
+  state = hot || load() || tutFresh(fresh());
   addSource('grain'); addSource('water'); addSource('carrot'); addAnimal('hen'); addAnimal('hen'); /* two hens from the start; the first pig is bought (farms from before keep theirs) */
   if (!state.owned.pig1 && (state.owned.hen3 || state.owned.pig2 || (state.total || 0) > 30)) state.owned.pig1 = true;
   PADS.forEach((p) => { if (own(p.id)) build(p); });
-  barnReady = true; barnInit();
+  barnReady = true; barnInit(); tutInit();
   restoreBabies(); extrasInit();
   showPad(); $('hint').hidden = !!state.moved; if (avNew) openWardrobe(true);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });

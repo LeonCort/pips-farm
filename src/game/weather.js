@@ -148,7 +148,7 @@ function weatherStep(dt) {
   sc.fog.color.copy(sc.background);
   /* fog: autumn, early mornings, rain, snow and mist */
   const f = dayFrac(), fogT = clamp((season === 'autumn' ? 0.55 : 0) + (f < 0.12 ? 0.3 : 0) + rainAmt * 0.85 + (out ? mistAmt * 0.4 + snowAmt * 0.3 : 0), 0, 1);
-  fogAmt += (fogT - fogAmt) * Math.min(1, dt * 0.3); sc.fog.near = 28 - 20 * fogAmt; sc.fog.far = 70 - 42 * fogAmt;
+  fogAmt += (fogT - fogAmt) * Math.min(1, dt * 0.3); { const fN = curveLive() ? CURVE.fogNear : 28, fF = curveLive() ? Math.max(CURVE.fogFar, fN + 4) : 70; sc.fog.near = fN * (1 - 0.714 * fogAmt); sc.fog.far = fF * (1 - 0.6 * fogAmt); }
   rainStep(dt, out); /* streaks, puddles, splashes, drips, wet ground, Pip's rain gear (rain.js) */
   /* the falling snow */
   const sn = out ? Math.round(SNOW_N * snowAmt * (reduced ? 0.35 : 1)) : 0;
@@ -204,24 +204,4 @@ function weatherStep(dt) {
   /* far out past the horizon and a little to one side; it follows the view like a real rainbow does */
   if (rainbow.visible) { const kk = aspect < 1 ? 0.55 : 1; rainbow.position.set(camFocus.x + 5.6 * kk, 0, camFocus.z - 24.5); rainbow.scale.setScalar(0.9); rainbowMat.uniforms.uAmt.value = rainbowAmt; rainbowMat.uniforms.uGrow.value = RBOW.grow; }
   for (let i = ripples.length - 1; i >= 0; i--) { const r = ripples[i]; r.t += dt; r.m.scale.setScalar(1 + r.t * 5); r.m.material.opacity = 0.8 * (1 - r.t / 0.9); if (r.t > 0.9) { sc.remove(r.m); ripples.splice(i, 1); } }
-}
-function weatherTest() {
-  /* weather(kind, seconds, snap): force a spell; snap skips the fade (and lets the snow settle at once) */
-  const f = (k, len, snap) => {
-    if (WX_KINDS.indexOf(k) < 0) return false; wxSet(k, len == null ? 999 : len); delete state.wx.nx; k = state.wx.k;
-    if (snap) { rainAmt = k === 'heavy' ? 1 : k === 'rain' ? 0.55 : 0; snowAmt = k === 'snow' ? 1 : 0; mistAmt = k === 'mist' ? 1 : 0; windAmt = WX_WIND[k]; wxAng = state.wx.dir; if (k === 'snow') state.wx.cover = 1; }
-    return k;
-  };
-  return {
-    weather: f,
-    wxState: () => ({ k: state.wx.k, t: Math.round(state.wx.t), season, rain: +rainAmt.toFixed(2), wind: +windAmt.toFixed(2), gust: +WIND.g.toFixed(2), snow: +snowAmt.toFixed(2), mist: +mistAmt.toFixed(2), fog: +fogAmt.toFixed(2), cover: +state.wx.cover.toFixed(2), man: manAmt > 0.5, bow: +rainbowAmt.toFixed(2), drops: RS.n, wet: +wet.toFixed(2), gear: RGEAR.on, drips: RS.dripE ? RS.dripE.length : 0, flakes: snowN }),
-    rain: (on) => f(on ? 'rain' : 'clear', on ? 60 : 999),
-    wet: (v) => { wet = RS.gw = clamp(v, 0, 1); return wet; },
-    wx: () => ({ rain: raining() ? state.wx.t : 0, amt: rainAmt, wet, fog: fogAmt, bow: rainbowAmt, k: state.wx.k }),
-    rainEnd: () => { state.wx.t = 0.5; state.wx.nx = 'clear'; },
-    /* jump to a season (keeps the time of day), or to a time of day 0..1 */
-    season: (s) => { const i = SEASONS.indexOf(s); if (i < 0) return false; const fr = dayFrac(), d = Math.floor(state.clock / DAY); state.clock = (d - (d % 4) + i + 4) * DAY + fr * DAY; return s; },
-    icons: () => ['rain', 'wind', 'snow', 'mist', 'sun', 'heart'].map((t) => actIcon(t)),
-    dayAt: (fr) => { state.clock = Math.floor(state.clock / DAY) * DAY + fr * DAY; }
-  };
 }

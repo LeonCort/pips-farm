@@ -1,0 +1,1 @@
+function walkTo(o, x, z, dt, sp) { const dx = x - o.position.x, dz = z - o.position.z, d = Math.hypot(dx, dz); if (d < 0.04) return true; const st = Math.min(d, dt * sp); o.position.x += dx / d * st; o.position.z += dz / d * st; o.rotation.y = Math.atan2(dx, dz); return false; }

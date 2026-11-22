@@ -1,7 +1,7 @@
 /* ---------- rules ---------- */
 /* which test layout this build is: 'near' puts the hens and cows right behind their market stalls,
    'van' keeps the farmyard and lets a little flatbed truck drive the eggs and milk to the market */
-const VARIANT = '__VARIANT__';
+const VARIANT = 'van';
 /* what each animal likes to eat, and how many hearts a happy animal gives */
 const DIET = { hen: ['grain', 'water'], pig: ['grain', 'carrot', 'water'], cow: ['hay', 'water'], horse: ['hay', 'carrot', 'water'], bull: ['hay', 'water'], sheep: ['hay', 'water'], goat: ['grain', 'carrot', 'water'] };
 const HEARTS = { hen: 2, pig: 3, cow: 5, horse: 6, bull: 9, sheep: 4, goat: 4 };
@@ -102,5 +102,5 @@ const speed = () => (3.0 + 0.45 * state.lv.speed) * (!mount ? 1 : mount.kind ===
 const cap = () => 4 + 1 * state.lv.bag;
 const heartMult = () => 1 + 0.25 * state.lv.farm;
 const helpSpeed = () => 2.2 * (1 + 0.15 * state.lv.guests);
-const upCost = (u) => Math.round(u.base * Math.pow(u.g, state.lv[u.id]));
+const upCost = (u) => qGearCost(u) || Math.round(u.base * Math.pow(u.g, state.lv[u.id]));
 function nextPad() { for (const p of PADS) if (!own(p.id)) return p; return null; }
