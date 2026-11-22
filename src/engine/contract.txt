@@ -1,0 +1,84 @@
+# What engine files still take from the game, by name (all files share one scope).
+# A game built on the engine must declare every name below, or the engine part that uses it fails.
+# tools/refs.py --strict fails when an engine file starts using a game name that is not listed here,
+# so this list can only shrink. Each line: name, then what it is for. Groups follow the plan doc.
+#
+# Shrinking it: move a name into the engine when every game needs the same thing (as kit.js, icons.js,
+# fx.js and game.js did), or replace the use with a hook the game fills in.
+
+# the save and the rules
+fresh        a new save object
+speed        Pip's walking speed
+cap          how much Pip carries
+UPS          Pip's gear upgrades
+upCost       price of a gear upgrade
+ITEM_H       height of each item Pip carries
+DIET         (only checked to tell the farm from the old shop)
+HERE         which game this is ('farm')
+
+# where Pip is: the house and other buildings
+inHouse      Pip is inside the house
+inBarn       Pip is inside the barn
+inStore      Pip is inside the store
+inMarketTown Pip is on the market street (music)
+goInside     walk into the house
+trip         a boat trip is under way
+sleep        Pip is sleeping in bed
+BI           the barn interior's place
+SI           the store interior's place
+IN_B         the house interior's walls
+ISLE         the island's edges
+HO           where the house interior is built
+HX           the house interior's size
+HOUSE        where the house stands
+HDOOR        the house door
+houseG       the house model
+lampMatH     the house's lamp material
+INT          the house interior's lights
+
+# steps the loop calls
+houseStep    the house each frame
+boatStep     the boat each frame
+bedStep      the bed each frame
+storeStep    the store each frame
+buyCam       buy mode's camera
+routeStop    stop a walk picked on the map
+guideGoal    where the guide arrow points
+barnGoal     where the arrow points in the barn
+tutArrowIn   the tutorial's arrow
+
+# farm things the light, weather, shade and pets look at
+pens         animal pens
+PEN          pen sizes
+animals      the animals
+tractor      the tractor
+fountain     the town fountain
+POND         the fountain pond's place
+pond         the garden water hole
+MEADOW       the hay meadow
+SRC          food sheds
+DOCK         the dock
+KENNEL       the dog's kennel
+beds         vegetable beds
+tufts        meadow grass
+ripples      water ripples
+flowerMesh   the town's flowers
+PLANTER      the town planter
+blocked      where flowers may not grow
+STORE        the store building
+ISLE_BY      island landmarks
+RG           the road graph
+roadPath     a walk along the roads
+back         the market's back-stock crate
+FISH         fish kinds (icons)
+crate        a crate model
+zzz          the sleeping z's
+SHOP         the market counter
+STL          the market stalls' places
+STALL_T      the market stall kinds
+stalls       the market stalls
+dog          the dog (pets and the dressing room)
+guestModel   a guest's model
+
+# not game names: local variables that share a game name
+SC

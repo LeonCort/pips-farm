@@ -1,11 +1,4 @@
 /* ---------- extras: the farm dog, fishing from the dock and the vegetable patch (weather is in weather.js) ---------- */
-function toastIcon(t, text) {
-  const el = $('toast'); if (!el) return;
-  el.innerHTML = '<img alt="" src="' + actIcon(t) + '" style="width:60px;height:60px"><b>' + text + '</b>'; el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
-  clearTimeout(toastIcon.t); toastIcon.t = setTimeout(() => { el.hidden = true; }, 2600);
-}
-const dropGeo = new T.SphereGeometry(0.045, 5, 4), dropMat = new T.MeshBasicMaterial({ color: '#bfe3f0' });
-function splash(x, y, z, n) { for (let k = 0; k < n; k++) { const m = new T.Mesh(dropGeo, dropMat); m.position.set(x, y, z); const a = k / n * 6.283 + Math.random(); m.userData = { v: new T.Vector3(Math.cos(a) * 1.1, 2.2 + Math.random() * 1.4, Math.sin(a) * 1.1), t: 0.45 }; sc.add(m); pops.push(m); } }
 function ripple(x, z) {
   const m = new T.Mesh(new T.RingGeometry(0.12, 0.18, 24), new T.MeshBasicMaterial({ color: PAL.paper, transparent: true, opacity: 0.8 }));
   m.rotation.x = -Math.PI / 2; m.position.set(x, -0.36, z); sc.add(m); ripples.push({ m, t: 0 });

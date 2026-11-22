@@ -33,14 +33,7 @@ function addTractor() {
   tractor = { g };
 }
 
-/* ---------- actions: one or two big buttons show what Pip can do right here ---------- */
-const ACT_ICON = {};
-function actIcon(name, sub) {
-  const key = name + (sub || ''); if (ACT_ICON[key]) return ACT_ICON[key];
-  const c = document.createElement('canvas'); c.width = 128; c.height = 128; const x = c.getContext('2d');
-  if (sub) { drawIcon(x, sub, 54, 70, 1.05); drawIcon(x, name, 92, 34, 0.7); } else drawIcon(x, name, 64, 66, 1.35);
-  return (ACT_ICON[key] = c.toDataURL());
-}
+/* ---------- actions: one or two big buttons show what Pip can do right here (actIcon is in engine/icons.js) ---------- */
 let acts = [];
 function nearestAnimal(r) { let best = null, bd = r; animals.concat(babies).forEach((an) => { if (an.ridden) return; const d = Math.hypot(an.g.position.x - pip.position.x, an.g.position.z - pip.position.z); if (d < bd) { bd = d; best = an; } }); return best; }
 function findActs() {
@@ -64,7 +57,6 @@ function renderActs() {
 }
 ['actA', 'actB'].forEach((id, k) => { const b = $(id); if (b) b.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); const a = acts[k]; if (a) { a.run(); acts = []; renderActs(); } }); });
 window.addEventListener('keydown', (e) => { const k = e.key.toLowerCase(); if ((k === 'e' || k === ' ') && acts[0]) { e.preventDefault(); acts[0].run(); acts = []; renderActs(); } else if (k === 'q' && acts[1]) { acts[1].run(); acts = []; renderActs(); } });
-function burst(x, y, z, n) { for (let k = 0; k < n; k++) { const h = new T.Mesh(heartGeo, heartMat); h.position.set(x, y, z); const a = k / n * 6.283; h.userData = { v: new T.Vector3(Math.cos(a) * 1.0, 2.6 + hash(k, 5), Math.sin(a) * 1.0), t: 0 }; sc.add(h); pops.push(h); } }
 function pet(an) {
   an.hop = 1; const p = an.g.position; burst(p.x, an.h, p.z, 4); showName(an, 2.2); Snd.play('sparkle', { gain: 0.35 }, 0, 150); Snd.animal(an.a, { gain: 0.8, gap: 700, rate: an.baby ? 1.35 : 0.95 + Math.random() * 0.1 });
   if (time - (an.petT || -99) > 8) { an.petT = time; earn(1); coinToHud(p.x, an.h, p.z, 1); }

@@ -8,7 +8,8 @@ text patching. The page around it is the shared head, the CSS, the loading scree
 the game's body markup, three.js, the sound kit and the sound effects.
 
 Pages get app-ver "dev"; run stamp.py before committing so the iPad sees an update.
-Also writes build/test-<page>.html (three.js from the repo root, no web fonts) for Playwright.
+Also writes test-<page>.html (three.js from ../three.min.js, no web fonts) for Playwright:
+into build/ for a root build, else into <outdir>.
 """
 import os, sys, subprocess
 
@@ -72,11 +73,12 @@ def test_page(g):
 
 def build(out):
     os.makedirs(out, exist_ok=True)
-    os.makedirs(os.path.join(ROOT, 'build'), exist_ok=True)
+    tests = os.path.join(ROOT, 'build') if os.path.abspath(out) == ROOT else out
+    os.makedirs(tests, exist_ok=True)
     for name, g in GAMES.items():
         with open(os.path.join(out, name), 'w') as f:
             f.write(page(g))
-        with open(os.path.join(ROOT, 'build', 'test-' + name), 'w') as f:
+        with open(os.path.join(tests, 'test-' + name), 'w') as f:
             f.write(test_page(g))
     subprocess.run([sys.executable, os.path.join(SRC, 'start', 'build.py'), os.path.join(out, 'index.html')], check=True)
 

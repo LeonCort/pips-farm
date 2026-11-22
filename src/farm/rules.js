@@ -56,7 +56,6 @@ const CROPS = {
   pumpkin: { sv: 'Pumpa', grow: 120, hearts: 10 }, sunflower: { sv: 'Solros', grow: 100, hearts: 7 }
 };
 const BEDS = [[8.8, -5.4, 'carrot'], [10.0, -5.4, 'strawberry'], [11.2, -5.4, 'pumpkin'], [8.8, -4.2, 'sunflower'], [10.0, -4.2, 'carrot'], [11.2, -4.2, 'strawberry']];
-let mount = null; /* what Pip is sitting on: an animal or the tractor */
 /* food sources in the middle of the farm; Pip can take as much as fits in the basket */
 const SRC = { grain: { x: -10.4, z: -2.4 }, water: { x: -10.4, z: 2.4 }, carrot: { x: -10.4, z: 5.4 }, hay: { x: -10.4, z: -5.6 } }; /* carrots by the pig pen, hay by the cow pen */
 const PADS = [
@@ -93,7 +92,6 @@ function padPos(p) {
   if (p.kind === 'helper') return [SRC[p.t].x, SRC[p.t].z - 1.25];
   return [0, 0];
 }
-let state = null;
 function fresh() { return { v: 1, coins: 0, total: 0, paid: {}, owned: {}, lv: { speed: 0, bag: 0, farm: 0, guests: 0 }, sound: true, moved: false, fish: {}, garden: BEDS.map(() => ({ s: 0, g: 0, w: 0 })), wx: { rain: 0, next: 150 }, shop: { coins: 0, total: 0, owned: { tree1: true }, paid: {} } }; }
 const own = (id) => !!state.owned[id];
 /* a walk picked on the picture map: the road points still to go */

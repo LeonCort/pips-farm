@@ -25,13 +25,15 @@ Progress is saved in the browser (localStorage), so it stays on the device.
 
 The sources live in `src/`; the pages at the repo root are built from them. Never edit a built page by hand: the next build overwrites it.
 
-- `src/engine/`: parts any Pips game can use (Pip and the wardrobe, camera and input, the loop, sky, weather, rain, light, house, store, buy mode, unlock queues, robots, pets, guests, tutorial runner, sound in `sound/`, the loading screen in `boot/`, the shared page head and CSS).
-- `src/farm/`: the farm (Bondgård): animals, barn and loft, meadow, market, town, island, and `manifest.txt`, the list of script files glued together in order.
+- `src/engine/`: parts any Pips game can use: Pip and the wardrobe, camera, input and saving, the loop, sky, weather, rain, light and shading, pets, the building kit (`kit.js`), icons and effects, sound in `sound/`, the loading screen in `boot/`, the shared page head and CSS. `contract.txt` lists the names the engine still takes from a game.
+- `src/farm/`: the farm (Bondgård): animals, barn and loft, meadow, market, town, island, and for now also the house, store, buy mode, unlock queues and tutorial (they move to the engine as a shared frame once the zoo needs them). `manifest.txt` is the list of script files glued together in order.
 - `src/start/`: the start page.
 - `tools/build.py`: builds `bondgard.html` and `index.html`, plus `build/test-bondgard.html` (three.js from the repo root) for tests.
 - `tools/check.py`: rebuilds and compares with the committed pages; it passes when they are identical apart from the version stamp. Use it for changes that should not change the game.
+- `tools/refs.py --strict`: fails when an engine file starts using a farm name that is not in `src/engine/contract.txt`.
 - `tests/smoke.js`: loads the test page headless and fails on any page error (`node tests/smoke.js`).
+- `tests/compare.js`: plays the farm on a fake clock with a fixed seed and records state and screenshots, so two builds can be compared (`record`, then `diff`).
 
 To change the game: edit `src/` on a branch, run `python3 tools/build.py`, test, then `python3 stamp.py` and commit the sources and the built pages together.
 
-All script files run in one shared scope, so the order in `manifest.txt` matters. Engine and farm files are still interleaved and some engine files still name farm things; untangling them comes next, before a second game (the zoo) gets its own `src/zoo/` and page. `butik.html` (the old shop) is frozen as built; its sources are in git history.
+All script files run in one shared scope, so the order in `manifest.txt` matters. Engine and farm files are still interleaved, and the engine still uses the farm names in `src/engine/contract.txt`. A second game (the zoo) gets its own `src/zoo/` and page, and must provide those names until the list is gone. `butik.html` (the old shop) is frozen as built; its sources are in git history.
