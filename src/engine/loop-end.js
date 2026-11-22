@@ -22,4 +22,17 @@
   menuT -= dt; if (menuT <= 0) { menuT = 0.25; const any = UPS.some((u) => state.lv[u.id] < u.max && state.coins >= upCost(u)); $('menuBtn').classList.toggle('ready', false); if (!$('menu').hidden) renderMenu(); }
   Snd.musicStep(dt, musicMood());
 }
-function frame(now) { if (now - lastT < 1000 / fpsCap - 3) { requestAnimationFrame(frame); return; } let dt = (now - lastT) / 1000; lastT = now; if (dt > 0.1) dt = 0.1; if (dt > 0) { step(dt); if (window.PipsBoot) PipsBoot.frame(); } saveT += dt; if (saveT > 5) { saveT = 0; save(); } requestAnimationFrame(frame); }
+/* the next frame is asked for first: an error in one frame is logged and the game goes on, instead of the picture freezing for good */
+const LOG = window.PipsLog;
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (now - lastT < 1000 / fpsCap - 3) return;
+  let dt = (now - lastT) / 1000; lastT = now; if (dt > 0.1) dt = 0.1;
+  if (LOG) LOG.tick();
+  if (dt > 0) { try { step(dt); } catch (e) { if (LOG) LOG.caught(e); else console.error(e); } if (window.PipsBoot) PipsBoot.frame(); }
+  saveT += dt; if (saveT > 5) { saveT = 0; try { save(); } catch (e) { if (LOG) LOG.caught(e); } }
+}
+if (LOG) {
+  LOG.gl(renderer.domElement);
+  LOG.probe = () => { const i = renderer.info; return 'draw calls ' + i.render.calls + ', triangles ' + i.render.triangles + ', meshes ' + i.memory.geometries + ', textures ' + i.memory.textures + (typeof HERE !== 'undefined' ? ', at ' + HERE : '') + ', coins ' + Math.floor(state.coins || 0); };
+}

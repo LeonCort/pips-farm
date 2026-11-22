@@ -105,3 +105,51 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 .fpsBtn { position: relative; }
 .fpsBtn b { position: absolute; left: 0; right: 0; bottom: 5px; font: 800 15px/1 system-ui, sans-serif; color: var(--ink); text-align: center; }
 .fpsBtn.eco .leaf { stroke: #2f7d4f; transform: rotate(-50deg); transform-origin: 24px 30px; }
+/* ---------- settings: a side panel on the right, one row per setting (icon + name), the game stays visible beside it ---------- */
+#menu { z-index: 150; background: rgba(34,48,60,0.18); justify-content: flex-end; align-items: stretch; }
+#menu .sheet { position: relative; width: min(320px, 86vw); height: 100%; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y;
+  border: 3px solid var(--ink); border-right: 0; border-radius: 26px 0 0 26px; box-shadow: -8px 0 24px rgba(34,48,60,0.22);
+  padding: max(14px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(18px, env(safe-area-inset-bottom, 0px)) 16px; animation: pipsSide 0.22s ease-out; }
+@keyframes pipsSide { from { transform: translateX(100%); } to { transform: translateX(0); } }
+#menu .sheetTop { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 8px; margin-bottom: 14px; }
+#menu .sheetTop::before { content: 'Inställningar'; order: -10; display: block; height: 56px; line-height: 56px; font-size: 24px; font-weight: 700; padding-right: 64px; }
+#menu #menuClose { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: 52px; height: 52px; padding: 8px; }
+#menu .sheetTop > .round { position: relative; flex: none; width: 54px; height: 54px; padding: 6px; margin: 0; }
+/* the name sits to the right of the round button and is part of it, so the whole row can be tapped */
+#menu .sheetTop > .round::after { content: attr(aria-label); position: absolute; left: calc(100% + 14px); top: 50%; transform: translateY(-50%); width: min(200px, calc(86vw - 120px)); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 18px; font-weight: 600; color: var(--ink); line-height: 54px; }
+#menu .sheetTop > a.round { display: block; box-sizing: border-box; text-decoration: none; }
+#menu .fpsBtn b { bottom: 3px; font-size: 13px; }
+#menu .fxQBtn b { display: none; }
+/* order and groups: play, picture, help, start over */
+#menu #soundBtn { order: 1; } #menu #wardBtn { order: 2; } #menu #ctrlBtn { order: 3; }
+#menu #fpsBtn { order: 10; } #menu #gfxBtn { order: 11; } #menu #drawBtn { order: 12; } #menu #fxQBtn { order: 13; }
+#menu #updBtn { order: 20; } #menu #logBtn { order: 21; } #menu #homeBtn { order: 22; } #menu #devBtn { order: 23; }
+#menu #restartBtn { order: 30; }
+#menu #fpsBtn, #menu #updBtn, #menu #logBtn:first-child, #menu #restartBtn { margin-top: 14px; }
+#menu #fpsBtn::before, #menu #updBtn::before, #menu #restartBtn::before { content: ''; position: absolute; left: 0; top: -12px; width: min(270px, calc(86vw - 40px)); border-top: 2px dashed var(--line); }
+#menu #updBtn[hidden] + #logBtn { margin-top: 14px; }
+#menu .sheetTop > #soundBtn::after { content: 'Ljud'; } #menu .sheetTop > #wardBtn::after { content: 'Kläder och hår'; } #menu .sheetTop > #ctrlBtn::after { content: 'Styrning'; }
+#menu .sheetTop > #fpsBtn::after { content: 'Bilder per sekund'; } #menu .sheetTop > #gfxBtn::after { content: 'Grafik: full / lätt'; } #menu .sheetTop > #drawBtn::after { content: 'Hur långt man ser'; } #menu .sheetTop > #fxQBtn::after { content: 'Ljuseffekter'; }
+#menu .sheetTop > #updBtn::after { content: 'Sök uppdatering'; } #menu .sheetTop > #logBtn::after { content: 'Kopiera loggen'; } #menu .sheetTop > #logBtn.ok::after { content: 'Kopierad!'; color: #2f7d4f; }
+#menu .sheetTop > #homeBtn::after { content: 'Välj spel'; } #menu .sheetTop > #devBtn::after { content: 'Utvecklarläge'; } #menu .sheetTop > #restartBtn::after { content: 'Börja om (håll inne)'; color: #b8401f; }
+#menu #menuClose::after { content: none; }
+#menu .sheetTop > #devBtn.on::after { content: 'Utvecklarläge: på'; }
+#menu .ups { grid-template-columns: 1fr 1fr; gap: 10px; }
+#menu .ups .up svg { width: 56px; height: 56px; }
+.logBtn .chk { display: none; } .logBtn.ok .chk { display: inline; } .logBtn.ok .clip { display: none; } .logBtn.ok { background: #e3f4e0; border-color: #2f7d4f; }
+/* short screens (phones on their side): smaller rows */
+@media (max-height: 560px) {
+  #menu .sheetTop { gap: 5px; } #menu .sheetTop::before { height: 44px; line-height: 44px; font-size: 20px; }
+  #menu #menuClose { width: 44px; height: 44px; }
+  #menu .sheetTop > .round { width: 44px; height: 44px; padding: 4px; }
+  #menu .sheetTop > .round::after { line-height: 44px; font-size: 16px; }
+  #menu #fpsBtn, #menu #updBtn, #menu #restartBtn { margin-top: 10px; } #menu #fpsBtn::before, #menu #updBtn::before, #menu #restartBtn::before { top: -8px; }
+  #menu .fpsBtn b { font-size: 11px; bottom: 1px; }
+}
+@media (prefers-reduced-motion: reduce) { #menu .sheet { animation: none; } }
+/* the log, shown as text when the browser will not copy it by itself */
+.logView { position: fixed; inset: 0; z-index: 200; background: rgba(34,48,60,0.45); display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; }
+.logBox { width: min(720px, 100%); height: min(80vh, 640px); display: flex; flex-direction: column; gap: 10px; background: var(--paper); border: 3px solid var(--ink); border-radius: 22px; padding: 12px; box-sizing: border-box; }
+.logBox textarea { flex: 1; width: 100%; box-sizing: border-box; font: 12px/1.35 ui-monospace, Menlo, monospace; border: 2px solid var(--line); border-radius: 12px; padding: 8px; resize: none; background: #fffdf8; color: var(--ink); }
+.logRow { display: flex; gap: 10px; } .logRow button { flex: 1; padding: 12px; border-radius: 14px; border: 3px solid var(--ink); background: #fffaf0; font-weight: 700; font-size: 17px; }
+.logRow button[data-c] { background: #74a857; color: #fff6e4; }
