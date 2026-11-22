@@ -153,6 +153,8 @@ function seasonToast(s) {
   el.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true">' + SEASON_SVG[s] + '</svg><b>' + SEASON_SV[s] + '!</b>'; el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
   clearTimeout(seasonToast.t); seasonToast.t = setTimeout(() => { el.hidden = true; }, 3200);
 }
+/* a clear blue sky down to the horizon instead of the cream haze, so the far island reads as clear air */
+const SKY_ULTRA = { hor: new T.Color('#a9cbe6'), top: new T.Color('#3d84cf') };
 function skyStep(dt) {
   if (typeof state.clock !== 'number') state.clock = DAY * 0.1;
   bedStep(dt);
@@ -160,6 +162,7 @@ function skyStep(dt) {
   const f = dayFrac(); let i = 0; while (i < SKY_KEYS.length - 2 && f > SKY_KEYS[i + 1].f) i++;
   const a = SKY_KEYS[i], b = SKY_KEYS[i + 1], q = clamp((f - a.f) / (b.f - a.f), 0, 1), e = q * q * (3 - 2 * q);
   mixHex(a.top, b.top, e, sky.material.uniforms.top.value); mixHex(a.hor, b.hor, e, sky.material.uniforms.hor.value);
+  { const dd = 1 - (a.n + (b.n - a.n) * e) * 2; if (dd > 0) { sky.material.uniforms.hor.value.lerp(SKY_ULTRA.hor, 0.6 * dd); sky.material.uniforms.top.value.lerp(SKY_ULTRA.top, 0.3 * dd); } }
   sc.background.copy(sky.material.uniforms.hor.value); sc.fog.color.copy(sky.material.uniforms.hor.value);
   mixHex(a.sun, b.sun, e, sun.color); sun.intensity = a.si + (b.si - a.si) * e;
   if (hemi) { mixHex(a.hs, b.hs, e, hemi.color); mixHex(a.hg, b.hg, e, hemi.groundColor); hemi.intensity = a.hi + (b.hi - a.hi) * e; }

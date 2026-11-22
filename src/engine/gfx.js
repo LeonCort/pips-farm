@@ -15,7 +15,7 @@ function gfxApply() {
   if (sun.castShadow === gfxLow) { sun.castShadow = !gfxLow; sc.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => { m.needsUpdate = true; }); }); }
   if (typeof setDraw === 'function') setDraw(gfxLow ? 0 : drawLv0);
   if (gfxLv === 2) { CURVE.detail = GFX_ULTRA.detail; CURVE.fogNear = GFX_ULTRA.fogNear; CURVE.fogFar = GFX_ULTRA.fogFar; } /* past the island's edge: nothing is cut off */
-  CURVE.wxFog = gfxLv === 2 ? GFX_ULTRA.wxFog : 1;
+  CURVE.wxFog = gfxLv === 2 ? GFX_ULTRA.wxFog : 1; CURVE.ultra = gfxLv === 2;
   if (typeof p2LineMat !== 'undefined') p2LineMat.visible = !gfxLow; /* the ink outlines on Pip, pets, animals and guests: one extra draw each */
   if (typeof FX !== 'undefined') { /* the light effects: high quality off, and the cheap ones the normal look uses are left out too */
     if (gfxLow) { if (!GFX_FX.saved) { GFX_FX.saved = [...FX_LOW]; GFX_FX.hi = FX.hi; } FX.hi = false; FX_LOW.clear(); }

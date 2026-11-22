@@ -50,6 +50,7 @@ function skyFrame(dt) {
   const s = CURVE.u.strength.value, H = cam.position.y + 0.45, back = Math.max(0, cam.position.z - CURVE.u.origin.value.z); let best = -1, bestT = 1e6;
   for (let t = 2; t < 180; t *= 1.04) { const gy = -s * (t - back) * (t - back); const a = (gy - H) / t; if (a > best) { best = a; bestT = t; } }
   CURVE.u.horD.value = s > 0 ? Math.hypot(bestT, H + s * (bestT - back) * (bestT - back)) : 1e6;
+  if (s > 0) CURVE.u.horD.value *= 1.22; /* the haze only touches the very edge of the bent world, not the yard in front of it */
   SKYU.uHz.value = clamp(best / Math.hypot(1, best), -0.6, 0) - 0.01;
   const k = state.wx && state.wx.k, want = clamp((SKY_COVER[k] == null ? 0.35 : SKY_COVER[k]) + (SEASON_COVER[season] || 0), 0.1, 1);
   skyCover += (want - skyCover) * Math.min(1, dt * 0.15); SKYU.uCover.value = skyCover;

@@ -738,7 +738,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122192822">
+<meta name="app-ver" content="20261122194650">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1162,7 +1162,7 @@ if (!T) { $('nogl').hidden = false; return; }
    pets) curve automatically, and existing onBeforeCompile hooks (rim light, sway, ground texture) are untouched.
    Hand-written ShaderMaterials go through applyWorldCurve(material). */
 const CURVE_DEF = { strength: 0.0135, side: 0, pitch: 37, dist: 12, ahead: 1, shopPitch: 60, shopDist: 14, shopAhead: 0.8, awnFade: 0.55, on: true }; /* Leon's picks, 2026-11-21 */
-const CURVE = Object.assign({}, CURVE_DEF, { fogNear: 50, fogFar: 88, detail: 49, wxFog: 1, shopW: 0, u: { origin: { value: new T.Vector3() }, strength: { value: 0 }, side: { value: CURVE_DEF.side }, horD: { value: 1e6 } } });
+const CURVE = Object.assign({}, CURVE_DEF, { fogNear: 50, fogFar: 88, detail: 49, wxFog: 1, ultra: false, shopW: 0, u: { origin: { value: new T.Vector3() }, strength: { value: 0 }, side: { value: CURVE_DEF.side }, horD: { value: 1e6 } } });
 /* dev mode (settings menu): shows the tuning panel and the fps counter; tweaks are saved on this device only and apply only while dev mode is on */
 let devOn = false; try { devOn = localStorage.getItem('pips-dev') === '1'; } catch (e) {}
 function curveLoadDev() { Object.assign(CURVE, CURVE_DEF); if (!devOn) return; try { const s = JSON.parse(localStorage.getItem('pips-curve2') || 'null'); if (s) Object.keys(CURVE_DEF).forEach((k) => { if (typeof s[k] === typeof CURVE_DEF[k]) CURVE[k] = s[k]; }); } catch (e) {} }
@@ -2401,6 +2401,8 @@ function seasonToast(s) {
   el.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true">' + SEASON_SVG[s] + '</svg><b>' + SEASON_SV[s] + '!</b>'; el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
   clearTimeout(seasonToast.t); seasonToast.t = setTimeout(() => { el.hidden = true; }, 3200);
 }
+/* a clear blue sky down to the horizon instead of the cream haze, so the far island reads as clear air */
+const SKY_ULTRA = { hor: new T.Color('#a9cbe6'), top: new T.Color('#3d84cf') };
 function skyStep(dt) {
   if (typeof state.clock !== 'number') state.clock = DAY * 0.1;
   bedStep(dt);
@@ -2408,6 +2410,7 @@ function skyStep(dt) {
   const f = dayFrac(); let i = 0; while (i < SKY_KEYS.length - 2 && f > SKY_KEYS[i + 1].f) i++;
   const a = SKY_KEYS[i], b = SKY_KEYS[i + 1], q = clamp((f - a.f) / (b.f - a.f), 0, 1), e = q * q * (3 - 2 * q);
   mixHex(a.top, b.top, e, sky.material.uniforms.top.value); mixHex(a.hor, b.hor, e, sky.material.uniforms.hor.value);
+  { const dd = 1 - (a.n + (b.n - a.n) * e) * 2; if (dd > 0) { sky.material.uniforms.hor.value.lerp(SKY_ULTRA.hor, 0.6 * dd); sky.material.uniforms.top.value.lerp(SKY_ULTRA.top, 0.3 * dd); } }
   sc.background.copy(sky.material.uniforms.hor.value); sc.fog.color.copy(sky.material.uniforms.hor.value);
   mixHex(a.sun, b.sun, e, sun.color); sun.intensity = a.si + (b.si - a.si) * e;
   if (hemi) { mixHex(a.hs, b.hs, e, hemi.color); mixHex(a.hg, b.hg, e, hemi.groundColor); hemi.intensity = a.hi + (b.hi - a.hi) * e; }
@@ -3643,7 +3646,7 @@ function gfxApply() {
   if (sun.castShadow === gfxLow) { sun.castShadow = !gfxLow; sc.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => { m.needsUpdate = true; }); }); }
   if (typeof setDraw === 'function') setDraw(gfxLow ? 0 : drawLv0);
   if (gfxLv === 2) { CURVE.detail = GFX_ULTRA.detail; CURVE.fogNear = GFX_ULTRA.fogNear; CURVE.fogFar = GFX_ULTRA.fogFar; } /* past the island's edge: nothing is cut off */
-  CURVE.wxFog = gfxLv === 2 ? GFX_ULTRA.wxFog : 1;
+  CURVE.wxFog = gfxLv === 2 ? GFX_ULTRA.wxFog : 1; CURVE.ultra = gfxLv === 2;
   if (typeof p2LineMat !== 'undefined') p2LineMat.visible = !gfxLow; /* the ink outlines on Pip, pets, animals and guests: one extra draw each */
   if (typeof FX !== 'undefined') { /* the light effects: high quality off, and the cheap ones the normal look uses are left out too */
     if (gfxLow) { if (!GFX_FX.saved) { GFX_FX.saved = [...FX_LOW]; GFX_FX.hi = FX.hi; } FX.hi = false; FX_LOW.clear(); }
@@ -3752,6 +3755,7 @@ function skyFrame(dt) {
   const s = CURVE.u.strength.value, H = cam.position.y + 0.45, back = Math.max(0, cam.position.z - CURVE.u.origin.value.z); let best = -1, bestT = 1e6;
   for (let t = 2; t < 180; t *= 1.04) { const gy = -s * (t - back) * (t - back); const a = (gy - H) / t; if (a > best) { best = a; bestT = t; } }
   CURVE.u.horD.value = s > 0 ? Math.hypot(bestT, H + s * (bestT - back) * (bestT - back)) : 1e6;
+  if (s > 0) CURVE.u.horD.value *= 1.22; /* the haze only touches the very edge of the bent world, not the yard in front of it */
   SKYU.uHz.value = clamp(best / Math.hypot(1, best), -0.6, 0) - 0.01;
   const k = state.wx && state.wx.k, want = clamp((SKY_COVER[k] == null ? 0.35 : SKY_COVER[k]) + (SEASON_COVER[season] || 0), 0.1, 1);
   skyCover += (want - skyCover) * Math.min(1, dt * 0.15); SKYU.uCover.value = skyCover;
@@ -4183,11 +4187,11 @@ function fxRender(dt) {
   if (!post) { renderer.setRenderTarget(null); renderer.render(sc, cam); return; }
   fxTargets(); renderer.setRenderTarget(fxMain); renderer.render(sc, cam);
   const k = FX.k, rays = fxUse('rays') && k.sun > 0.02, bloom = fxUse('bloom'), qw = fxA.width, qh = fxA.height;
-  if (rays || bloom) { const b = fxBright.uniforms; b.tS.value = fxMain.texture; b.uPx.value.set(1 / fxSize.x, 1 / fxSize.y); b.uThr.value = 0.72 + 0.1 * k.night; fxPass(fxBright, fxA); }
+  if (rays || bloom) { const b = fxBright.uniforms; b.tS.value = fxMain.texture; b.uPx.value.set(1 / fxSize.x, 1 / fxSize.y); b.uThr.value = 0.84 + 0.1 * k.night; /* the bright sky no longer blooms into a white wash */ fxPass(fxBright, fxA); }
   if (rays) { fxSource(); fxRays.uniforms.tM.value = fxA.texture; fxPass(fxRays, fxR); const u = fxBlur.uniforms; u.tS.value = fxR.texture; u.uDir.value.set(1.5 / qw, 0); fxPass(fxBlur, fxR2); u.tS.value = fxR2.texture; u.uDir.value.set(0, 1.5 / qh); fxPass(fxBlur, fxR); }
   if (bloom) { const u = fxBlur.uniforms; for (let i = 0; i < 2; i++) { const s = 1 + i * 1.6; u.tS.value = fxA.texture; u.uDir.value.set(s / qw, 0); fxPass(fxBlur, fxB); u.tS.value = fxB.texture; u.uDir.value.set(0, s / qh); fxPass(fxBlur, fxA); } }
   const c = fxComp.uniforms; c.tS.value = fxMain.texture; c.tB.value = fxA.texture; c.tR.value = fxR.texture;
-  c.uBloom.value = bloom ? 0.8 + 0.1 * k.night + 0.25 * k.gold : 0; c.uRays.value = rays ? k.sun * (2.2 + 0.8 * k.gold) : 0;
+  c.uBloom.value = bloom ? (0.8 + 0.1 * k.night + 0.25 * k.gold) * 0.6 : 0; c.uRays.value = rays ? k.sun * (2.2 + 0.8 * k.gold) * 0.55 : 0;
   c.uRayCol.value.copy(sun.color).lerp(_fxc.set('#fff0d0'), 0.35);
   c.uGrade.value = fxUse('grade') ? 1 : 0; c.uGold.value = fxUse('grade') ? k.gold * 0.55 : 0; c.uAsp.value = fxSize.x / fxSize.y;
   if (!rays) fxSource();
