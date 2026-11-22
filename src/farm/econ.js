@@ -7,6 +7,8 @@ SPADS.push({ id: 'stall-wool', kind: 'stall', t: 'wool', cost: 380 }, { id: 'sto
    Pip picks the goods up by walking past it, and the wool stall's robot fetches from it once bought. */
 const PEN_BASKETS = {}, BASKET_MAX = 12;
 function basketPos(a) {
+  /* two animal corners (corners.js): the wool basket stands at the foot of the wool lane, on the way to the market */
+  if (typeof CORNERS !== 'undefined' && a === 'sheep') return [12.45, -7.75];
   /* outside the pen at its biggest (penMax once pens grow to fixed sizes; otherwise the old growth rule) */
   const p = PEN[a], sx = penSide(a), inner = p.x + sx * p.w / 2;
   if (typeof penMax === 'function') { const b = penMax(a); return [inner - sx * 0.95, b.z + b.d / 2 + 0.8]; }
@@ -15,6 +17,8 @@ function basketPos(a) {
 }
 function penBasket(a) {
   if (PEN_BASKETS[a]) return PEN_BASKETS[a];
+  /* sheep and alpacas share one wool basket in the wool corner */
+  if (typeof CORNERS !== 'undefined' && a === 'alpaca') return (PEN_BASKETS.alpaca = penBasket('sheep'));
   const G = ANIMAL_GOODS[a], [x, z] = basketPos(a), g = new T.Group(); g.position.set(x, 0, z); sc.add(g);
   const L = [], P = at(x, z, 0, L);
   /* a round wicker basket: woven rings in two straw tones, a darker rim and two rope handles */

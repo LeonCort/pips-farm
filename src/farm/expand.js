@@ -228,6 +228,10 @@ function cartStep(dt) {
 /* ---- the tractor drives itself: when nobody is driving, it mows the meadow in rows and comes back home ---- */
 const AUTO = { st: 'home', i: 0, wp: [], cool: 8 };
 function autoRoute() {
+  /* parked by the meadow (corners.js): drive straight onto its east edge; otherwise round the top of the sheep paddock */
+  if (typeof CORNERS !== 'undefined') { const e = [MEADOW.x1 + 0.4, TRACTOR_HOME[1]], o = [e];
+    let d = -1; for (let z = MEADOW.z0 + 0.5; z <= MEADOW.z1 - 0.3; z += 1.5) { d = -d; o.push(d < 0 ? [MEADOW.x1 - 0.3, z] : [MEADOW.x0 + 0.3, z]); o.push(d < 0 ? [MEADOW.x0 + 0.3, z] : [MEADOW.x1 - 0.3, z]); }
+    o.push(e, [TRACTOR_HOME[0], TRACTOR_HOME[1]]); return o; }
   const out = [[TRACTOR_HOME[0] - 0.4, -12.0], [7.6, -12.0], [MEADOW.x1 + 0.4, -11.3]];
   let dir = -1; for (let z = MEADOW.z0 + 0.5; z <= MEADOW.z1 - 0.3; z += 1.5) { dir = -dir; out.push(dir < 0 ? [MEADOW.x1 - 0.3, z] : [MEADOW.x0 + 0.3, z]); out.push(dir < 0 ? [MEADOW.x0 + 0.3, z] : [MEADOW.x1 - 0.3, z]); }
   out.push([MEADOW.x1 + 0.4, -11.3], [7.6, -12.0], [TRACTOR_HOME[0] - 0.4, -12.0], [TRACTOR_HOME[0], TRACTOR_HOME[1]]);

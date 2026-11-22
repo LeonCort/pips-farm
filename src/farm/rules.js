@@ -94,7 +94,7 @@ const UPS = [
   { id: 'farm', base: 25, g: 1.9, max: 8 }, { id: 'guests', base: 40, g: 1.9, max: 8 }
 ];
 /* where to fetch food t for pen a: its feed station when it has one that hands out t, otherwise the shed */
-const stationFor = (a, t) => STATIONS.find((s) => s.a === a && s.foods.includes(t) && sources[t]);
+const stationFor = (a, t) => STATIONS.find((s) => (s.a === a || (s.also && s.also.includes(a))) && s.foods.includes(t) && sources[t]);
 function foodSpot(t, a) { const s = a && stationFor(a, t); return s ? [s.x, s.z] : sources[t] ? [sources[t].x, sources[t].z] : [SRC[t].x, SRC[t].z + 1.0]; }
 const feedPos = (a) => { const p = PEN[a], vx = penSide(a), vz = 0; return [p.x + vx * (p.w / 2 + 0.75), p.z + vz]; };
 const housePos = (a) => { const p = penBox(a); return [p.x - penSide(a) * (p.w / 2 - 0.75), p.z - p.d / 2 + 0.7]; };
