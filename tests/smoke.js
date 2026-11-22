@@ -9,7 +9,7 @@ const path = require('path');
   const errs = [];
   p.on('pageerror', (e) => errs.push(e.message));
   await p.addInitScript(() => { window.__farmTest = 1; });
-  await p.goto('file://' + path.join(__dirname, '..', 'build', 'test-' + page));
+  await p.goto('file://' + path.resolve(process.env.PAGE || path.join(__dirname, '..', 'build', 'test-' + page)));
   await p.waitForTimeout(6000);
   const ok = await p.evaluate(() => !!window.__pip);
   await p.screenshot({ path: path.join(__dirname, '..', 'build', 'smoke-' + page.replace('.html', '.png')) });
