@@ -38,7 +38,7 @@ const tutPic = (() => { const cache = {}; return (name) => {
 { const st = document.createElement('style'); st.textContent = `
 .tut { position: fixed; left: 0; top: 0; width: 0; height: 0; z-index: 6; pointer-events: none; touch-action: none; user-select: none; -webkit-user-select: none; --s: 1; }
 .tut[hidden] { display: none; }
-.tut .bb { position: absolute; left: 0; bottom: 0; transform: translate(-50%, 0) scale(var(--s)); transform-origin: 50% 100%; pointer-events: auto; transition: opacity 0.25s; }
+.tut .bb { position: absolute; left: 0; bottom: 0; transform: translate(-50%, 0) scale(var(--s)); transform-origin: 50% 100%; pointer-events: auto; width: max-content; white-space: nowrap; transition: opacity 0.25s; }
 .tut .cl { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 7px 16px 8px; }
 .tut .cl > b { position: absolute; display: block; border-radius: 999px; background: var(--paper, #fff6e4); }
 .tut .cl > b.k { box-shadow: 0 0 0 3px var(--ink, #22303c); }
@@ -47,9 +47,9 @@ const tutPic = (() => { const cache = {}; return (name) => {
 .tut .cl > b.a { width: 46px; height: 46px; left: 16px; top: -14px; }
 .tut .cl > b.c { width: 36px; height: 36px; right: 22px; top: -11px; }
 .tut .cl > .job, .tut .cl > .dots { position: relative; }
-.tut .job { display: flex; align-items: center; gap: 0; height: 58px; position: relative; }
-.tut .job img { width: 64px; height: 64px; margin: -3px; display: block; }
-.tut .job .to { width: 22px; height: 22px; margin: 0 1px; }
+.tut .job { flex: none; display: flex; align-items: center; gap: 0; height: 58px; position: relative; }
+.tut .job img { width: 64px; height: 64px; margin: -3px; display: block; flex: none; }
+.tut .job .to { width: 22px; height: 22px; margin: 0 1px; flex: none; }
 .tut .job .bd { position: absolute; right: -12px; top: -8px; width: 28px; height: 28px; border-radius: 50%; background: #fffaf0; border: 3px solid #22303c; box-sizing: border-box; padding: 2px; }
 .tut .job .bd img { width: 100%; height: 100%; margin: 0; }
 .tut .dots { display: flex; gap: 5px; height: 12px; align-items: center; }
