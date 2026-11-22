@@ -225,14 +225,28 @@ function tutStep(dt) {
   if (id === 'coin' && tutStepT > 45 && tutHold <= 0 && !mPiles.some((o) => o.n > 0)) { tutStepT = 42; earnCoins(1); Snd.play('coin', { gain: 0.35 }); }
   tutRender(); tutEl.classList.toggle('dim', !spBtn.hidden); /* the buy bubble pops up near the top: the card steps back */
 }
+/* skip the first day: the cottage is given, the present is taken away, and everything opens up */
+function tutSkip(quiet) { const t = tutS(); if (!t) return; const S = stS(); if (S && S.size < 1) { S.size = 1; S.pend.push('size1'); } if (tutGift) { sc.remove(tutGift.g); tutGift = null; } tutFinish(); if (!quiet) Snd.play('whoosh', { gain: 0.35 }); }
+/* developer mode: a settings row 'Hoppa över första dagen'. When on, a running first day ends at once and new farms start without it. */
+let tutOff = false; try { tutOff = localStorage.getItem('pips-notut') === '1'; } catch (e) {}
+const tutOffBtn = (() => { const top = document.querySelector('#menu .sheetTop'); if (!top) return null;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'round tutOffBtn'; b.id = 'tutOffBtn'; b.setAttribute('aria-label', 'Hoppa över första dagen'); b.setAttribute('aria-pressed', String(tutOff));
+  b.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M9 12 L24 24 L9 36 Z M24 12 L39 24 L24 36 Z" fill="#fff6e4" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/><path d="M41 11 V37" stroke="#22303c" stroke-width="4" stroke-linecap="round"/></svg>';
+  const dev = document.getElementById('devBtn'); if (dev) top.insertBefore(b, dev.nextSibling); else top.appendChild(b);
+  const st = document.createElement('style'); st.textContent = '#menu #tutOffBtn { order: 24; } #menu .sheetTop > #tutOffBtn::after { content: \'Hoppa över första dagen: av\'; } #menu .sheetTop > #tutOffBtn.on::after { content: \'Hoppa över första dagen: på\'; } #tutOffBtn.on { background: #e9f5df; }'; document.head.appendChild(st);
+  b.addEventListener('click', (e) => { e.stopPropagation(); tutOff = !tutOff; try { localStorage.setItem('pips-notut', tutOff ? '1' : '0'); } catch (er) {} tutOffSync(); Snd.play('pop', { gain: 0.4, f: tutOff ? 900 : 500 }); if (tutOff) tutSkip(); });
+  return b; })();
+function tutOffSync() { if (!tutOffBtn) return; tutOffBtn.hidden = !devOn; tutOffBtn.classList.toggle('on', tutOff); tutOffBtn.setAttribute('aria-pressed', String(tutOff)); }
+tutOffSync();
+{ const d0 = setDev; setDev = function (on) { d0(on); tutOffSync(); }; }
 /* grown-ups: press and hold the card for three seconds to skip the first day */
 { let hold = 0; const end = () => { clearTimeout(hold); hold = 0; };
-  tutEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); end(); hold = setTimeout(() => { const t = tutS(); if (!t) return; const S = stS(); if (S && S.size < 1) { S.size = 1; S.pend.push('size1'); } if (tutGift) { sc.remove(tutGift.g); tutGift = null; } tutFinish(); Snd.play('whoosh', { gain: 0.35 }); }, 3000); });
+  tutEl.addEventListener('pointerdown', (e) => { e.stopPropagation(); end(); hold = setTimeout(tutSkip, 3000); });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => tutEl.addEventListener(ev, end));
   tutEl.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true }); }
 { const e0 = extrasStep; extrasStep = function (dt) { e0(dt); tutStep(dt); }; }
 /* a saved first day picks up where it was left (the present comes back if it was not opened yet) */
-function tutInit() { const t = tutS(); if (!t) return; tutEnter(); tutRender(true); if (sPad) { sc.remove(sPad.g); sPad = null; } }
+function tutInit() { const t = tutS(); if (!t) return; if (tutOff && devOn) { tutSkip(true); return; } tutEnter(); tutRender(true); if (sPad) { sc.remove(sPad.g); sPad = null; } }
 if (window.__farmTest) window.__tut = () => ({ s: tutS() ? tutS().s : -1, id: tutId(), n: tutS() ? tutS().n : 0, have: tutHave(), goal: tutGoal(), f: +dayFrac().toFixed(3), size: stS() && stS().size, pend: stS() && stS().pend.join(','),
   jump: (s) => { const t = tutS(); if (t) { t.s = s; t.n = 0; tutEnter(); tutRender(true); } }, next: () => tutNext(), gift: () => tutGift && [tutGift.x, tutGift.z], done: () => !!(state.tut && state.tut.done) });
 /* test only: an autopilot goal for measuring a normal day (guide arrow by day, bed at night) and a snapshot of the purse and unlocks */

@@ -313,8 +313,10 @@ const CLOTH_GEO = (() => { const g = new T.SphereGeometry(0.34, 14, 6, 0, Math.P
       const pad = new T.Mesh(new T.CircleGeometry(0.56, 32), new T.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })); pad.rotation.x = -Math.PI / 2; pad.position.set(padX, 0.05, padZ); sc.add(pad);
       const hold = new T.Group(); hold.position.set(x, CTR_TOP, z); sc.add(hold);
       const jar = jarModel(); jar.g.position.set(jx, CTR_TOP, jz); jar.g.scale.setScalar(1.35); sc.add(jar.g);
+      const tcv = document.createElement('canvas'); tcv.width = 256; tcv.height = 96; const ttex = new T.CanvasTexture(tcv); if ('colorSpace' in ttex) ttex.colorSpace = T.SRGBColorSpace;
+      const tag = new T.Sprite(new T.SpriteMaterial({ map: ttex, transparent: true, depthWrite: false })); tag.scale.set(1.12, 0.42, 1); { const [tx, tz] = ctrPt(c, off + 0.36, 0.5); tag.position.set(tx, CTR_TOP - 0.22, tz); } tag.renderOrder = 3; tag.visible = false; sc.add(tag);
       const cloth = new T.Mesh(CLOTH_GEO, MAT); cloth.position.set(x + 0, CTR_TOP, z); cloth.rotation.y = c.ry; cloth.castShadow = true; sc.add(cloth);
-      STATIONS_S.push({ kind: 'slot', ctr: c, i: k, x, z, jx, jz, padX, padZ, pad, cv, tex, hold, jar, cloth, item: null, key: '', shown: '', tick: 0, pay: 0, poor: false, spin: hash(k + 3, c.x) * 6 });
+      STATIONS_S.push({ kind: 'slot', ctr: c, i: k, x, z, jx, jz, padX, padZ, pad, cv, tex, hold, jar, cloth, tag, tcv, ttex, tagK: '', item: null, key: '', shown: '', tick: 0, pay: 0, poor: false, spin: hash(k + 3, c.x) * 6 });
     }
   });
 }
@@ -365,8 +367,18 @@ function fitModel(m, size) {
   bb = new T.Box3().setFromObject(m); const c = bb.getCenter(new T.Vector3()); m.position.x -= c.x; m.position.z -= c.z; m.position.y -= bb.min.y; return w;
 }
 const slotLeft = (o) => o.cost - (stS().paid[o.id] || 0);
+/* the price tag over each jar: a heart or a coin and how many are still needed (green once you have enough) */
+function drawTag(s, o, can) {
+  if (!s.tag) return; s.tag.visible = !!o && !!o.cost; if (!s.tag.visible) return;
+  const left = Math.max(0, slotLeft(o)), k = (o.gear ? 'h' : 'c') + left + ':' + can; if (k === s.tagK) return; s.tagK = k;
+  const x = s.tcv.getContext('2d'), t = fmt(left); x.clearRect(0, 0, 256, 96); x.font = '800 54px system-ui, sans-serif';
+  const w = Math.min(244, 96 + x.measureText(t).width + 18), x0 = (256 - w) / 2;
+  x.fillStyle = can ? '#3f7d62' : '#fffaf0'; x.strokeStyle = PAL.ink; x.lineWidth = 7; x.beginPath(); x.roundRect(x0, 10, w, 76, 38); x.fill(); x.stroke();
+  drawIcon(x, o.gear ? 'heart' : 'coin', x0 + 44, 48, 0.95); x.fillStyle = can ? '#fffaf0' : PAL.ink; x.textBaseline = 'middle'; x.fillText(t, x0 + 82, 51);
+  s.ttex.needsUpdate = true;
+}
 function drawPad(s, o) {
-  const can = !!o && purse(o) >= slotLeft(o), key = (o ? o.id : '-') + ':' + can;
+  const can = !!o && purse(o) >= slotLeft(o), key = (o ? o.id : '-') + ':' + can + ':' + (o ? slotLeft(o) : 0); drawTag(s, o, can);
   if (key === s.shown) return; s.shown = key;
   const x = s.cv.getContext('2d'); x.clearRect(0, 0, 192, 192); s.pad.visible = !!o; if (!o) return;
   if (can) { x.fillStyle = 'rgba(236,250,226,0.96)'; x.beginPath(); x.arc(96, 96, 86, 0, 7); x.fill(); x.lineWidth = 12; x.strokeStyle = '#3f7d62'; x.stroke(); drawIcon(x, o.gear ? 'heart' : 'coin', 96, 98, 1.25); }
@@ -418,7 +430,7 @@ function payStation(s, dt) {
       fly(m, () => tmpV.set(s.jx, CTR_TOP + 0.7, s.jz), () => sc.remove(m), 0.3); Snd.play('coin', { gain: 0.16 }, 0, 70); }
     if (s.pay >= PAY_T) { s.pay = 0; s.shown = ''; s.done = true; slotBuy(s, o); }
   } else s.pay = 0;
-  if (on && still && !can && !s.poor && !s.done) { s.poor = true; Snd.play('tock', { gain: 0.3, f: 300 }); flash(coinPill, 'no'); }
+  if (on && still && !can && !s.poor && !s.done) { s.poor = true; Snd.play('tock', { gain: 0.3, f: 300 }); flash(o.gear ? ($('coins').parentNode || $('coins')) : coinPill, 'no'); }
   if (!on) s.poor = false;
 }
 /* the jars: filled as far as the purse reaches; a full one glows, and a star bobs over it */
