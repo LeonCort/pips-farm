@@ -1,7 +1,7 @@
 # Pips Zoo (zoo.html): script files glued in this order by tools/build.py. Paths are relative to this folder.
 # The engine files go in the same order as in the farm; zoo files sit where the farm's matching ones do.
-# Not here yet, because they still need the farm's dog, house, fountain or flowers:
-#   pet2.js and pets.js (the pet), polish.js (shadows and the fountain), cozy.js (flowers and bees), guest2.js (guests).
+# Not here yet, because they still need the farm's house, fountain or flowers:
+#   polish.js (shadows and the fountain), cozy.js (flowers and bees), guest2.js (guests).
 ../engine/core.js
 ../engine/game.js
 rules.js
@@ -19,10 +19,14 @@ penguins.js
 ../engine/pip2.js
 ../engine/walkto.js
 ../engine/sky.js
+../engine/dog.js
+../engine/pet2.js
 ../engine/weather.js
 ../engine/rain.js
 ../engine/weather-test.js
+../engine/roads.js
 ../engine/editor.js
+../engine/pets.js
 ../engine/gfx.js
 ../engine/clouds.js
 ../engine/rays.js

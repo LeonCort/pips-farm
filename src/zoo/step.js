@@ -1,3 +1,3 @@
   /* ---------- the zoo's part of each frame (inside step(), between the engine's loop.js and loop-end.js) ---------- */
-  skyStep(dt); weatherStep(dt); rainLate(); storeStep(dt);
+  skyStep(dt); dogStep(dt); weatherStep(dt); rainLate(); petsStep(dt); storeStep(dt);
   zooStep(dt, near);

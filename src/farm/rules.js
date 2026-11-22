@@ -1,4 +1,17 @@
 const SAVE_KEY = 'pip-farm-care-v1'; /* the farm's save in localStorage */
+/* the island (scene.js draws it): a round town island with a wavy coast, a little point for the lighthouse,
+   a cobbled plaza (walk: the path round the fountain), the ring road round the town, straight roads (x0, z0, x1, z1, half width,
+   kind 1 dirt / 2 cobbles), and the box pets and helpers keep inside */
+const ISLAND = { a: 24, b: 15, wob: [[3, 0.035, 1], [5, 0.025, 2.2], [8, 0.022, 0.4]], cape: [1.0, 0.07, 0.012], plaza: 3.5, walk: 2.3, ring: { rx: 8, rz: 7.6, w: 0.62 },
+  box: { x0: -16.3, x1: 16.3, z0: -10.9, z1: 10.9 },
+  roads: [
+    [-3.2, 0, -12.6, 0, 0.62, 1], [-12.6, -7.4, -12.6, 7.4, 0.68, 1], /* west to the farmyard, and the farm lane */
+    [3.2, 0, 8, 0, 0.62, 1], [8, 0, 22.4, 0, 0.95, 2], /* east, then the cobbled market street */
+    [0, 3.2, 0, 13.4, 0.62, 1], /* south to the harbour */
+    [0, -7.6, 0, -9.0, 0.62, 1], /* north to the meadow */
+    [-5.66, 5.37, -4.9, 8.7, 0.55, 1] /* south-west to the pond */
+  ] };
+const KENNEL = { x: -1.9, z: 8.4 }; /* the dog's kennel, south of the plaza */
 /* ---------- rules ---------- */
 /* which test layout this build is: 'near' puts the hens and cows right behind their market stalls,
    'van' keeps the farmyard and lets a little flatbed truck drive the eggs and milk to the market */

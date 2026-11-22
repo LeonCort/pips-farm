@@ -55,14 +55,6 @@ function babyStep(dt) {
   });
 }
 function sleepSpot(an) { const h = housePos(an.a), k = animals.filter((o) => o.a === an.a).indexOf(an), sp = an.a === 'hen' ? 0.42 : an.a === 'pig' || an.a === 'sheep' ? 0.62 : 0.8; return [h[0] + penSide(an.a) * (k % 3) * sp, h[1] + 0.85 + Math.floor(k / 3) * 0.6]; }
-/* sleeping: a little "z z" floats over sleeping animals */
-const zTex = (() => { const c = document.createElement('canvas'); c.width = 96; c.height = 64; const x = c.getContext('2d'); x.font = '700 30px Fredoka, sans-serif'; x.fillStyle = '#fff6e4'; x.strokeStyle = PAL.ink; x.lineWidth = 6; x.lineJoin = 'round'; [['z', 14, 52, 26], ['z', 40, 36, 32], ['Z', 64, 22, 38]].forEach(([t, px, py, s]) => { x.font = '700 ' + s + 'px Fredoka, sans-serif'; x.strokeText(t, px, py); x.fillText(t, px, py); }); return new T.CanvasTexture(c); })();
-function zzz(an, on, dt) {
-  if (on && !an.zs && !an.baby) { an.zs = new T.Sprite(new T.SpriteMaterial({ map: zTex, transparent: true, depthTest: false })); an.zs.renderOrder = 6; an.zs.scale.set(0.6, 0.4, 1); sc.add(an.zs); }
-  if (an.zs) { an.zs.visible = on; if (on) { const p = an.g.position; an.zs.position.set(p.x + 0.25, an.h * (an.baby ? 1 : 0.85) + 0.25 + (reduced ? 0 : Math.sin(time * 1.5 + p.x) * 0.08), p.z); } }
-  const lie = on ? 1 : 0; an.lie = (an.lie || 0) + (lie - (an.lie || 0)) * Math.min(1, dt * 3);
-  an.body.scale.y = 1 - an.lie * 0.22; an.body.rotation.x = an.lie * 0.05;
-}
 /* a name tag pops up over an animal when you pet it */
 const nameTex = {};
 function nameSprite(txt) {

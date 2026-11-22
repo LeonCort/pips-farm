@@ -547,7 +547,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122123733">
+<meta name="app-ver" content="20261122130726">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -871,6 +871,19 @@ const PAL = { seaDeep: '#1f6a80', sea: '#2e8f9c', seaShallow: '#63bfb4', sand: '
 let state = null;
 let mount = null;
 const SAVE_KEY = 'pip-farm-care-v1'; /* the farm's save in localStorage */
+/* the island (scene.js draws it): a round town island with a wavy coast, a little point for the lighthouse,
+   a cobbled plaza (walk: the path round the fountain), the ring road round the town, straight roads (x0, z0, x1, z1, half width,
+   kind 1 dirt / 2 cobbles), and the box pets and helpers keep inside */
+const ISLAND = { a: 24, b: 15, wob: [[3, 0.035, 1], [5, 0.025, 2.2], [8, 0.022, 0.4]], cape: [1.0, 0.07, 0.012], plaza: 3.5, walk: 2.3, ring: { rx: 8, rz: 7.6, w: 0.62 },
+  box: { x0: -16.3, x1: 16.3, z0: -10.9, z1: 10.9 },
+  roads: [
+    [-3.2, 0, -12.6, 0, 0.62, 1], [-12.6, -7.4, -12.6, 7.4, 0.68, 1], /* west to the farmyard, and the farm lane */
+    [3.2, 0, 8, 0, 0.62, 1], [8, 0, 22.4, 0, 0.95, 2], /* east, then the cobbled market street */
+    [0, 3.2, 0, 13.4, 0.62, 1], /* south to the harbour */
+    [0, -7.6, 0, -9.0, 0.62, 1], /* north to the meadow */
+    [-5.66, 5.37, -4.9, 8.7, 0.55, 1] /* south-west to the pond */
+  ] };
+const KENNEL = { x: -1.9, z: 8.4 }; /* the dog's kennel, south of the plaza */
 /* ---------- rules ---------- */
 /* which test layout this build is: 'near' puts the hens and cows right behind their market stalls,
    'van' keeps the farmyard and lets a little flatbed truck drive the eggs and milk to the market */
@@ -1229,7 +1242,6 @@ const FPS_OPTS = [30, 60, 20]; let fpsCap = 30; try { const v = +localStorage.ge
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, fpsCap === 20 ? 1 : 1.5)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
 const sc = new T.Scene(); sc.background = new T.Color(PAL.haze); sc.fog = new T.Fog(PAL.haze, 28, 70);
 const cam = new T.PerspectiveCamera(36, 1, 0.5, 300);
-const HERE_T = typeof DIET !== 'undefined' ? 'farm' : 'shop';
 const MAT = new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
 const _h = {};
 function tone(hex, key, amt) { amt = amt == null ? 1 : amt; const c = new T.Color(hex); c.getHSL(_h); c.setHSL(_h.h + (hash(key, 1.3) - 0.5) * 0.03 * amt, clamp(_h.s * (1 + (hash(key, 7.7) - 0.5) * 0.22 * amt), 0, 1), clamp(_h.l * (1 + (hash(key, 13.1) - 0.5) * 0.15 * amt), 0, 1)); return c; }
@@ -1257,43 +1269,35 @@ const ico = (r, d, seed, j) => jit(new T.IcosahedronGeometry(r, d), j == null ? 
 const ink = new T.MeshBasicMaterial({ color: PAL.ink });
 
 /* a smaller shadow map on the farm: blurrier, softer shadow edges (and cheaper) */
-const HERE_SHADOW = HERE_T === 'farm' ? 640 : 1024;
+const HERE_SHADOW = 640;
 sc.add(new T.HemisphereLight(0xc4d6f2, 0xa8a070, 0.6));
 const sun = new T.DirectionalLight(0xffd6a0, 1.05); sun.position.set(-11, 9, 7.5); sun.castShadow = true; sun.shadow.mapSize.set(HERE_SHADOW, HERE_SHADOW);
 Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 12, bottom: -12, near: 1, far: 50 }); sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03; sc.add(sun); sc.add(sun.target);
 const sky = new T.Mesh(new T.SphereGeometry(150, 32, 16), new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: false, uniforms: { top: { value: new T.Color('#7db7dd') }, hor: { value: new T.Color('#ffe2c4') } }, vertexShader: 'varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }', fragmentShader: 'varying vec3 vD; uniform vec3 top; uniform vec3 hor; void main(){ float y = max(normalize(vD).y, 0.0); gl_FragColor = vec4(mix(hor, top, pow(y, 0.55)), 1.0); }' })); sc.add(sky);
 
-/* ground: a flat farm plateau that drops to the sea at the edges */
-/* the farm is a round town island (an ellipse with a wavy coast and a little point for the lighthouse); the shop is still the old block */
-const ISL = { a: 24, b: 15 };
-function isleD(x, z) { const u = x / ISL.a, v = z / ISL.b, th = Math.atan2(v, u), dth = th - 1.0;
-  return Math.hypot(u, v) / (1 + 0.035 * Math.sin(3 * th + 1) + 0.025 * Math.sin(5 * th + 2.2) + 0.022 * Math.sin(8 * th + 0.4) + 0.07 * Math.exp(-dth * dth / 0.012)); }
-function hAt(x, z) { if (HERE_T === 'farm') { const d = isleD(x, z); return d < 1 ? 0 : -Math.min(1.6, (d - 1) * 12); } const d = Math.max(Math.abs(x) / 17, Math.abs(z) / 11.6); return d < 1 ? 0 : -Math.min(1.6, (d - 1) * 7); }
+/* ground: a flat plateau that drops to the sea at the edges.
+   The game gives the island's shape in ISLAND: an oval a by b with a wavy coast (wob: waves, size, turn), an optional
+   point (cape: angle, size, width), a round plaza in the middle, an oval ring road and straight roads. */
+const ISL = ISLAND, RING = ISLAND.ring, ROADS = ISLAND.roads; /* ROADS: x0, z0, x1, z1, half width, kind */
+function isleD(x, z) { const u = x / ISL.a, v = z / ISL.b, th = Math.atan2(v, u), c = ISL.cape; let f = 1;
+  for (const w of ISL.wob) f += w[1] * Math.sin(w[0] * th + w[2]);
+  if (c) { const dth = th - c[0]; f += c[1] * Math.exp(-dth * dth / c[2]); }
+  return Math.hypot(u, v) / f; }
+function hAt(x, z) { const d = isleD(x, z); return d < 1 ? 0 : -Math.min(1.6, (d - 1) * 12); }
 /* roads: 0 grass, 1 dirt road, 2 cobbles */
 function segD(x, z, x0, z0, x1, z1) { const dx = x1 - x0, dz = z1 - z0, t = clamp(((x - x0) * dx + (z - z0) * dz) / (dx * dx + dz * dz), 0, 1); return Math.hypot(x - x0 - dx * t, z - z0 - dz * t); }
-const RING = { rx: 8, rz: 7.6 };
-const ROADS = [ /* x0, z0, x1, z1, half width, kind */
-  [-3.2, 0, -12.6, 0, 0.62, 1], [-12.6, -7.4, -12.6, 7.4, 0.68, 1], /* west to the farmyard, and the farm lane */
-  [3.2, 0, 8, 0, 0.62, 1], [8, 0, 22.4, 0, 0.95, 2], /* east, then the cobbled market street */
-  [0, 3.2, 0, 13.4, 0.62, 1], /* south to the harbour */
-  [0, -7.6, 0, -9.0, 0.62, 1], /* north to the meadow */
-  [-5.66, 5.37, -4.9, 8.7, 0.55, 1] /* south-west to the pond */
-];
 function roadKind(x, z) {
-  if (HERE_T !== 'farm') return (Math.abs(z + 1.5) < 0.55 && x > 4.4) || (Math.abs(x - 3.6) < 0.5 && z > 1 && z < 7) ? 1 : 0;
-  if (Math.hypot(x, z) < 3.5) return 2;
+  if (Math.hypot(x, z) < ISL.plaza) return 2;
   let k = 0; for (const r of ROADS) if (segD(x, z, r[0], r[1], r[2], r[3]) < r[4]) { if (r[5] === 2) return 2; k = 1; }
   if (k) return k;
-  const e = Math.hypot(x / RING.rx, z / RING.rz); if (Math.abs(e - 1) * 7.8 < 0.62) return 1;
+  if (RING) { const e = Math.hypot(x / RING.rx, z / RING.rz); if (Math.abs(e - 1) * (RING.rx + RING.rz) / 2 < RING.w) return 1; }
   return 0;
 }
-const ROAD_COL = ['', PAL.sand, '#dcc7a2'], ROAD_AMT = [0.9, 0.6, 1.0];
 /* keep a target point on the island */
 function onIsle(v) { if (inHouse) { v.x = clamp(v.x, IN_B.x0, IN_B.x1); v.z = clamp(v.z, IN_B.z0, IN_B.z1); return v; }
-  if (HERE_T !== 'farm') { v.x = clamp(v.x, ISLE.x0, ISLE.x1); v.z = clamp(v.z, ISLE.z0, ISLE.z1); return v; }
   if (Math.abs(v.x - DOCK.x) < 0.6 && v.z > DOCK.edge - 1 && v.z < DOCK.z1 + 1) { v.x = clamp(v.x, DOCK.x - 0.35, DOCK.x + 0.35); v.z = Math.min(v.z, DOCK.z1 - 0.3); return v; } /* out along the dock */
   const d = isleD(v.x, v.z), lim = 0.965; if (d > lim) { v.x *= lim / d; v.z *= lim / d; } return v; }
-const tg = HERE_T === 'farm' ? new T.PlaneGeometry(58, 40, 112, 78) : new T.PlaneGeometry(54, 42, 66, 52); tg.rotateX(-Math.PI / 2);
+const tg = new T.PlaneGeometry(58, 40, 112, 78); tg.rotateX(-Math.PI / 2);
 { const p = tg.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i) + (hash(i, 1) - 0.5) * 0.3, z = p.getZ(i) + (hash(i, 2) - 0.5) * 0.3; p.setXYZ(i, x, hAt(x, z) + (hAt(x, z) === 0 ? hash(i, 5) * 0.04 : 0), z); } }
 /* cozy ground (farm): soft grass gradients in the vertex colours, and the roads, pebbles, cobbles and painted grass strokes
    in two textures made once at start, so the paths get round, overgrown edges instead of triangle steps */
@@ -1306,14 +1310,14 @@ const WET_SAND = new T.Color('#b79a70');
 function groundCol(x, y, z, key, grass, beach, warm) {
   if (y < -0.6) return tone(PAL.bed, key, 0.4);
   if (y < -0.05) { const c = tone(beach || PAL.sand, key, 0.4); return c.lerp(WET_SAND, 0.5 * clamp((-y - 0.08) / 0.3, 0, 1)); }
-  const c = grassAt(x, z, grass || PAL.grass, key, warm); if (HERE_T !== 'farm') return c;
+  const c = grassAt(x, z, grass || PAL.grass, key, warm);
   const d = isleD(x, z) + 0.012 * Math.sin(x * 1.7 + z * 0.9) + 0.008 * Math.sin(x * 4.1 - z * 3.3), q = clamp((d - 0.925) / 0.05, 0, 1);
   return q > 0 ? c.lerp(tone(beach || PAL.sand, key, 0.4), q * q * (3 - 2 * q)) : c;
 }
 function repaintV(mesh, paint) { const p = mesh.geometry.attributes.position, col = mesh.geometry.attributes.color; if (!col) return; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), c = paint(x, y, z, vkey(x, y, z)); col.setXYZ(i, c.r, c.g, c.b); } col.needsUpdate = true; }
 const GU = { path: { value: new T.Color(PAL.sand) }, cob: { value: new T.Color('#dcc7a2') }, mask: { value: null }, det: { value: null } };
 let ground, GMASK = null; /* GMASK: road kind per mask pixel */
-if (HERE_T === 'farm') {
+{
   const gm = new T.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
   gm.onBeforeCompile = (sh) => {
     sh.uniforms.gMask = GU.mask; sh.uniforms.gDet = GU.det; sh.uniforms.pathCol = GU.path; sh.uniforms.cobCol = GU.cob;
@@ -1324,7 +1328,7 @@ if (HERE_T === 'farm') {
   ground = new T.Mesh(fac(tg, (cx, cy, cz, i) => groundCol(cx, cy, cz, i)), gm); ground.receiveShadow = true; sc.add(ground);
   repaintV(ground, (x, y, z, k) => groundCol(x, y, z, k));
   paintGroundTex();
-} else { ground = part(fac(tg, (cx, cy, cz, i) => cy < -0.6 ? tone(PAL.bed, i) : cy < -0.05 ? tone(PAL.sand, i) : roadKind(cx, cz) ? tone(ROAD_COL[roadKind(cx, cz)], i, ROAD_AMT[roadKind(cx, cz)]) : tone(PAL.grass, i, 0.9)), sc); ground.castShadow = false; }
+}
 /* world (x, z) to texture pixels: the farm ground is 58 x 40 */
 const GX = (x, W) => (x + 29) / 58 * W, GZ = (z, H) => (z + 20) / 40 * H;
 function paintGroundTex() {
@@ -1404,7 +1408,7 @@ function groundShade(list) {
   d.restore(); GU.det.value.needsUpdate = true;
 }
 let wg = new T.PlaneGeometry(160, 160, 56, 56); wg.rotateX(-Math.PI / 2);
-wg = fac(wg, (cx, cy, cz, i) => { const d = HERE_T === 'farm' ? Math.hypot(cx / 1.6, cz) * 0.8 : Math.max(Math.abs(cx) / 1.4, Math.abs(cz)); return tone(d < 16 ? PAL.seaShallow : d < 28 ? PAL.sea : PAL.seaDeep, i, 0.9); });
+wg = fac(wg, (cx, cy, cz, i) => { const d = Math.hypot(cx / 1.6, cz) * 0.8; return tone(d < 16 ? PAL.seaShallow : d < 28 ? PAL.sea : PAL.seaDeep, i, 0.9); });
 const water = new T.Mesh(wg, new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.28, metalness: 0.05 })); water.position.y = -0.45; water.receiveShadow = true; sc.add(water);
 const wp = wg.attributes.position, wn = wg.attributes.normal;
 
@@ -1794,7 +1798,7 @@ if ($('ward')) {
 /* a dock at the south end of the path; stand on it and the boat sails to the other island */
 const HERE = typeof DIET !== 'undefined' ? 'farm' : 'shop', THERE_PAGE = HERE === 'farm' ? 'butik.html' : 'bondgard.html';
 const canSail = /github\.io$/.test(location.hostname) || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-const DOCK = (() => { const X = HERE_T === 'farm' ? 0 : 3.6; let z = 0; while (hAt(X, z) > -0.02 && z < 30) z += 0.1; return { x: X, edge: z, z0: z - 0.9, z1: z + 2.6, boat: z + 3.75 }; })();
+const DOCK = (() => { const X = 0; let z = 0; while (hAt(X, z) > -0.02 && z < 30) z += 0.1; return { x: X, edge: z, z0: z - 0.9, z1: z + 2.6, boat: z + 3.75 }; })();
 const dockG = new T.Group(); sc.add(dockG);
 {
   const len = DOCK.z1 - DOCK.z0 + 0.3; let g = new T.BoxGeometry(1.1, 0.08, len, 1, 1, Math.round(len / 0.3)); g.translate(DOCK.x, 0.1, DOCK.z0 - 0.15 + len / 2);
@@ -1869,7 +1873,7 @@ function boatStep(dt) {
 }
 
 /* ---------- the upgrade house: walk in, visit a room, stand on its pad to buy ---------- */
-const ISLE = HERE === 'farm' ? { x0: -16.3, x1: 16.3, z0: -10.9, z1: 10.9 } : { x0: -10.3, x1: 10.3, z0: -6.9, z1: 6.9 };
+const ISLE = ISLAND.box;
 const HO = { x: 200, z: 0 }; /* the inside is built far out to sea, where nothing else is */
 const IN_B = { x0: HO.x - 5.7, x1: HO.x + 5.7, z0: HO.z - 6.7, z1: HO.z + 5.4 };
 let inHouse = false, houseReady = false;
@@ -2017,10 +2021,8 @@ const wardRing = mkRing(HO.x, HO.z - 6.15);
   const fr = new T.BoxGeometry(1.2, 1.8, 0.12); part(fac(fr, PAL.trunk, 170), inG, 0, 0.95, -6.8);
   const gl = new T.Mesh(new T.PlaneGeometry(0.95, 1.55), new T.MeshStandardMaterial({ color: '#cfe8f2', roughness: 0.15, metalness: 0.3 })); gl.position.set(0, 0.95, -6.73); inG.add(gl);
   /* the farm game has the bed on the left, so all the clothes hang on one long rail on the right */
-  if (HERE_T === 'farm') { const pole = new T.CylinderGeometry(0.04, 0.04, 1.4, 6); part(fac(pole, PAL.ink, 171), inG, 1.9, 0.7, -6.2); part(fac(pole, PAL.ink, 171), inG, 5.7, 0.7, -6.2); const bar = new T.CylinderGeometry(0.03, 0.03, 3.8, 6); bar.rotateZ(Math.PI / 2); part(fac(bar, PAL.ink, 172), inG, 3.8, 1.38, -6.2);
+  { const pole = new T.CylinderGeometry(0.04, 0.04, 1.4, 6); part(fac(pole, PAL.ink, 171), inG, 1.9, 0.7, -6.2); part(fac(pole, PAL.ink, 171), inG, 5.7, 0.7, -6.2); const bar = new T.CylinderGeometry(0.03, 0.03, 3.8, 6); bar.rotateZ(Math.PI / 2); part(fac(bar, PAL.ink, 172), inG, 3.8, 1.38, -6.2);
     AVO.sh.slice(0, 8).forEach((col, k) => { const t = new T.BoxGeometry(0.36, 0.5, 0.08); part(fac(t, col, 173 + k), inG, 2.25 + k * 0.45, 1.05, -6.2); }); }
-  else [-1, 1].forEach((s) => { const pole = new T.CylinderGeometry(0.04, 0.04, 1.4, 6); part(fac(pole, PAL.ink, 171), inG, s * 3.0, 0.7, -6.2); part(fac(pole, PAL.ink, 171), inG, s * 5.0, 0.7, -6.2); const bar = new T.CylinderGeometry(0.03, 0.03, 2.0, 6); bar.rotateZ(Math.PI / 2); part(fac(bar, PAL.ink, 172), inG, s * 4.0, 1.38, -6.2);
-    AVO.sh.slice(s < 0 ? 0 : 4, s < 0 ? 4 : 8).forEach((col, k) => { const t = new T.BoxGeometry(0.36, 0.5, 0.08); part(fac(t, col, 173 + k), inG, s * (3.3 + k * 0.45), 1.05, -6.2); }); });
 }
 let wardLatch = false, doorT = 0;
 function goInside(to) {
@@ -3088,14 +3090,6 @@ function babyStep(dt) {
   });
 }
 function sleepSpot(an) { const h = housePos(an.a), k = animals.filter((o) => o.a === an.a).indexOf(an), sp = an.a === 'hen' ? 0.42 : an.a === 'pig' || an.a === 'sheep' ? 0.62 : 0.8; return [h[0] + penSide(an.a) * (k % 3) * sp, h[1] + 0.85 + Math.floor(k / 3) * 0.6]; }
-/* sleeping: a little "z z" floats over sleeping animals */
-const zTex = (() => { const c = document.createElement('canvas'); c.width = 96; c.height = 64; const x = c.getContext('2d'); x.font = '700 30px Fredoka, sans-serif'; x.fillStyle = '#fff6e4'; x.strokeStyle = PAL.ink; x.lineWidth = 6; x.lineJoin = 'round'; [['z', 14, 52, 26], ['z', 40, 36, 32], ['Z', 64, 22, 38]].forEach(([t, px, py, s]) => { x.font = '700 ' + s + 'px Fredoka, sans-serif'; x.strokeText(t, px, py); x.fillText(t, px, py); }); return new T.CanvasTexture(c); })();
-function zzz(an, on, dt) {
-  if (on && !an.zs && !an.baby) { an.zs = new T.Sprite(new T.SpriteMaterial({ map: zTex, transparent: true, depthTest: false })); an.zs.renderOrder = 6; an.zs.scale.set(0.6, 0.4, 1); sc.add(an.zs); }
-  if (an.zs) { an.zs.visible = on; if (on) { const p = an.g.position; an.zs.position.set(p.x + 0.25, an.h * (an.baby ? 1 : 0.85) + 0.25 + (reduced ? 0 : Math.sin(time * 1.5 + p.x) * 0.08), p.z); } }
-  const lie = on ? 1 : 0; an.lie = (an.lie || 0) + (lie - (an.lie || 0)) * Math.min(1, dt * 3);
-  an.body.scale.y = 1 - an.lie * 0.22; an.body.rotation.x = an.lie * 0.05;
-}
 /* a name tag pops up over an animal when you pet it */
 const nameTex = {};
 function nameSprite(txt) {
@@ -3191,18 +3185,28 @@ function familyStep(dt) {
   babyStep(dt); tagStep(dt);
   familyT -= dt; if (familyT <= 0) { familyT = 1; checkStickers(); }
 }
-/* ---------- extras: the farm dog, fishing from the dock and the vegetable patch (weather is in weather.js) ---------- */
-function ripple(x, z) {
-  const m = new T.Mesh(new T.RingGeometry(0.12, 0.18, 24), new T.MeshBasicMaterial({ color: PAL.paper, transparent: true, opacity: 0.8 }));
-  m.rotation.x = -Math.PI / 2; m.position.set(x, -0.36, z); sc.add(m); ripples.push({ m, t: 0 });
-}
-const ripples = [];
+/* ---------- the pet dog and its kennel, and the sleeping z's (moved here from the farm's extras.js and family.js) ---------- */
+/* a soft dark spot that lies under Pip, the pets and other things, so nothing floats on the grass (polish.js, pets.js) */
+const blobTex = gradTex(64, 64, [[0, 255, 255, 255, 1], [0.5, 217, 217, 217, 0.85], [1, 0, 0, 0, 0]]); /* used as an alphaMap: the green channel is the alpha */
+const blobMat = new T.MeshBasicMaterial({ color: '#1c2a20', alphaMap: blobTex, transparent: true, opacity: 0.7, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+const blobGeo = new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
 
-/* ---------- the dog: follows Pip around, barks now and then, sleeps in its kennel at night ---------- */
-const KENNEL = { x: -1.9, z: 8.4 };
+/* sleeping: a little "z z" floats over sleeping animals */
+const zTex = (() => { const c = document.createElement('canvas'); c.width = 96; c.height = 64; const x = c.getContext('2d'); x.font = '700 30px Fredoka, sans-serif'; x.fillStyle = '#fff6e4'; x.strokeStyle = PAL.ink; x.lineWidth = 6; x.lineJoin = 'round'; [['z', 14, 52, 26], ['z', 40, 36, 32], ['Z', 64, 22, 38]].forEach(([t, px, py, s]) => { x.font = '700 ' + s + 'px Fredoka, sans-serif'; x.strokeText(t, px, py); x.fillText(t, px, py); }); return new T.CanvasTexture(c); })();
+function zzz(an, on, dt) {
+  if (on && !an.zs && !an.baby) { an.zs = new T.Sprite(new T.SpriteMaterial({ map: zTex, transparent: true, depthTest: false })); an.zs.renderOrder = 6; an.zs.scale.set(0.6, 0.4, 1); sc.add(an.zs); }
+  if (an.zs) { an.zs.visible = on; if (on) { const p = an.g.position; an.zs.position.set(p.x + 0.25, an.h * (an.baby ? 1 : 0.85) + 0.25 + (reduced ? 0 : Math.sin(time * 1.5 + p.x) * 0.08), p.z); } }
+  const lie = on ? 1 : 0; an.lie = (an.lie || 0) + (lie - (an.lie || 0)) * Math.min(1, dt * 3);
+  an.body.scale.y = 1 - an.lie * 0.22; an.body.rotation.x = an.lie * 0.05;
+}
+
+/* ---------- the dog: follows Pip around, barks now and then, sleeps in its kennel at night ----------
+   The game says where the kennel is (KENNEL), and with petPlace() where Pip is: inside with the pet ('home'),
+   somewhere the pet cannot follow ('away'), and where the pet should wait then ('goal', [x, z, speed]). */
 {
+  const kWall = (hex, y, h, key) => { const c = tone(hex, key, 0.5), q = clamp(y / h, 0, 1); return c.multiplyScalar(0.8 + 0.28 * q); };
   const g = new T.Group(); g.position.set(KENNEL.x, 0, KENNEL.z); sc.add(g);
-  let q = new T.BoxGeometry(1.0, 0.62, 0.9); q.translate(0, 0.31, 0); part(fac(jit(q, 0.015, 411), (cx, cy, cz, i) => wallY(PAL.accent, cy, 0.62, i)), g);
+  let q = new T.BoxGeometry(1.0, 0.62, 0.9); q.translate(0, 0.31, 0); part(fac(jit(q, 0.015, 411), (cx, cy, cz, i) => kWall(PAL.accent, cy, 0.62, i)), g);
   [-1, 1].forEach((s) => { q = new T.BoxGeometry(0.66, 0.07, 1.04); q.translate(0, 0, 0); const m = part(fac(q, PAL.trunk, 412), g, s * 0.27, 0.8, 0); m.rotation.z = -s * 0.62; });
   q = new T.CircleGeometry(0.2, 12); const door = part(fac(q, PAL.ink, 413), g, 0, 0.26, 0.452); door.scale.y = 1.25;
   q = new T.CylinderGeometry(0.2, 0.2, 0.06, 12); part(fac(q, '#d8d0c0', 414), g, 0.42, 0.03, 0.72);
@@ -3234,15 +3238,14 @@ let dog = (() => {
 function bark(gain) { dog.hop = 1; petVoice(dog.kind || 'dog', gain); }
 function petDog() { petPet(nearPet() || dog); }
 function dogStep(dt) {
-  const d = dog, p = d.g.position, pp = pip.position, home = inHouse && !inBarn && !inStore, away = (inHouse && !home) || !!trip;
-  if (home !== !!d.inH) { d.inH = home; PTRAIL.length = 0; d.chase = false; if (home) { const q = typeof homeIn === 'function' ? homeIn() : null; if (q) p.set(q[0] + 0.35, 0, q[1] + 0.6); else p.set(HO.x + 0.35, 0, HO.z + 4.4); d.g.rotation.y = Math.PI; } else { p.set(HDOOR.x + 0.6, 0, HDOOR.z + 0.9); } }
+  const d = dog, p = d.g.position, pp = pip.position, pl = petPlace(d), home = pl.home, away = pl.away;
+  if (home !== !!d.inH) { d.inH = home; PTRAIL.length = 0; d.chase = false; const q = pl.door(home); p.set(q[0], 0, q[1]); if (home) d.g.rotation.y = Math.PI; }
   let tx, tz, sp = 1.1;
   if (d.away && !away && !isNight) { d.chase = true; bark(0.5); }
   d.away = away;
   if (home) { [tx, tz] = petTrailGoal(0.95); sp = Math.max(2.6, speed() * 1.05); }
   else if (isNight) { tx = KENNEL.x; tz = KENNEL.z + 0.75; sp = 2.2; }
-  else if (inHouse) { tx = inStore ? SDOOR.x + 1.3 : inBarn ? BARN.x + 1.3 : HDOOR.x + 1.0; tz = inStore ? SDOOR.z + 0.6 : inBarn ? BARN.z + 2.2 : HDOOR.z + 0.1; sp = 2.6; }
-  else if (trip) { tx = DOCK.x + 0.95; tz = DOCK.z0 - 0.9; sp = 2.6; }
+  else if (pl.goal) { [tx, tz, sp] = pl.goal; }
   else {
     const dd = Math.hypot(pp.x - p.x, pp.z - p.z);
     if (dd > 24) { p.set(pp.x - 1.2, 0, pp.z - 0.8); }
@@ -3251,7 +3254,7 @@ function dogStep(dt) {
       const a = pip.rotation.y; tx = pp.x - Math.sin(a) * 0.95 + Math.cos(a) * 0.55; tz = pp.z - Math.cos(a) * 0.95 - Math.sin(a) * 0.55; sp = Math.max(2.8, speed() * 1.08);
       if (dd < 1.2) { d.chase = false; d.wanderT = 1 + Math.random() * 2; d.tx = p.x; d.tz = p.z; }
     } else {
-      d.wanderT -= dt; if (d.wanderT <= 0) { d.wanderT = 2.5 + Math.random() * 4; d.tx = clamp(pp.x + (Math.random() - 0.5) * 2.6, ISLE.x0 + 1, ISLE.x1 - 1); d.tz = clamp(pp.z + (Math.random() - 0.5) * 2.6, ISLE.z0 + 1, ISLE.z1 - 1); }
+      d.wanderT -= dt; if (d.wanderT <= 0) { d.wanderT = 2.5 + Math.random() * 4; d.tx = clamp(pp.x + (Math.random() - 0.5) * 2.6, ISL.box.x0 + 1, ISL.box.x1 - 1); d.tz = clamp(pp.z + (Math.random() - 0.5) * 2.6, ISL.box.z0 + 1, ISL.box.z1 - 1); }
       tx = d.tx; tz = d.tz;
     }
     d.barkT -= dt; if (d.barkT <= 0) { d.barkT = 16 + Math.random() * 26; if (dd < 7) bark(0.45); }
@@ -3269,6 +3272,21 @@ function dogStep(dt) {
   if (!moving && !d.asleep && !away) { const want = Math.atan2(pp.x - p.x, pp.z - p.z); let df = want - d.g.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df)); hy = clamp(df, -0.9, 0.9); hx = Math.hypot(pp.x - p.x, pp.z - p.z) < 2.2 ? -0.38 : -0.1; hz = reduced ? 0 : Math.sin(time * 1.3) * 0.12; }
   d.head.rotation.y += (hy - d.head.rotation.y) * Math.min(1, dt * 6); d.head.rotation.x += (hx - d.head.rotation.x) * Math.min(1, dt * 6); d.head.rotation.z += (hz - d.head.rotation.z) * Math.min(1, dt * 4);
   zzz(d, d.asleep, dt);
+}
+/* ---------- extras: the farm dog, fishing from the dock and the vegetable patch (weather is in weather.js) ---------- */
+function ripple(x, z) {
+  const m = new T.Mesh(new T.RingGeometry(0.12, 0.18, 24), new T.MeshBasicMaterial({ color: PAL.paper, transparent: true, opacity: 0.8 }));
+  m.rotation.x = -Math.PI / 2; m.position.set(x, -0.36, z); sc.add(m); ripples.push({ m, t: 0 });
+}
+const ripples = [];
+
+/* where the dog goes (engine/dog.js asks): inside the house it follows Pip; in the barn or the store, or out on the boat,
+   it waits outside the door or on the dock */
+function petPlace() {
+  const home = inHouse && !inBarn && !inStore;
+  return { home, away: (inHouse && !home) || !!trip,
+    goal: inHouse ? [inStore ? SDOOR.x + 1.3 : inBarn ? BARN.x + 1.3 : HDOOR.x + 1.0, inStore ? SDOOR.z + 0.6 : inBarn ? BARN.z + 2.2 : HDOOR.z + 0.1, 2.6] : trip ? [DOCK.x + 0.95, DOCK.z0 - 0.9, 2.6] : null,
+    door: (inside) => { if (!inside) return [HDOOR.x + 0.6, HDOOR.z + 0.9]; const q = typeof homeIn === 'function' ? homeIn() : null; return q ? [q[0] + 0.35, q[1] + 0.6] : [HO.x + 0.35, HO.z + 4.4]; } };
 }
 
 /* ---------- fishing from the end of the dock ---------- */
@@ -3920,6 +3938,29 @@ function weatherTest() {
     dayAt: (fr) => { state.clock = Math.floor(state.clock / DAY) * DAY + fr * DAY; }
   };
 }
+/* ---------- walking by road (moved here from the farm's town.js; built from the game's ISLAND): a small graph of points along every road, and the shortest way between two places ---------- */
+const RG = { n: [], e: [], line: [] };
+function rgAdd(x, z, line) { RG.n.push([x, z]); RG.e.push([]); RG.line.push(line); return RG.n.length - 1; }
+function rgLink(a, b) { const d = Math.hypot(RG.n[a][0] - RG.n[b][0], RG.n[a][1] - RG.n[b][1]); RG.e[a].push([b, d]); RG.e[b].push([a, d]); }
+{
+  let line = 0;
+  const loop = (pts) => { const ids = pts.map(([x, z]) => rgAdd(x, z, line)); ids.forEach((id, i) => rgLink(id, ids[(i + 1) % ids.length])); line++; };
+  loop(Array.from({ length: 10 }, (_, i) => [Math.cos(i / 10 * 6.283) * ISL.walk, Math.sin(i / 10 * 6.283) * ISL.walk])); /* round the plaza */
+  if (RING) loop(Array.from({ length: 36 }, (_, i) => [Math.cos(i / 36 * 6.283) * RING.rx, Math.sin(i / 36 * 6.283) * RING.rz]));
+  ROADS.forEach((r) => { const L = Math.hypot(r[2] - r[0], r[3] - r[1]), n = Math.max(1, Math.ceil(L / 1.4)); let prev = -1; for (let i = 0; i <= n; i++) { const id = rgAdd(r[0] + (r[2] - r[0]) * i / n, r[1] + (r[3] - r[1]) * i / n, line); if (prev >= 0) rgLink(prev, id); prev = id; } line++; });
+  for (let a = 0; a < RG.n.length; a++) for (let b = a + 1; b < RG.n.length; b++) if (RG.line[a] !== RG.line[b] && Math.hypot(RG.n[a][0] - RG.n[b][0], RG.n[a][1] - RG.n[b][1]) < 1.5) rgLink(a, b);
+}
+function rgNear(x, z) { let best = 0, bd = 1e9; RG.n.forEach(([nx, nz], i) => { const d = Math.hypot(nx - x, nz - z); if (d < bd) { bd = d; best = i; } }); return best; }
+function roadPath(x0, z0, x1, z1) {
+  if (Math.hypot(x1 - x0, z1 - z0) < 3) return [[x1, z1]];
+  const a = rgNear(x0, z0), b = rgNear(x1, z1), D = RG.n.map(() => Infinity), prev = RG.n.map(() => -1), done = RG.n.map(() => false); D[a] = 0;
+  for (;;) { let u = -1; for (let i = 0; i < D.length; i++) if (!done[i] && (u < 0 || D[i] < D[u])) u = i; if (u < 0 || D[u] === Infinity || u === b) break; done[u] = true; RG.e[u].forEach(([v, w]) => { if (D[u] + w < D[v]) { D[v] = D[u] + w; prev[v] = u; } }); }
+  const pts = []; for (let u = b; u >= 0; u = prev[u]) pts.unshift(RG.n[u].slice());
+  /* skip road points behind Pip, and finish off the road at the place itself */
+  while (pts.length > 1 && Math.hypot(pts[1][0] - x0, pts[1][1] - z0) < Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1])) pts.shift();
+  while (pts.length > 1 && Math.hypot(pts[pts.length - 2][0] - x1, pts[pts.length - 2][1] - z1) < Math.hypot(pts[pts.length - 2][0] - pts[pts.length - 1][0], pts[pts.length - 2][1] - pts[pts.length - 1][1])) pts.pop();
+  pts.push([x1, z1]); return pts;
+}
 /* ---------- the town: a square with a fountain, lamps, hedges, flowers, landmarks, and a picture map ---------- */
 /* static pieces are painted once and merged into one mesh, so the whole town costs only a few draw calls */
 const LAMPS = [], FLOWERS = [];
@@ -4156,29 +4197,6 @@ const lampMesh = merged(LAMPS, lampMat); lampMesh.castShadow = false;
 const flowerMesh = merged(FLOWERS); flowerMesh.castShadow = false;
 STATIC.length = LAMPS.length = FLOWERS.length = 0;
 
-/* ---------- walking by road: a small graph of points along every road, and the shortest way between two places ---------- */
-const RG = { n: [], e: [], line: [] };
-function rgAdd(x, z, line) { RG.n.push([x, z]); RG.e.push([]); RG.line.push(line); return RG.n.length - 1; }
-function rgLink(a, b) { const d = Math.hypot(RG.n[a][0] - RG.n[b][0], RG.n[a][1] - RG.n[b][1]); RG.e[a].push([b, d]); RG.e[b].push([a, d]); }
-{
-  let line = 0;
-  const loop = (pts) => { const ids = pts.map(([x, z]) => rgAdd(x, z, line)); ids.forEach((id, i) => rgLink(id, ids[(i + 1) % ids.length])); line++; };
-  loop(Array.from({ length: 10 }, (_, i) => [Math.cos(i / 10 * 6.283) * 2.3, Math.sin(i / 10 * 6.283) * 2.3]));
-  loop(Array.from({ length: 36 }, (_, i) => [Math.cos(i / 36 * 6.283) * RING.rx, Math.sin(i / 36 * 6.283) * RING.rz]));
-  ROADS.forEach((r) => { const L = Math.hypot(r[2] - r[0], r[3] - r[1]), n = Math.max(1, Math.ceil(L / 1.4)); let prev = -1; for (let i = 0; i <= n; i++) { const id = rgAdd(r[0] + (r[2] - r[0]) * i / n, r[1] + (r[3] - r[1]) * i / n, line); if (prev >= 0) rgLink(prev, id); prev = id; } line++; });
-  for (let a = 0; a < RG.n.length; a++) for (let b = a + 1; b < RG.n.length; b++) if (RG.line[a] !== RG.line[b] && Math.hypot(RG.n[a][0] - RG.n[b][0], RG.n[a][1] - RG.n[b][1]) < 1.5) rgLink(a, b);
-}
-function rgNear(x, z) { let best = 0, bd = 1e9; RG.n.forEach(([nx, nz], i) => { const d = Math.hypot(nx - x, nz - z); if (d < bd) { bd = d; best = i; } }); return best; }
-function roadPath(x0, z0, x1, z1) {
-  if (Math.hypot(x1 - x0, z1 - z0) < 3) return [[x1, z1]];
-  const a = rgNear(x0, z0), b = rgNear(x1, z1), D = RG.n.map(() => Infinity), prev = RG.n.map(() => -1), done = RG.n.map(() => false); D[a] = 0;
-  for (;;) { let u = -1; for (let i = 0; i < D.length; i++) if (!done[i] && (u < 0 || D[i] < D[u])) u = i; if (u < 0 || D[u] === Infinity || u === b) break; done[u] = true; RG.e[u].forEach(([v, w]) => { if (D[u] + w < D[v]) { D[v] = D[u] + w; prev[v] = u; } }); }
-  const pts = []; for (let u = b; u >= 0; u = prev[u]) pts.unshift(RG.n[u].slice());
-  /* skip road points behind Pip, and finish off the road at the place itself */
-  while (pts.length > 1 && Math.hypot(pts[1][0] - x0, pts[1][1] - z0) < Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1])) pts.shift();
-  while (pts.length > 1 && Math.hypot(pts[pts.length - 2][0] - x1, pts[pts.length - 2][1] - z1) < Math.hypot(pts[pts.length - 2][0] - pts[pts.length - 1][0], pts[pts.length - 2][1] - pts[pts.length - 1][1])) pts.pop();
-  pts.push([x1, z1]); return pts;
-}
 
 /* the places on the picture map: where Pip walks to, and where the picture sits on the map */
 const PLACES = {
@@ -5286,9 +5304,8 @@ sc.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => { m.ne
 /* warm point lights in the four lamps round the square; they fade in with the lamps as the sun goes down */
 const LAMP_LIGHTS = LAMP_AT.slice(0, 4).map(([x, z]) => { const l = new T.PointLight(0xffc27a, 0, 5, 2); l.position.set(x, 1.6, z); sc.add(l); return l; });
 
-/* contact shadows: a soft dark spot right under each bush, tree, bench, pot, lamp and house, so nothing floats on the grass */
-const blobTex = gradTex(64, 64, [[0, 255, 255, 255, 1], [0.5, 217, 217, 217, 0.85], [1, 0, 0, 0, 0]]); /* used as an alphaMap: the green channel is the alpha */
-const blobMat = new T.MeshBasicMaterial({ color: '#1c2a20', alphaMap: blobTex, transparent: true, opacity: 0.7, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+/* contact shadows: a soft dark spot right under each bush, tree, bench, pot, lamp and house, so nothing floats on the grass
+   (the spot's material, blobMat, is in dog.js, which the pets share) */
 {
   const L = [];
   ATREC.forEach((r) => { if (r.y0 > 0.3 || r.x1 < r.x0) return; const w = r.x1 - r.x0, d = r.z1 - r.z0; if (w > 3.4 || d > 3.4 || r.y1 - r.y0 < 0.12) return;
@@ -5302,7 +5319,6 @@ const blobMat = new T.MeshBasicMaterial({ color: '#1c2a20', alphaMap: blobTex, t
   const m = new T.Mesh(geo, blobMat); m.renderOrder = 1; sc.add(m);
 }
 /* the same soft spot under Pip and the dog, following them */
-const blobGeo = new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
 const pipBlob = new T.Mesh(blobGeo, blobMat); pipBlob.scale.set(0.55, 1, 0.5); pipBlob.renderOrder = 1; sc.add(pipBlob);
 const dogBlob = new T.Mesh(blobGeo, blobMat); dogBlob.scale.set(0.5, 1, 0.75); dogBlob.renderOrder = 1; sc.add(dogBlob);
 
@@ -10121,7 +10137,7 @@ function shPlace() {
   const aC = shGeo.attributes.aC.array, aW = shGeo.attributes.aW.array; let n = 0;
   for (let dz = -5; dz <= 2 && n < SH_N; dz++) for (let dx = -4; dx <= 4 && n < SH_N; dx++) {
     const gx = cx + dx, gz = cz + dz, h = hash(gx * 13.1 + gz * 71.7, 5.3); if (h > 0.36) continue;
-    const x = (gx + hash(gx, gz + 0.5) - 0.5) * SH_CELL, z = (gz + hash(gz, gx + 1.5) - 0.5) * SH_CELL; if (HERE_T === 'farm' && isleD(x, z) > 0.98) continue;
+    const x = (gx + hash(gx, gz + 0.5) - 0.5) * SH_CELL, z = (gz + hash(gz, gx + 1.5) - 0.5) * SH_CELL; if (isleD(x, z) > 0.98) continue;
     const wdt = 0.8 + hash(gx, gz + 7.1) * 1.3, len = 7 + hash(gx + 3.3, gz) * 5, seed = hash(gx + 9.9, gz + 2.2);
     for (let j = 0; j < 4; j++) { const o = (n * 4 + j) * 3; aC[o] = x; aC[o + 1] = 0; aC[o + 2] = z; aW[o] = wdt; aW[o + 1] = len; aW[o + 2] = seed; } n++;
   }
@@ -10173,7 +10189,7 @@ const GL_N = 700, glGeo = new T.BufferGeometry();
 { const p = [], sd = [], gr = []; let i = 0, tries = 0;
   const fy = (() => { try { fountain.water.updateMatrixWorld(true); return new T.Vector3().setFromMatrixPosition(fountain.water.matrixWorld).y; } catch (e) { return 0.36; } })();
   while (i < GL_N && tries < 20000) { tries++; let x, y, z, g; const r = hash(tries, 91);
-    if (r < 0.8) { x = (hash(tries, 93) - 0.5) * 70; z = (hash(tries, 95) - 0.5) * 50; const d = HERE_T === 'farm' ? isleD(x, z) : 2; if (d < 1.12 || d > 2.4) continue; y = -0.39; g = 0; }
+    if (r < 0.8) { x = (hash(tries, 93) - 0.5) * 70; z = (hash(tries, 95) - 0.5) * 50; const d = isleD(x, z); if (d < 1.12 || d > 2.4) continue; y = -0.39; g = 0; }
     else if (r < 0.93) { if (typeof POND === 'undefined') continue; const a = hash(tries, 97) * 6.283, q = Math.sqrt(hash(tries, 99)) * 0.85; x = POND.x + Math.cos(a) * POND.r * 1.2 * q; z = POND.z + Math.sin(a) * POND.r * q; y = 0.06; g = 1; }
     else { const a = hash(tries, 97) * 6.283, q = Math.sqrt(hash(tries, 99)) * 0.8; x = Math.cos(a) * q; z = Math.sin(a) * q; y = fy + 0.02; g = 2; }
     p.push(x, y, z); sd.push(hash(tries, 101)); gr.push(g); i++; }
@@ -10306,7 +10322,7 @@ function grBuild(dens) {
 }
 /* where grass grows and its colour: the ground's own vertex colours averaged per texel; none on the sea, in pens, under props */
 function grMask() {
-  if (HERE_T !== 'farm' || !ground) return; const W = GR.W, H = GR.H, d = GR.tex.image.data, acc = new Float32Array(W * H * 4);
+  if (!ground) return; const W = GR.W, H = GR.H, d = GR.tex.image.data, acc = new Float32Array(W * H * 4);
   const p = ground.geometry.attributes.position, c = ground.geometry.attributes.color;
   for (let i = 0; i < p.count; i++) { const tx = Math.round((p.getX(i) + 29) / 58 * W - 0.5), tz = Math.round((p.getZ(i) + 20) / 40 * H - 0.5); if (tx < 0 || tz < 0 || tx >= W || tz >= H) continue; const o = (tz * W + tx) * 4; acc[o] += c.getX(i); acc[o + 1] += c.getY(i); acc[o + 2] += c.getZ(i); acc[o + 3]++; }
   const pens = typeof PEN !== 'undefined' ? Object.values(PEN) : [], deco = typeof DECO !== 'undefined' ? DECO : [];
@@ -10332,7 +10348,7 @@ function grPushers() {
 
 /* ----- ground variety: patchy noise on the ground shader, cobbles (mask g), dirt (mask r) and grass each in their own way ----- */
 const GVU = { uGV: { value: 0 } };
-if (HERE_T === 'farm' && ground && ground.material) { const gm = ground.material, ob = gm.onBeforeCompile;
+if (ground && ground.material) { const gm = ground.material, ob = gm.onBeforeCompile;
   gm.onBeforeCompile = (sh, r) => { ob.call(gm, sh, r); sh.uniforms.uGV = GVU.uGV;
     const a = 'diffuseColor.rgb *= gcl * gdt * 1.02;'; if (sh.fragmentShader.indexOf(a) < 0) { console.warn('fx: ground shader changed'); return; }
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vGw;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvGw = position.xz;');
@@ -10394,7 +10410,7 @@ function fxWorld(dt) {
   /* ground variety */
   GVU.uGV.value = fxUse('ground') ? 1 : 0;
   /* 3D grass */
-  const grOn = fxUse('grass') && out && !top && HERE_T === 'farm';
+  const grOn = fxUse('grass') && out && !top;
   if (grOn) { if (!GR.mesh) { grBuild(32); grMask(); } GR.t -= dt; if (GR.t <= 0) { GR.t = 10; grMask(); }
     const u = GR.u; u.uGFocus.value.set(camFocus.x, 0, camFocus.z - 1.2); u.uGT.value = reduced ? 0 : time;
     const wg = typeof WIND !== 'undefined' ? 0.25 + 0.75 * WIND.g : 0.3; u.uGWind.value.set(typeof WIND !== 'undefined' ? WIND.x : 0.7, typeof WIND !== 'undefined' ? WIND.z : -0.4).normalize().multiplyScalar(0.25 + 0.55 * wg);

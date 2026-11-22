@@ -24,11 +24,13 @@ life.js
 ../engine/sky.js
 bed.js
 family.js
+../engine/dog.js
 extras.js
 ../engine/pet2.js
 ../engine/weather.js
 ../engine/rain.js
 ../engine/weather-test.js
+../engine/roads.js
 town.js
 econ0.js
 market.js

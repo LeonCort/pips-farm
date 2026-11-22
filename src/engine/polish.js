@@ -64,9 +64,8 @@ sc.traverse((o) => { if (o.material) [].concat(o.material).forEach((m) => { m.ne
 /* warm point lights in the four lamps round the square; they fade in with the lamps as the sun goes down */
 const LAMP_LIGHTS = LAMP_AT.slice(0, 4).map(([x, z]) => { const l = new T.PointLight(0xffc27a, 0, 5, 2); l.position.set(x, 1.6, z); sc.add(l); return l; });
 
-/* contact shadows: a soft dark spot right under each bush, tree, bench, pot, lamp and house, so nothing floats on the grass */
-const blobTex = gradTex(64, 64, [[0, 255, 255, 255, 1], [0.5, 217, 217, 217, 0.85], [1, 0, 0, 0, 0]]); /* used as an alphaMap: the green channel is the alpha */
-const blobMat = new T.MeshBasicMaterial({ color: '#1c2a20', alphaMap: blobTex, transparent: true, opacity: 0.7, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+/* contact shadows: a soft dark spot right under each bush, tree, bench, pot, lamp and house, so nothing floats on the grass
+   (the spot's material, blobMat, is in dog.js, which the pets share) */
 {
   const L = [];
   ATREC.forEach((r) => { if (r.y0 > 0.3 || r.x1 < r.x0) return; const w = r.x1 - r.x0, d = r.z1 - r.z0; if (w > 3.4 || d > 3.4 || r.y1 - r.y0 < 0.12) return;
@@ -80,7 +79,6 @@ const blobMat = new T.MeshBasicMaterial({ color: '#1c2a20', alphaMap: blobTex, t
   const m = new T.Mesh(geo, blobMat); m.renderOrder = 1; sc.add(m);
 }
 /* the same soft spot under Pip and the dog, following them */
-const blobGeo = new T.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
 const pipBlob = new T.Mesh(blobGeo, blobMat); pipBlob.scale.set(0.55, 1, 0.5); pipBlob.renderOrder = 1; sc.add(pipBlob);
 const dogBlob = new T.Mesh(blobGeo, blobMat); dogBlob.scale.set(0.5, 1, 0.75); dogBlob.renderOrder = 1; sc.add(dogBlob);
 
