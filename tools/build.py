@@ -20,16 +20,16 @@ FONTS = 'https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&displ
 GAMES = {
     'bondgard.html': {
         'title': 'Pips bondgård',
-        'manifest': 'game/manifest.txt',
-        'body': 'game/body.html',
-        'css': ['game/style.css', 'game/style-farm.css'],
+        'manifest': 'farm/manifest.txt',
+        'body': 'farm/body.html',
+        'css': ['engine/style.css', 'farm/style.css'],
     },
 }
 
 # the loading screen's frame hook lives in the loop file itself
-SOUND = ['sound/soundkit.js', 'sound/sfx.js']
-BOOT = ('boot/boot.css', 'boot/boot.js', 'boot/load.js')
-HEAD = 'head.part'
+SOUND = ['engine/sound/soundkit.js', 'engine/sound/sfx.js']
+BOOT = ('engine/boot/boot.css', 'engine/boot/boot.js', 'engine/boot/load.js')
+HEAD = 'engine/head.part'
 
 
 def r(path):

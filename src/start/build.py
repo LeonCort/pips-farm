@@ -5,17 +5,17 @@ here = os.path.dirname(os.path.abspath(__file__))
 r = lambda f: open(os.path.join(here, f)).read()
 shop, farm = r('icons.txt').split('\n')
 FARMJS = farm.replace("'", "\\'")
-head = r('../head.part')
+head = r('../engine/head.part')
 page = head + '''<title>Pips gård</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap">
 <style>
 html, body { margin: 0; height: 100%; background: #1a2045; }
-''' + r('../boot/boot.css') + '''</style>
+''' + r('../engine/boot/boot.css') + '''</style>
 </head>
 <body>
 <div id="boot" class="isDusk isStart"></div>
 <script>
-''' + r('../boot/boot.js') + '''
+''' + r('../engine/boot/boot.js') + '''
 (function () {
   var FARM = \'''' + FARMJS + '''\';
   var el = document.getElementById('boot'), me = PipsScene.build(el, 'start');

@@ -20,3 +20,18 @@ Two game modes, picked on the start page:
 - `manifest.webmanifest`, `icon-*.png`: home-screen app icon and name.
 
 Progress is saved in the browser (localStorage), so it stays on the device.
+
+## Working on the game
+
+The sources live in `src/`; the pages at the repo root are built from them. Never edit a built page by hand: the next build overwrites it.
+
+- `src/engine/`: parts any Pips game can use (Pip and the wardrobe, camera and input, the loop, sky, weather, rain, light, house, store, buy mode, unlock queues, robots, pets, guests, tutorial runner, sound in `sound/`, the loading screen in `boot/`, the shared page head and CSS).
+- `src/farm/`: the farm (Bondgård): animals, barn and loft, meadow, market, town, island, and `manifest.txt`, the list of script files glued together in order.
+- `src/start/`: the start page.
+- `tools/build.py`: builds `bondgard.html` and `index.html`, plus `build/test-bondgard.html` (three.js from the repo root) for tests.
+- `tools/check.py`: rebuilds and compares with the committed pages; it passes when they are identical apart from the version stamp. Use it for changes that should not change the game.
+- `tests/smoke.js`: loads the test page headless and fails on any page error (`node tests/smoke.js`).
+
+To change the game: edit `src/` on a branch, run `python3 tools/build.py`, test, then `python3 stamp.py` and commit the sources and the built pages together.
+
+All script files run in one shared scope, so the order in `manifest.txt` matters. Engine and farm files are still interleaved and some engine files still name farm things; untangling them comes next, before a second game (the zoo) gets its own `src/zoo/` and page. `butik.html` (the old shop) is frozen as built; its sources are in git history.
