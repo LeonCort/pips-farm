@@ -30,7 +30,7 @@ function planks(x, w, h, B) {
 }
 /* the groups that hold each size's new pieces inside (size 1 is the cottage itself) */
 const HOME_G = { 1: new T.Group() }; sc.add(HOME_G[1]);
-[['bed', -6, 6, -7, -4.5, 1], ['speed', -6, -1, -4.5, 0, 1], ['bag', -6, -1, 0, 4.5, 1], ['farm', 1, 6, -4.5, 0, 2], ['guests', 1, 6, 0, 4.5, 2],
+[['bed', -6, 6, -7 - BED_D, -4.5, 1], ['speed', -6, -1, -4.5, 0, 1], ['bag', -6, -1, 0, 4.5, 1], ['farm', 1, 6, -4.5, 0, 2], ['guests', 1, 6, 0, 4.5, 2],
   ['play', 6, 11.4, -7, -1.2, 3], ['music', 6, 11.4, -1.2, 4.5, 3], ['garden', -11.4, -6, -7, -1.2, 4], ['bath', -11.4, -6, -1.2, 4.5, 4]].forEach(([id, x0, x1, z0, z1, n]) => {
   const w = x1 - x0 - 0.12, d = z1 - z0 - 0.12, t = homeTex(256, 256, FLOORS[id]); t.repeat.set(w / 2.4, d / 2.4);
   const f = new T.Mesh(new T.PlaneGeometry(w, d), new T.MeshStandardMaterial({ map: t, roughness: 0.9 })); f.rotation.x = -Math.PI / 2; f.position.set(HX((x0 + x1) / 2), 0.0705, HZ((z0 + z1) / 2)); f.receiveShadow = true;
@@ -44,8 +44,8 @@ if (RIGHT.garden) RIGHT.garden.material.color.set('#1d2919');
   const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
   x.fillStyle = '#e6b45a'; x.beginPath(); x.arc(128, 128, 124, 0, 7); x.fill(); x.strokeStyle = '#c98f4c'; x.lineWidth = 10; x.beginPath(); x.arc(128, 128, 108, 0, 7); x.stroke();
   x.fillStyle = 'rgba(120,70,30,0.35)'; [[70, 80], [180, 70], [80, 180], [176, 176], [128, 128]].forEach(([a, b]) => { x.beginPath(); x.arc(a, b + 6, 14, 0, 7); x.fill(); [[-14, -14], [0, -20], [14, -14]].forEach(([u, v]) => { x.beginPath(); x.arc(a + u, b + v, 6, 0, 7); x.fill(); }); });
-  const m = new T.Mesh(new T.CircleGeometry(0.62, 32), new T.MeshStandardMaterial({ map: new T.CanvasTexture(c), roughness: 1 })); m.rotation.x = -Math.PI / 2; m.position.set(HX(4.85), 0.072, HZ(-5.35)); m.receiveShadow = true; HOME_G[1].add(m);
-  const L = [], Q = at(HX(5.55), HZ(-4.85), 0, L);
+  const m = new T.Mesh(new T.CircleGeometry(0.62, 32), new T.MeshStandardMaterial({ map: new T.CanvasTexture(c), roughness: 1 })); m.rotation.x = -Math.PI / 2; m.position.set(HX(4.85), 0.072, HZ(-5.35 - BED_D)); m.receiveShadow = true; HOME_G[1].add(m);
+  const L = [], Q = at(HX(5.55), HZ(-4.85 - BED_D), 0, L);
   Q(cyl(0.2, 0.16, 0.22, 12), '#c9a36c', 1601, 0, 0.11, 0); Q(new T.TorusGeometry(0.19, 0.025, 4, 14).rotateX(Math.PI / 2), '#9a6542', 1602, 0, 0.22, 0);
   Q(new T.SphereGeometry(0.07, 8, 6), '#5a9fc4', 1603, -0.05, 0.25, 0.03); Q(new T.SphereGeometry(0.06, 8, 6), '#e9684a', 1604, 0.07, 0.26, -0.04);
   ATREC.pop(); merged(L, MAT, HOME_G[1]);
@@ -140,7 +140,7 @@ function placeHome(tent) {
   const r = tent ? { x: TO.x - 1.3, z: TO.z - 0.2 } : HOME0.ring; bedRing.x = r.x; bedRing.z = r.z; [bedRing.pad, bedRing.r, bedRing.glow, bedRing.f].forEach((m) => { m.position.x = r.x; m.position.z = r.z; });
   bedRing.sign.position.set(bed.x, tent ? 1.15 : 1.35, bed.z - 0.2);
   const w = tent ? { x: TO.x + 1.2, z: TO.z - 1.3 } : HOME0.ward; wardRing.x = w.x; wardRing.z = w.z; [wardRing.r, wardRing.f].forEach((m) => { m.position.x = w.x; m.position.z = w.z; });
-  const pc = tent ? { x: TO.x + 0.85, z: TO.z + 0.95, bx: TO.x + 1.85, bz: TO.z + 0.95 } : { x: HX(3.75), z: HZ(-5.3), bx: HX(4.85), bz: HZ(-5.35) };
+  const pc = tent ? { x: TO.x + 0.85, z: TO.z + 0.95, bx: TO.x + 1.85, bz: TO.z + 0.95 } : { x: HX(3.75), z: HZ(-5.3 - BED_D), bx: HX(4.85), bz: HZ(-5.35 - BED_D) };
   Object.assign(PCORNER, pc); petMat.position.x = pc.x; petMat.position.z = pc.z; petSign.position.x = pc.x; petSign.position.z = pc.z - 0.15;
   if (PCORNER.mesh) PCORNER.mesh.position.set(pc.bx - HOME0.pc.bx, 0, pc.bz - HOME0.pc.bz);
   const LT = tent ? [[38.0, 1.0, 1.65], [40, 1.8, 0], [41.6, 1.1, -1.7], [38.6, 1.1, -1.6]] : HOME0.lights; INT.lights.forEach((l, i) => { l[0] = LT[i][0]; l[1] = LT[i][1]; l[2] = LT[i][2]; });

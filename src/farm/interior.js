@@ -9,8 +9,8 @@ const INT = { extras: [], flames: [], lights: [[-4.6, 1.05, -3.75], [3.0, 1.1, -
       x.fillStyle = 'rgba(255,230,190,0.08)'; x.fillRect(px, r * 64 + 6, L, 10); x.strokeStyle = 'rgba(60,35,20,0.55)'; x.lineWidth = 3; x.strokeRect(px, r * 64, L, 64);
       x.strokeStyle = 'rgba(80,45,25,0.18)'; x.lineWidth = 1.5; for (let k = 0; k < 4; k++) { const y = r * 64 + 12 + k * 12 + hash(px, k) * 6; x.beginPath(); x.moveTo(px + 4, y); x.bezierCurveTo(px + L * 0.3, y + 4, px + L * 0.6, y - 4, px + L - 4, y); x.stroke(); }
       if (hash(px, r) > 0.7) { x.fillStyle = 'rgba(70,40,20,0.4)'; x.beginPath(); x.ellipse(px + L * 0.5, r * 64 + 32, 7, 4, 0, 0, 6.283); x.fill(); } px += L; } } });
-  plank.repeat.set(12 / 1.6, 11.5 / 1.6);
-  const fl = new T.Mesh(new T.PlaneGeometry(12, 11.5), new T.MeshStandardMaterial({ map: plank, roughness: 0.85 })); fl.rotation.x = -Math.PI / 2; fl.position.set(X(0), 0.068, Z(-1.25)); fl.receiveShadow = true; sc.add(fl);
+  plank.repeat.set(12 / 1.6, (11.5 + BED_D) / 1.6);
+  const fl = new T.Mesh(new T.PlaneGeometry(12, 11.5 + BED_D), new T.MeshStandardMaterial({ map: plank, roughness: 0.85 })); fl.rotation.x = -Math.PI / 2; fl.position.set(X(0), 0.068, Z(-1.25 - BED_D / 2)); fl.receiveShadow = true; sc.add(fl);
   inG.children.forEach((m) => { if (m.isMesh && m.geometry.type === 'PlaneGeometry' && Math.abs(m.position.y - 0.065) < 0.002) m.visible = false; });
   /* the garden round the house goes dark and deep, so the warm rooms pop */
   const yard = inG.children[0]; if (yard && yard.geometry.attributes.color) repaintV(yard, (x, y, z, k) => tone('#24331f', k, 0.4).multiplyScalar(Math.max(0.35, 1 - Math.hypot(x / 14, (z + 1.25) / 12) * 0.6)));
@@ -75,10 +75,10 @@ const INT = { extras: [], flames: [], lights: [[-4.6, 1.05, -3.75], [3.0, 1.1, -
   /* the hall and the bedroom strip: pots by the door, a little table with a candle, a dresser and a window */
   plant(P(0, 0), -0.7, 4.15, 1, 1197); plant(P(0, 0), 0.7, 4.15, 1, 1199);
   { const Q = P(-0.65, -3.9); table(Q, 0.4, 0.4, 0.55); candle(Q, 0, 0.58, 0, X(-0.65), Z(-3.9)); }
-  { const Q = P(-5.3, -6.6); Q(box(0.9, 0.62, 0.4), LW, 1201, 0, 0.31, 0); [0.18, 0.42].forEach((y) => Q(box(0.82, 0.02, 0.02), DK, 1202, 0, y, 0.21)); plant(Q, 0.25, 0, 0.7, 1203); }
+  { const Q = P(-5.3, -6.6 - BED_D); Q(box(0.9, 0.62, 0.4), LW, 1201, 0, 0.31, 0); [0.18, 0.42].forEach((y) => Q(box(0.82, 0.02, 0.02), DK, 1202, 0, y, 0.21)); plant(Q, 0.25, 0, 0.7, 1203); }
   /* warm glowing windows in the outer walls */
   const winMat = new T.MeshBasicMaterial({ color: '#ffd98a' });
-  [[-6.09, -2.25, Math.PI / 2], [-6.09, 2.25, Math.PI / 2], [6.09, -2.25, -Math.PI / 2], [6.09, 2.25, -Math.PI / 2], [-1.6, -7.09, 0], [1.6, -7.09, 0]].forEach(([x, z, ry]) => {
+  [[-6.09, -2.25, Math.PI / 2], [-6.09, 2.25, Math.PI / 2], [6.09, -2.25, -Math.PI / 2], [6.09, 2.25, -Math.PI / 2], [-1.6, -7.09 - BED_D, 0], [1.6, -7.09 - BED_D, 0]].forEach(([x, z, ry]) => {
     const Q = P(x, z, ry); Q(box(0.7, 0.44, 0.06), DK, 1205, 0, 0.42, 0); const w = new T.Mesh(new T.PlaneGeometry(0.56, 0.3), winMat); w.position.set(X(x) + Math.sin(ry) * 0.035, 0.42, Z(z) + Math.cos(ry) * 0.035); w.rotation.y = ry; sc.add(w);
     const g = new T.Sprite(glowMat); g.scale.set(1.2, 1.2, 1); g.position.copy(w.position); sc.add(g); });
   INT.staticMesh = merged(L);
