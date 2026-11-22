@@ -285,7 +285,10 @@ function aoApply(r, on) { const a = r.c.array; if (on) for (let i = 0; i < r.ao.
 /* ----- 3D grass: one instanced draw of blade clumps in a square that wraps around Pip, fading into the painted ground.
    Colour and where it may grow come from a small texture built from the ground's own colours, the road mask and the
    pens, houses and props; wind waves and bending happen in the vertex shader. ----- */
-const GR = { L: 17, N: 0, mesh: null, t: 0, tex: null, W: 116, H: 80, push: [] };
+/* grass patch size (test switch in the settings, 2026-11-22): side of the square and where it fades out around Pip */
+const GR_SIZES = { 17: [5.2, 7.8], 24: [8, 11], 34: [12, 16] };
+let grSize = 17; try { const v = +localStorage.getItem('pips-grass'); if (GR_SIZES[v]) grSize = v; } catch (e) {}
+const GR = { L: grSize, N: 0, mesh: null, t: 0, tex: null, W: 116, H: 80, push: [] };
 for (let i = 0; i < 8; i++) GR.push.push(new T.Vector4(0, 0, 0, 0));
 function grClump() {
   const P = [], C = [], N = [], I = [];
@@ -299,7 +302,7 @@ function grBuild(dens) {
   g.setAttribute('aI', new T.InstancedBufferAttribute(a, 4)); g.instanceCount = n; GR.N = n;
   const d = new Uint8Array(GR.W * GR.H * 4); GR.tex = new T.DataTexture(d, GR.W, GR.H, T.RGBAFormat); GR.tex.magFilter = GR.tex.minFilter = T.LinearFilter; GR.tex.needsUpdate = true;
   const m = new T.MeshLambertMaterial({ vertexColors: true, side: T.DoubleSide });
-  GR.u = { uGFocus: { value: new T.Vector3() }, uGL: { value: L }, uGT: { value: 0 }, uGWind: { value: new T.Vector2() }, uGPush: { value: GR.push }, uGTex: { value: GR.tex }, uGH: { value: 0.42 }, uGFade: { value: new T.Vector2(5.2, 7.8) } };
+  GR.u = { uGFocus: { value: new T.Vector3() }, uGL: { value: L }, uGT: { value: 0 }, uGWind: { value: new T.Vector2() }, uGPush: { value: GR.push }, uGTex: { value: GR.tex }, uGH: { value: 0.42 }, uGFade: { value: new T.Vector2(GR_SIZES[GR.L][0], GR_SIZES[GR.L][1]) } };
   m.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, GR.u); sh.uniforms.gMask = GU.mask; sh.uniforms.gDet = GU.det;
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 aI; uniform vec3 uGFocus; uniform float uGL, uGT, uGH; uniform vec2 uGWind, uGFade; uniform vec4 uGPush[8]; uniform sampler2D uGTex, gMask, gDet;')
       .replace('#include <color_vertex>', `#include <color_vertex>
@@ -455,12 +458,20 @@ function fxRender(dt) {
   const qb = document.createElement('button'); qb.type = 'button'; qb.className = 'round fxQBtn'; qb.id = 'fxQBtn';
   qb.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6 L28 19 L41 23 L28 27 L24 40 L20 27 L7 23 L20 19 Z" fill="#ffd66a" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/><circle cx="38" cy="10" r="3" fill="#ffd66a" stroke="#22303c" stroke-width="2"/></svg><b></b>';
   if (db && db.parentNode) db.parentNode.insertBefore(qb, db.nextSibling);
+  /* grass size: 17, 24 or 34 units around Pip (only seen with high quality on, as in ultra) */
+  const gb = document.createElement('button'); gb.type = 'button'; gb.className = 'round grassBtn'; gb.id = 'grassBtn';
+  gb.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 38 Q12 24 8 14 Q16 24 17 38 M19 38 Q22 20 24 8 Q26 20 29 38 M31 38 Q32 24 40 14 Q36 24 38 38" fill="#8fc163" stroke="#22303c" stroke-width="2.5" stroke-linejoin="round"/></svg><b></b>';
+  if (qb.parentNode) qb.parentNode.insertBefore(gb, qb.nextSibling);
+  const gsync = () => { gb.querySelector('b').textContent = grSize; gb.setAttribute('aria-label', 'Grass size ' + grSize); gb.style.opacity = FX.hi && FX.on.grass ? 1 : 0.5; };
+  gb.addEventListener('click', (e) => { e.stopPropagation(); const k = [17, 24, 34]; grSize = k[(k.indexOf(grSize) + 1) % 3]; try { localStorage.setItem('pips-grass', grSize); } catch (er) {}
+    if (GR.mesh) { sc.remove(GR.mesh); GR.mesh.geometry.dispose(); GR.mesh.material.dispose(); GR.mesh = null; } GR.L = grSize; gsync(); Snd.play('pop', { gain: 0.4, f: 400 + grSize * 12 }); });
+  FX.gsync = gsync;
   const btn = document.createElement('button'); btn.id = 'fxBtn'; btn.type = 'button'; btn.textContent = '✨'; btn.setAttribute('aria-label', 'Light effects'); btn.hidden = !FX_TEST && !devOn;
   const pan = document.createElement('div'); pan.id = 'fxPan'; pan.hidden = true;
   pan.innerHTML = '<h3>Light effects</h3><label class="hi"><input type="checkbox" data-hi><span>High quality<small>off = the normal game look</small></span></label>'
     + FX_KEYS.map(([k, n, d]) => '<label><input type="checkbox" data-k="' + k + '"><span>' + n + '<small>' + d + '</small></span><em data-ms="' + k + '"></em></label>').join('')
     + '<div class="row"><button type="button" data-bench>Measure cost</button><button type="button" data-close>Close</button></div><div class="note" data-note>Measure switches each effect on alone for a moment and times the frame (about 15 s). Stand still while it runs.</div>';
-  const sync = () => { qb.classList.toggle('on', FX.hi); qb.querySelector('b').textContent = FX.hi ? 'HIGH' : ''; qb.setAttribute('aria-label', 'Graphics quality: ' + (FX.hi ? 'high' : 'normal')); qb.setAttribute('aria-pressed', String(FX.hi)); btn.classList.toggle('on', FX.hi);
+  const sync = () => { if (FX.gsync) FX.gsync(); qb.classList.toggle('on', FX.hi); qb.querySelector('b').textContent = FX.hi ? 'HIGH' : ''; qb.setAttribute('aria-label', 'Graphics quality: ' + (FX.hi ? 'high' : 'normal')); qb.setAttribute('aria-pressed', String(FX.hi)); btn.classList.toggle('on', FX.hi);
     pan.querySelector('[data-hi]').checked = FX.hi; FX_KEYS.forEach(([k]) => { const c = pan.querySelector('[data-k="' + k + '"]'); c.checked = FX.on[k]; c.disabled = !FX.hi && !FX_LOW.has(k); }); };
   FX.sync = sync;
   qb.addEventListener('click', () => { FX.hi = !FX.hi; fxSave(); sync(); Snd.play('sparkle', { gain: 0.35 }); });

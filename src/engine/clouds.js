@@ -4,11 +4,11 @@
    Clouds are painted procedurally in the shader (no textures): coverage follows the weather and season, they
    drift with the wind, and their colour comes from the same top/horizon colours the day cycle and weather already
    set, so dawn, sunset, rain, snow and night all tint them for free. Stars come out at night. */
-const SKYU = Object.assign({}, sky.material.uniforms, { uHz: { value: -0.2 }, uCover: { value: 0.35 }, uWind: { value: new T.Vector2() }, uNight: { value: 0 }, uT: { value: 0 }, uSun: { value: new T.Vector3(0, 0.5, -1) } });
+const SKYU = Object.assign({}, sky.material.uniforms, { uHz: { value: -0.2 }, uCover: { value: 0.35 }, uWind: { value: new T.Vector2() }, uNight: { value: 0 }, uT: { value: 0 }, uSun: { value: new T.Vector3(0, 0.5, -1) }, uSunV: { value: SUN_VIS }, uDisk: { value: 0 } });
 sky.material = new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: false, uniforms: SKYU,
   vertexShader: 'varying vec3 vD; void main(){ vD = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
   fragmentShader: `
-    varying vec3 vD; uniform vec3 top; uniform vec3 hor; uniform float uHz; uniform float uCover; uniform vec2 uWind; uniform float uNight; uniform float uT; uniform vec3 uSun;
+    varying vec3 vD; uniform vec3 top; uniform vec3 hor; uniform float uHz; uniform float uCover; uniform vec2 uWind; uniform float uNight; uniform float uT; uniform vec3 uSun; uniform vec3 uSunV; uniform float uDisk;
     float h2(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
     float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
       return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y); }
@@ -20,6 +20,8 @@ sky.material = new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: 
       vec3 col = mix(hor, top, smoothstep(0.0, 0.12, g));
       /* a soft glow around the sun */
       float sd = max(dot(d, normalize(uSun)), 0.0); col += (hor * 0.35 + 0.08) * pow(sd, 10.0) * (1.0 - uNight) * 0.6;
+      /* the low sun's disk over the far horizon (sunrise or sunset at the top of the screen) */
+      if (uDisk > 0.0) { float vd = max(dot(d, normalize(uSunV)), 0.0); col += vec3(1.0, 0.55, 0.25) * pow(vd, 60.0) * 0.45 * uDisk; col = mix(col, vec3(1.0, 0.86, 0.55), smoothstep(0.9988, 0.9992, vd) * uDisk); }
       if (e > 0.0) {
         /* clouds on a flat layer above: project the view ray onto it */
         vec2 p = d.xz / (e + 0.06) * 0.35 + uWind;
@@ -58,5 +60,6 @@ function skyFrame(dt) {
   if (!reduced) { SKYU.uWind.value.x += Math.cos(ang) * w * dt; SKYU.uWind.value.y += Math.sin(ang) * w * dt; }
   SKYU.uNight.value = nightAmt; SKYU.uT.value = time;
   SKYU.uSun.value.copy(_sk.copy(sun.position).sub(sun.target.position)).normalize();
+  SKYU.uDisk.value = inHouse ? 0 : SUN_DISK.a;
 }
 

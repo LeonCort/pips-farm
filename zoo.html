@@ -138,7 +138,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 #menu .fxQBtn b { display: none; }
 /* order and groups: play, picture, help, start over */
 #menu #soundBtn { order: 1; } #menu #wardBtn { order: 2; } #menu #ctrlBtn { order: 3; }
-#menu #fpsBtn { order: 10; } #menu #gfxBtn { order: 11; } #menu #drawBtn { order: 12; } #menu #fxQBtn { order: 13; }
+#menu #fpsBtn { order: 10; } #menu #gfxBtn { order: 11; } #menu #drawBtn { order: 12; } #menu #fxQBtn { order: 13; } #menu #grassBtn { order: 14; } #menu #sunBtn { order: 15; }
 #menu #updBtn { order: 20; } #menu #logBtn { order: 21; } #menu #homeBtn { order: 22; } #menu #devBtn { order: 23; }
 #menu #restartBtn { order: 30; }
 #menu #fpsBtn, #menu #updBtn, #menu #logBtn:first-child, #menu #restartBtn { margin-top: 14px; }
@@ -169,6 +169,11 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 .logBox textarea { flex: 1; width: 100%; box-sizing: border-box; font: 12px/1.35 ui-monospace, Menlo, monospace; border: 2px solid var(--line); border-radius: 12px; padding: 8px; resize: none; background: #fffdf8; color: var(--ink); }
 .logRow { display: flex; gap: 10px; } .logRow button { flex: 1; padding: 12px; border-radius: 14px; border: 3px solid var(--ink); background: #fffaf0; font-weight: 700; font-size: 17px; }
 .logRow button[data-c] { background: #74a857; color: #fff6e4; }
+
+/* grass size test switch */
+.grassBtn{position:relative}.grassBtn b{position:absolute;left:0;right:0;bottom:2px;font:800 12px/1 system-ui,sans-serif;color:var(--ink);text-align:center}
+#menu .sheetTop > #grassBtn::after { content: 'Gräs runt Pip (17 / 24 / 34)'; }
+#menu .sheetTop > #sunBtn::after { content: 'Solens väg'; }
 
 .flycoin { background: var(--accent); }
 .price i { background: var(--accent); border-radius: 50% 50% 50% 50%; }
@@ -738,7 +743,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122214926">
+<meta name="app-ver" content="20261122220444">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2265,14 +2270,34 @@ const _ca = new T.Color(), _cb = new T.Color();
 const mixHex = (a, b, q, out) => out.copy(_ca.set(a)).lerp(_cb.set(b), q);
 let nightAmt = 0, isNight = false, season = 'spring', seasonShown = null;
 const dayFrac = () => (state.clock % DAY) / DAY;
-/* the sun crosses the sky: it rises in the east (right), is high in the south (behind the camera) at midday and sets in
-   the west (left), low and with long shadows morning and evening, so the shadows show the time of day.
-   The moon then goes back from west to east, so the shadows never jump at dusk or dawn. Indoors it stays where it was. */
-const SUN_HOME = new T.Vector3(-10, 10, 7.5), SUN_OFF = SUN_HOME.clone();
+/* the sun crosses the sky, low with long shadows morning and evening, so the shadows show the time of day.
+   Three paths to try (settings button, 'pips-sunpath'):
+     lr: rises right (east), high behind the camera at midday, sets left (west)
+     tb: rises at the top of the screen (north, a visible sunrise), sets behind the camera
+     bt: rises behind the camera, sets at the top of the screen (a visible sunset)
+   The moon then goes back the same way, so the shadows never jump at dusk or dawn. Indoors it stays where it was.
+   A sun disk is drawn in the sky low over the far edge of the island (clouds.js) when the path brings it on screen. */
+const SUN_HOME = new T.Vector3(-10, 10, 7.5), SUN_OFF = SUN_HOME.clone(), SUN_VIS = new T.Vector3(0, -0.4, -1), SUN_DISK = { a: 0 };
+const SUN_PATHS = { lr: [[1, 0, 0], [0, 0, 1]], tb: [[0, 0, -1], [-1, 0, 0]], bt: [[0, 0, 1], [-1, 0, 0]] }; /* [rise direction, midday direction] */
+let sunPath = 'lr'; try { const v = localStorage.getItem('pips-sunpath'); if (SUN_PATHS[v]) sunPath = v; } catch (e) {}
 if (window.__farmTest) window.__sun = () => SUN_OFF.toArray().map((v) => +v.toFixed(2));
 function sunArc(f) {
-  const p = f < 0.64 ? f / 0.64 : 1 - (f - 0.64) / 0.36, az = Math.PI * p, el = (18 + 37 * Math.sin(Math.PI * p)) * Math.PI / 180, d = 16;
-  SUN_OFF.set(Math.cos(az) * Math.cos(el) * d, Math.sin(el) * d, Math.sin(az) * Math.cos(el) * d);
+  const day = f < 0.64, p = day ? f / 0.64 : 1 - (f - 0.64) / 0.36, el = (18 + 37 * Math.sin(Math.PI * p)) * Math.PI / 180, d = 16;
+  const [R, N] = SUN_PATHS[sunPath], c = Math.cos(Math.PI * p), sn = Math.sin(Math.PI * p), hx = R[0] * c + N[0] * sn, hz = R[2] * c + N[2] * sn;
+  SUN_OFF.set(hx * Math.cos(el) * d, Math.sin(el) * d, hz * Math.cos(el) * d);
+  /* the disk: same compass direction, but drawn just over the far horizon the camera can see; it climbs out of view as the sun rises */
+  const lo = 1 - Math.min(1, (el * 180 / Math.PI - 18) / 14), hl = Math.hypot(hx, hz) || 1;
+  SUN_VIS.set(hx / hl, -0.37 + (1 - lo) * 0.25, hz / hl); SUN_DISK.a = day ? lo * (hz < -0.2 ? 1 : 0) : 0;
+}
+/* the button: a sun with an arrow showing which way it goes */
+{
+  const fb = document.getElementById('fpsBtn'), row = fb ? fb.parentNode : document.querySelector('#menu .sheetTop');
+  if (row) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'round sunBtn'; b.id = 'sunBtn';
+    const draw = () => { const r = { lr: 0, tb: 90, bt: -90 }[sunPath]; b.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="8" fill="#f2c14a" stroke="#22303c" stroke-width="2.5"/><g transform="rotate(' + r + ' 24 24)"><path d="M40 40 H10 M16 34 L10 40 L16 46" fill="none" stroke="#22303c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -4)"/></g></svg>'; b.setAttribute('aria-label', 'Sun path ' + sunPath); };
+    draw(); row.appendChild(b);
+    b.addEventListener('click', (e) => { e.stopPropagation(); const k = ['lr', 'tb', 'bt']; sunPath = k[(k.indexOf(sunPath) + 1) % 3]; try { localStorage.setItem('pips-sunpath', sunPath); } catch (er) {} draw(); Snd.play('pop', { gain: 0.4, f: 700 }); });
+  }
 }
 /* a soft warm light that follows Pip at night, and one for the tractor's headlights */
 const pipLamp = new T.PointLight(0xffd8a0, 0, 4.5, 2); pipLamp.position.set(0, 1.6, 0.4); pip.add(pipLamp);
@@ -3719,11 +3744,11 @@ if (window.__farmTest) window.__gfx = () => ({ lv: gfxLv, low: gfxLow, fog: [Mat
    Clouds are painted procedurally in the shader (no textures): coverage follows the weather and season, they
    drift with the wind, and their colour comes from the same top/horizon colours the day cycle and weather already
    set, so dawn, sunset, rain, snow and night all tint them for free. Stars come out at night. */
-const SKYU = Object.assign({}, sky.material.uniforms, { uHz: { value: -0.2 }, uCover: { value: 0.35 }, uWind: { value: new T.Vector2() }, uNight: { value: 0 }, uT: { value: 0 }, uSun: { value: new T.Vector3(0, 0.5, -1) } });
+const SKYU = Object.assign({}, sky.material.uniforms, { uHz: { value: -0.2 }, uCover: { value: 0.35 }, uWind: { value: new T.Vector2() }, uNight: { value: 0 }, uT: { value: 0 }, uSun: { value: new T.Vector3(0, 0.5, -1) }, uSunV: { value: SUN_VIS }, uDisk: { value: 0 } });
 sky.material = new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: false, uniforms: SKYU,
   vertexShader: 'varying vec3 vD; void main(){ vD = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
   fragmentShader: `
-    varying vec3 vD; uniform vec3 top; uniform vec3 hor; uniform float uHz; uniform float uCover; uniform vec2 uWind; uniform float uNight; uniform float uT; uniform vec3 uSun;
+    varying vec3 vD; uniform vec3 top; uniform vec3 hor; uniform float uHz; uniform float uCover; uniform vec2 uWind; uniform float uNight; uniform float uT; uniform vec3 uSun; uniform vec3 uSunV; uniform float uDisk;
     float h2(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
     float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
       return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y); }
@@ -3735,6 +3760,8 @@ sky.material = new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: 
       vec3 col = mix(hor, top, smoothstep(0.0, 0.12, g));
       /* a soft glow around the sun */
       float sd = max(dot(d, normalize(uSun)), 0.0); col += (hor * 0.35 + 0.08) * pow(sd, 10.0) * (1.0 - uNight) * 0.6;
+      /* the low sun's disk over the far horizon (sunrise or sunset at the top of the screen) */
+      if (uDisk > 0.0) { float vd = max(dot(d, normalize(uSunV)), 0.0); col += vec3(1.0, 0.55, 0.25) * pow(vd, 60.0) * 0.45 * uDisk; col = mix(col, vec3(1.0, 0.86, 0.55), smoothstep(0.9988, 0.9992, vd) * uDisk); }
       if (e > 0.0) {
         /* clouds on a flat layer above: project the view ray onto it */
         vec2 p = d.xz / (e + 0.06) * 0.35 + uWind;
@@ -3773,6 +3800,7 @@ function skyFrame(dt) {
   if (!reduced) { SKYU.uWind.value.x += Math.cos(ang) * w * dt; SKYU.uWind.value.y += Math.sin(ang) * w * dt; }
   SKYU.uNight.value = nightAmt; SKYU.uT.value = time;
   SKYU.uSun.value.copy(_sk.copy(sun.position).sub(sun.target.position)).normalize();
+  SKYU.uDisk.value = inHouse ? 0 : SUN_DISK.a;
 }
 
 /* ---------- high quality light (rays.js): god rays, bloom, sun shafts, dust motes, lamp halos, golden glow, sharper image ----------
@@ -4062,7 +4090,10 @@ function aoApply(r, on) { const a = r.c.array; if (on) for (let i = 0; i < r.ao.
 /* ----- 3D grass: one instanced draw of blade clumps in a square that wraps around Pip, fading into the painted ground.
    Colour and where it may grow come from a small texture built from the ground's own colours, the road mask and the
    pens, houses and props; wind waves and bending happen in the vertex shader. ----- */
-const GR = { L: 17, N: 0, mesh: null, t: 0, tex: null, W: 116, H: 80, push: [] };
+/* grass patch size (test switch in the settings, 2026-11-22): side of the square and where it fades out around Pip */
+const GR_SIZES = { 17: [5.2, 7.8], 24: [8, 11], 34: [12, 16] };
+let grSize = 17; try { const v = +localStorage.getItem('pips-grass'); if (GR_SIZES[v]) grSize = v; } catch (e) {}
+const GR = { L: grSize, N: 0, mesh: null, t: 0, tex: null, W: 116, H: 80, push: [] };
 for (let i = 0; i < 8; i++) GR.push.push(new T.Vector4(0, 0, 0, 0));
 function grClump() {
   const P = [], C = [], N = [], I = [];
@@ -4076,7 +4107,7 @@ function grBuild(dens) {
   g.setAttribute('aI', new T.InstancedBufferAttribute(a, 4)); g.instanceCount = n; GR.N = n;
   const d = new Uint8Array(GR.W * GR.H * 4); GR.tex = new T.DataTexture(d, GR.W, GR.H, T.RGBAFormat); GR.tex.magFilter = GR.tex.minFilter = T.LinearFilter; GR.tex.needsUpdate = true;
   const m = new T.MeshLambertMaterial({ vertexColors: true, side: T.DoubleSide });
-  GR.u = { uGFocus: { value: new T.Vector3() }, uGL: { value: L }, uGT: { value: 0 }, uGWind: { value: new T.Vector2() }, uGPush: { value: GR.push }, uGTex: { value: GR.tex }, uGH: { value: 0.42 }, uGFade: { value: new T.Vector2(5.2, 7.8) } };
+  GR.u = { uGFocus: { value: new T.Vector3() }, uGL: { value: L }, uGT: { value: 0 }, uGWind: { value: new T.Vector2() }, uGPush: { value: GR.push }, uGTex: { value: GR.tex }, uGH: { value: 0.42 }, uGFade: { value: new T.Vector2(GR_SIZES[GR.L][0], GR_SIZES[GR.L][1]) } };
   m.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, GR.u); sh.uniforms.gMask = GU.mask; sh.uniforms.gDet = GU.det;
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 aI; uniform vec3 uGFocus; uniform float uGL, uGT, uGH; uniform vec2 uGWind, uGFade; uniform vec4 uGPush[8]; uniform sampler2D uGTex, gMask, gDet;')
       .replace('#include <color_vertex>', `#include <color_vertex>
@@ -4232,12 +4263,20 @@ function fxRender(dt) {
   const qb = document.createElement('button'); qb.type = 'button'; qb.className = 'round fxQBtn'; qb.id = 'fxQBtn';
   qb.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6 L28 19 L41 23 L28 27 L24 40 L20 27 L7 23 L20 19 Z" fill="#ffd66a" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/><circle cx="38" cy="10" r="3" fill="#ffd66a" stroke="#22303c" stroke-width="2"/></svg><b></b>';
   if (db && db.parentNode) db.parentNode.insertBefore(qb, db.nextSibling);
+  /* grass size: 17, 24 or 34 units around Pip (only seen with high quality on, as in ultra) */
+  const gb = document.createElement('button'); gb.type = 'button'; gb.className = 'round grassBtn'; gb.id = 'grassBtn';
+  gb.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 38 Q12 24 8 14 Q16 24 17 38 M19 38 Q22 20 24 8 Q26 20 29 38 M31 38 Q32 24 40 14 Q36 24 38 38" fill="#8fc163" stroke="#22303c" stroke-width="2.5" stroke-linejoin="round"/></svg><b></b>';
+  if (qb.parentNode) qb.parentNode.insertBefore(gb, qb.nextSibling);
+  const gsync = () => { gb.querySelector('b').textContent = grSize; gb.setAttribute('aria-label', 'Grass size ' + grSize); gb.style.opacity = FX.hi && FX.on.grass ? 1 : 0.5; };
+  gb.addEventListener('click', (e) => { e.stopPropagation(); const k = [17, 24, 34]; grSize = k[(k.indexOf(grSize) + 1) % 3]; try { localStorage.setItem('pips-grass', grSize); } catch (er) {}
+    if (GR.mesh) { sc.remove(GR.mesh); GR.mesh.geometry.dispose(); GR.mesh.material.dispose(); GR.mesh = null; } GR.L = grSize; gsync(); Snd.play('pop', { gain: 0.4, f: 400 + grSize * 12 }); });
+  FX.gsync = gsync;
   const btn = document.createElement('button'); btn.id = 'fxBtn'; btn.type = 'button'; btn.textContent = '✨'; btn.setAttribute('aria-label', 'Light effects'); btn.hidden = !FX_TEST && !devOn;
   const pan = document.createElement('div'); pan.id = 'fxPan'; pan.hidden = true;
   pan.innerHTML = '<h3>Light effects</h3><label class="hi"><input type="checkbox" data-hi><span>High quality<small>off = the normal game look</small></span></label>'
     + FX_KEYS.map(([k, n, d]) => '<label><input type="checkbox" data-k="' + k + '"><span>' + n + '<small>' + d + '</small></span><em data-ms="' + k + '"></em></label>').join('')
     + '<div class="row"><button type="button" data-bench>Measure cost</button><button type="button" data-close>Close</button></div><div class="note" data-note>Measure switches each effect on alone for a moment and times the frame (about 15 s). Stand still while it runs.</div>';
-  const sync = () => { qb.classList.toggle('on', FX.hi); qb.querySelector('b').textContent = FX.hi ? 'HIGH' : ''; qb.setAttribute('aria-label', 'Graphics quality: ' + (FX.hi ? 'high' : 'normal')); qb.setAttribute('aria-pressed', String(FX.hi)); btn.classList.toggle('on', FX.hi);
+  const sync = () => { if (FX.gsync) FX.gsync(); qb.classList.toggle('on', FX.hi); qb.querySelector('b').textContent = FX.hi ? 'HIGH' : ''; qb.setAttribute('aria-label', 'Graphics quality: ' + (FX.hi ? 'high' : 'normal')); qb.setAttribute('aria-pressed', String(FX.hi)); btn.classList.toggle('on', FX.hi);
     pan.querySelector('[data-hi]').checked = FX.hi; FX_KEYS.forEach(([k]) => { const c = pan.querySelector('[data-k="' + k + '"]'); c.checked = FX.on[k]; c.disabled = !FX.hi && !FX_LOW.has(k); }); };
   FX.sync = sync;
   qb.addEventListener('click', () => { FX.hi = !FX.hi; fxSave(); sync(); Snd.play('sparkle', { gain: 0.35 }); });

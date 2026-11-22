@@ -17,14 +17,34 @@ const _ca = new T.Color(), _cb = new T.Color();
 const mixHex = (a, b, q, out) => out.copy(_ca.set(a)).lerp(_cb.set(b), q);
 let nightAmt = 0, isNight = false, season = 'spring', seasonShown = null;
 const dayFrac = () => (state.clock % DAY) / DAY;
-/* the sun crosses the sky: it rises in the east (right), is high in the south (behind the camera) at midday and sets in
-   the west (left), low and with long shadows morning and evening, so the shadows show the time of day.
-   The moon then goes back from west to east, so the shadows never jump at dusk or dawn. Indoors it stays where it was. */
-const SUN_HOME = new T.Vector3(-10, 10, 7.5), SUN_OFF = SUN_HOME.clone();
+/* the sun crosses the sky, low with long shadows morning and evening, so the shadows show the time of day.
+   Three paths to try (settings button, 'pips-sunpath'):
+     lr: rises right (east), high behind the camera at midday, sets left (west)
+     tb: rises at the top of the screen (north, a visible sunrise), sets behind the camera
+     bt: rises behind the camera, sets at the top of the screen (a visible sunset)
+   The moon then goes back the same way, so the shadows never jump at dusk or dawn. Indoors it stays where it was.
+   A sun disk is drawn in the sky low over the far edge of the island (clouds.js) when the path brings it on screen. */
+const SUN_HOME = new T.Vector3(-10, 10, 7.5), SUN_OFF = SUN_HOME.clone(), SUN_VIS = new T.Vector3(0, -0.4, -1), SUN_DISK = { a: 0 };
+const SUN_PATHS = { lr: [[1, 0, 0], [0, 0, 1]], tb: [[0, 0, -1], [-1, 0, 0]], bt: [[0, 0, 1], [-1, 0, 0]] }; /* [rise direction, midday direction] */
+let sunPath = 'lr'; try { const v = localStorage.getItem('pips-sunpath'); if (SUN_PATHS[v]) sunPath = v; } catch (e) {}
 if (window.__farmTest) window.__sun = () => SUN_OFF.toArray().map((v) => +v.toFixed(2));
 function sunArc(f) {
-  const p = f < 0.64 ? f / 0.64 : 1 - (f - 0.64) / 0.36, az = Math.PI * p, el = (18 + 37 * Math.sin(Math.PI * p)) * Math.PI / 180, d = 16;
-  SUN_OFF.set(Math.cos(az) * Math.cos(el) * d, Math.sin(el) * d, Math.sin(az) * Math.cos(el) * d);
+  const day = f < 0.64, p = day ? f / 0.64 : 1 - (f - 0.64) / 0.36, el = (18 + 37 * Math.sin(Math.PI * p)) * Math.PI / 180, d = 16;
+  const [R, N] = SUN_PATHS[sunPath], c = Math.cos(Math.PI * p), sn = Math.sin(Math.PI * p), hx = R[0] * c + N[0] * sn, hz = R[2] * c + N[2] * sn;
+  SUN_OFF.set(hx * Math.cos(el) * d, Math.sin(el) * d, hz * Math.cos(el) * d);
+  /* the disk: same compass direction, but drawn just over the far horizon the camera can see; it climbs out of view as the sun rises */
+  const lo = 1 - Math.min(1, (el * 180 / Math.PI - 18) / 14), hl = Math.hypot(hx, hz) || 1;
+  SUN_VIS.set(hx / hl, -0.37 + (1 - lo) * 0.25, hz / hl); SUN_DISK.a = day ? lo * (hz < -0.2 ? 1 : 0) : 0;
+}
+/* the button: a sun with an arrow showing which way it goes */
+{
+  const fb = document.getElementById('fpsBtn'), row = fb ? fb.parentNode : document.querySelector('#menu .sheetTop');
+  if (row) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'round sunBtn'; b.id = 'sunBtn';
+    const draw = () => { const r = { lr: 0, tb: 90, bt: -90 }[sunPath]; b.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="8" fill="#f2c14a" stroke="#22303c" stroke-width="2.5"/><g transform="rotate(' + r + ' 24 24)"><path d="M40 40 H10 M16 34 L10 40 L16 46" fill="none" stroke="#22303c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -4)"/></g></svg>'; b.setAttribute('aria-label', 'Sun path ' + sunPath); };
+    draw(); row.appendChild(b);
+    b.addEventListener('click', (e) => { e.stopPropagation(); const k = ['lr', 'tb', 'bt']; sunPath = k[(k.indexOf(sunPath) + 1) % 3]; try { localStorage.setItem('pips-sunpath', sunPath); } catch (er) {} draw(); Snd.play('pop', { gain: 0.4, f: 700 }); });
+  }
 }
 /* a soft warm light that follows Pip at night, and one for the tractor's headlights */
 const pipLamp = new T.PointLight(0xffd8a0, 0, 4.5, 2); pipLamp.position.set(0, 1.6, 0.4); pip.add(pipLamp);
