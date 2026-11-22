@@ -228,6 +228,9 @@ const ICO = {
 .catTray .sw{width:52px;height:52px;border-radius:50%;border:4px solid #3a2e2a}
 .catTray .sw.on{box-shadow:0 0 0 4px #bfe6a8}
 .catTray .sw.no{opacity:.3}
+.catTray .sw.buy{position:relative;opacity:.45;border-style:dashed}
+.catTray .sw.buy.ok{opacity:1;border-style:solid;box-shadow:0 0 0 4px #ffe28a}
+.catTray .sw.buy svg{position:absolute;right:-8px;top:-8px;width:24px;height:24px}
 .stBadge{z-index:60}
 @media (max-width:700px){.cat .cp{padding:10px;border-radius:20px}.cat .tab{width:52px;height:52px}.cat .cc img{width:54px;height:54px}}
 `; document.head.appendChild(st); }
@@ -325,11 +328,12 @@ function trayRender() {
   const id = CV.tray; if (!id) { trayEl.hidden = true; return; }
   const s = CSPOT[id], C = catS(), e = C.eq[id], o = C.own[id];
   trayEl.innerHTML = `<div class="row">${[0, 1, 2, 3].map((t) => o[t] ? `<button type="button" class="tp${e[0] === t ? ' on' : ''}" data-t="${t}" aria-label="Välj"><img src="${catThumb(s.fam, t, e[0] === t ? e[1] : o[t][0])}" alt=""></button>` : `<span class="tp no"><img src="${catThumb(s.fam, t, 0)}" alt=""></span>`).join('')}</div>
-    <div class="row">${CFAM[s.fam].cols.map((c, k) => o[e[0]].includes(k) ? `<button type="button" class="sw${e[1] === k ? ' on' : ''}" style="background:${c}" data-c="${k}" aria-label="Färg"></button>` : `<span class="sw no" style="background:${c}"></span>`).join('')}</div>`;
+    <div class="row">${CFAM[s.fam].cols.map((c, k) => o[e[0]].includes(k) ? `<button type="button" class="sw${e[1] === k ? ' on' : ''}" style="background:${c}" data-c="${k}" aria-label="Färg"></button>` : `<button type="button" class="sw buy${shop().coins >= colCost(s, e[0]) ? ' ok' : ''}" style="background:${c}" data-b="${k}" aria-label="Köp färg">${ICO.coin}</button>`).join('')}</div>`;
   trayEl.hidden = false;
 }
 trayEl.addEventListener('click', (ev) => {
   ev.stopPropagation(); Snd.init(); const b = ev.target.closest('button'); if (!b || !CV.tray) return; const id = CV.tray, C = catS(), o = C.own[id];
+  if (b.dataset.b != null) { catBuy({ k: 'col', s: id, t: C.eq[id][0], c: +b.dataset.b }); trayRender(); return; }
   if (b.dataset.t != null) { const t = +b.dataset.t; C.eq[id] = [t, o[t].includes(C.eq[id][1]) ? C.eq[id][1] : o[t][0]]; } else if (b.dataset.c != null) C.eq[id] = [C.eq[id][0], +b.dataset.c];
   const g = applySpot(id); if (g) { riseIn(g, 0, 0.45, true); const s = CSPOT[id]; confetti(HX(s.x), 0.8, HZ(s.z), 16, 2.6); }
   Snd.play('pop', { gain: 0.4, f: 720 }); Snd.play('sparkle', { gain: 0.3, n: 4 }, 0.04); save(); trayRender();
@@ -347,7 +351,7 @@ function catStep(dt) {
   if (CV.open) { if (!inStore) catClose(); else { target.copy(pip.position); } }
   /* rings and the tray at home */
   let onId = null;
-  Object.keys(BRUSHR).forEach((id) => { const R = BRUSHR[id], s = CSPOT[id], show = home && roomOpen(s.room) && choices(id) > 1 && !stS().pend.includes('c:' + id); R.m.visible = show;
+  Object.keys(BRUSHR).forEach((id) => { const R = BRUSHR[id], s = CSPOT[id], show = home && roomOpen(s.room) && choices(id) >= 1 && !stS().pend.includes('c:' + id); R.m.visible = show;
     if (show) { R.m.scale.setScalar(1 + (reduced ? 0 : Math.sin(time * 3 + R.x) * 0.04)); if (Math.hypot(pip.position.x - R.x, pip.position.z - R.z) < 0.42) onId = id; } });
   if (onId !== CV.tray) { CV.tray = onId; if (onId) { Snd.play('pop', { gain: 0.3, f: 820 }); } trayRender(); }
 }

@@ -60,6 +60,7 @@ loft.js
 tut.js
 queue.js
 buymode.js
+housering.js
 mobile.js
 ../engine/gfx.js
 ../engine/clouds.js

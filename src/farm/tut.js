@@ -192,7 +192,7 @@ function tutGoal() {
   if (id === 'barn' || id === 'out') { if (inStore) return [SI.x, SI.z + 4.7]; if (inHouse && !inBarn) return homeExit(); return barnGoal() || (id === 'out' ? [BDOOR.x, BDOOR.z] : null); }
   if (id === 'bed') { if (inHouse && !inBarn && !inStore) return [bedRing.x, bedRing.z]; return outOf() || [HDOOR.x, HDOOR.z]; }
   if (id === 'gift') { if (outOf()) return outOf(); return tutGift && !tutGift.open ? [tutGift.x, tutGift.z] : null; }
-  if (id === 'house') { if (outOf()) return outOf(); return [HDOOR.x, HDOOR.z + 0.6]; }
+  if (id === 'house') { if (outOf()) return outOf(); return [HRING.x, HRING.z]; }
   return null;
 }
 /* the arrow normally hides inside the house; during the first day it still shows the way (to the bed, or out again) */
