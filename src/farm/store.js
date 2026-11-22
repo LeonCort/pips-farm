@@ -245,35 +245,79 @@ const SL = [];
   const rugT = canvasTex(256, 128, (x, w, h) => { x.fillStyle = '#7a3f3a'; x.fillRect(0, 0, w, h); x.strokeStyle = '#e6b45a'; x.lineWidth = 8; x.strokeRect(10, 10, w - 20, h - 20); x.fillStyle = '#e6b45a'; for (let k = 0; k < 7; k++) { x.beginPath(); x.arc(32 + k * 32, 64, 9, 0, 7); x.fill(); } });
   const rug = new T.Mesh(new T.PlaneGeometry(2.2, 5.4), new T.MeshStandardMaterial({ map: rugT, roughness: 1 })); rug.rotation.set(-Math.PI / 2, 0, Math.PI / 2); rug.position.set(X(0), 0.035, Z(1.3)); rug.rotation.z = Math.PI / 2; rug.receiveShadow = true; sc.add(rug);
   [[-5.5, 4.0], [5.5, 4.0], [-5.5, -3.4], [5.5, -3.4]].forEach(([x, z], k) => { P(new T.CylinderGeometry(0.2, 0.15, 0.34, 10), '#c8734a', 1520, x, 0.17, z); P(fluff(0.24, 1521 + k, 5).scale(1, 1.4, 1), (cx, cy, cz, i) => leafY('#5d9160', cy, -0.2, 0.3, i), 1521 + k, x, 0.55, z); });
-  P(box(1.4, 0.8, 0.5), WD, 1530, 2.05, 0.4, -3.05); P(box(1.5, 0.06, 0.6), LW, 1531, 2.05, 0.82, -3.05); P(box(0.36, 0.22, 0.3), '#3a3f48', 1532, 2.4, 0.96, -3.05); P(box(0.3, 0.06, 0.24), '#e8b84a', 1533, 2.4, 1.1, -3.05); P(box(0.2, 0.12, 0.2), '#c9a36c', 1534, 1.7, 0.92, -3.05);
-  /* the house table: the model house stands on it */
-  P(new T.CylinderGeometry(0.75, 0.75, 0.06, 20), LW, 1535, 0, 0.62, -3.0); P(new T.CylinderGeometry(0.1, 0.16, 0.6, 10), DK, 1536, 0, 0.3, -3.0);
+  P(box(1.4, 0.8, 0.5), WD, 1530, 0, 0.4, -3.2); P(box(1.5, 0.06, 0.6), LW, 1531, 0, 0.82, -3.2); P(box(0.36, 0.22, 0.3), '#3a3f48', 1532, 0.35, 0.96, -3.2); P(box(0.3, 0.06, 0.24), '#e8b84a', 1533, 0.35, 1.1, -3.2); P(box(0.2, 0.12, 0.2), '#c9a36c', 1534, -0.35, 0.92, -3.2);
   /* lamps hanging from nowhere are odd, so the light comes from lanterns on the back shelves */
   [-3.35, 3.35].forEach((x) => { P(box(0.18, 0.24, 0.18), '#3a3f48', 1537, x, 1.6, -3.9); P(box(0.13, 0.18, 0.13), '#ffd98a', 1538, x, 1.6, -3.89); });
   merged(SL);
 }
 /* the shopkeeper: a bunny behind the counter, who hops when something is sold */
-const keeper = guestModel('bunny'); keeper.position.set(SI.x + 2.0, 0, SI.z - 3.6); sc.add(keeper);
+const keeper = guestModel('bunny'); keeper.position.set(SI.x, 0, SI.z - 3.75); sc.add(keeper);
 { const apron = new T.CylinderGeometry(0.2, 0.26, 0.3, 10); part(fac(apron, '#5a9fc4', 7), keeper, 0, 0.33, 0.02); }
 const SGLOW = [[-3.35, 1.6, -3.7], [3.35, 1.6, -3.7], [-3.6, 1.4, 1.2], [3.6, 1.4, 1.2]].map(([x, y, z]) => { const s = new T.Sprite(glowMat); s.scale.set(1.6, 1.6, 1); s.position.set(SI.x + x, y, SI.z + z); s.visible = false; sc.add(s); return { s, x, y, z }; });
 
-/* ---------- the stations: a pedestal with the thing on it and a pad in front to pay on ---------- */
+/* ---------- the counters: four little stalls, each showing only the next one or two things, with a jar beside each ----------
+   Kids can't read, so nothing here has a number. A jar fills as far as your coins (or hearts, for Pip's gear) reach; a full
+   jar sparkles and its ring glows green, and standing on a green ring buys it while coins hop into the jar. Things that
+   can't be bought yet are not shown at all, and an empty spot gets a cloth over it. The picture on the awning says where
+   the things go: Pip's gear, the house, the rooms, the yard and island. */
 const STATIONS_S = [];
-function station(kind, i, px, pz, side) {
-  const x = SI.x + px, z = SI.z + pz, padX = side ? x - side * 1.25 : x, padZ = side ? z : z + 1.25;
-  const L = [], P = at(x, z, 0, L);
-  P(new T.CylinderGeometry(0.42, 0.48, 0.5, 14), '#b98552', 1600, 0, 0.25, 0); P(new T.CylinderGeometry(0.46, 0.46, 0.05, 14), '#6b4630', 1601, 0, 0.52, 0);
-  if (kind !== 'size') merged(L);
-  const c = document.createElement('canvas'); c.width = c.height = 192; const tex = new T.CanvasTexture(c);
-  const pad = new T.Mesh(new T.CircleGeometry(0.62, 32), new T.MeshBasicMaterial({ map: tex, transparent: true })); pad.rotation.x = -Math.PI / 2; pad.position.set(padX, 0.05, padZ); sc.add(pad);
-  const hold = new T.Group(); hold.position.set(x, kind === 'size' ? 0.66 : 0.56, z); sc.add(hold);
-  const dc = document.createElement('canvas'); dc.width = 256; dc.height = 48; const dots = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(dc), depthTest: false, transparent: true })); dots.renderOrder = 4; dots.scale.set(1.0, 0.19, 1); dots.position.set(x, 1.45, z); dots.visible = kind === 'gear'; sc.add(dots);
-  const s = { kind, i, x, z, padX, padZ, pad, c, tex, hold, dots, dc, item: null, key: '', shown: '', tick: 0, poor: false, spin: hash(i, 7) * 6 };
-  STATIONS_S.push(s); return s;
+const CTRS = [
+  { id: 'gear', col: '#d9573e', sign: 'pip', x: -4.75, z: 0.3, ry: Math.PI / 2, n: 1 },
+  { id: 'house', col: '#5a7fb0', sign: 'house', x: -2.45, z: -2.45, ry: 0, n: 2 },
+  { id: 'rooms', col: '#74a857', sign: 'bed', x: 2.45, z: -2.45, ry: 0, n: 2 },
+  { id: 'yard', col: '#e6a93a', sign: 'tree', x: 4.75, z: 0.3, ry: -Math.PI / 2, n: 2 }
+];
+const CTR_TOP = 0.92, JAR_H = 0.38;
+const ctrW = (c) => (c.n === 1 ? 1.7 : 2.8);
+/* from a counter's own space (x along it, z towards the shopper) to the world */
+const ctrPt = (c, lx, lz) => { const cs = Math.cos(c.ry), sn = Math.sin(c.ry); return [SI.x + c.x + lx * cs + lz * sn, SI.z + c.z - lx * sn + lz * cs]; };
+function ctrSign(kind, col) {
+  const cv = document.createElement('canvas'); cv.width = cv.height = 256; const x = cv.getContext('2d');
+  x.fillStyle = '#fffaf0'; x.beginPath(); x.arc(128, 128, 118, 0, 7); x.fill(); x.lineWidth = 16; x.strokeStyle = col; x.stroke();
+  if (kind === 'pip') { x.fillStyle = '#c0563a'; x.beginPath(); x.roundRect(88, 136, 80, 78, 30); x.fill(); x.fillStyle = '#f3c9a4'; x.beginPath(); x.arc(128, 118, 40, 0, 7); x.fill();
+    x.fillStyle = '#e0a84a'; x.beginPath(); x.ellipse(128, 92, 66, 18, 0, 0, 7); x.fill(); x.beginPath(); x.ellipse(128, 76, 36, 24, 0, 0, 7); x.fill(); x.fillStyle = PAL.ink; x.beginPath(); x.arc(114, 124, 5, 0, 7); x.arc(142, 124, 5, 0, 7); x.fill(); }
+  else if (kind === 'tree') { x.fillStyle = '#8a5a3a'; x.fillRect(116, 140, 24, 70); x.fillStyle = '#74a857'; x.beginPath(); x.arc(128, 112, 62, 0, 7); x.fill(); x.fillStyle = '#e9684a'; [[100, 96], [150, 122], [126, 74], [104, 138]].forEach(([a, b]) => { x.beginPath(); x.arc(a, b, 12, 0, 7); x.fill(); }); x.fillStyle = '#3f7d62'; x.fillRect(60, 206, 136, 10); }
+  else drawIcon(x, kind, 128, 132, 2.6);
+  const t = new T.CanvasTexture(cv); if ('colorSpace' in t) t.colorSpace = T.SRGBColorSpace; return t;
 }
-GEAR.forEach((id, k) => station('gear', k, -4.85, -2.55 + k * 1.75, -1));
-station('cat', 0, 4.85, 0.0, 1);
-station('size', 0, 0, -3.0, 0);
+const STAR_TEX = (() => { const cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = cv.getContext('2d'); x.fillStyle = '#ffe066'; x.strokeStyle = '#b07a1e'; x.lineWidth = 3; x.beginPath();
+  for (let k = 0; k < 8; k++) { const r = k % 2 ? 11 : 28, a = -Math.PI / 2 + k * Math.PI / 4; x.lineTo(32 + Math.cos(a) * r, 32 + Math.sin(a) * r); } x.closePath(); x.fill(); x.stroke(); return new T.CanvasTexture(cv); })();
+const JAR_GLASS = new T.MeshStandardMaterial({ color: '#e4f5fc', transparent: true, opacity: 0.35, roughness: 0.08, depthWrite: false, side: T.DoubleSide });
+const JAR_COIN = new T.MeshStandardMaterial({ color: '#f2c14a', roughness: 0.45, emissive: '#5a3a00', emissiveIntensity: 0.3 });
+const JAR_HEART = new T.MeshStandardMaterial({ color: '#ef7f8f', roughness: 0.5, emissive: '#5a1820', emissiveIntensity: 0.3 });
+function jarModel() {
+  const g = new T.Group(), fg = new T.CylinderGeometry(0.135, 0.135, 1, 18); fg.translate(0, 0.5, 0);
+  const fill = new T.Mesh(fg, JAR_COIN); fill.position.y = 0.035; fill.scale.y = 0.001; g.add(fill);
+  const glass = new T.Mesh(new T.CylinderGeometry(0.165, 0.155, 0.44, 20, 1, true), JAR_GLASS); glass.position.y = 0.22; glass.renderOrder = 2; g.add(glass);
+  part(fac(new T.CylinderGeometry(0.155, 0.155, 0.03, 18), '#cfe6ef', 1661), g, 0, 0.015, 0, true);
+  part(fac(new T.CylinderGeometry(0.15, 0.15, 0.06, 16), '#c9a37a', 1660), g, 0, 0.47, 0, true);
+  const glow = new T.Sprite(glowMat.clone()); glow.scale.set(1.0, 1.0, 1); glow.position.y = 0.24; glow.material.opacity = 0; g.add(glow);
+  const star = new T.Sprite(new T.SpriteMaterial({ map: STAR_TEX, transparent: true, depthWrite: false })); star.scale.set(0.2, 0.2, 1); star.position.set(0.16, 0.6, 0); star.visible = false; g.add(star);
+  return { g, fill, glow, star, lv: 0 };
+}
+const CLOTH_GEO = (() => { const g = new T.SphereGeometry(0.34, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2); g.scale(1.25, 0.55, 1); return fac(g, '#e3cfae', 1662); })();
+{
+  const DK = '#6b4630', WD = '#9a6542', LW = '#b98552';
+  CTRS.forEach((c) => {
+    const L = [], [cx, cz] = ctrPt(c, 0, 0), P = at(cx, cz, c.ry, L), w = ctrW(c);
+    P(box(w, 0.84, 0.7), WD, 1640, 0, 0.42, 0); P(box(w + 0.12, 0.08, 0.8), LW, 1641, 0, 0.88, 0.02); P(box(w + 0.02, 0.16, 0.04), c.col, 1642, 0, 0.62, 0.36);
+    [-1, 1].forEach((s) => P(box(0.08, 1.25, 0.08), DK, 1643, s * (w / 2 - 0.06), 1.5, -0.3));
+    const n = Math.round(w / 0.3), sw = w / n; for (let i = 0; i < n; i++) P(box(sw + 0.002, 0.05, 0.5), i % 2 ? '#fff6e4' : c.col, 1644 + (i % 2), -w / 2 + sw * (i + 0.5), 2.16, -0.22, { rx: 0.3 });
+    for (let i = 0; i < n; i++) P(box(sw * 0.9, 0.14, 0.03), i % 2 ? '#fff6e4' : c.col, 1646 + (i % 2), -w / 2 + sw * (i + 0.5), 2.0, 0.03);
+    merged(L);
+    const sg = new T.Sprite(new T.SpriteMaterial({ map: ctrSign(c.sign, c.col), transparent: true })); sg.scale.set(0.8, 0.8, 1);
+    const [sx, sz] = ctrPt(c, 0, -0.2); sg.position.set(sx, 2.75, sz); sc.add(sg);
+    for (let k = 0; k < c.n; k++) {
+      const off = c.n === 1 ? 0 : (k ? 0.68 : -0.68), [x, z] = ctrPt(c, off - 0.14, 0.02), [jx, jz] = ctrPt(c, off + 0.42, 0.12), [padX, padZ] = ctrPt(c, off, 1.22);
+      const cv = document.createElement('canvas'); cv.width = cv.height = 192; const tex = new T.CanvasTexture(cv);
+      const pad = new T.Mesh(new T.CircleGeometry(0.56, 32), new T.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false })); pad.rotation.x = -Math.PI / 2; pad.position.set(padX, 0.05, padZ); sc.add(pad);
+      const hold = new T.Group(); hold.position.set(x, CTR_TOP, z); sc.add(hold);
+      const jar = jarModel(); jar.g.position.set(jx, CTR_TOP, jz); jar.g.scale.setScalar(1.35); sc.add(jar.g);
+      const cloth = new T.Mesh(CLOTH_GEO, MAT); cloth.position.set(x + 0, CTR_TOP, z); cloth.rotation.y = c.ry; cloth.castShadow = true; sc.add(cloth);
+      STATIONS_S.push({ kind: 'slot', ctr: c, i: k, x, z, jx, jz, padX, padZ, pad, cv, tex, hold, jar, cloth, item: null, key: '', shown: '', tick: 0, pay: 0, poor: false, spin: hash(k + 3, c.x) * 6 });
+    }
+  });
+}
 /* what each station offers right now: { id, cost, paid key, make() for the picture } */
 const furnOpen = (f) => f.need <= stS().size;
 function offerOf(s) {
@@ -281,7 +325,6 @@ function offerOf(s) {
   if (s.kind === 'gear') { const id = GEAR[s.i], u = UP_BY[id], lv = state.lv[id]; if (lv >= u.max) return { id: 'g:' + id, max: true, make: () => gearModel(id, u.max) }; return { id: 'g:' + id, gear: id, cost: upCost(u), lv: lv + 1, make: () => gearModel(id, lv + 1) }; }
   if (s.kind === 'furn') { const list = FURN.filter((f) => !S.furn[f.id] && furnOpen(f)); const f = list[s.i]; if (!f) return null; return { id: 'f:' + f.id, furn: f, cost: f.cost, make: () => furnModel(f) }; }
   if (s.kind === 'deco') { const d = DECO_L.find((q) => !S.deco[q.id]); if (!d) return null; return { id: 'd:' + d.id, deco: d, cost: d.cost, make: () => { const g = painterGroup(DECO_B[d.id]); if (d.id === 'lights' || d.id === 'lanterns') g.children[0].position.y = d.id === 'lights' ? -1.0 : 0; g.scale.setScalar(d.id === 'lights' ? 0.55 : d.id === 'lanterns' ? 0.5 : 0.8); return g; } }; }
-  if (s.kind === 'cat') return { id: 'cat', cat: true, make: () => { const g = new T.Group(), a = catModel('lamp', 2, 0), b = catModel('seat', 1, 2); a.position.x = -0.32; b.position.x = 0.3; b.rotation.y = -0.5; g.add(a, b); g.scale.setScalar(0.8); return g; } };
   if (s.kind === 'size') { const n = S.size + 1, z = SIZES[n]; if (!z) return { id: 'h:max', max: true, make: () => miniHouse(S.size, 0) }; return { id: 'h:' + n, size: n, cost: z.cost, make: () => miniHouse(S.size, n) }; }
   return null;
 }
@@ -308,32 +351,43 @@ function miniHouse(size, next) {
   if (size >= 4) dormer(false); else if (next === 4) dormer(true);
   g.scale.setScalar(0.27); g.position.x = -0.05; const w = new T.Group(); w.add(g); return w;
 }
+/* what each counter offers right now: only the next things, cheapest first */
+function ctrOffers(c, cat) {
+  if (c.id === 'gear') { for (let k = 0; k < GEAR.length; k++) { const o = offerOf({ kind: 'gear', i: k }); if (o && o.cost) return [o]; } return []; }
+  if (c.id === 'house') { const o = offerOf({ kind: 'size', i: 0 }); return (o && o.cost ? [o] : []).concat(cat.filter((q) => q.act.k === 'ex')).slice(0, 2); }
+  if (c.id === 'rooms') return cat.filter((q) => q.act.k === 'type').slice(0, 2);
+  return cat.filter((q) => q.act.k === 'isle' || q.act.k === 'deco').slice(0, 2);
+}
+/* a model sized to stand on the counter */
+function fitModel(m, size) {
+  const w = new T.Group(); w.add(m); m.updateMatrixWorld(true);
+  let bb = new T.Box3().setFromObject(m); const sz = bb.getSize(new T.Vector3()), k = Math.min(1.8, size / Math.max(sz.x, sz.y, sz.z, 0.05)); m.scale.multiplyScalar(k); m.updateMatrixWorld(true);
+  bb = new T.Box3().setFromObject(m); const c = bb.getCenter(new T.Vector3()); m.position.x -= c.x; m.position.z -= c.z; m.position.y -= bb.min.y; return w;
+}
+const slotLeft = (o) => o.cost - (stS().paid[o.id] || 0);
 function drawPad(s, o) {
-  const S = stS(), paid = o && o.cost ? (S.paid[o.id] || 0) : 0, can = o && o.cost && purse(o) >= o.cost - paid, key = (o ? o.id + ':' + (o.max ? 'max' : o.cost - paid) : '-') + ':' + can;
+  const can = !!o && purse(o) >= slotLeft(o), key = (o ? o.id : '-') + ':' + can;
   if (key === s.shown) return; s.shown = key;
-  const x = s.c.getContext('2d'); x.clearRect(0, 0, 192, 192); s.pad.visible = !!o;
-  if (!o) return;
-  if (o.cat) { x.fillStyle = 'rgba(255,246,228,0.96)'; x.beginPath(); x.arc(96, 96, 90, 0, 7); x.fill(); x.lineWidth = 10; x.strokeStyle = '#3f7d62'; x.stroke(); x.save(); x.translate(96, 92); x.scale(1.1, 1.1); drawIcon(x, 'house', 0, 0, 1.6); x.restore(); s.tex.needsUpdate = true; return; }
-  x.fillStyle = o.max ? '#fff2c2' : can ? 'rgba(236,250,226,0.96)' : 'rgba(255,246,228,0.95)'; x.beginPath(); x.arc(96, 96, 90, 0, 7); x.fill();
-  if (o.max) { x.fillStyle = PAL.ochre; x.font = '700 90px Fredoka, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('★', 96, 100); }
-  else { x.lineWidth = 10; x.strokeStyle = can ? '#3f7d62' : PAL.ochre; x.beginPath(); x.arc(96, 96, 84, -Math.PI / 2, -Math.PI / 2 + 6.2832 * paid / o.cost); x.stroke();
-    drawIcon(x, o.gear ? 'heart' : 'coin', 50, 98, 0.72); x.fillStyle = PAL.ink; x.font = '700 52px Fredoka, sans-serif'; x.textAlign = 'left'; x.textBaseline = 'middle'; x.fillText(fmt(o.cost - paid), 74, 102); }
+  const x = s.cv.getContext('2d'); x.clearRect(0, 0, 192, 192); s.pad.visible = !!o; if (!o) return;
+  if (can) { x.fillStyle = 'rgba(236,250,226,0.96)'; x.beginPath(); x.arc(96, 96, 86, 0, 7); x.fill(); x.lineWidth = 12; x.strokeStyle = '#3f7d62'; x.stroke(); drawIcon(x, o.gear ? 'heart' : 'coin', 96, 98, 1.25); }
+  else { x.fillStyle = 'rgba(255,246,228,0.35)'; x.beginPath(); x.arc(96, 96, 80, 0, 7); x.fill(); x.setLineDash([18, 14]); x.lineWidth = 8; x.strokeStyle = '#b49a74'; x.stroke(); x.setLineDash([]); }
   s.tex.needsUpdate = true;
 }
-function drawDots(s) {
-  if (s.kind !== 'gear') return; const id = GEAR[s.i], lv = state.lv[id], n = UP_BY[id].max; if (s.dotsK === lv) return; s.dotsK = lv;
-  const x = s.dc.getContext('2d'); x.clearRect(0, 0, 256, 48); const w = 24, gap = 6, x0 = 128 - (n * w + (n - 1) * gap) / 2;
-  for (let i = 0; i < n; i++) { x.fillStyle = i < lv ? TIER[i] : '#e6d9bd'; x.strokeStyle = PAL.ink; x.lineWidth = 3; x.beginPath(); x.arc(x0 + i * (w + gap) + w / 2, 24, w / 2 - 1, 0, 7); x.fill(); x.stroke(); }
-  s.dots.material.map.needsUpdate = true;
+function syncStation(s, o) {
+  const id = o ? o.id + (o.lv || '') + (o.size || '') : '';
+  if (id !== s.key) { const had = !!s.key; s.key = id; while (s.hold.children.length) s.hold.remove(s.hold.children[0]);
+    if (o) { const m = fitModel(o.make(), o.size ? 1.0 : s.ctr.id === 'gear' ? 0.62 : 0.8); s.hold.add(m); if (had) riseIn(m, 0.35, 0.7, true); }
+    s.jar.fill.material = o && o.gear ? JAR_HEART : JAR_COIN; s.shown = ''; }
+  s.item = o; s.jar.g.visible = !!o; s.cloth.visible = !o; drawPad(s, o); return o;
 }
-function syncStation(s) {
-  const o = offerOf(s), id = o ? o.id + (o.lv || '') + (o.size || '') + (o.max ? 'm' : '') : '';
-  if (id !== s.key) { s.key = id; while (s.hold.children.length) s.hold.remove(s.hold.children[0]); s.item = o; if (o) { const m = o.make(); s.hold.add(m); if (s.kind === 'gear') m.scale.multiplyScalar(1.5); } s.shown = ''; }
-  s.item = o; drawPad(s, o); drawDots(s); return o;
+/* all counters at once, so the shop's list is worked out one time per frame */
+function syncSlots() {
+  if (!stS()) return; const cat = catOffers().filter((q) => q.act).sort((a, b) => a.cost - b.cost);
+  CTRS.forEach((c) => { const L = ctrOffers(c, cat); STATIONS_S.forEach((s) => { if (s.ctr === c) syncStation(s, L[s.i] || null); }); });
 }
 /* the cheapest thing that can be bought right now, and the cheapest thing at all (for the wish bubble) */
-function storeOffers() { const cs = STATIONS_S.find((q) => q.kind === 'cat'); return STATIONS_S.filter((s) => s.kind !== 'cat').map((s) => ({ s, o: offerOf(s) })).filter((q) => q.o && q.o.cost).concat(catOffers().map((o) => ({ s: cs, o }))); }
-function cheapest(onlyAfford) { let best = null; storeOffers().forEach((q) => { const left = q.o.cost - (stS().paid[q.o.id] || 0); if (onlyAfford && purse(q.o) < left) return; if (!best || left < best.left) best = { s: q.s, o: q.o, left }; }); return best; }
+function storeOffers() { return STATIONS_S.filter((s) => s.item && s.item.cost).map((s) => ({ s, o: s.item })); }
+function cheapest(onlyAfford) { let best = null; storeOffers().forEach((q) => { const left = slotLeft(q.o); if (onlyAfford && purse(q.o) < left) return; if (!best || left < best.left) best = { s: q.s, o: q.o, left }; }); return best; }
 
 /* ---------- buying ---------- */
 let spinT = 0;
@@ -346,17 +400,37 @@ function storeBuy(s, o) {
   else if (o.size) { S.size = o.size; S.pend.push('size' + o.size); confetti(s.x, 1.3, s.z, 60); }
   keeper.userData.hop = 1; fanfare(!!o.size || !!o.gear); badge(pic); save();
 }
+/* stand on a green ring: coins hop into the jar, and after a moment it's yours. Stepping off before then costs nothing. */
+const PAY_T = 1.0;
+function slotBuy(s, o) {
+  if (o.act) { if (!catBuy(o.act)) return false; keeper.userData.hop = 1; return true; }
+  spend(o, slotLeft(o)); storeBuy(s, o); return true;
+}
 function payStation(s, dt) {
-  const o = s.item; if (!o || !o.cost || o.cat) return;
-  const S = stS(), on = Math.hypot(pip.position.x - s.padX, pip.position.z - s.padZ) < 0.62, still = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) < 0.15;
-  s.pad.scale.setScalar(on ? 1.08 : 1 + (reduced ? 0 : Math.sin(time * 3 + s.spin) * 0.03));
-  if (on && still && purse(o) > 0) {
-    const left = o.cost - (S.paid[o.id] || 0), amt = Math.min(purse(o), left, Math.max(1, Math.ceil(o.cost * dt / 1.4)));
-    spend(o, amt); S.paid[o.id] = (S.paid[o.id] || 0) + amt; s.tick -= dt; if (s.tick <= 0) { s.tick = 0.08; Snd.play('coin', { gain: 0.18 }, 0, 70); }
-    if (S.paid[o.id] >= o.cost) storeBuy(s, o);
-  }
-  if (on && still && purse(o) <= 0 && !s.poor && o.cost) { s.poor = true; Snd.play('tock', { gain: 0.3, f: 300 }); flash(coinPill, 'no'); }
+  const o = s.item; s.pad.scale.setScalar(1 + (reduced ? 0 : Math.sin(time * 3 + s.spin) * 0.03));
+  if (!o || !o.cost) { s.pay = 0; return; }
+  const on = Math.hypot(pip.position.x - s.padX, pip.position.z - s.padZ) < 0.56, still = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) < 0.15, can = purse(o) >= slotLeft(o);
+  if (on) s.pad.scale.setScalar(1.08);
+  if (!on) s.done = false;
+  if (on && still && can && !s.done) {
+    s.pay += dt; s.tick -= dt;
+    if (s.tick <= 0) { s.tick = 0.09; const m = new T.Mesh(o.gear ? heartGeo : coinGeo, o.gear ? heartMat : MAT); m.position.set(pip.position.x, 1.3, pip.position.z); sc.add(m);
+      fly(m, () => tmpV.set(s.jx, CTR_TOP + 0.7, s.jz), () => sc.remove(m), 0.3); Snd.play('coin', { gain: 0.16 }, 0, 70); }
+    if (s.pay >= PAY_T) { s.pay = 0; s.shown = ''; s.done = true; slotBuy(s, o); }
+  } else s.pay = 0;
+  if (on && still && !can && !s.poor && !s.done) { s.poor = true; Snd.play('tock', { gain: 0.3, f: 300 }); flash(coinPill, 'no'); }
   if (!on) s.poor = false;
+}
+/* the jars: filled as far as the purse reaches; a full one glows, and a star bobs over it */
+function jarStep(s, dt) {
+  const o = s.item; if (!o) return; const left = Math.max(1, slotLeft(o)), lv = Math.min(1, purse(o) / left), J = s.jar;
+  J.lv += (lv - J.lv) * Math.min(1, dt * 4); J.fill.scale.y = Math.max(0.001, J.lv * JAR_H);
+  const full = lv >= 1; J.star.visible = full; J.glow.material.opacity = full ? 0.55 + (reduced ? 0 : Math.sin(time * 4 + s.spin) * 0.2) : 0;
+  if (full) { J.star.position.y = 0.62 + (reduced ? 0 : Math.abs(Math.sin(time * 3 + s.spin)) * 0.12); J.star.material.rotation = reduced ? 0 : time * 1.5; }
+  J.g.rotation.z = s.pay > 0 && !reduced ? Math.sin(time * 30) * 0.05 : 0;
+}
+function slotsFrame(dt, freeHands) {
+  STATIONS_S.forEach((s) => { if (freeHands) payStation(s, dt); jarStep(s, dt); s.hold.rotation.y += dt * (reduced ? 0.15 : 0.5); s.hold.position.y = CTR_TOP + (reduced ? 0 : Math.sin(time * 2 + s.spin) * 0.025); });
 }
 
 /* ---------- the house: closed rooms, the wing and the tower, decorations, unpacking ---------- */
@@ -573,16 +647,35 @@ PLACES.store = { x: SDOOR.x, z: SDOOR.z + 0.4, mx: 20.2, mz: -6.4, sv: 'Affären
 
 /* ---------- every frame ---------- */
 let storeReady = false;
+/* ---------- the delivery: a bunny with a parcel hops by road from the shop to the house door and waits there, so kids
+   see where their things went; inside, a warm glow marks the spot while the new thing rises ---------- */
+const COURIER = (() => { const g = new T.Group(); g.add(guestModel('bunny')); part(fac(box(0.4, 0.3, 0.34), '#e9684a', 1670), g, 0, 0.62, 0.34); part(fac(box(0.08, 0.31, 0.35), '#f2c14a', 1671), g, 0, 0.62, 0.34); part(fac(box(0.41, 0.31, 0.08), '#f2c14a', 1672), g, 0, 0.62, 0.34);
+  g.visible = false; sc.add(g); return { g, on: false, path: [], t: 0 }; })();
+function courierStep(dt) {
+  const C = COURIER, home = inHouse && !inBarn && !inStore, want = !!stS() && (pendIn().length > 0 || pendOut().length > 0) && !inStore && !home && !(tutOn() && !tutAt('house'));
+  if (!want) { if (C.on) { C.on = false; C.g.visible = false; } return; }
+  if (!C.on) { C.on = true; C.g.visible = true; C.t = 0; C.g.position.set(SDOOR.x, 0, SDOOR.z + 0.7); const tx = HDOOR.x + 1.0, tz = HDOOR.z + 0.5; C.path = typeof roadPath === 'function' ? roadPath(C.g.position.x, C.g.position.z, tx, tz) : [[tx, tz]]; }
+  C.t += dt; const p = C.path[0];
+  if (p) { const dx = p[0] - C.g.position.x, dz = p[1] - C.g.position.z, d = Math.hypot(dx, dz);
+    if (d < 0.08) C.path.shift(); else { const v = Math.min(d, dt * 2.6); C.g.position.x += dx / d * v; C.g.position.z += dz / d * v; C.g.rotation.y = Math.atan2(dx, dz); }
+    C.g.position.y = reduced ? 0 : Math.abs(Math.sin(C.t * 8)) * 0.22; }
+  else { C.g.position.y = reduced ? 0 : Math.abs(Math.sin(C.t * 3)) * 0.06; C.g.rotation.y = Math.atan2(pip.position.x - C.g.position.x, pip.position.z - C.g.position.z); }
+}
+const SPOT_GLOW = (() => { const s = new T.Sprite(glowMat.clone()); s.scale.set(2.2, 2.2, 1); s.visible = false; s.renderOrder = 3; sc.add(s); return s; })();
+function spotGlowStep() {
+  const b = BUILD, on = !!(b && b.at && (b.what.startsWith('c:') || b.what.startsWith('f:') || b.what.startsWith('d:')));
+  SPOT_GLOW.visible = on; if (!on) return; SPOT_GLOW.position.set(b.at[0], 0.6, b.at[1]); SPOT_GLOW.material.opacity = 0.75 * Math.sin(Math.min(1, b.t / Math.max(0.2, b.d)) * Math.PI) + 0.15;
+}
 function storeStep(dt) {
   if (!storeReady) { storeReady = true; storeInit(); buildAvatar(); }
   burstStep(dt); riseStep(dt); buildStep(dt); houseSync(); catStep(dt); homeStep(dt);
   if (badgeT > 0) { badgeT -= dt; if (badgeT < 0.35 && !badgeEl.classList.contains('out')) badgeEl.classList.add('out'); if (badgeT <= 0) badgeEl.hidden = true; }
   if (spinT > 0) { spinT = Math.max(0, spinT - dt * 1.15); pb.rotation.y = (1 - spinT) * Math.PI * 2 * (spinT > 0 ? 1 : 0); pb.position.y = Math.sin((1 - spinT) * Math.PI) * 0.25; if (spinT === 0) { pb.rotation.y = 0; pb.position.y = 0; } }
-  wishStep(dt);
+  wishStep(dt); courierStep(dt); spotGlowStep();
   const freeHands = !riding() && !dressing && !trip && doorT <= 0;
   /* the old upgrade house: no pads or signs any more, only home */
   upSign.visible = false;
-  const S = stS(), affordable = cheapest(true);
+  syncSlots(); const S = stS(), affordable = cheapest(true);
   if (!inStore) {
     storeSign.visible = !inHouse && !!affordable; storeSign.position.y = 3.4 + (reduced ? 0 : Math.abs(Math.sin(time * 3)) * 0.18);
     giftSign.visible = !inHouse && (pendOut().length > 0 || pendIn().length > 0); giftSign.position.set(HOUSE.x + 0.7, 3.4 + (reduced ? 0 : Math.abs(Math.sin(time * 3.2)) * 0.18), HOUSE.z + 0.4);
@@ -604,11 +697,11 @@ function storeStep(dt) {
     SGLOW.forEach((g) => { g.s.visible = true; g.s.material.opacity = 0.55; });
     if (pip.position.z > SI.z + 4.35 && Math.abs(pip.position.x - SI.x) < 1.0 && doorT <= 0) goStore(false);
     if (Math.abs(pip.position.x - SI.x) >= 1.0) pip.position.z = Math.min(pip.position.z, SI.z + 4.2);
-    STATIONS_S.forEach((s) => { syncStation(s); if (freeHands) payStation(s, dt); s.hold.rotation.y += dt * (reduced ? 0.15 : 0.5); s.hold.position.y = (s.kind === 'size' ? 0.66 : 0.56) + (reduced ? 0 : Math.sin(time * 2 + s.spin) * 0.03); });
+    slotsFrame(dt, freeHands);
     const h = keeper.userData.hop || 0; keeper.position.y = Math.sin(h * Math.PI) * 0.35; keeper.userData.hop = Math.max(0, h - dt * 2.2); keeper.rotation.y = Math.atan2(pip.position.x - keeper.position.x, pip.position.z - keeper.position.z) * 0.5;
   }
 }
-const storeTest = () => ({ store: () => JSON.stringify(state.store), go: (to) => goStore(to), inStore: () => inStore, offers: () => STATIONS_S.map((s) => { const o = offerOf(s); return s.kind + s.i + ':' + (o ? o.id + '@' + (o.cost || 'max') : '-'); }), pads: () => STATIONS_S.map((s) => [s.kind + s.i, +s.padX.toFixed(2), +s.padZ.toFixed(2)]), goal: () => storeGoal(), build: () => BUILD && BUILD.what, buy: (k) => { const s = STATIONS_S[k], o = offerOf(s); if (o && o.cost) { shop().coins += o.cost; storeBuy(s, o); } }, confetti: (x, z) => confetti(x, 1, z, 40), unlockNext: () => { const p = nextPad(); const q = padPos(p); unlock(p); return q; }, sUnlockNext: () => { const p = nextSPad(); const q = sPadPos(p); sUnlock(p); return q; } });
+const storeTest = () => ({ store: () => JSON.stringify(state.store), go: (to) => goStore(to), inStore: () => inStore, offers: () => STATIONS_S.map((s) => s.ctr.id + s.i + ':' + (s.item ? s.item.id + '@' + s.item.cost : '-')), pads: () => STATIONS_S.map((s) => [s.ctr.id + s.i, +s.padX.toFixed(2), +s.padZ.toFixed(2)]), goal: () => storeGoal(), build: () => BUILD && BUILD.what, buy: (k) => { const s = STATIONS_S[k], o = s && s.item; if (!o) return false; if (o.gear) state.coins += slotLeft(o); else shop().coins += slotLeft(o); return slotBuy(s, o); }, jars: () => STATIONS_S.map((s) => +s.jar.lv.toFixed(2)), confetti: (x, z) => confetti(x, 1, z, 40), unlockNext: () => { const p = nextPad(); const q = padPos(p); unlock(p); return q; }, sUnlockNext: () => { const p = nextSPad(); const q = sPadPos(p); sUnlock(p); return q; } });
 if (window.__farmTest) window.__store = storeTest;
 /* dev panel: a button that gives 10,000 hearts and 10,000 coins, for trying things out */
 { const row = document.querySelector('#curvePan .row'); if (row) { const b = document.createElement('button'); b.type = 'button'; b.textContent = '+10k'; b.setAttribute('aria-label', '10000 hjärtan och mynt'); b.style.cssText = 'flex:1;font:600 16px Fredoka,sans-serif;border:2px solid #22303c;border-radius:12px;background:#fff6e4;padding:6px';
