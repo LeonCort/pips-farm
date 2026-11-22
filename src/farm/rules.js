@@ -1,3 +1,4 @@
+const SAVE_KEY = 'pip-farm-care-v1'; /* the farm's save in localStorage */
 /* ---------- rules ---------- */
 /* which test layout this build is: 'near' puts the hens and cows right behind their market stalls,
    'van' keeps the farmyard and lets a little flatbed truck drive the eggs and milk to the market */

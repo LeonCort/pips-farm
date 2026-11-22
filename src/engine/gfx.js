@@ -45,7 +45,7 @@ function gfxSet(low, byHand) {
 const GW = { t: 0, n: 0, sum: 0, done: gfxPicked || (() => { try { return localStorage.getItem('pips-gfx') != null; } catch (e) { return false; } })() };
 function gfxStep(dt) {
   if (!gfxReady) { gfxReady = true; gfxApply(); }
-  if (gfxLow) { pollen.visible = false; BF.forEach((b) => { b.g.visible = false; }); DUST.forEach((d) => { d.sp.visible = false; }); MIST.forEach((m) => { m.s.visible = false; }); }
+  if (gfxLow) { if (typeof pollen !== 'undefined') { pollen.visible = false; BF.forEach((b) => { b.g.visible = false; }); } if (typeof DUST !== 'undefined') DUST.forEach((d) => { d.sp.visible = false; }); MIST.forEach((m) => { m.s.visible = false; }); }
   if (GW.done) return;
   GW.t += dt; if (GW.t < 4 || document.hidden) return; /* let loading settle */
   GW.n++; GW.sum += dt;

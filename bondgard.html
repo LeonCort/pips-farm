@@ -547,7 +547,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122110438">
+<meta name="app-ver" content="20261122123733">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -870,6 +870,7 @@ const PAL = { seaDeep: '#1f6a80', sea: '#2e8f9c', seaShallow: '#63bfb4', sand: '
    mount is what Pip sits on (an animal, a vehicle), or null. */
 let state = null;
 let mount = null;
+const SAVE_KEY = 'pip-farm-care-v1'; /* the farm's save in localStorage */
 /* ---------- rules ---------- */
 /* which test layout this build is: 'near' puts the hens and cows right behind their market stalls,
    'van' keeps the farmyard and lets a little flatbed truck drive the eggs and milk to the market */
@@ -9919,7 +9920,7 @@ function gfxSet(low, byHand) {
 const GW = { t: 0, n: 0, sum: 0, done: gfxPicked || (() => { try { return localStorage.getItem('pips-gfx') != null; } catch (e) { return false; } })() };
 function gfxStep(dt) {
   if (!gfxReady) { gfxReady = true; gfxApply(); }
-  if (gfxLow) { pollen.visible = false; BF.forEach((b) => { b.g.visible = false; }); DUST.forEach((d) => { d.sp.visible = false; }); MIST.forEach((m) => { m.s.visible = false; }); }
+  if (gfxLow) { if (typeof pollen !== 'undefined') { pollen.visible = false; BF.forEach((b) => { b.g.visible = false; }); } if (typeof DUST !== 'undefined') DUST.forEach((d) => { d.sp.visible = false; }); MIST.forEach((m) => { m.s.visible = false; }); }
   if (GW.done) return;
   GW.t += dt; if (GW.t < 4 || document.hidden) return; /* let loading settle */
   GW.n++; GW.sum += dt;
@@ -10405,7 +10406,7 @@ function fxWorld(dt) {
   /* halos */
   const hOn = fxUse('halos') && out && k.night > 0.01;
   if (hOn) { haloT -= dt; if (haloT <= 0) { haloT = 1; halos.forEach((s) => { const l = typeof ISLE_BY !== 'undefined' && ISLE_BY[s.userData.lot]; s.visible = !l || !l.meshes || !l.meshes.length || l.meshes.some((m) => m.visible); }); }
-    haloMat.opacity = k.night * 0.5 * (reduced ? 1 : 0.94 + 0.06 * Math.sin(time * 7.3)); } else if (halos[0].visible) { halos.forEach((s) => { s.visible = false; }); haloT = 0; }
+    haloMat.opacity = k.night * 0.5 * (reduced ? 1 : 0.94 + 0.06 * Math.sin(time * 7.3)); } else if (halos.length && halos[0].visible) { halos.forEach((s) => { s.visible = false; }); haloT = 0; }
 }
 const _fxc = new T.Color();
 function fxRender(dt) {
@@ -10554,7 +10555,7 @@ function renderMenu() {
 }
 
 /* ---------- save ---------- */
-const KEY = 'pip-farm-care-v1';
+const KEY = SAVE_KEY; /* each game saves under its own key (SAVE_KEY comes from the game) */
 function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
 function load() { try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (!s || s.v !== 1 || typeof s.coins !== 'number') return null; const b = fresh(); for (const k in b) if (!(k in s)) s[k] = b[k]; return s; } catch (e) { return null; } }
 

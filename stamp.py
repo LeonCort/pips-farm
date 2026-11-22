@@ -3,7 +3,7 @@
 import os, re, json, time
 here = os.path.dirname(os.path.abspath(__file__))
 v = time.strftime('%Y%m%d%H%M%S', time.gmtime())
-for f in ('butik.html', 'bondgard.html'):
+for f in ('butik.html', 'bondgard.html', 'zoo.html'):
     p = os.path.join(here, f); s = open(p).read()
     s, n = re.subn(r'<meta name="app-ver" content="[^"]*">', '<meta name="app-ver" content="%s">' % v, s)
     assert n == 1, f

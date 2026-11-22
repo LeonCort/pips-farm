@@ -1,6 +1,6 @@
 """Build the game pages from src/.
 
-    python3 tools/build.py            build into the repo root (bondgard.html, index.html)
+    python3 tools/build.py            build into the repo root (bondgard.html, zoo.html, index.html)
     python3 tools/build.py <outdir>   build somewhere else (check.py uses this)
 
 A game is its manifest: the script files listed there, glued in that order, with no
@@ -23,6 +23,12 @@ GAMES = {
         'title': 'Pips bondgård',
         'manifest': 'farm/manifest.txt',
         'body': 'farm/body.html',
+        'css': ['engine/style.css', 'farm/style.css'],
+    },
+    'zoo.html': {
+        'title': 'Pips zoo',
+        'manifest': 'zoo/manifest.txt',
+        'body': 'zoo/body.html',
         'css': ['engine/style.css', 'farm/style.css'],
     },
 }
