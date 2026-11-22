@@ -747,7 +747,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122200806">
+<meta name="app-ver" content="20261122201443">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -6299,9 +6299,9 @@ function goBarn(to) {
 function barnAnimal(an, dt) {
   if (an.hop > 0) an.hop = Math.max(0, an.hop - dt * 2.2);
   if (an.walkIn) { /* just came in with Pip: walk to the stall and settle */
-    const st = an.walkIn, moving = !walkTo(an.g, st.x, st.z + (st.side ? 0 : 0.15), dt, 2.6);
+    const st = an.walkIn, moving = !walkTo(an.g, st.x, st.z + (st.side ? 0 : 0.15), dt, an.selfIn ? 1.5 : 2.6);
     an.body.position.y = reduced ? 0 : Math.abs(Math.sin(time * 9)) * 0.05; an.sp.visible = false;
-    if (!moving) { an.walkIn = null; putInStall(an, st); reward(an, true); tuckCheck(); }
+    if (!moving) { an.walkIn = null; putInStall(an, st); if (!an.selfIn) reward(an, true); an.selfIn = 0; tuckCheck(); }
     return true;
   }
   if (an.goIn) { /* Pip stopped by the barn: walk up to the doors and in by itself */
@@ -6309,7 +6309,9 @@ function barnAnimal(an, dt) {
     if (!an.goInP && Math.hypot(BARN.x - an.g.position.x, BARN.z + 1.7 - an.g.position.z) < 0.3) an.goInP = 1;
     walkTo(an.g, BARN.x, an.goInP ? BARN.z + 0.2 : BARN.z + 1.7, dt, 2.4);
     an.body.position.y = Math.sin(an.hop * Math.PI) * 0.3 + (reduced ? 0 : Math.abs(Math.sin(time * 9 + an.tx)) * 0.05); an.sp.visible = false; zzz(an, false, dt);
-    if (an.goInP && an.g.position.z < BARN.z + 0.6) { an.goIn = null; an.goInP = 0; reward(an, true); putInStall(an, st); tuckCheck(); if (!inBarn) regroup(); }
+    /* through the doors: it keeps walking inside, so Pip coming in a moment later sees it on its way to its stall */
+    if (an.goInP && an.g.position.z < BARN.z + 0.6) { an.goIn = null; an.goInP = 0; reward(an, true); an.selfIn = 1;
+      st.held = an; an.walkIn = st; an.g.position.set(BI.x + (Math.random() - 0.5) * 0.6, 0, BI.z + 4.4); an.g.rotation.y = Math.PI; if (!inBarn) regroup(); }
     return true;
   }
   if (an.follow) {
