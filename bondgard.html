@@ -747,7 +747,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122200052">
+<meta name="app-ver" content="20261122201345">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2096,7 +2096,9 @@ function boatStep(dt) {
 /* ---------- the upgrade house: walk in, visit a room, stand on its pad to buy ---------- */
 const ISLE = ISLAND.box;
 const HO = { x: 200, z: 0 }; /* the inside is built far out to sea, where nothing else is */
-const IN_B = { x0: HO.x - 5.7, x1: HO.x + 5.7, z0: HO.z - 6.7, z1: HO.z + 5.4 };
+/* how much deeper the bedroom strip at the back is than it first was (2.5 deep, now 4): its back wall and everything in it sit this far further back */
+const BED_D = 1.5;
+const IN_B = { x0: HO.x - 5.7, x1: HO.x + 5.7, z0: HO.z - 6.7 - BED_D, z1: HO.z + 5.4 };
 let inHouse = false, houseReady = false;
 const BND = () => inHouse ? IN_B : ISLE;
 const HOUSE = HERE === 'farm' ? { x: 0, z: -5.3 } : { x: -8.2, z: 2.4 };
@@ -2138,8 +2140,8 @@ const ROOMS = [
   { id: 'guests', x: 3.5, z: 2.25, floor: '#d8ecd0', side: 1 }
 ];
 const WALLS = [
-  { v: 0, z: 4.5, a: -6, b: 6, gaps: [[-1, 1]] }, { v: 0, z: -7, a: -6, b: 6, gaps: [] },
-  { v: 1, x: -6, a: -7, b: 4.5, gaps: [] }, { v: 1, x: 6, a: -7, b: 4.5, gaps: [] },
+  { v: 0, z: 4.5, a: -6, b: 6, gaps: [[-1, 1]] }, { v: 0, z: -7 - BED_D, a: -6, b: 6, gaps: [] },
+  { v: 1, x: -6, a: -7 - BED_D, b: 4.5, gaps: [] }, { v: 1, x: 6, a: -7 - BED_D, b: 4.5, gaps: [] },
   { v: 0, z: -4.5, a: -6, b: 6, gaps: [[-0.85, 0.85]] },
   { v: 1, x: -1, a: -4.5, b: 4.5, gaps: [[-2.95, -1.55], [1.55, 2.95]] }, { v: 1, x: 1, a: -4.5, b: 4.5, gaps: [[-2.95, -1.55], [1.55, 2.95]] },
   { v: 0, z: 0, a: -6, b: -1, gaps: [] }, { v: 0, z: 0, a: 1, b: 6, gaps: [] }
@@ -2147,8 +2149,8 @@ const WALLS = [
 const inG = new T.Group(); inG.position.set(HO.x, 0, HO.z); sc.add(inG);
 {
   let g = new T.PlaneGeometry(48, 40, 24, 20); g.rotateX(-Math.PI / 2); const yard = part(fac(g, (cx, cy, cz, i) => tone(Math.abs(cx) < 1.1 && cz > 4.5 ? PAL.sand : PAL.grass, i, 0.9)), inG); yard.castShadow = false;
-  g = new T.BoxGeometry(12, 0.06, 11.5); part(fac(g, '#d9bf94', 114), inG, 0, 0.03, -1.25, true);
-  ROOMS.concat([{ x: 0, z: -5.75, w: 12, d: 2.5, floor: '#e6dcf2' }]).forEach((r, k) => { const f = new T.Mesh(new T.PlaneGeometry(r.w || 4.9, r.d || 4.4), new T.MeshStandardMaterial({ color: r.floor, roughness: 1 })); f.rotation.x = -Math.PI / 2; f.position.set(r.x, 0.065, r.z); f.receiveShadow = true; inG.add(f); });
+  g = new T.BoxGeometry(12, 0.06, 11.5 + BED_D); part(fac(g, '#d9bf94', 114), inG, 0, 0.03, -1.25 - BED_D / 2, true);
+  ROOMS.concat([{ x: 0, z: -5.75 - BED_D / 2, w: 12, d: 2.5 + BED_D, floor: '#e6dcf2' }]).forEach((r, k) => { const f = new T.Mesh(new T.PlaneGeometry(r.w || 4.9, r.d || 4.4), new T.MeshStandardMaterial({ color: r.floor, roughness: 1 })); f.rotation.x = -Math.PI / 2; f.position.set(r.x, 0.065, r.z); f.receiveShadow = true; inG.add(f); });
   WALLS.forEach((w, k) => {
     let s = w.a; const cuts = w.gaps.concat([[w.b, w.b]]);
     cuts.forEach(([g0, g1]) => { const len = g0 - s; if (len > 0.05) { const geo = w.v ? new T.BoxGeometry(0.16, 0.7, len) : new T.BoxGeometry(len, 0.7, 0.16); const m = part(fac(geo, PAL.paper, 120 + k), inG, w.v ? w.x : s + len / 2, 0.35, w.v ? s + len / 2 : w.z); const t = w.v ? new T.BoxGeometry(0.22, 0.06, len) : new T.BoxGeometry(len, 0.06, 0.22); part(fac(t, PAL.trunk, 130 + k), inG, m.position.x, 0.72, m.position.z, true); } s = g1; });
@@ -2237,13 +2239,13 @@ function popDemo(room, dt) {
   const h = room.hen.userData.hop || 0; room.hen.position.y = Math.sin(h * Math.PI) * 0.25; room.hen.userData.hop = Math.max(0, h - dt * 3);
 }
 /* the wardrobe room: a mirror and a clothes rail; stand in front of the mirror to change */
-const wardRing = mkRing(HO.x, HO.z - 6.15);
+const wardRing = mkRing(HO.x, HO.z - 6.15 - BED_D);
 {
-  const fr = new T.BoxGeometry(1.2, 1.8, 0.12); part(fac(fr, PAL.trunk, 170), inG, 0, 0.95, -6.8);
-  const gl = new T.Mesh(new T.PlaneGeometry(0.95, 1.55), new T.MeshStandardMaterial({ color: '#cfe8f2', roughness: 0.15, metalness: 0.3 })); gl.position.set(0, 0.95, -6.73); inG.add(gl);
+  const fr = new T.BoxGeometry(1.2, 1.8, 0.12); part(fac(fr, PAL.trunk, 170), inG, 0, 0.95, -6.8 - BED_D);
+  const gl = new T.Mesh(new T.PlaneGeometry(0.95, 1.55), new T.MeshStandardMaterial({ color: '#cfe8f2', roughness: 0.15, metalness: 0.3 })); gl.position.set(0, 0.95, -6.73 - BED_D); inG.add(gl);
   /* the farm game has the bed on the left, so all the clothes hang on one long rail on the right */
-  { const pole = new T.CylinderGeometry(0.04, 0.04, 1.4, 6); part(fac(pole, PAL.ink, 171), inG, 1.9, 0.7, -6.2); part(fac(pole, PAL.ink, 171), inG, 5.7, 0.7, -6.2); const bar = new T.CylinderGeometry(0.03, 0.03, 3.8, 6); bar.rotateZ(Math.PI / 2); part(fac(bar, PAL.ink, 172), inG, 3.8, 1.38, -6.2);
-    AVO.sh.slice(0, 8).forEach((col, k) => { const t = new T.BoxGeometry(0.36, 0.5, 0.08); part(fac(t, col, 173 + k), inG, 2.25 + k * 0.45, 1.05, -6.2); }); }
+  { const pole = new T.CylinderGeometry(0.04, 0.04, 1.4, 6); part(fac(pole, PAL.ink, 171), inG, 1.9, 0.7, -6.2 - BED_D); part(fac(pole, PAL.ink, 171), inG, 5.7, 0.7, -6.2 - BED_D); const bar = new T.CylinderGeometry(0.03, 0.03, 3.8, 6); bar.rotateZ(Math.PI / 2); part(fac(bar, PAL.ink, 172), inG, 3.8, 1.38, -6.2 - BED_D);
+    AVO.sh.slice(0, 8).forEach((col, k) => { const t = new T.BoxGeometry(0.36, 0.5, 0.08); part(fac(t, col, 173 + k), inG, 2.25 + k * 0.45, 1.05, -6.2 - BED_D); }); }
 }
 let wardLatch = false, doorT = 0;
 function goInside(to) {
@@ -3202,11 +3204,11 @@ function skyStep(dt) {
 }
 let skyT = 0;
 /* ---------- the bed in the upgrade house: sleep through the night ---------- */
-const BED = { x: HO.x - 3.4, z: HO.z - 6.25 };
+const BED = { x: HO.x - 3.4, z: HO.z - 6.25 - BED_D };
 /* a big round bed mat in front of the bed: night-blue with a bed and moon, a gold rim that pulses at bedtime,
    and a gold arc that fills round the edge while Pip stands on it */
 const bedRing = (() => {
-  const x = HO.x - 1.7, z = HO.z - 5.7, R = 0.75;
+  const x = HO.x - 1.7, z = HO.z - 5.7 - BED_D, R = 0.75;
   const c = document.createElement('canvas'); c.width = c.height = 256; const q = c.getContext('2d');
   q.fillStyle = '#2b3560'; q.beginPath(); q.arc(128, 128, 124, 0, 7); q.fill();
   q.fillStyle = '#f4ecc8'; [[48, 70], [208, 86], [70, 196], [196, 186], [128, 34]].forEach(([a, b]) => { q.beginPath(); q.arc(a, b, 4.5, 0, 7); q.fill(); });
@@ -5366,8 +5368,8 @@ const INT = { extras: [], flames: [], lights: [[-4.6, 1.05, -3.75], [3.0, 1.1, -
       x.fillStyle = 'rgba(255,230,190,0.08)'; x.fillRect(px, r * 64 + 6, L, 10); x.strokeStyle = 'rgba(60,35,20,0.55)'; x.lineWidth = 3; x.strokeRect(px, r * 64, L, 64);
       x.strokeStyle = 'rgba(80,45,25,0.18)'; x.lineWidth = 1.5; for (let k = 0; k < 4; k++) { const y = r * 64 + 12 + k * 12 + hash(px, k) * 6; x.beginPath(); x.moveTo(px + 4, y); x.bezierCurveTo(px + L * 0.3, y + 4, px + L * 0.6, y - 4, px + L - 4, y); x.stroke(); }
       if (hash(px, r) > 0.7) { x.fillStyle = 'rgba(70,40,20,0.4)'; x.beginPath(); x.ellipse(px + L * 0.5, r * 64 + 32, 7, 4, 0, 0, 6.283); x.fill(); } px += L; } } });
-  plank.repeat.set(12 / 1.6, 11.5 / 1.6);
-  const fl = new T.Mesh(new T.PlaneGeometry(12, 11.5), new T.MeshStandardMaterial({ map: plank, roughness: 0.85 })); fl.rotation.x = -Math.PI / 2; fl.position.set(X(0), 0.068, Z(-1.25)); fl.receiveShadow = true; sc.add(fl);
+  plank.repeat.set(12 / 1.6, (11.5 + BED_D) / 1.6);
+  const fl = new T.Mesh(new T.PlaneGeometry(12, 11.5 + BED_D), new T.MeshStandardMaterial({ map: plank, roughness: 0.85 })); fl.rotation.x = -Math.PI / 2; fl.position.set(X(0), 0.068, Z(-1.25 - BED_D / 2)); fl.receiveShadow = true; sc.add(fl);
   inG.children.forEach((m) => { if (m.isMesh && m.geometry.type === 'PlaneGeometry' && Math.abs(m.position.y - 0.065) < 0.002) m.visible = false; });
   /* the garden round the house goes dark and deep, so the warm rooms pop */
   const yard = inG.children[0]; if (yard && yard.geometry.attributes.color) repaintV(yard, (x, y, z, k) => tone('#24331f', k, 0.4).multiplyScalar(Math.max(0.35, 1 - Math.hypot(x / 14, (z + 1.25) / 12) * 0.6)));
@@ -5432,10 +5434,10 @@ const INT = { extras: [], flames: [], lights: [[-4.6, 1.05, -3.75], [3.0, 1.1, -
   /* the hall and the bedroom strip: pots by the door, a little table with a candle, a dresser and a window */
   plant(P(0, 0), -0.7, 4.15, 1, 1197); plant(P(0, 0), 0.7, 4.15, 1, 1199);
   { const Q = P(-0.65, -3.9); table(Q, 0.4, 0.4, 0.55); candle(Q, 0, 0.58, 0, X(-0.65), Z(-3.9)); }
-  { const Q = P(-5.3, -6.6); Q(box(0.9, 0.62, 0.4), LW, 1201, 0, 0.31, 0); [0.18, 0.42].forEach((y) => Q(box(0.82, 0.02, 0.02), DK, 1202, 0, y, 0.21)); plant(Q, 0.25, 0, 0.7, 1203); }
+  { const Q = P(-5.3, -6.6 - BED_D); Q(box(0.9, 0.62, 0.4), LW, 1201, 0, 0.31, 0); [0.18, 0.42].forEach((y) => Q(box(0.82, 0.02, 0.02), DK, 1202, 0, y, 0.21)); plant(Q, 0.25, 0, 0.7, 1203); }
   /* warm glowing windows in the outer walls */
   const winMat = new T.MeshBasicMaterial({ color: '#ffd98a' });
-  [[-6.09, -2.25, Math.PI / 2], [-6.09, 2.25, Math.PI / 2], [6.09, -2.25, -Math.PI / 2], [6.09, 2.25, -Math.PI / 2], [-1.6, -7.09, 0], [1.6, -7.09, 0]].forEach(([x, z, ry]) => {
+  [[-6.09, -2.25, Math.PI / 2], [-6.09, 2.25, Math.PI / 2], [6.09, -2.25, -Math.PI / 2], [6.09, 2.25, -Math.PI / 2], [-1.6, -7.09 - BED_D, 0], [1.6, -7.09 - BED_D, 0]].forEach(([x, z, ry]) => {
     const Q = P(x, z, ry); Q(box(0.7, 0.44, 0.06), DK, 1205, 0, 0.42, 0); const w = new T.Mesh(new T.PlaneGeometry(0.56, 0.3), winMat); w.position.set(X(x) + Math.sin(ry) * 0.035, 0.42, Z(z) + Math.cos(ry) * 0.035); w.rotation.y = ry; sc.add(w);
     const g = new T.Sprite(glowMat); g.scale.set(1.2, 1.2, 1); g.position.copy(w.position); sc.add(g); });
   INT.staticMesh = merged(L);
@@ -7673,10 +7675,10 @@ function wallSeg(v, at, a, b, parent) {
   part(fac(v ? new T.BoxGeometry(0.22, 0.06, len) : new T.BoxGeometry(len, 0.06, 0.22), PAL.trunk, 1940 + wallK), parent, m.position.x, 0.72, m.position.z, true); return m;
 }
 /* the original outer walls on the right and left (and the right front, the middle wall of the right rooms) are swapped for pieces that can open */
-const HIDE_W = []; inG.children.forEach((c) => { if (!c.isMesh) return; const x = c.position.x, z = c.position.z; if ((Math.abs(Math.abs(x) - 6) < 0.01 && Math.abs(z + 1.25) < 0.01) || (Math.abs(x - 3.5) < 0.01 && (Math.abs(z - 4.5) < 0.01 || Math.abs(z) < 0.01))) HIDE_W.push(c); });
+const HIDE_W = []; inG.children.forEach((c) => { if (!c.isMesh) return; const x = c.position.x, z = c.position.z; if ((Math.abs(Math.abs(x) - 6) < 0.01 && Math.abs(z + 1.25 + BED_D / 2) < 0.01) || (Math.abs(x - 3.5) < 0.01 && (Math.abs(z - 4.5) < 0.01 || Math.abs(z) < 0.01))) HIDE_W.push(c); });
 HIDE_W.forEach((c) => { c.visible = false; });
 const WPC = { always: new T.Group(), closedE: new T.Group(), closedW: new T.Group(), plugs: new T.Group() }; Object.values(WPC).forEach((g) => sc.add(g));
-[1, -1].forEach((s) => { wallSeg(1, s * 6, -7, -5.9, WPC.always); wallSeg(1, s * 6, -5.9, -4.6, s > 0 ? WPC.closedE : WPC.closedW); });
+[1, -1].forEach((s) => { wallSeg(1, s * 6, -7 - BED_D, -5.9, WPC.always); wallSeg(1, s * 6, -5.9, -4.6, s > 0 ? WPC.closedE : WPC.closedW); });
 wallSeg(1, -6, -4.6, 4.5, WPC.always);
 wallSeg(1, 6, -4.6, 4.5, ROOMSET[2]); wallSeg(0, 4.5, 1, 6, ROOMSET[2]); wallSeg(0, 0, 1, 6, ROOMSET[2]);
 [[-2.95, -1.55], [1.55, 2.95]].forEach(([a, b]) => wallSeg(1, 1, a, b, WPC.plugs));
@@ -7687,7 +7689,7 @@ wallSeg(1, 6, -4.6, 4.5, ROOMSET[2]); wallSeg(0, 4.5, 1, 6, ROOMSET[2]); wallSeg
 function buildWing(s, group) {
   const x0 = s > 0 ? 6 : -11.4, x1 = s > 0 ? 11.4 : -6, cx = (x0 + x1) / 2;
   part(fac(new T.BoxGeometry(x1 - x0, 0.06, 11.5), '#d9bf94', 1876), group, HX(cx), 0.03, HZ(-1.25), true);
-  { let pm = null; sc.children.forEach((c) => { if (!pm && c.isMesh && c.material && c.material.map && c.geometry.type === 'PlaneGeometry' && Math.abs(c.position.x - HX(0)) < 0.01 && Math.abs(c.position.z - HZ(-1.25)) < 0.01) pm = c.material; });
+  { let pm = null; sc.children.forEach((c) => { if (!pm && c.isMesh && c.material && c.material.map && c.geometry.type === 'PlaneGeometry' && Math.abs(c.position.x - HX(0)) < 0.01 && Math.abs(c.position.z - HZ(-1.25 - BED_D / 2)) < 0.01) pm = c.material; });
     const mat = pm ? pm.clone() : new T.MeshStandardMaterial({ color: '#b87a4b', roughness: 0.85 }); if (pm) { mat.map = pm.map.clone(); mat.map.needsUpdate = true; mat.map.repeat.set((x1 - x0) / 1.6, 11.5 / 1.6); }
     const f = new T.Mesh(new T.PlaneGeometry(x1 - x0, 11.5), mat); f.rotation.x = -Math.PI / 2; f.position.set(HX(cx), 0.068, HZ(-1.25)); f.receiveShadow = true; group.add(f); }
   wallSeg(1, s > 0 ? 11.4 : -11.4, -7, 4.5, group); wallSeg(0, -7, x0, x1, group); wallSeg(0, 4.5, x0, x1, group);
@@ -7958,7 +7960,7 @@ const NEED_STARS = [0, 2, 4, 6], TYPE_BASE = [20, 60, 150, 320], BED_BASE = [0, 
 const r5 = (v) => Math.max(5, Math.round(v / 5) * 5);
 /* the rooms: where they are (offsets from the house inside's centre), their spots [family, x, z, turn] and their extras */
 const CROOMS = [
-  { id: 'bed', need: 1, c: [0, -5.75], spots: [['bed', -3.4, -6.25, 0], ['rug', 2.1, -5.7, 0], ['lamp', -1.9, -6.65, 0]], ex: [] },
+  { id: 'bed', need: 1, c: [0, -5.75 - BED_D / 2], spots: [['bed', -3.4, -6.25 - BED_D, 0], ['rug', 2.1, -5.7 - BED_D, 0], ['lamp', -1.9, -6.65 - BED_D, 0]], ex: [] },
   { id: 'speed', need: 1, c: [-3.5, -2.25], spots: [['rug', -3.5, -1.9, 0], ['lamp', -1.45, -0.55, 0], ['seat', -4.9, -1.1, 0.6]], ex: FURN.filter((f) => f.room === 'speed') },
   { id: 'bag', need: 1, c: [-3.5, 2.25], spots: [['rug', -3.4, 2.5, 0], ['lamp', -1.45, 3.95, 0], ['seat', -2.1, 1.3, -0.5]], ex: FURN.filter((f) => f.room === 'bag') },
   { id: 'farm', need: 2, c: [3.5, -2.25], spots: [['rug', 2.9, -2.2, 0], ['lamp', 1.45, -3.9, 0], ['seat', 2.2, -0.9, 0.4]], ex: FURN.filter((f) => f.room === 'farm') },
@@ -8312,7 +8314,7 @@ function planks(x, w, h, B) {
 }
 /* the groups that hold each size's new pieces inside (size 1 is the cottage itself) */
 const HOME_G = { 1: new T.Group() }; sc.add(HOME_G[1]);
-[['bed', -6, 6, -7, -4.5, 1], ['speed', -6, -1, -4.5, 0, 1], ['bag', -6, -1, 0, 4.5, 1], ['farm', 1, 6, -4.5, 0, 2], ['guests', 1, 6, 0, 4.5, 2],
+[['bed', -6, 6, -7 - BED_D, -4.5, 1], ['speed', -6, -1, -4.5, 0, 1], ['bag', -6, -1, 0, 4.5, 1], ['farm', 1, 6, -4.5, 0, 2], ['guests', 1, 6, 0, 4.5, 2],
   ['play', 6, 11.4, -7, -1.2, 3], ['music', 6, 11.4, -1.2, 4.5, 3], ['garden', -11.4, -6, -7, -1.2, 4], ['bath', -11.4, -6, -1.2, 4.5, 4]].forEach(([id, x0, x1, z0, z1, n]) => {
   const w = x1 - x0 - 0.12, d = z1 - z0 - 0.12, t = homeTex(256, 256, FLOORS[id]); t.repeat.set(w / 2.4, d / 2.4);
   const f = new T.Mesh(new T.PlaneGeometry(w, d), new T.MeshStandardMaterial({ map: t, roughness: 0.9 })); f.rotation.x = -Math.PI / 2; f.position.set(HX((x0 + x1) / 2), 0.0705, HZ((z0 + z1) / 2)); f.receiveShadow = true;
@@ -8326,8 +8328,8 @@ if (RIGHT.garden) RIGHT.garden.material.color.set('#1d2919');
   const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d');
   x.fillStyle = '#e6b45a'; x.beginPath(); x.arc(128, 128, 124, 0, 7); x.fill(); x.strokeStyle = '#c98f4c'; x.lineWidth = 10; x.beginPath(); x.arc(128, 128, 108, 0, 7); x.stroke();
   x.fillStyle = 'rgba(120,70,30,0.35)'; [[70, 80], [180, 70], [80, 180], [176, 176], [128, 128]].forEach(([a, b]) => { x.beginPath(); x.arc(a, b + 6, 14, 0, 7); x.fill(); [[-14, -14], [0, -20], [14, -14]].forEach(([u, v]) => { x.beginPath(); x.arc(a + u, b + v, 6, 0, 7); x.fill(); }); });
-  const m = new T.Mesh(new T.CircleGeometry(0.62, 32), new T.MeshStandardMaterial({ map: new T.CanvasTexture(c), roughness: 1 })); m.rotation.x = -Math.PI / 2; m.position.set(HX(4.85), 0.072, HZ(-5.35)); m.receiveShadow = true; HOME_G[1].add(m);
-  const L = [], Q = at(HX(5.55), HZ(-4.85), 0, L);
+  const m = new T.Mesh(new T.CircleGeometry(0.62, 32), new T.MeshStandardMaterial({ map: new T.CanvasTexture(c), roughness: 1 })); m.rotation.x = -Math.PI / 2; m.position.set(HX(4.85), 0.072, HZ(-5.35 - BED_D)); m.receiveShadow = true; HOME_G[1].add(m);
+  const L = [], Q = at(HX(5.55), HZ(-4.85 - BED_D), 0, L);
   Q(cyl(0.2, 0.16, 0.22, 12), '#c9a36c', 1601, 0, 0.11, 0); Q(new T.TorusGeometry(0.19, 0.025, 4, 14).rotateX(Math.PI / 2), '#9a6542', 1602, 0, 0.22, 0);
   Q(new T.SphereGeometry(0.07, 8, 6), '#5a9fc4', 1603, -0.05, 0.25, 0.03); Q(new T.SphereGeometry(0.06, 8, 6), '#e9684a', 1604, 0.07, 0.26, -0.04);
   ATREC.pop(); merged(L, MAT, HOME_G[1]);
@@ -8422,7 +8424,7 @@ function placeHome(tent) {
   const r = tent ? { x: TO.x - 1.3, z: TO.z - 0.2 } : HOME0.ring; bedRing.x = r.x; bedRing.z = r.z; [bedRing.pad, bedRing.r, bedRing.glow, bedRing.f].forEach((m) => { m.position.x = r.x; m.position.z = r.z; });
   bedRing.sign.position.set(bed.x, tent ? 1.15 : 1.35, bed.z - 0.2);
   const w = tent ? { x: TO.x + 1.2, z: TO.z - 1.3 } : HOME0.ward; wardRing.x = w.x; wardRing.z = w.z; [wardRing.r, wardRing.f].forEach((m) => { m.position.x = w.x; m.position.z = w.z; });
-  const pc = tent ? { x: TO.x + 0.85, z: TO.z + 0.95, bx: TO.x + 1.85, bz: TO.z + 0.95 } : { x: HX(3.75), z: HZ(-5.3), bx: HX(4.85), bz: HZ(-5.35) };
+  const pc = tent ? { x: TO.x + 0.85, z: TO.z + 0.95, bx: TO.x + 1.85, bz: TO.z + 0.95 } : { x: HX(3.75), z: HZ(-5.3 - BED_D), bx: HX(4.85), bz: HZ(-5.35 - BED_D) };
   Object.assign(PCORNER, pc); petMat.position.x = pc.x; petMat.position.z = pc.z; petSign.position.x = pc.x; petSign.position.z = pc.z - 0.15;
   if (PCORNER.mesh) PCORNER.mesh.position.set(pc.bx - HOME0.pc.bx, 0, pc.bz - HOME0.pc.bz);
   const LT = tent ? [[38.0, 1.0, 1.65], [40, 1.8, 0], [41.6, 1.1, -1.7], [38.6, 1.1, -1.6]] : HOME0.lights; INT.lights.forEach((l, i) => { l[0] = LT[i][0]; l[1] = LT[i][1]; l[2] = LT[i][2]; });
@@ -9284,12 +9286,18 @@ function hrRender() {
   hrEl.innerHTML = '<div class="hrSheet"><div class="hrTop"><button type="button" class="hrAll1" data-all="1" aria-label="Alla vaknar">' + HR_AWAKE + HR_AWAKE + '</button><button type="button" class="hrAll0" data-all="0" aria-label="Alla sover">' + HR_ASLEEP + HR_ASLEEP + '</button></div><div class="hrGrid">' + grp + '</div>'
     + '<button type="button" class="hrClose" aria-label="Stäng"><svg viewBox="0 0 30 30" width="30" height="30" aria-hidden="true"><path d="M7 7 L23 23 M23 7 L7 23" stroke="#22303c" stroke-width="4.5" stroke-linecap="round"/></svg></button></div>';
 }
+/* after a flip, change only the switches that moved: no rebuild, so the sheet keeps its scroll, does not pop again, and the knob slides */
+function hrSync() {
+  hrEl.querySelectorAll('.hrSw').forEach((b) => { const r = hrList[+b.dataset.i]; if (!r) return; const on = r.own && r.on();
+    if (b.classList.contains('on') === on) return;
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); b.firstChild.innerHTML = on ? HR_AWAKE : HR_ASLEEP; });
+}
 hrEl.addEventListener('click', (e) => {
   e.stopPropagation(); const t = e.target.closest('button');
   if (!t) { if (e.target === hrEl) hrClose(); return; }
   if (t.classList.contains('hrClose')) { hrClose(); return; }
-  if (t.dataset.all) { const want = t.dataset.all === '1'; hrList.forEach((r) => { if (r.own && r.on() !== want) r.flip(); }); Snd.play(want ? 'powerup' : 'pop', { gain: 0.4, f: want ? 520 : 260 }); save(); hrRender(); return; }
-  const r = hrList[+t.dataset.i]; if (!r) return; const was = r.on(); r.flip(); if (!r.k.startsWith('f:') && !r.k.startsWith('s:') && !r.k.startsWith('m:')) Snd.play(was ? 'pop' : 'powerup', { gain: 0.4, f: was ? 260 : 520 }); save(); hrRender();
+  if (t.dataset.all) { const want = t.dataset.all === '1'; hrList.forEach((r) => { if (r.own && r.on() !== want) r.flip(); }); Snd.play(want ? 'powerup' : 'pop', { gain: 0.4, f: want ? 520 : 260 }); save(); hrSync(); return; }
+  const r = hrList[+t.dataset.i]; if (!r) return; const was = r.on(); r.flip(); if (!r.k.startsWith('f:') && !r.k.startsWith('s:') && !r.k.startsWith('m:')) Snd.play(was ? 'pop' : 'powerup', { gain: 0.4, f: was ? 260 : 520 }); save(); hrSync();
 });
 ['pointerdown', 'touchstart', 'mousedown'].forEach((ev) => hrEl.addEventListener(ev, (e) => e.stopPropagation()));
 function hrOpen() { hrRender(); hrEl.hidden = false; Snd.play('whoosh', { gain: 0.3 }); }
@@ -10220,7 +10228,7 @@ if (window.__farmTest) window.__hring = () => ({ h: [HRING.x, HRING.z], p: [PRIN
    one picture tab per room, and in the room every piece Pip has, each with the other pieces Pip owns for that place and its colours.
    Out in the rooms, when Pip walks up to a piece that can change, the round action button in the bottom-right corner shows that piece
    with a little brush; one tap opens the book on just that piece. Colours not bought yet show a coin and cost coins, as before. */
-const DEC_AT = { x: 1.1, z: -5.35 };
+const DEC_AT = { x: 1.1, z: -5.35 - BED_D };
 const decRing = mkRing(HX(DEC_AT.x), HZ(DEC_AT.z));
 const DEC = { open: false, room: null, focus: null, latch: false, key: '' };
 /* the easel: three legs, a canvas with paint on it, and a palette on the ledge */
@@ -10233,7 +10241,7 @@ const decEasel = painterGroup((Q) => {
   Q(cy_(0.17, 0.17, 0.02, 14).scale(1.25, 1, 0.9), '#d9b27a', 2760, -0.1, 0.7, 0.14);
   [['#e9684a', -0.22], ['#74a857', -0.1], ['#5a9fc4', 0.02]].forEach(([c, x], k) => Q(new T.SphereGeometry(0.035, 6, 4).scale(1, 0.5, 1), c, 2761 + k, x, 0.72, 0.17));
 });
-decEasel.position.set(HX(1.15), 0, HZ(-6.55)); sc.add(decEasel);
+decEasel.position.set(HX(1.15), 0, HZ(-6.55 - BED_D)); sc.add(decEasel);
 
 /* ---------- the book ---------- */
 { const st = document.createElement('style'); st.textContent = `

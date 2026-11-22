@@ -40,7 +40,7 @@ const NEED_STARS = [0, 2, 4, 6], TYPE_BASE = [20, 60, 150, 320], BED_BASE = [0, 
 const r5 = (v) => Math.max(5, Math.round(v / 5) * 5);
 /* the rooms: where they are (offsets from the house inside's centre), their spots [family, x, z, turn] and their extras */
 const CROOMS = [
-  { id: 'bed', need: 1, c: [0, -5.75], spots: [['bed', -3.4, -6.25, 0], ['rug', 2.1, -5.7, 0], ['lamp', -1.9, -6.65, 0]], ex: [] },
+  { id: 'bed', need: 1, c: [0, -5.75 - BED_D / 2], spots: [['bed', -3.4, -6.25 - BED_D, 0], ['rug', 2.1, -5.7 - BED_D, 0], ['lamp', -1.9, -6.65 - BED_D, 0]], ex: [] },
   { id: 'speed', need: 1, c: [-3.5, -2.25], spots: [['rug', -3.5, -1.9, 0], ['lamp', -1.45, -0.55, 0], ['seat', -4.9, -1.1, 0.6]], ex: FURN.filter((f) => f.room === 'speed') },
   { id: 'bag', need: 1, c: [-3.5, 2.25], spots: [['rug', -3.4, 2.5, 0], ['lamp', -1.45, 3.95, 0], ['seat', -2.1, 1.3, -0.5]], ex: FURN.filter((f) => f.room === 'bag') },
   { id: 'farm', need: 2, c: [3.5, -2.25], spots: [['rug', 2.9, -2.2, 0], ['lamp', 1.45, -3.9, 0], ['seat', 2.2, -0.9, 0.4]], ex: FURN.filter((f) => f.room === 'farm') },

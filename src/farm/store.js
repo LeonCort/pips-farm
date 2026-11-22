@@ -463,10 +463,10 @@ function wallSeg(v, at, a, b, parent) {
   part(fac(v ? new T.BoxGeometry(0.22, 0.06, len) : new T.BoxGeometry(len, 0.06, 0.22), PAL.trunk, 1940 + wallK), parent, m.position.x, 0.72, m.position.z, true); return m;
 }
 /* the original outer walls on the right and left (and the right front, the middle wall of the right rooms) are swapped for pieces that can open */
-const HIDE_W = []; inG.children.forEach((c) => { if (!c.isMesh) return; const x = c.position.x, z = c.position.z; if ((Math.abs(Math.abs(x) - 6) < 0.01 && Math.abs(z + 1.25) < 0.01) || (Math.abs(x - 3.5) < 0.01 && (Math.abs(z - 4.5) < 0.01 || Math.abs(z) < 0.01))) HIDE_W.push(c); });
+const HIDE_W = []; inG.children.forEach((c) => { if (!c.isMesh) return; const x = c.position.x, z = c.position.z; if ((Math.abs(Math.abs(x) - 6) < 0.01 && Math.abs(z + 1.25 + BED_D / 2) < 0.01) || (Math.abs(x - 3.5) < 0.01 && (Math.abs(z - 4.5) < 0.01 || Math.abs(z) < 0.01))) HIDE_W.push(c); });
 HIDE_W.forEach((c) => { c.visible = false; });
 const WPC = { always: new T.Group(), closedE: new T.Group(), closedW: new T.Group(), plugs: new T.Group() }; Object.values(WPC).forEach((g) => sc.add(g));
-[1, -1].forEach((s) => { wallSeg(1, s * 6, -7, -5.9, WPC.always); wallSeg(1, s * 6, -5.9, -4.6, s > 0 ? WPC.closedE : WPC.closedW); });
+[1, -1].forEach((s) => { wallSeg(1, s * 6, -7 - BED_D, -5.9, WPC.always); wallSeg(1, s * 6, -5.9, -4.6, s > 0 ? WPC.closedE : WPC.closedW); });
 wallSeg(1, -6, -4.6, 4.5, WPC.always);
 wallSeg(1, 6, -4.6, 4.5, ROOMSET[2]); wallSeg(0, 4.5, 1, 6, ROOMSET[2]); wallSeg(0, 0, 1, 6, ROOMSET[2]);
 [[-2.95, -1.55], [1.55, 2.95]].forEach(([a, b]) => wallSeg(1, 1, a, b, WPC.plugs));
@@ -477,7 +477,7 @@ wallSeg(1, 6, -4.6, 4.5, ROOMSET[2]); wallSeg(0, 4.5, 1, 6, ROOMSET[2]); wallSeg
 function buildWing(s, group) {
   const x0 = s > 0 ? 6 : -11.4, x1 = s > 0 ? 11.4 : -6, cx = (x0 + x1) / 2;
   part(fac(new T.BoxGeometry(x1 - x0, 0.06, 11.5), '#d9bf94', 1876), group, HX(cx), 0.03, HZ(-1.25), true);
-  { let pm = null; sc.children.forEach((c) => { if (!pm && c.isMesh && c.material && c.material.map && c.geometry.type === 'PlaneGeometry' && Math.abs(c.position.x - HX(0)) < 0.01 && Math.abs(c.position.z - HZ(-1.25)) < 0.01) pm = c.material; });
+  { let pm = null; sc.children.forEach((c) => { if (!pm && c.isMesh && c.material && c.material.map && c.geometry.type === 'PlaneGeometry' && Math.abs(c.position.x - HX(0)) < 0.01 && Math.abs(c.position.z - HZ(-1.25 - BED_D / 2)) < 0.01) pm = c.material; });
     const mat = pm ? pm.clone() : new T.MeshStandardMaterial({ color: '#b87a4b', roughness: 0.85 }); if (pm) { mat.map = pm.map.clone(); mat.map.needsUpdate = true; mat.map.repeat.set((x1 - x0) / 1.6, 11.5 / 1.6); }
     const f = new T.Mesh(new T.PlaneGeometry(x1 - x0, 11.5), mat); f.rotation.x = -Math.PI / 2; f.position.set(HX(cx), 0.068, HZ(-1.25)); f.receiveShadow = true; group.add(f); }
   wallSeg(1, s > 0 ? 11.4 : -11.4, -7, 4.5, group); wallSeg(0, -7, x0, x1, group); wallSeg(0, 4.5, x0, x1, group);

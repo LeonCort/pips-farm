@@ -3,7 +3,7 @@
    one picture tab per room, and in the room every piece Pip has, each with the other pieces Pip owns for that place and its colours.
    Out in the rooms, when Pip walks up to a piece that can change, the round action button in the bottom-right corner shows that piece
    with a little brush; one tap opens the book on just that piece. Colours not bought yet show a coin and cost coins, as before. */
-const DEC_AT = { x: 1.1, z: -5.35 };
+const DEC_AT = { x: 1.1, z: -5.35 - BED_D };
 const decRing = mkRing(HX(DEC_AT.x), HZ(DEC_AT.z));
 const DEC = { open: false, room: null, focus: null, latch: false, key: '' };
 /* the easel: three legs, a canvas with paint on it, and a palette on the ledge */
@@ -16,7 +16,7 @@ const decEasel = painterGroup((Q) => {
   Q(cy_(0.17, 0.17, 0.02, 14).scale(1.25, 1, 0.9), '#d9b27a', 2760, -0.1, 0.7, 0.14);
   [['#e9684a', -0.22], ['#74a857', -0.1], ['#5a9fc4', 0.02]].forEach(([c, x], k) => Q(new T.SphereGeometry(0.035, 6, 4).scale(1, 0.5, 1), c, 2761 + k, x, 0.72, 0.17));
 });
-decEasel.position.set(HX(1.15), 0, HZ(-6.55)); sc.add(decEasel);
+decEasel.position.set(HX(1.15), 0, HZ(-6.55 - BED_D)); sc.add(decEasel);
 
 /* ---------- the book ---------- */
 { const st = document.createElement('style'); st.textContent = `
