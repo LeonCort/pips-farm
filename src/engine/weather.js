@@ -148,7 +148,7 @@ function weatherStep(dt) {
   sc.fog.color.copy(sc.background);
   /* fog: autumn, early mornings, rain, snow and mist */
   const f = dayFrac(), fogT = clamp((season === 'autumn' ? 0.55 : 0) + (f < 0.12 ? 0.3 : 0) + rainAmt * 0.85 + (out ? mistAmt * 0.4 + snowAmt * 0.3 : 0), 0, 1);
-  fogAmt += (fogT - fogAmt) * Math.min(1, dt * 0.3); { const fN = curveLive() ? CURVE.fogNear : 28, fF = curveLive() ? Math.max(CURVE.fogFar, fN + 4) : 70; sc.fog.near = fN * (1 - 0.714 * fogAmt); sc.fog.far = fF * (1 - 0.6 * fogAmt); }
+  fogAmt += (fogT - fogAmt) * Math.min(1, dt * 0.3); { const fN = curveLive() ? CURVE.fogNear : 28, fF = curveLive() ? Math.max(CURVE.fogFar, fN + 4) : 70; sc.fog.near = fN * (1 - 0.714 * fogAmt * CURVE.wxFog); sc.fog.far = fF * (1 - 0.6 * fogAmt * CURVE.wxFog); /* wxFog < 1 in ultra graphics: weather leaves only a thin haze */ }
   rainStep(dt, out); /* streaks, puddles, splashes, drips, wet ground, Pip's rain gear (rain.js) */
   /* the falling snow */
   const sn = out ? Math.round(SNOW_N * snowAmt * (reduced ? 0.35 : 1)) : 0;
@@ -178,7 +178,7 @@ function weatherStep(dt) {
     if (m.z - camFocus.z > 10) m.z -= 20; else if (m.z - camFocus.z < -10) m.z += 20;
     m.s.position.set(m.x, m.y, m.z);
     /* a bank thins out over Pip, so the child never loses sight of them */
-    m.s.material.opacity = mAmt * 0.6 * clamp(Math.hypot((m.x - pip.position.x) / (m.s.scale.x * 0.45), (m.z - pip.position.z - 0.8) / 1.8) - 0.4, 0.2, 1);
+    m.s.material.opacity = mAmt * 0.6 * (0.45 + 0.55 * CURVE.wxFog) * clamp(Math.hypot((m.x - pip.position.x) / (m.s.scale.x * 0.45), (m.z - pip.position.z - 0.8) / 1.8) - 0.4, 0.2, 1);
   }
   /* snow settles on the ground, the trees and the roofs while it snows, and slowly thaws back to a light frost */
   if (season === 'winter') { wx.cover = snowAmt > 0.3 ? Math.min(1, Math.max(wx.cover, 0.35) + dt * snowAmt / 55) : Math.max(0.35, wx.cover - dt / 300); if (wx.cover > 0.65) wx.man = 1; }
