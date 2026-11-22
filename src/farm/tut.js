@@ -8,8 +8,8 @@
    buying is done, dusk comes on cue). Farms saved before this never see it: only a brand-new save gets state.tut. */
 const TUT = [
   { id: 'feed', n: 3, a: 'grain', b: 'hen' },
-  { id: 'egg', n: 2, a: 'egg', b: 'stall' },
-  { id: 'apple', n: 3, a: 'apple', b: 'stall' },
+  { id: 'egg', n: 2, a: 'egg', b: 'market' },
+  { id: 'apple', n: 3, a: 'apple', b: 'market' },
   { id: 'buy', n: 1, a: 'heart', b: 'bag' },
   { id: 'feed2', n: 3, a: 'carrot', b: 'pig' },
   { id: 'barn', n: 1, a: 'pig', b: 'barn', badge: 'moon' },
