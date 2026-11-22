@@ -747,7 +747,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122194650">
+<meta name="app-ver" content="20261122195319">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1166,7 +1166,7 @@ const UPS = [
   { id: 'farm', base: 25, g: 1.9, max: 8 }, { id: 'guests', base: 40, g: 1.9, max: 8 }
 ];
 /* where to fetch food t for pen a: its feed station when it has one that hands out t, otherwise the shed */
-const stationFor = (a, t) => STATIONS.find((s) => s.a === a && s.foods.includes(t) && sources[t]);
+const stationFor = (a, t) => STATIONS.find((s) => (s.a === a || (s.also && s.also.includes(a))) && s.foods.includes(t) && sources[t]);
 function foodSpot(t, a) { const s = a && stationFor(a, t); return s ? [s.x, s.z] : sources[t] ? [sources[t].x, sources[t].z] : [SRC[t].x, SRC[t].z + 1.0]; }
 const feedPos = (a) => { const p = PEN[a], vx = penSide(a), vz = 0; return [p.x + vx * (p.w / 2 + 0.75), p.z + vz]; };
 const housePos = (a) => { const p = penBox(a); return [p.x - penSide(a) * (p.w / 2 - 0.75), p.z - p.d / 2 + 0.7]; };
@@ -1222,6 +1222,27 @@ PADS.push(
   { id: 'alpaca1', kind: 'animal', a: 'alpaca', cost: 3600 }, { id: 'alpaca2', kind: 'animal', a: 'alpaca', cost: 5300 }
 );
 Object.keys(XP).forEach((id) => PADS.push({ id, kind: 'xp', cost: 100 }));
+/* ---------- two animal corners (test): the farmyard on the west side and a wool corner in the north-east ----------
+   Leon wants the animals together instead of spread out by the market, so carrying food and goods is short:
+   - the rabbits leave the dock and get a hutch run in the farmyard, right by the carrot shed;
+   - the alpacas leave the harbour hill and move in next to the sheep: both give wool, both eat hay and water;
+   - sheep and alpacas share a feed lane with a hay and water station, and one wool basket for both;
+   - the tractor parks west of the sheep, on the edge of the meadow it mows.
+   Runs right after expand0.js, before anything is built. */
+const CORNERS = true;
+/* the wool corner: sheep feed on their east side now (s 1) and grow west toward the meadow; the alpacas feed on their west side,
+   across a little lane from the sheep */
+Object.assign(PEN.sheep, { x: 9.3, z: -10.6, s: 1, mw: 4.6 });
+Object.assign(PEN.alpaca, { x: 15.2, z: -8.55, w: 2.8, d: 2.0, s: -1 });
+/* the rabbits: a hutch run between the carrot shed and the pond road, feeding side east (on the road) */
+Object.assign(PEN.rabbit, { x: -6.9, z: 7.0, w: 2.8, d: 1.6, s: 1 });
+/* the feed station in the wool lane: hay and water for both pens (hay only once the hay barn is bought) */
+STATIONS.push({ a: 'sheep', also: ['alpaca'], x: 12.5, z: -11.5, foods: ['hay', 'water'], i: 0 });
+/* the tractor and its self-driving sign move to the meadow's east edge */
+TRACTOR_HOME[0] = 5.55; TRACTOR_HOME[1] = -10.6;
+XP['xp-auto'].pad = [5.55, -7.4];
+/* the donkey's stable moves up a little so the rabbit run fits */
+XP['xp-donkey'].pad = [-8.4, 4.3];
 /* ---------- sound: the supplied kit ---------- */
 const Snd = {
   ctx: null, k: null, base: 0, out: null, until: 0, last: {},
@@ -4843,9 +4864,11 @@ function pipMarket(dt) {
   mxT -= dt; if (mxT > 0) return; let did = false;
   if (carry.items.length < cap() && !pickHeld()) for (const q of mProd) { if (q.pile.items.length && (q.near ? q.near() : nearP(q.x, q.z, q.r))) { const m = q.pile.take(); toBasket(m); Snd.play('pop', { gain: 0.45, f: 500 + carry.items.length * 60 }); did = true; break; } }
   /* 'near': the feed station by a pen hands out the food that pen's box is lowest on */
-  if (!did && carry.items.length < cap() && !pickHeld()) for (const st of STATIONS) { if (!nearP(st.x, st.z, 0.95)) continue; const pen = pens[st.a];
+  if (!did && carry.items.length < cap() && !pickHeld()) for (const st of STATIONS) { if (!nearP(st.x, st.z, 0.95)) continue;
+    /* a station can feed more than one pen (st.also): hand out the food the emptiest of them needs most */
     const opts = st.foods.filter((t) => sources[t]); if (!opts.length) break;
-    const have = (a) => (pen ? boxCount(pen, a) : 0) + carry.count(a), t = opts.slice().sort((a, b) => have(a) - have(b))[0]; if (pen && have(t) >= BOX_MAX) break;
+    const P = [st.a].concat(st.also || []).map((a) => pens[a]).filter(Boolean);
+    const have = (t) => (P.length ? Math.min(...P.map((pen) => boxCount(pen, t))) : 0) + carry.count(t), t = opts.slice().sort((a, b) => have(a) - have(b))[0]; if (P.length && have(t) >= BOX_MAX) break;
     const m = mk(t); m.position.set(st.x, 0.6, st.z - 0.7); sc.add(m); toBasket(m); Snd.play('pop', { gain: 0.45, f: 500 + carry.items.length * 60 }); did = true; break; }
   if (!did && bakery && nearP(B_IN.x, B_IN.z, 0.95) && carry.count('egg') && bakery.inp.items.length < 12) { const m = carry.take('egg'); fly(m, () => tmpV.set(B_IN.x, 0.2, B_IN.z), () => bakery.inp.add(m)); Snd.play('tick', { gain: 0.4 }); did = true; }
   if (!did) for (const t in stalls) { const d = sDrop(t), s = stalls[t]; if (nearP(d[0], d[1], 0.9) && carry.count(t) && s.shelf.items.length < SHELF_MAX) { const m = carry.take(t); fly(m, () => s.g.localToWorld(tmpV.set(0, 1.0, 0)), () => s.shelf.add(m)); Snd.play('tick', { gain: 0.45, f: 900 }); did = true; break; } }
@@ -6774,7 +6797,7 @@ function hwellStep(dt) {
   };
 }
 /* the arrow points Pip to the nearest water too */
-{ const f0 = foodSpot; foodSpot = function (t, a) { if (t === 'water' && a && sources.water) { const w = waterFor(a); if (w) return w; } return f0(t, a); }; }
+{ const f0 = foodSpot; foodSpot = function (t, a) { if (t === 'water' && a && sources.water && !stationFor(a, t)) { const w = waterFor(a); if (w) return w; } return f0(t, a); }; }
 
 /* ---------- pens: a new baby makes room for itself too (penBox counts babies as half an animal) ---------- */
 { const m0 = makeBaby; makeBaby = function (mum, coatI, quiet) { const b = m0(mum, coatI, quiet); if (pens[mum.a] && !PEN[mum.a].fix) fencePen(mum.a); return b; }; }
@@ -8865,6 +8888,8 @@ SPADS.push({ id: 'stall-wool', kind: 'stall', t: 'wool', cost: 380 }, { id: 'sto
    Pip picks the goods up by walking past it, and the wool stall's robot fetches from it once bought. */
 const PEN_BASKETS = {}, BASKET_MAX = 12;
 function basketPos(a) {
+  /* two animal corners (corners.js): the wool basket stands at the foot of the wool lane, on the way to the market */
+  if (typeof CORNERS !== 'undefined' && a === 'sheep') return [12.45, -7.75];
   /* outside the pen at its biggest (penMax once pens grow to fixed sizes; otherwise the old growth rule) */
   const p = PEN[a], sx = penSide(a), inner = p.x + sx * p.w / 2;
   if (typeof penMax === 'function') { const b = penMax(a); return [inner - sx * 0.95, b.z + b.d / 2 + 0.8]; }
@@ -8873,6 +8898,8 @@ function basketPos(a) {
 }
 function penBasket(a) {
   if (PEN_BASKETS[a]) return PEN_BASKETS[a];
+  /* sheep and alpacas share one wool basket in the wool corner */
+  if (typeof CORNERS !== 'undefined' && a === 'alpaca') return (PEN_BASKETS.alpaca = penBasket('sheep'));
   const G = ANIMAL_GOODS[a], [x, z] = basketPos(a), g = new T.Group(); g.position.set(x, 0, z); sc.add(g);
   const L = [], P = at(x, z, 0, L);
   /* a round wicker basket: woven rings in two straw tones, a darker rim and two rope handles */
@@ -9155,6 +9182,10 @@ function cartStep(dt) {
 /* ---- the tractor drives itself: when nobody is driving, it mows the meadow in rows and comes back home ---- */
 const AUTO = { st: 'home', i: 0, wp: [], cool: 8 };
 function autoRoute() {
+  /* parked by the meadow (corners.js): drive straight onto its east edge; otherwise round the top of the sheep paddock */
+  if (typeof CORNERS !== 'undefined') { const e = [MEADOW.x1 + 0.4, TRACTOR_HOME[1]], o = [e];
+    let d = -1; for (let z = MEADOW.z0 + 0.5; z <= MEADOW.z1 - 0.3; z += 1.5) { d = -d; o.push(d < 0 ? [MEADOW.x1 - 0.3, z] : [MEADOW.x0 + 0.3, z]); o.push(d < 0 ? [MEADOW.x0 + 0.3, z] : [MEADOW.x1 - 0.3, z]); }
+    o.push(e, [TRACTOR_HOME[0], TRACTOR_HOME[1]]); return o; }
   const out = [[TRACTOR_HOME[0] - 0.4, -12.0], [7.6, -12.0], [MEADOW.x1 + 0.4, -11.3]];
   let dir = -1; for (let z = MEADOW.z0 + 0.5; z <= MEADOW.z1 - 0.3; z += 1.5) { dir = -dir; out.push(dir < 0 ? [MEADOW.x1 - 0.3, z] : [MEADOW.x0 + 0.3, z]); out.push(dir < 0 ? [MEADOW.x0 + 0.3, z] : [MEADOW.x1 - 0.3, z]); }
   out.push([MEADOW.x1 + 0.4, -11.3], [7.6, -12.0], [TRACTOR_HOME[0] - 0.4, -12.0], [TRACTOR_HOME[0], TRACTOR_HOME[1]]);

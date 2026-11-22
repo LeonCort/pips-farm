@@ -104,7 +104,7 @@ function hwellStep(dt) {
   };
 }
 /* the arrow points Pip to the nearest water too */
-{ const f0 = foodSpot; foodSpot = function (t, a) { if (t === 'water' && a && sources.water) { const w = waterFor(a); if (w) return w; } return f0(t, a); }; }
+{ const f0 = foodSpot; foodSpot = function (t, a) { if (t === 'water' && a && sources.water && !stationFor(a, t)) { const w = waterFor(a); if (w) return w; } return f0(t, a); }; }
 
 /* ---------- pens: a new baby makes room for itself too (penBox counts babies as half an animal) ---------- */
 { const m0 = makeBaby; makeBaby = function (mum, coatI, quiet) { const b = m0(mum, coatI, quiet); if (pens[mum.a] && !PEN[mum.a].fix) fencePen(mum.a); return b; }; }
