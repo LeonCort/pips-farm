@@ -1,9 +1,9 @@
 /* ---------- the bed in the upgrade house: sleep through the night ---------- */
-const BED = { x: HO.x - 3.4, z: HO.z - 6.25 };
+const BED = { x: HO.x - 3.4, z: HO.z - 6.25 - BED_D };
 /* a big round bed mat in front of the bed: night-blue with a bed and moon, a gold rim that pulses at bedtime,
    and a gold arc that fills round the edge while Pip stands on it */
 const bedRing = (() => {
-  const x = HO.x - 1.7, z = HO.z - 5.7, R = 0.75;
+  const x = HO.x - 1.7, z = HO.z - 5.7 - BED_D, R = 0.75;
   const c = document.createElement('canvas'); c.width = c.height = 256; const q = c.getContext('2d');
   q.fillStyle = '#2b3560'; q.beginPath(); q.arc(128, 128, 124, 0, 7); q.fill();
   q.fillStyle = '#f4ecc8'; [[48, 70], [208, 86], [70, 196], [196, 186], [128, 34]].forEach(([a, b]) => { q.beginPath(); q.arc(a, b, 4.5, 0, 7); q.fill(); });

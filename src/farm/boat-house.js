@@ -79,7 +79,9 @@ function boatStep(dt) {
 /* ---------- the upgrade house: walk in, visit a room, stand on its pad to buy ---------- */
 const ISLE = ISLAND.box;
 const HO = { x: 200, z: 0 }; /* the inside is built far out to sea, where nothing else is */
-const IN_B = { x0: HO.x - 5.7, x1: HO.x + 5.7, z0: HO.z - 6.7, z1: HO.z + 5.4 };
+/* how much deeper the bedroom strip at the back is than it first was (2.5 deep, now 4): its back wall and everything in it sit this far further back */
+const BED_D = 1.5;
+const IN_B = { x0: HO.x - 5.7, x1: HO.x + 5.7, z0: HO.z - 6.7 - BED_D, z1: HO.z + 5.4 };
 let inHouse = false, houseReady = false;
 const BND = () => inHouse ? IN_B : ISLE;
 const HOUSE = HERE === 'farm' ? { x: 0, z: -5.3 } : { x: -8.2, z: 2.4 };
@@ -121,8 +123,8 @@ const ROOMS = [
   { id: 'guests', x: 3.5, z: 2.25, floor: '#d8ecd0', side: 1 }
 ];
 const WALLS = [
-  { v: 0, z: 4.5, a: -6, b: 6, gaps: [[-1, 1]] }, { v: 0, z: -7, a: -6, b: 6, gaps: [] },
-  { v: 1, x: -6, a: -7, b: 4.5, gaps: [] }, { v: 1, x: 6, a: -7, b: 4.5, gaps: [] },
+  { v: 0, z: 4.5, a: -6, b: 6, gaps: [[-1, 1]] }, { v: 0, z: -7 - BED_D, a: -6, b: 6, gaps: [] },
+  { v: 1, x: -6, a: -7 - BED_D, b: 4.5, gaps: [] }, { v: 1, x: 6, a: -7 - BED_D, b: 4.5, gaps: [] },
   { v: 0, z: -4.5, a: -6, b: 6, gaps: [[-0.85, 0.85]] },
   { v: 1, x: -1, a: -4.5, b: 4.5, gaps: [[-2.95, -1.55], [1.55, 2.95]] }, { v: 1, x: 1, a: -4.5, b: 4.5, gaps: [[-2.95, -1.55], [1.55, 2.95]] },
   { v: 0, z: 0, a: -6, b: -1, gaps: [] }, { v: 0, z: 0, a: 1, b: 6, gaps: [] }
@@ -130,8 +132,8 @@ const WALLS = [
 const inG = new T.Group(); inG.position.set(HO.x, 0, HO.z); sc.add(inG);
 {
   let g = new T.PlaneGeometry(48, 40, 24, 20); g.rotateX(-Math.PI / 2); const yard = part(fac(g, (cx, cy, cz, i) => tone(Math.abs(cx) < 1.1 && cz > 4.5 ? PAL.sand : PAL.grass, i, 0.9)), inG); yard.castShadow = false;
-  g = new T.BoxGeometry(12, 0.06, 11.5); part(fac(g, '#d9bf94', 114), inG, 0, 0.03, -1.25, true);
-  ROOMS.concat([{ x: 0, z: -5.75, w: 12, d: 2.5, floor: '#e6dcf2' }]).forEach((r, k) => { const f = new T.Mesh(new T.PlaneGeometry(r.w || 4.9, r.d || 4.4), new T.MeshStandardMaterial({ color: r.floor, roughness: 1 })); f.rotation.x = -Math.PI / 2; f.position.set(r.x, 0.065, r.z); f.receiveShadow = true; inG.add(f); });
+  g = new T.BoxGeometry(12, 0.06, 11.5 + BED_D); part(fac(g, '#d9bf94', 114), inG, 0, 0.03, -1.25 - BED_D / 2, true);
+  ROOMS.concat([{ x: 0, z: -5.75 - BED_D / 2, w: 12, d: 2.5 + BED_D, floor: '#e6dcf2' }]).forEach((r, k) => { const f = new T.Mesh(new T.PlaneGeometry(r.w || 4.9, r.d || 4.4), new T.MeshStandardMaterial({ color: r.floor, roughness: 1 })); f.rotation.x = -Math.PI / 2; f.position.set(r.x, 0.065, r.z); f.receiveShadow = true; inG.add(f); });
   WALLS.forEach((w, k) => {
     let s = w.a; const cuts = w.gaps.concat([[w.b, w.b]]);
     cuts.forEach(([g0, g1]) => { const len = g0 - s; if (len > 0.05) { const geo = w.v ? new T.BoxGeometry(0.16, 0.7, len) : new T.BoxGeometry(len, 0.7, 0.16); const m = part(fac(geo, PAL.paper, 120 + k), inG, w.v ? w.x : s + len / 2, 0.35, w.v ? s + len / 2 : w.z); const t = w.v ? new T.BoxGeometry(0.22, 0.06, len) : new T.BoxGeometry(len, 0.06, 0.22); part(fac(t, PAL.trunk, 130 + k), inG, m.position.x, 0.72, m.position.z, true); } s = g1; });
@@ -220,13 +222,13 @@ function popDemo(room, dt) {
   const h = room.hen.userData.hop || 0; room.hen.position.y = Math.sin(h * Math.PI) * 0.25; room.hen.userData.hop = Math.max(0, h - dt * 3);
 }
 /* the wardrobe room: a mirror and a clothes rail; stand in front of the mirror to change */
-const wardRing = mkRing(HO.x, HO.z - 6.15);
+const wardRing = mkRing(HO.x, HO.z - 6.15 - BED_D);
 {
-  const fr = new T.BoxGeometry(1.2, 1.8, 0.12); part(fac(fr, PAL.trunk, 170), inG, 0, 0.95, -6.8);
-  const gl = new T.Mesh(new T.PlaneGeometry(0.95, 1.55), new T.MeshStandardMaterial({ color: '#cfe8f2', roughness: 0.15, metalness: 0.3 })); gl.position.set(0, 0.95, -6.73); inG.add(gl);
+  const fr = new T.BoxGeometry(1.2, 1.8, 0.12); part(fac(fr, PAL.trunk, 170), inG, 0, 0.95, -6.8 - BED_D);
+  const gl = new T.Mesh(new T.PlaneGeometry(0.95, 1.55), new T.MeshStandardMaterial({ color: '#cfe8f2', roughness: 0.15, metalness: 0.3 })); gl.position.set(0, 0.95, -6.73 - BED_D); inG.add(gl);
   /* the farm game has the bed on the left, so all the clothes hang on one long rail on the right */
-  { const pole = new T.CylinderGeometry(0.04, 0.04, 1.4, 6); part(fac(pole, PAL.ink, 171), inG, 1.9, 0.7, -6.2); part(fac(pole, PAL.ink, 171), inG, 5.7, 0.7, -6.2); const bar = new T.CylinderGeometry(0.03, 0.03, 3.8, 6); bar.rotateZ(Math.PI / 2); part(fac(bar, PAL.ink, 172), inG, 3.8, 1.38, -6.2);
-    AVO.sh.slice(0, 8).forEach((col, k) => { const t = new T.BoxGeometry(0.36, 0.5, 0.08); part(fac(t, col, 173 + k), inG, 2.25 + k * 0.45, 1.05, -6.2); }); }
+  { const pole = new T.CylinderGeometry(0.04, 0.04, 1.4, 6); part(fac(pole, PAL.ink, 171), inG, 1.9, 0.7, -6.2 - BED_D); part(fac(pole, PAL.ink, 171), inG, 5.7, 0.7, -6.2 - BED_D); const bar = new T.CylinderGeometry(0.03, 0.03, 3.8, 6); bar.rotateZ(Math.PI / 2); part(fac(bar, PAL.ink, 172), inG, 3.8, 1.38, -6.2 - BED_D);
+    AVO.sh.slice(0, 8).forEach((col, k) => { const t = new T.BoxGeometry(0.36, 0.5, 0.08); part(fac(t, col, 173 + k), inG, 2.25 + k * 0.45, 1.05, -6.2 - BED_D); }); }
 }
 let wardLatch = false, doorT = 0;
 function goInside(to) {
