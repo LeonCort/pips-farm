@@ -269,8 +269,19 @@ function syncStalls(pop) {
   STALLS.forEach((st, i) => { const open = i < n; if (st.block.visible === open) { st.block.visible = !open; if (open && pop) burst(st.x, 0.8, st.z, 5); }
     const k = !open ? '' : st.an ? st.an.a : 'empty'; if (k !== st.signK) { st.signK = k; st.sign.visible = open && k !== 'empty'; if (st.sign.visible) st.sign.material.map = bubble(k); } });
 }
+/* test shortcut: open the game with #barntest to jump to a busy evening (a farm full of barn animals, every stall open,
+   everyone outside waiting). Only for trying the barn; a normal start never does this. */
+const BARN_TEST = /barntest/.test(location.hash + location.search);
+function barnTestSetup() {
+  const s = barnS(); if (typeof tutFinish === 'function' && state.tut && !state.tut.done) tutFinish();
+  BPADS.forEach((p) => { s.owned[p.id] = true; }); s.in = [];
+  const want = { pig: 3, sheep: 4, cow: 2, horse: 2, bull: 1 };
+  Object.keys(want).forEach((a) => { while (animals.filter((o) => o.a === a && !o.baby).length < want[a]) addAnimal(a); });
+  state.clock = Math.floor((+state.clock || 0) / DAY) * DAY + DAY * 0.6; state.coins = Math.max(state.coins, 500);
+}
 function barnInit() {
   const s = barnS(); s.owned = s.owned || {}; s.paid = s.paid || {};
+  if (BARN_TEST) barnTestSetup();
   BPADS.forEach((p) => { if (p.kind === 'goat' && s.owned[p.id]) addAnimal('goat'); });
   (s.in || []).forEach((k) => { const [a, i] = k.split(':'), an = animals.filter((o) => o.a === a)[+i]; const st = freeStall(); if (an && st) putInStall(an, st, true); });
   regroup(); syncStalls(false);
