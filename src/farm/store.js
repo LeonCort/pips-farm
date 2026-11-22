@@ -354,7 +354,7 @@ function miniHouse(size, next) {
 /* what each counter offers right now: only the next things, cheapest first */
 function ctrOffers(c, cat) {
   if (c.id === 'gear') { for (let k = 0; k < GEAR.length; k++) { const o = offerOf({ kind: 'gear', i: k }); if (o && o.cost) return [o]; } return []; }
-  if (c.id === 'house') { const o = offerOf({ kind: 'size', i: 0 }); return (o && o.cost ? [o] : []).concat(cat.filter((q) => q.act.k === 'ex')).slice(0, 2); }
+  if (c.id === 'house') return cat.filter((q) => q.act.k === 'ex').slice(0, 2); /* the house itself grows from the ring by its door */
   if (c.id === 'rooms') return cat.filter((q) => q.act.k === 'type').slice(0, 2);
   return cat.filter((q) => q.act.k === 'isle' || q.act.k === 'deco').slice(0, 2);
 }

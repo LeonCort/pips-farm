@@ -335,7 +335,7 @@ mapEl.addEventListener('click', (e) => { e.stopPropagation(); const g = e.target
 ['pointerdown', 'touchstart', 'mousedown'].forEach((t) => { mapEl.addEventListener(t, (e) => e.stopPropagation()); mapBtn.addEventListener(t, (e) => e.stopPropagation()); });
 
 /* standing at the signpost offers the map as a big button too */
-function townActs(out) { if (Math.hypot(pip.position.x - SIGN.x, pip.position.z - SIGN.z) < 1.3) out.push({ icon: actIcon('map'), label: 'Karta', run: openMap });
+function townActs(out) { if (Math.hypot(pip.position.x - SIGN.x, pip.position.z - SIGN.z) < 0.95) out.push({ icon: actIcon('map'), label: 'Karta', run: openMap });
   if (carry.items.length && !inHouse) out.push({ icon: actIcon('dump'), label: 'Töm korgen', run: dumpBasket }); }
 
 let townSeason = null, mapT = 0;

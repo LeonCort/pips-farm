@@ -51,10 +51,7 @@ function spotOffers() {
   if (!S || BUILD) return out;
   const home = inHouse && !inBarn && !inStore;
   if (!inHouse) {
-    /* the house grows */
-    const n = S.size + 1, z = SIZES[n];
-    if (z && !S.pend.some((p) => p.startsWith('size'))) out.push({ x: HDOOR.x, y: isTent() ? 2.9 : 3.9, z: HDOOR.z - 0.6, d: Math.hypot(px - HDOOR.x, pz - (HDOOR.z + 0.6)) - 1.2, key: 'h' + n, up: true, mark: true,
-      act: { k: 'size', n }, cost: z.cost - (S.paid['h:' + n] || 0), pic: () => thumbOf('h:' + n, () => miniHouse(S.size, n)) });
+    /* the house grows from the ring beside its door now (housering.js), not from a bubble */
     /* landmarks round the island: a whole set at a time; by things already built, a new look */
     ILOTS.forEach((l) => { let d = 1e9, at = l.at[0];
       l.at.forEach((g) => { const dd = g.length === 3 ? Math.hypot(px - g[0], pz - g[1]) - g[2] : Math.max(Math.abs(px - g[0]) - g[2], Math.abs(pz - g[1]) - g[3]); if (dd < d) { d = dd; at = g; } });
