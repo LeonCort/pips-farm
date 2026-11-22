@@ -4,7 +4,7 @@
    the hungry penguin catches it, hops, and gives a heart. No reading needed: the arrow shows where to go. */
 const ENC = { x: 12.2, z: -4.6, rx: 3.0, rz: 2.3 }; /* the fence oval */
 const POOL = { x: ENC.x - 0.9, z: ENC.z + 0.35, rx: 1.45, rz: 1.05 };
-const BUCKET = { x: 8.9, z: -1.75 };
+const BUCKET = { x: 10.1, z: -1.4 }; /* at the edge of the loop path */
 const FEED = { x: ENC.x - 0.6, z: ENC.z + ENC.rz + 0.55 }; /* where Pip stands to hand over fish: the front of the fence */
 const FISH = [{ id: 'sill', c: '#c9d6dc', s: '#8a9ba6', f: '#d2483a', len: 0.36, w: 1 }]; /* the fish kinds (drawIcon draws them) */
 PEN.penguin = { x: ENC.x, z: ENC.z, w: ENC.rx * 2, d: ENC.rz * 2 }; /* no grass grows in the yard */
@@ -68,7 +68,8 @@ function zooSpot() { /* a random spot in the yard: the pool or the dry side */
 }
 function zooInit() {
   if (penguins.length) return;
-  pip.position.set(7.6, 0, 0.9); target.copy(pip.position); camFocus.copy(pip.position); /* start on the path by the penguins */
+  pip.position.set(9.0, 0, 1.4); target.copy(pip.position); camFocus.copy(pip.position); /* start on the path by the penguins */
+  dog.g.position.set(pip.position.x - 1.2, 0, pip.position.z - 0.6); petsInit(); /* the pet (the farm's choice is not shared yet) */
   [1.3, 1.22, 1.12, 0.85].forEach((s, i) => { const m = penguinModel(s), p = zooSpot(); m.g.position.set(p[0], 0.06, p[1]); m.g.rotation.y = Math.random() * 6; sc.add(m.g);
     penguins.push(Object.assign(m, { s, tx: p[0], tz: p[1], want: false, cd: 8 + i * 9 + Math.random() * 6, wait: 0, hop: 0, coming: 0, ph: Math.random() * 6 })); });
   animals.push(...penguins.map((p) => ({ g: p.g, a: 'penguin' })));

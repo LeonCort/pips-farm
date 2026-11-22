@@ -2,7 +2,7 @@
 /* a dock at the south end of the path; stand on it and the boat sails to the other island */
 const HERE = typeof DIET !== 'undefined' ? 'farm' : 'shop', THERE_PAGE = HERE === 'farm' ? 'butik.html' : 'bondgard.html';
 const canSail = /github\.io$/.test(location.hostname) || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-const DOCK = (() => { const X = HERE_T === 'farm' ? 0 : 3.6; let z = 0; while (hAt(X, z) > -0.02 && z < 30) z += 0.1; return { x: X, edge: z, z0: z - 0.9, z1: z + 2.6, boat: z + 3.75 }; })();
+const DOCK = (() => { const X = 0; let z = 0; while (hAt(X, z) > -0.02 && z < 30) z += 0.1; return { x: X, edge: z, z0: z - 0.9, z1: z + 2.6, boat: z + 3.75 }; })();
 const dockG = new T.Group(); sc.add(dockG);
 {
   const len = DOCK.z1 - DOCK.z0 + 0.3; let g = new T.BoxGeometry(1.1, 0.08, len, 1, 1, Math.round(len / 0.3)); g.translate(DOCK.x, 0.1, DOCK.z0 - 0.15 + len / 2);
@@ -77,7 +77,7 @@ function boatStep(dt) {
 }
 
 /* ---------- the upgrade house: walk in, visit a room, stand on its pad to buy ---------- */
-const ISLE = HERE === 'farm' ? { x0: -16.3, x1: 16.3, z0: -10.9, z1: 10.9 } : { x0: -10.3, x1: 10.3, z0: -6.9, z1: 6.9 };
+const ISLE = ISLAND.box;
 const HO = { x: 200, z: 0 }; /* the inside is built far out to sea, where nothing else is */
 const IN_B = { x0: HO.x - 5.7, x1: HO.x + 5.7, z0: HO.z - 6.7, z1: HO.z + 5.4 };
 let inHouse = false, houseReady = false;
@@ -225,10 +225,8 @@ const wardRing = mkRing(HO.x, HO.z - 6.15);
   const fr = new T.BoxGeometry(1.2, 1.8, 0.12); part(fac(fr, PAL.trunk, 170), inG, 0, 0.95, -6.8);
   const gl = new T.Mesh(new T.PlaneGeometry(0.95, 1.55), new T.MeshStandardMaterial({ color: '#cfe8f2', roughness: 0.15, metalness: 0.3 })); gl.position.set(0, 0.95, -6.73); inG.add(gl);
   /* the farm game has the bed on the left, so all the clothes hang on one long rail on the right */
-  if (HERE_T === 'farm') { const pole = new T.CylinderGeometry(0.04, 0.04, 1.4, 6); part(fac(pole, PAL.ink, 171), inG, 1.9, 0.7, -6.2); part(fac(pole, PAL.ink, 171), inG, 5.7, 0.7, -6.2); const bar = new T.CylinderGeometry(0.03, 0.03, 3.8, 6); bar.rotateZ(Math.PI / 2); part(fac(bar, PAL.ink, 172), inG, 3.8, 1.38, -6.2);
+  { const pole = new T.CylinderGeometry(0.04, 0.04, 1.4, 6); part(fac(pole, PAL.ink, 171), inG, 1.9, 0.7, -6.2); part(fac(pole, PAL.ink, 171), inG, 5.7, 0.7, -6.2); const bar = new T.CylinderGeometry(0.03, 0.03, 3.8, 6); bar.rotateZ(Math.PI / 2); part(fac(bar, PAL.ink, 172), inG, 3.8, 1.38, -6.2);
     AVO.sh.slice(0, 8).forEach((col, k) => { const t = new T.BoxGeometry(0.36, 0.5, 0.08); part(fac(t, col, 173 + k), inG, 2.25 + k * 0.45, 1.05, -6.2); }); }
-  else [-1, 1].forEach((s) => { const pole = new T.CylinderGeometry(0.04, 0.04, 1.4, 6); part(fac(pole, PAL.ink, 171), inG, s * 3.0, 0.7, -6.2); part(fac(pole, PAL.ink, 171), inG, s * 5.0, 0.7, -6.2); const bar = new T.CylinderGeometry(0.03, 0.03, 2.0, 6); bar.rotateZ(Math.PI / 2); part(fac(bar, PAL.ink, 172), inG, s * 4.0, 1.38, -6.2);
-    AVO.sh.slice(s < 0 ? 0 : 4, s < 0 ? 4 : 8).forEach((col, k) => { const t = new T.BoxGeometry(0.36, 0.5, 0.08); part(fac(t, col, 173 + k), inG, s * (3.3 + k * 0.45), 1.05, -6.2); }); });
 }
 let wardLatch = false, doorT = 0;
 function goInside(to) {

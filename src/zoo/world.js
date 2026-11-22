@@ -8,13 +8,12 @@ let inHouse = false, inBarn = false, inStore = false;
 let trip = null, sleep = null; /* no boat trips, no sleeping in bed */
 function inMarketTown() { return false; }
 function goInside() {}
-const ISLE = { x0: -16, x1: 16, z0: -10, z1: 10 }; /* only used for an island that is not farm-shaped */
 const IN_B = { x0: -1, x1: 1, z0: -1, z1: 1 }; /* the inside of a house, when there is one */
 const BI = { x: -200, z: 0 }, SI = { x: 0, z: -200 }; /* inside the barn and the store: none yet */
 /* no house yet: an empty, hidden group so the snow caps and the light effects have something to look at */
 const HOUSE = { x: 0, z: -400 }, houseG = new T.Group(); houseG.visible = false;
 const lampMatH = new T.MeshBasicMaterial({ color: '#ffe6a8' });
-const KENNEL = { x: 0, z: -400 }; /* no kennel either: its snow roof goes far off where nobody sees it */
+const HO = { x: 200, z: 0 }, HDOOR = { x: 0, z: -400 }; /* where a house's inside is built, and its door: none yet */
 
 /* steps the loop calls */
 function houseStep() {}
@@ -23,6 +22,8 @@ function bedStep() {}
 function storeStep() {} /* the engine hangs its own per-frame work on this one (gfx.js) */
 function buyCam() { return false; }
 function routeStop() {}
+/* the pet is always outside with Pip in the zoo (engine/dog.js asks) */
+function petPlace() { return { home: false, away: false, goal: null, door: () => [pip.position.x - 1, pip.position.z - 0.8] }; }
 function guideGoal() { return zooGoal(); }
 function barnGoal() { return null; }
 const tutArrowIn = () => false;

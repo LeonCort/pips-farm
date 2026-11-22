@@ -14,7 +14,7 @@ cap          how much Pip carries
 UPS          Pip's gear upgrades
 upCost       price of a gear upgrade
 ITEM_H       height of each item Pip carries
-DIET         (only checked to tell the farm from the old shop)
+ISLAND       the island's shape, plaza, ring road and roads (scene.js)
 HERE         which game this is ('farm')
 
 # where Pip is: the house and other buildings
@@ -28,7 +28,6 @@ sleep        Pip is sleeping in bed
 BI           the barn interior's place
 SI           the store interior's place
 IN_B         the house interior's walls
-ISLE         the island's edges
 HO           where the house interior is built
 HX           the house interior's size
 HOUSE        where the house stands
@@ -44,6 +43,7 @@ bedStep      the bed each frame
 storeStep    the store each frame
 buyCam       buy mode's camera
 routeStop    stop a walk picked on the map
+petPlace     where the pet goes: with Pip inside, waiting outside, or free (dog.js)
 guideGoal    where the guide arrow points
 barnGoal     where the arrow points in the barn
 tutArrowIn   the tutorial's arrow
@@ -59,7 +59,7 @@ pond         the garden water hole
 MEADOW       the hay meadow
 SRC          food sheds
 DOCK         the dock
-KENNEL       the dog's kennel
+KENNEL       where the pet's kennel stands
 beds         vegetable beds
 tufts        meadow grass
 ripples      water ripples
@@ -68,17 +68,13 @@ PLANTER      the town planter
 blocked      where flowers may not grow
 STORE        the store building
 ISLE_BY      island landmarks
-RG           the road graph
-roadPath     a walk along the roads
 back         the market's back-stock crate
 FISH         fish kinds (icons)
 crate        a crate model
-zzz          the sleeping z's
 SHOP         the market counter
 STL          the market stalls' places
 STALL_T      the market stall kinds
 stalls       the market stalls
-dog          the dog (pets and the dressing room)
 guestModel   a guest's model
 
 # not game names: local variables that share a game name

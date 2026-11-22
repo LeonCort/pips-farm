@@ -125,7 +125,7 @@ function shPlace() {
   const aC = shGeo.attributes.aC.array, aW = shGeo.attributes.aW.array; let n = 0;
   for (let dz = -5; dz <= 2 && n < SH_N; dz++) for (let dx = -4; dx <= 4 && n < SH_N; dx++) {
     const gx = cx + dx, gz = cz + dz, h = hash(gx * 13.1 + gz * 71.7, 5.3); if (h > 0.36) continue;
-    const x = (gx + hash(gx, gz + 0.5) - 0.5) * SH_CELL, z = (gz + hash(gz, gx + 1.5) - 0.5) * SH_CELL; if (HERE_T === 'farm' && isleD(x, z) > 0.98) continue;
+    const x = (gx + hash(gx, gz + 0.5) - 0.5) * SH_CELL, z = (gz + hash(gz, gx + 1.5) - 0.5) * SH_CELL; if (isleD(x, z) > 0.98) continue;
     const wdt = 0.8 + hash(gx, gz + 7.1) * 1.3, len = 7 + hash(gx + 3.3, gz) * 5, seed = hash(gx + 9.9, gz + 2.2);
     for (let j = 0; j < 4; j++) { const o = (n * 4 + j) * 3; aC[o] = x; aC[o + 1] = 0; aC[o + 2] = z; aW[o] = wdt; aW[o + 1] = len; aW[o + 2] = seed; } n++;
   }
@@ -177,7 +177,7 @@ const GL_N = 700, glGeo = new T.BufferGeometry();
 { const p = [], sd = [], gr = []; let i = 0, tries = 0;
   const fy = (() => { try { fountain.water.updateMatrixWorld(true); return new T.Vector3().setFromMatrixPosition(fountain.water.matrixWorld).y; } catch (e) { return 0.36; } })();
   while (i < GL_N && tries < 20000) { tries++; let x, y, z, g; const r = hash(tries, 91);
-    if (r < 0.8) { x = (hash(tries, 93) - 0.5) * 70; z = (hash(tries, 95) - 0.5) * 50; const d = HERE_T === 'farm' ? isleD(x, z) : 2; if (d < 1.12 || d > 2.4) continue; y = -0.39; g = 0; }
+    if (r < 0.8) { x = (hash(tries, 93) - 0.5) * 70; z = (hash(tries, 95) - 0.5) * 50; const d = isleD(x, z); if (d < 1.12 || d > 2.4) continue; y = -0.39; g = 0; }
     else if (r < 0.93) { if (typeof POND === 'undefined') continue; const a = hash(tries, 97) * 6.283, q = Math.sqrt(hash(tries, 99)) * 0.85; x = POND.x + Math.cos(a) * POND.r * 1.2 * q; z = POND.z + Math.sin(a) * POND.r * q; y = 0.06; g = 1; }
     else { const a = hash(tries, 97) * 6.283, q = Math.sqrt(hash(tries, 99)) * 0.8; x = Math.cos(a) * q; z = Math.sin(a) * q; y = fy + 0.02; g = 2; }
     p.push(x, y, z); sd.push(hash(tries, 101)); gr.push(g); i++; }
@@ -310,7 +310,7 @@ function grBuild(dens) {
 }
 /* where grass grows and its colour: the ground's own vertex colours averaged per texel; none on the sea, in pens, under props */
 function grMask() {
-  if (HERE_T !== 'farm' || !ground) return; const W = GR.W, H = GR.H, d = GR.tex.image.data, acc = new Float32Array(W * H * 4);
+  if (!ground) return; const W = GR.W, H = GR.H, d = GR.tex.image.data, acc = new Float32Array(W * H * 4);
   const p = ground.geometry.attributes.position, c = ground.geometry.attributes.color;
   for (let i = 0; i < p.count; i++) { const tx = Math.round((p.getX(i) + 29) / 58 * W - 0.5), tz = Math.round((p.getZ(i) + 20) / 40 * H - 0.5); if (tx < 0 || tz < 0 || tx >= W || tz >= H) continue; const o = (tz * W + tx) * 4; acc[o] += c.getX(i); acc[o + 1] += c.getY(i); acc[o + 2] += c.getZ(i); acc[o + 3]++; }
   const pens = typeof PEN !== 'undefined' ? Object.values(PEN) : [], deco = typeof DECO !== 'undefined' ? DECO : [];
@@ -336,7 +336,7 @@ function grPushers() {
 
 /* ----- ground variety: patchy noise on the ground shader, cobbles (mask g), dirt (mask r) and grass each in their own way ----- */
 const GVU = { uGV: { value: 0 } };
-if (HERE_T === 'farm' && ground && ground.material) { const gm = ground.material, ob = gm.onBeforeCompile;
+if (ground && ground.material) { const gm = ground.material, ob = gm.onBeforeCompile;
   gm.onBeforeCompile = (sh, r) => { ob.call(gm, sh, r); sh.uniforms.uGV = GVU.uGV;
     const a = 'diffuseColor.rgb *= gcl * gdt * 1.02;'; if (sh.fragmentShader.indexOf(a) < 0) { console.warn('fx: ground shader changed'); return; }
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vGw;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvGw = position.xz;');
@@ -398,7 +398,7 @@ function fxWorld(dt) {
   /* ground variety */
   GVU.uGV.value = fxUse('ground') ? 1 : 0;
   /* 3D grass */
-  const grOn = fxUse('grass') && out && !top && HERE_T === 'farm';
+  const grOn = fxUse('grass') && out && !top;
   if (grOn) { if (!GR.mesh) { grBuild(32); grMask(); } GR.t -= dt; if (GR.t <= 0) { GR.t = 10; grMask(); }
     const u = GR.u; u.uGFocus.value.set(camFocus.x, 0, camFocus.z - 1.2); u.uGT.value = reduced ? 0 : time;
     const wg = typeof WIND !== 'undefined' ? 0.25 + 0.75 * WIND.g : 0.3; u.uGWind.value.set(typeof WIND !== 'undefined' ? WIND.x : 0.7, typeof WIND !== 'undefined' ? WIND.z : -0.4).normalize().multiplyScalar(0.25 + 0.55 * wg);

@@ -26,9 +26,9 @@ Progress is saved in the browser (localStorage), so it stays on the device.
 
 The sources live in `src/`; the pages at the repo root are built from them. Never edit a built page by hand: the next build overwrites it.
 
-- `src/engine/`: parts any Pips game can use: Pip and the wardrobe, camera, input and saving, the loop, sky, weather, rain, light and shading, pets, the building kit (`kit.js`), icons and effects, sound in `sound/`, the loading screen in `boot/`, the shared page head and CSS. `contract.txt` lists the names the engine still takes from a game.
+- `src/engine/`: parts any Pips game can use: Pip and the wardrobe, camera, input and saving, the loop, sky, weather, rain, light and shading, pets, the building kit (`kit.js`), the pet and its kennel (`dog.js`, `pets.js`), walking by road (`roads.js`), icons and effects, sound in `sound/`, the loading screen in `boot/`, the shared page head and CSS. `contract.txt` lists the names the engine still takes from a game.
 - `src/farm/`: the farm (Bondgård): animals, barn and loft, meadow, market, town, island, and for now also the house, store, buy mode, unlock queues and tutorial (they move to the engine as a shared frame once the zoo needs them). `manifest.txt` is the list of script files glued together in order.
-- `src/zoo/`: the zoo, built only from engine files and its own: `rules.js` (its save, `pip-zoo-v1`), `world.js` (its answer to each contract name, mostly "none yet"), `penguins.js`, `step.js` and `start.js`. Its `manifest.txt` names the engine files it leaves out for now.
+- `src/zoo/`: the zoo, built only from engine files and its own: `rules.js` (its save, `pip-zoo-v1`, and its island), `world.js` (its answer to each contract name, mostly "none yet"), `penguins.js`, `step.js` and `start.js`. Its `manifest.txt` names the engine files it leaves out for now.
 - `src/start/`: the start page.
 - `tools/build.py`: builds `bondgard.html`, `zoo.html` and `index.html`, plus `build/test-<page>.html` (three.js from the repo root) for tests.
 - `tools/check.py`: rebuilds and compares with the committed pages; it passes when they are identical apart from the version stamp. Use it for changes that should not change the game.

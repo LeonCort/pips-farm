@@ -5,7 +5,6 @@ const FPS_OPTS = [30, 60, 20]; let fpsCap = 30; try { const v = +localStorage.ge
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, fpsCap === 20 ? 1 : 1.5)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = T.PCFSoftShadowMap;
 const sc = new T.Scene(); sc.background = new T.Color(PAL.haze); sc.fog = new T.Fog(PAL.haze, 28, 70);
 const cam = new T.PerspectiveCamera(36, 1, 0.5, 300);
-const HERE_T = typeof DIET !== 'undefined' ? 'farm' : 'shop';
 const MAT = new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
 const _h = {};
 function tone(hex, key, amt) { amt = amt == null ? 1 : amt; const c = new T.Color(hex); c.getHSL(_h); c.setHSL(_h.h + (hash(key, 1.3) - 0.5) * 0.03 * amt, clamp(_h.s * (1 + (hash(key, 7.7) - 0.5) * 0.22 * amt), 0, 1), clamp(_h.l * (1 + (hash(key, 13.1) - 0.5) * 0.15 * amt), 0, 1)); return c; }
@@ -33,43 +32,35 @@ const ico = (r, d, seed, j) => jit(new T.IcosahedronGeometry(r, d), j == null ? 
 const ink = new T.MeshBasicMaterial({ color: PAL.ink });
 
 /* a smaller shadow map on the farm: blurrier, softer shadow edges (and cheaper) */
-const HERE_SHADOW = HERE_T === 'farm' ? 640 : 1024;
+const HERE_SHADOW = 640;
 sc.add(new T.HemisphereLight(0xc4d6f2, 0xa8a070, 0.6));
 const sun = new T.DirectionalLight(0xffd6a0, 1.05); sun.position.set(-11, 9, 7.5); sun.castShadow = true; sun.shadow.mapSize.set(HERE_SHADOW, HERE_SHADOW);
 Object.assign(sun.shadow.camera, { left: -14, right: 14, top: 12, bottom: -12, near: 1, far: 50 }); sun.shadow.bias = -0.0006; sun.shadow.normalBias = 0.03; sc.add(sun); sc.add(sun.target);
 const sky = new T.Mesh(new T.SphereGeometry(150, 32, 16), new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: false, uniforms: { top: { value: new T.Color('#7db7dd') }, hor: { value: new T.Color('#ffe2c4') } }, vertexShader: 'varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }', fragmentShader: 'varying vec3 vD; uniform vec3 top; uniform vec3 hor; void main(){ float y = max(normalize(vD).y, 0.0); gl_FragColor = vec4(mix(hor, top, pow(y, 0.55)), 1.0); }' })); sc.add(sky);
 
-/* ground: a flat farm plateau that drops to the sea at the edges */
-/* the farm is a round town island (an ellipse with a wavy coast and a little point for the lighthouse); the shop is still the old block */
-const ISL = { a: 24, b: 15 };
-function isleD(x, z) { const u = x / ISL.a, v = z / ISL.b, th = Math.atan2(v, u), dth = th - 1.0;
-  return Math.hypot(u, v) / (1 + 0.035 * Math.sin(3 * th + 1) + 0.025 * Math.sin(5 * th + 2.2) + 0.022 * Math.sin(8 * th + 0.4) + 0.07 * Math.exp(-dth * dth / 0.012)); }
-function hAt(x, z) { if (HERE_T === 'farm') { const d = isleD(x, z); return d < 1 ? 0 : -Math.min(1.6, (d - 1) * 12); } const d = Math.max(Math.abs(x) / 17, Math.abs(z) / 11.6); return d < 1 ? 0 : -Math.min(1.6, (d - 1) * 7); }
+/* ground: a flat plateau that drops to the sea at the edges.
+   The game gives the island's shape in ISLAND: an oval a by b with a wavy coast (wob: waves, size, turn), an optional
+   point (cape: angle, size, width), a round plaza in the middle, an oval ring road and straight roads. */
+const ISL = ISLAND, RING = ISLAND.ring, ROADS = ISLAND.roads; /* ROADS: x0, z0, x1, z1, half width, kind */
+function isleD(x, z) { const u = x / ISL.a, v = z / ISL.b, th = Math.atan2(v, u), c = ISL.cape; let f = 1;
+  for (const w of ISL.wob) f += w[1] * Math.sin(w[0] * th + w[2]);
+  if (c) { const dth = th - c[0]; f += c[1] * Math.exp(-dth * dth / c[2]); }
+  return Math.hypot(u, v) / f; }
+function hAt(x, z) { const d = isleD(x, z); return d < 1 ? 0 : -Math.min(1.6, (d - 1) * 12); }
 /* roads: 0 grass, 1 dirt road, 2 cobbles */
 function segD(x, z, x0, z0, x1, z1) { const dx = x1 - x0, dz = z1 - z0, t = clamp(((x - x0) * dx + (z - z0) * dz) / (dx * dx + dz * dz), 0, 1); return Math.hypot(x - x0 - dx * t, z - z0 - dz * t); }
-const RING = { rx: 8, rz: 7.6 };
-const ROADS = [ /* x0, z0, x1, z1, half width, kind */
-  [-3.2, 0, -12.6, 0, 0.62, 1], [-12.6, -7.4, -12.6, 7.4, 0.68, 1], /* west to the farmyard, and the farm lane */
-  [3.2, 0, 8, 0, 0.62, 1], [8, 0, 22.4, 0, 0.95, 2], /* east, then the cobbled market street */
-  [0, 3.2, 0, 13.4, 0.62, 1], /* south to the harbour */
-  [0, -7.6, 0, -9.0, 0.62, 1], /* north to the meadow */
-  [-5.66, 5.37, -4.9, 8.7, 0.55, 1] /* south-west to the pond */
-];
 function roadKind(x, z) {
-  if (HERE_T !== 'farm') return (Math.abs(z + 1.5) < 0.55 && x > 4.4) || (Math.abs(x - 3.6) < 0.5 && z > 1 && z < 7) ? 1 : 0;
-  if (Math.hypot(x, z) < 3.5) return 2;
+  if (Math.hypot(x, z) < ISL.plaza) return 2;
   let k = 0; for (const r of ROADS) if (segD(x, z, r[0], r[1], r[2], r[3]) < r[4]) { if (r[5] === 2) return 2; k = 1; }
   if (k) return k;
-  const e = Math.hypot(x / RING.rx, z / RING.rz); if (Math.abs(e - 1) * 7.8 < 0.62) return 1;
+  if (RING) { const e = Math.hypot(x / RING.rx, z / RING.rz); if (Math.abs(e - 1) * (RING.rx + RING.rz) / 2 < RING.w) return 1; }
   return 0;
 }
-const ROAD_COL = ['', PAL.sand, '#dcc7a2'], ROAD_AMT = [0.9, 0.6, 1.0];
 /* keep a target point on the island */
 function onIsle(v) { if (inHouse) { v.x = clamp(v.x, IN_B.x0, IN_B.x1); v.z = clamp(v.z, IN_B.z0, IN_B.z1); return v; }
-  if (HERE_T !== 'farm') { v.x = clamp(v.x, ISLE.x0, ISLE.x1); v.z = clamp(v.z, ISLE.z0, ISLE.z1); return v; }
   if (Math.abs(v.x - DOCK.x) < 0.6 && v.z > DOCK.edge - 1 && v.z < DOCK.z1 + 1) { v.x = clamp(v.x, DOCK.x - 0.35, DOCK.x + 0.35); v.z = Math.min(v.z, DOCK.z1 - 0.3); return v; } /* out along the dock */
   const d = isleD(v.x, v.z), lim = 0.965; if (d > lim) { v.x *= lim / d; v.z *= lim / d; } return v; }
-const tg = HERE_T === 'farm' ? new T.PlaneGeometry(58, 40, 112, 78) : new T.PlaneGeometry(54, 42, 66, 52); tg.rotateX(-Math.PI / 2);
+const tg = new T.PlaneGeometry(58, 40, 112, 78); tg.rotateX(-Math.PI / 2);
 { const p = tg.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i) + (hash(i, 1) - 0.5) * 0.3, z = p.getZ(i) + (hash(i, 2) - 0.5) * 0.3; p.setXYZ(i, x, hAt(x, z) + (hAt(x, z) === 0 ? hash(i, 5) * 0.04 : 0), z); } }
 /* cozy ground (farm): soft grass gradients in the vertex colours, and the roads, pebbles, cobbles and painted grass strokes
    in two textures made once at start, so the paths get round, overgrown edges instead of triangle steps */
@@ -82,14 +73,14 @@ const WET_SAND = new T.Color('#b79a70');
 function groundCol(x, y, z, key, grass, beach, warm) {
   if (y < -0.6) return tone(PAL.bed, key, 0.4);
   if (y < -0.05) { const c = tone(beach || PAL.sand, key, 0.4); return c.lerp(WET_SAND, 0.5 * clamp((-y - 0.08) / 0.3, 0, 1)); }
-  const c = grassAt(x, z, grass || PAL.grass, key, warm); if (HERE_T !== 'farm') return c;
+  const c = grassAt(x, z, grass || PAL.grass, key, warm);
   const d = isleD(x, z) + 0.012 * Math.sin(x * 1.7 + z * 0.9) + 0.008 * Math.sin(x * 4.1 - z * 3.3), q = clamp((d - 0.925) / 0.05, 0, 1);
   return q > 0 ? c.lerp(tone(beach || PAL.sand, key, 0.4), q * q * (3 - 2 * q)) : c;
 }
 function repaintV(mesh, paint) { const p = mesh.geometry.attributes.position, col = mesh.geometry.attributes.color; if (!col) return; for (let i = 0; i < p.count; i++) { const x = p.getX(i), y = p.getY(i), z = p.getZ(i), c = paint(x, y, z, vkey(x, y, z)); col.setXYZ(i, c.r, c.g, c.b); } col.needsUpdate = true; }
 const GU = { path: { value: new T.Color(PAL.sand) }, cob: { value: new T.Color('#dcc7a2') }, mask: { value: null }, det: { value: null } };
 let ground, GMASK = null; /* GMASK: road kind per mask pixel */
-if (HERE_T === 'farm') {
+{
   const gm = new T.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
   gm.onBeforeCompile = (sh) => {
     sh.uniforms.gMask = GU.mask; sh.uniforms.gDet = GU.det; sh.uniforms.pathCol = GU.path; sh.uniforms.cobCol = GU.cob;
@@ -100,7 +91,7 @@ if (HERE_T === 'farm') {
   ground = new T.Mesh(fac(tg, (cx, cy, cz, i) => groundCol(cx, cy, cz, i)), gm); ground.receiveShadow = true; sc.add(ground);
   repaintV(ground, (x, y, z, k) => groundCol(x, y, z, k));
   paintGroundTex();
-} else { ground = part(fac(tg, (cx, cy, cz, i) => cy < -0.6 ? tone(PAL.bed, i) : cy < -0.05 ? tone(PAL.sand, i) : roadKind(cx, cz) ? tone(ROAD_COL[roadKind(cx, cz)], i, ROAD_AMT[roadKind(cx, cz)]) : tone(PAL.grass, i, 0.9)), sc); ground.castShadow = false; }
+}
 /* world (x, z) to texture pixels: the farm ground is 58 x 40 */
 const GX = (x, W) => (x + 29) / 58 * W, GZ = (z, H) => (z + 20) / 40 * H;
 function paintGroundTex() {
@@ -180,7 +171,7 @@ function groundShade(list) {
   d.restore(); GU.det.value.needsUpdate = true;
 }
 let wg = new T.PlaneGeometry(160, 160, 56, 56); wg.rotateX(-Math.PI / 2);
-wg = fac(wg, (cx, cy, cz, i) => { const d = HERE_T === 'farm' ? Math.hypot(cx / 1.6, cz) * 0.8 : Math.max(Math.abs(cx) / 1.4, Math.abs(cz)); return tone(d < 16 ? PAL.seaShallow : d < 28 ? PAL.sea : PAL.seaDeep, i, 0.9); });
+wg = fac(wg, (cx, cy, cz, i) => { const d = Math.hypot(cx / 1.6, cz) * 0.8; return tone(d < 16 ? PAL.seaShallow : d < 28 ? PAL.sea : PAL.seaDeep, i, 0.9); });
 const water = new T.Mesh(wg, new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.28, metalness: 0.05 })); water.position.y = -0.45; water.receiveShadow = true; sc.add(water);
 const wp = wg.attributes.position, wn = wg.attributes.normal;
 
