@@ -1,0 +1,1 @@
+module.exports=async({p,tp,shot,ev,wait})=>{ await tp(0,-3); await wait(2000); console.log(await ev(()=>document.getElementById('fpsMeter').textContent)); await p.click('#curveBtn'); await wait(300); await shot('fps'); };
