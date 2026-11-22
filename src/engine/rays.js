@@ -410,7 +410,7 @@ function fxWorld(dt) {
   /* halos */
   const hOn = fxUse('halos') && out && k.night > 0.01;
   if (hOn) { haloT -= dt; if (haloT <= 0) { haloT = 1; halos.forEach((s) => { const l = typeof ISLE_BY !== 'undefined' && ISLE_BY[s.userData.lot]; s.visible = !l || !l.meshes || !l.meshes.length || l.meshes.some((m) => m.visible); }); }
-    haloMat.opacity = k.night * 0.5 * (reduced ? 1 : 0.94 + 0.06 * Math.sin(time * 7.3)); } else if (halos[0].visible) { halos.forEach((s) => { s.visible = false; }); haloT = 0; }
+    haloMat.opacity = k.night * 0.5 * (reduced ? 1 : 0.94 + 0.06 * Math.sin(time * 7.3)); } else if (halos.length && halos[0].visible) { halos.forEach((s) => { s.visible = false; }); haloT = 0; }
 }
 const _fxc = new T.Color();
 function fxRender(dt) {

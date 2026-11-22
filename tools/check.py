@@ -10,7 +10,7 @@ import os, re, sys, tempfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from build import build, ROOT
 
-PAGES = ('bondgard.html', 'index.html')
+PAGES = ('bondgard.html', 'zoo.html', 'index.html')
 ver = lambda s: re.sub(r'<meta name="app-ver" content="[^"]*">', '', s)
 
 with tempfile.TemporaryDirectory() as tmp:

@@ -67,7 +67,7 @@ function renderMenu() {
 }
 
 /* ---------- save ---------- */
-const KEY = 'pip-farm-care-v1';
+const KEY = SAVE_KEY; /* each game saves under its own key (SAVE_KEY comes from the game) */
 function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
 function load() { try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (!s || s.v !== 1 || typeof s.coins !== 'number') return null; const b = fresh(); for (const k in b) if (!(k in s)) s[k] = b[k]; return s; } catch (e) { return null; } }
 

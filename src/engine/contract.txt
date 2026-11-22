@@ -7,6 +7,7 @@
 # fx.js and game.js did), or replace the use with a hook the game fills in.
 
 # the save and the rules
+SAVE_KEY     the localStorage key of the game's save
 fresh        a new save object
 speed        Pip's walking speed
 cap          how much Pip carries
