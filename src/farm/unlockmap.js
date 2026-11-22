@@ -144,7 +144,8 @@ function umTap(b, s) {
   /* the next thing: fly over the island to where it goes and show it there */
   Snd.play('pop', { gain: 0.35, f: 820 });
   const it = bmList().find((q) => q.id === s.id) || (s.it && Object.assign(s.it, { head: true, area: bmAreaOf(s.it.az != null ? s.it.az : s.it.z) }));
-  umClose(true); buyMode(true); if (!it) return; bmArea(it.area, true, it.x); bmSelect(it, true);
+  const fly = () => { buyMode(true); if (!it || !buyOn) return; bmArea(it.area, true, it.x); bmSelect(it, true); };
+  umClose(true); if (inStore) { goStore(false); setTimeout(fly, 900); } else fly();
 }
 function umOpen() {
   if (buyOn) buyMode(false);
@@ -155,7 +156,7 @@ function umOpen() {
 function umClose(quiet) { if (umap.hidden) return; umap.hidden = true; if (!quiet) Snd.play('swish', { gain: 0.3 }); }
 umap.addEventListener('click', (e) => { if (e.target === umap) umClose(); });
 umap.querySelector('#umClose').addEventListener('click', (e) => { e.stopPropagation(); umClose(); });
-umap.querySelector('.umIsle').addEventListener('click', (e) => { e.stopPropagation(); umClose(true); buyMode(true); });
+umap.querySelector('.umIsle').addEventListener('click', (e) => { e.stopPropagation(); umClose(true); if (inStore) { goStore(false); setTimeout(() => buyMode(true), 900); } else buyMode(true); });
 /* the bag opens the map (in the first-day tour it still goes straight to the island, where only the house is shown) */
 function umBag() { if (buyOn) { buyMode(false); return; } if (tutOn()) { buyMode(true); return; } if (umap.hidden) umOpen(); else umClose(); }
 /* over the island: a map button beside the tabs goes back to the paths */
@@ -166,9 +167,37 @@ umBack.addEventListener('click', (e) => { e.stopPropagation(); if (tutOn()) retu
 function umStep(dt) {
   UM.t -= dt; if (UM.t > 0) return; UM.t = 0.4;
   umBack.hidden = tutOn(); umMileCheck();
-  if (!umap.hidden) { if (inHouse || trip || dressing) umClose(true); else umRender(false); }
+  if (!umap.hidden) { if ((inHouse && !inStore) || trip || dressing) umClose(true); else umRender(false); }
 }
 { const s0 = storeStep; storeStep = function (dt) { s0(dt); umStep(dt); }; }
 if (window.__farmTest) window.__umap = { open: () => umOpen(), close: () => umClose(), on: () => !umap.hidden,
   paths: () => { const P = umPaths(); return ['h', 'c'].map((tr) => P[tr].map((s) => s.id + (s.done ? '+' : s.head ? '*' : '')).join(' ')); },
   tap: (id) => { const el = [...umap.querySelectorAll('.umStop')].find((e) => { const tr = e.closest('.umCol').classList.contains('h') ? 'h' : 'c'; return umPaths()[tr][+e.dataset.i].id === id; }); if (!el) return 'none'; el.querySelector('.umStk').click(); return 'ok'; } };
+/* ---------- in the shop: a map board on an easel with a ring in front; stand on the ring and the map opens ---------- */
+const UM_BOARD = { x: SI.x - 3.25, z: SI.z + 2.55 }, UM_RING = { x: SI.x - 2.05, z: SI.z + 3.0 };
+{ const g = new T.Group(); g.position.set(UM_BOARD.x, 0, UM_BOARD.z); g.rotation.y = 0.2; sc.add(g);
+  const wood = new T.MeshStandardMaterial({ color: '#8a5a3a', roughness: 0.8 });
+  [[-0.5, 0.06], [0.5, 0.06], [0, -0.35]].forEach(([x, z], i) => { const l = new T.Mesh(new T.BoxGeometry(0.08, 1.9, 0.08), wood); l.position.set(x, 0.9, z); l.rotation.x = i === 2 ? -0.32 : 0.1; l.castShadow = true; g.add(l); });
+  const cv = document.createElement('canvas'); cv.width = 256; cv.height = 320; const x = cv.getContext('2d');
+  x.fillStyle = '#fffaf0'; x.fillRect(0, 0, 256, 320); x.lineWidth = 12; x.strokeStyle = '#6b4630'; x.strokeRect(6, 6, 244, 308);
+  x.fillStyle = '#fde8ee'; x.fillRect(22, 22, 100, 276); x.fillStyle = '#fff1c8'; x.fillRect(134, 22, 100, 276);
+  drawIcon(x, 'heart', 72, 52, 0.7); drawIcon(x, 'coin', 184, 52, 0.7);
+  [[72, 0], [184, 1]].forEach(([cx, k]) => { x.setLineDash([4, 10]); x.lineCap = 'round'; x.lineWidth = 6; x.strokeStyle = '#b49a74'; x.beginPath(); x.moveTo(cx, 84); x.lineTo(cx, 290); x.stroke(); x.setLineDash([]);
+    [[100, '#3f7d62'], [150, '#3f7d62'], [200 + k * 20, '#f2c14a'], [260, '#c9b38c']].forEach(([y, c]) => { x.fillStyle = c; x.strokeStyle = PAL.ink; x.lineWidth = 4; x.beginPath(); x.arc(cx, y, y === 260 ? 16 : 13, 0, 7); x.fill(); x.stroke(); });
+    x.fillStyle = '#f2c14a'; x.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 7 : 16, a = -Math.PI / 2 + i * Math.PI / 5; x.lineTo(cx + Math.cos(a) * r, 260 + Math.sin(a) * r); } x.closePath(); x.fill(); x.stroke(); });
+  const tex = new T.CanvasTexture(cv); if ('colorSpace' in tex) tex.colorSpace = T.SRGBColorSpace;
+  const board = new T.Mesh(new T.BoxGeometry(1.1, 1.38, 0.06), [wood, wood, wood, wood, new T.MeshStandardMaterial({ map: tex, roughness: 0.9 }), wood]); board.position.set(0, 1.35, 0.14); board.rotation.x = -0.1; board.castShadow = true; g.add(board); }
+const umRing = (() => { const g = new T.Group(); g.position.set(UM_RING.x, 0.05, UM_RING.z); sc.add(g);
+  const c = document.createElement('canvas'); c.width = c.height = 192; const x = c.getContext('2d');
+  x.fillStyle = 'rgba(255,246,228,0.95)'; x.beginPath(); x.arc(96, 96, 86, 0, 7); x.fill(); x.lineWidth = 10; x.strokeStyle = '#f2c14a'; x.stroke(); drawIcon(x, 'map', 96, 98, 1.2);
+  const d = new T.Mesh(new T.CircleGeometry(0.56, 32), new T.MeshBasicMaterial({ map: new T.CanvasTexture(c), transparent: true, depthWrite: false })); d.rotation.x = -Math.PI / 2; g.add(d); return g; })();
+let umRingDone = false;
+function umRingFrame() {
+  umRing.scale.setScalar(1 + (reduced ? 0 : Math.sin(time * 3) * 0.03));
+  const on = inStore && Math.hypot(pip.position.x - UM_RING.x, pip.position.z - UM_RING.z) < 0.56;
+  if (!on) { umRingDone = false; return; }
+  if (!umRingDone && stillOn(UM_RING, 0, 0.56) && umap.hidden) { umRingDone = true; umOpenIn(); }
+}
+/* inside the shop the map may open (normally it waits until Pip is outdoors) */
+function umOpenIn() { if (typeof closeMenu === 'function') closeMenu(); umap.hidden = false; Snd.init(); Snd.play('whoosh', { gain: 0.3 }); umRender(true); }
+{ const s0 = storeStep; storeStep = function (dt) { s0(dt); umRingFrame(); }; }
