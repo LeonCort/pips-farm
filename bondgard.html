@@ -747,7 +747,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122205101">
+<meta name="app-ver" content="20261122210726">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -7574,7 +7574,7 @@ const CLOTH_GEO = (() => { const g = new T.SphereGeometry(0.34, 14, 6, 0, Math.P
       const hold = new T.Group(); hold.position.set(x, CTR_TOP, z); sc.add(hold);
       const jar = jarModel(); jar.g.position.set(jx, CTR_TOP, jz); jar.g.scale.setScalar(1.35); sc.add(jar.g);
       const tcv = document.createElement('canvas'); tcv.width = 256; tcv.height = 96; const ttex = new T.CanvasTexture(tcv); if ('colorSpace' in ttex) ttex.colorSpace = T.SRGBColorSpace;
-      const tag = new T.Sprite(new T.SpriteMaterial({ map: ttex, transparent: true, depthWrite: false })); tag.scale.set(1.12, 0.42, 1); { const [tx, tz] = ctrPt(c, off + 0.36, 0.5); tag.position.set(tx, CTR_TOP - 0.22, tz); } tag.renderOrder = 3; tag.visible = false; sc.add(tag);
+      const tag = new T.Sprite(new T.SpriteMaterial({ map: ttex, transparent: true, depthWrite: false, depthTest: false })); tag.scale.set(1.12, 0.42, 1); { const [tx, tz] = ctrPt(c, off + 0.36, 0.5); tag.position.set(tx, CTR_TOP - 0.22, tz); } tag.renderOrder = 20; tag.visible = false; sc.add(tag);
       const cloth = new T.Mesh(CLOTH_GEO, MAT); cloth.position.set(x + 0, CTR_TOP, z); cloth.rotation.y = c.ry; cloth.castShadow = true; sc.add(cloth);
       STATIONS_S.push({ kind: 'slot', ctr: c, i: k, x, z, jx, jz, padX, padZ, pad, cv, tex, hold, jar, cloth, tag, tcv, ttex, tagK: '', item: null, key: '', shown: '', tick: 0, pay: 0, poor: false, spin: hash(k + 3, c.x) * 6 });
     }
@@ -9036,6 +9036,9 @@ ANIMAL_GOODS.alpaca = { t: 'wool', n: 1, at: 'pen' };
 
 /* ---- buy pads for the helper upgrades ---- */
 { const p0 = padPos; padPos = function (p) { if (p.kind === 'xp') { const q = XP[p.id].pad; return [q[0], q[1]]; } return p0(p); }; }
+/* the duck and bull pads would sit in the stream on the south side of their pens: they wait on the north side instead,
+   where the stream, its stones and the trees in front can't hide them (the bull's house pad comes much later) */
+{ const p0 = padPos; padPos = function (p) { if (p.kind === 'animal' && (p.a === 'duck' || p.a === 'bull')) { const f = feedPos(p.a); return [f[0], f[1] - 1.35]; } return p0(p); }; }
 { const t0 = padTex; padTex = function (p, left) {
   if (p.kind !== 'xp') return t0(p, left);
   const tex = t0({ kind: 'none', cost: p.cost }, left), c = tex.image, x = c.getContext('2d');
@@ -10640,6 +10643,35 @@ function umRingFrame() {
 /* inside the shop the map may open (normally it waits until Pip is outdoors) */
 function umOpenIn() { if (typeof closeMenu === 'function') closeMenu(); umap.hidden = false; Snd.init(); Snd.play('whoosh', { gain: 0.3 }); umRender(true); }
 { const s0 = storeStep; storeStep = function (dt) { s0(dt); umRingFrame(); }; }
+/* ---------- ground rings that stay readable ----------
+   The buy rings are pictures painted on the ground: what you get, a heart or a coin with the price, and a band that fills
+   as you pay. Low things on the ground used to cover them: the stream and its stones, the 3D grass on high graphics,
+   leaves in autumn, snow in winter, puddles in the rain. Each ring's picture is now pulled a little toward the camera in
+   depth (the screen position stays exactly the same), so anything lower than about a hand's height loses to it, while Pip,
+   animals, fences and trees standing in front still cover it as they should. No fog and no tone mapping on it either, so
+   it keeps its colours at any distance, at night and in every graphics level. */
+const PAD_LIFT = 0.34; /* world units along the view ray: covers things up to ~0.2 high at the outdoor camera's pitch */
+function padLift(m) {
+  if (!m || !m.isMesh || !m.material || !m.material.isMeshBasicMaterial) return; const mat = m.material; if (mat.userData.padLift) return;
+  mat.userData.padLift = true; mat.fog = false; mat.toneMapped = false; mat.depthWrite = false; mat.transparent = true;
+  const ob = mat.onBeforeCompile;
+  mat.onBeforeCompile = function (sh, r) { if (ob) ob.call(this, sh, r);
+    sh.vertexShader = sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n{ float padL = length( mvPosition.xyz ); mvPosition.xyz *= max( 0.05, 1.0 - ' + PAD_LIFT.toFixed(3) + ' / max( padL, 0.001 ) ); gl_Position = projectionMatrix * mvPosition; }'); };
+  mat.customProgramCacheKey = () => 'padlift'; mat.needsUpdate = true; m.renderOrder = 2;
+}
+const padLiftAll = (o) => { if (o) o.traverse(padLift); };
+/* the rings are made at different times (a new heart pad after each buy), so new ones are picked up every half second */
+let padReadT = 0;
+function padReadStep(dt) {
+  padReadT -= dt; if (padReadT > 0) return; padReadT = 0.5;
+  if (typeof pad !== 'undefined' && pad) padLiftAll(pad.g);
+  if (typeof sPad !== 'undefined' && sPad) padLiftAll(sPad.g);
+  [typeof bpad !== 'undefined' && bpad, typeof bpadEdge !== 'undefined' && bpadEdge, typeof lpad !== 'undefined' && lpad].forEach(padLift);
+  [typeof hrMesh !== 'undefined' && hrMesh, typeof prMesh !== 'undefined' && prMesh, typeof swapG !== 'undefined' && swapG, typeof umRing !== 'undefined' && umRing].forEach(padLiftAll);
+  if (typeof STATIONS_S !== 'undefined') STATIONS_S.forEach((s) => padLift(s.pad));
+}
+{ const e0 = extrasStep; extrasStep = function (dt) { e0(dt); padReadStep(dt); }; }
+if (window.__farmTest) window.__padread = () => [pad && pad.disc && pad.disc.material.userData.padLift, sPad && sPad.disc && sPad.disc.material.userData.padLift];
 /* ---------- a new animal arrives: it floats down in a ribboned crate under a bunch of balloons ----------
    Leon (2026-11-22): a new animal should feel as special as a house being built or furniture being delivered, not just
    pop up. The crate sways down beside the pen, lands with a bump and wiggles, the sides fall open, the balloons float

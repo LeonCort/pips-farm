@@ -46,6 +46,9 @@ ANIMAL_GOODS.alpaca = { t: 'wool', n: 1, at: 'pen' };
 
 /* ---- buy pads for the helper upgrades ---- */
 { const p0 = padPos; padPos = function (p) { if (p.kind === 'xp') { const q = XP[p.id].pad; return [q[0], q[1]]; } return p0(p); }; }
+/* the duck and bull pads would sit in the stream on the south side of their pens: they wait on the north side instead,
+   where the stream, its stones and the trees in front can't hide them (the bull's house pad comes much later) */
+{ const p0 = padPos; padPos = function (p) { if (p.kind === 'animal' && (p.a === 'duck' || p.a === 'bull')) { const f = feedPos(p.a); return [f[0], f[1] - 1.35]; } return p0(p); }; }
 { const t0 = padTex; padTex = function (p, left) {
   if (p.kind !== 'xp') return t0(p, left);
   const tex = t0({ kind: 'none', cost: p.cost }, left), c = tex.image, x = c.getContext('2d');

@@ -64,6 +64,7 @@ buymode.js
 housering.js
 decor.js
 unlockmap.js
+padread.js
 arrive.js
 mobile.js
 ../engine/gfx.js
