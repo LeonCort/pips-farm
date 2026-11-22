@@ -547,7 +547,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122092659">
+<meta name="app-ver" content="20261122103338">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -8580,7 +8580,7 @@ if (window.__farmTest) {
    Helper upgrades are bought with hearts on 'xp' pads from the hearts queue (queue.js). Each one works by itself once
    bought, and each has a switch in the helper room in the house: a running robot is on, a sleeping robot is off.
    state.xp = { off: { key: true } for switched-off helpers, stock: { hay, grain } in the loft and the silo, honey: [..] } */
-const XP_TEST = true; /* test build: a "Testa allt" button that unlocks all the new things at once */
+const XP_TEST = false; /* test build: a "Testa allt" button that unlocks all the new things at once */
 function xpS() { if (!state.xp || typeof state.xp !== 'object') state.xp = {}; const s = state.xp; s.off = s.off || {}; s.stock = s.stock || { hay: 0, grain: 0 }; s.honey = s.honey || [0, 0]; return s; }
 const xpOwn = (id) => !!state.owned[id];
 const xpOn = (k) => !xpS().off[k];
