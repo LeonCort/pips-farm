@@ -121,6 +121,54 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 .fpsBtn { position: relative; }
 .fpsBtn b { position: absolute; left: 0; right: 0; bottom: 5px; font: 800 15px/1 system-ui, sans-serif; color: var(--ink); text-align: center; }
 .fpsBtn.eco .leaf { stroke: #2f7d4f; transform: rotate(-50deg); transform-origin: 24px 30px; }
+/* ---------- settings: a side panel on the right, one row per setting (icon + name), the game stays visible beside it ---------- */
+#menu { z-index: 150; background: rgba(34,48,60,0.18); justify-content: flex-end; align-items: stretch; }
+#menu .sheet { position: relative; width: min(320px, 86vw); height: 100%; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y;
+  border: 3px solid var(--ink); border-right: 0; border-radius: 26px 0 0 26px; box-shadow: -8px 0 24px rgba(34,48,60,0.22);
+  padding: max(14px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(18px, env(safe-area-inset-bottom, 0px)) 16px; animation: pipsSide 0.22s ease-out; }
+@keyframes pipsSide { from { transform: translateX(100%); } to { transform: translateX(0); } }
+#menu .sheetTop { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 8px; margin-bottom: 14px; }
+#menu .sheetTop::before { content: 'Inställningar'; order: -10; display: block; height: 56px; line-height: 56px; font-size: 24px; font-weight: 700; padding-right: 64px; }
+#menu #menuClose { position: absolute; top: max(14px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: 52px; height: 52px; padding: 8px; }
+#menu .sheetTop > .round { position: relative; flex: none; width: 54px; height: 54px; padding: 6px; margin: 0; }
+/* the name sits to the right of the round button and is part of it, so the whole row can be tapped */
+#menu .sheetTop > .round::after { content: attr(aria-label); position: absolute; left: calc(100% + 14px); top: 50%; transform: translateY(-50%); width: min(200px, calc(86vw - 120px)); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 18px; font-weight: 600; color: var(--ink); line-height: 54px; }
+#menu .sheetTop > a.round { display: block; box-sizing: border-box; text-decoration: none; }
+#menu .fpsBtn b { bottom: 3px; font-size: 13px; }
+#menu .fxQBtn b { display: none; }
+/* order and groups: play, picture, help, start over */
+#menu #soundBtn { order: 1; } #menu #wardBtn { order: 2; } #menu #ctrlBtn { order: 3; }
+#menu #fpsBtn { order: 10; } #menu #gfxBtn { order: 11; } #menu #drawBtn { order: 12; } #menu #fxQBtn { order: 13; }
+#menu #updBtn { order: 20; } #menu #logBtn { order: 21; } #menu #homeBtn { order: 22; } #menu #devBtn { order: 23; }
+#menu #restartBtn { order: 30; }
+#menu #fpsBtn, #menu #updBtn, #menu #logBtn:first-child, #menu #restartBtn { margin-top: 14px; }
+#menu #fpsBtn::before, #menu #updBtn::before, #menu #restartBtn::before { content: ''; position: absolute; left: 0; top: -12px; width: min(270px, calc(86vw - 40px)); border-top: 2px dashed var(--line); }
+#menu #updBtn[hidden] + #logBtn { margin-top: 14px; }
+#menu .sheetTop > #soundBtn::after { content: 'Ljud'; } #menu .sheetTop > #wardBtn::after { content: 'Kläder och hår'; } #menu .sheetTop > #ctrlBtn::after { content: 'Styrning'; }
+#menu .sheetTop > #fpsBtn::after { content: 'Bilder per sekund'; } #menu .sheetTop > #gfxBtn::after { content: 'Grafik: full / lätt'; } #menu .sheetTop > #drawBtn::after { content: 'Hur långt man ser'; } #menu .sheetTop > #fxQBtn::after { content: 'Ljuseffekter'; }
+#menu .sheetTop > #updBtn::after { content: 'Sök uppdatering'; } #menu .sheetTop > #logBtn::after { content: 'Kopiera loggen'; } #menu .sheetTop > #logBtn.ok::after { content: 'Kopierad!'; color: #2f7d4f; }
+#menu .sheetTop > #homeBtn::after { content: 'Välj spel'; } #menu .sheetTop > #devBtn::after { content: 'Utvecklarläge'; } #menu .sheetTop > #restartBtn::after { content: 'Börja om (håll inne)'; color: #b8401f; }
+#menu #menuClose::after { content: none; }
+#menu .sheetTop > #devBtn.on::after { content: 'Utvecklarläge: på'; }
+#menu .ups { grid-template-columns: 1fr 1fr; gap: 10px; }
+#menu .ups .up svg { width: 56px; height: 56px; }
+.logBtn .chk { display: none; } .logBtn.ok .chk { display: inline; } .logBtn.ok .clip { display: none; } .logBtn.ok { background: #e3f4e0; border-color: #2f7d4f; }
+/* short screens (phones on their side): smaller rows */
+@media (max-height: 560px) {
+  #menu .sheetTop { gap: 5px; } #menu .sheetTop::before { height: 44px; line-height: 44px; font-size: 20px; }
+  #menu #menuClose { width: 44px; height: 44px; }
+  #menu .sheetTop > .round { width: 44px; height: 44px; padding: 4px; }
+  #menu .sheetTop > .round::after { line-height: 44px; font-size: 16px; }
+  #menu #fpsBtn, #menu #updBtn, #menu #restartBtn { margin-top: 10px; } #menu #fpsBtn::before, #menu #updBtn::before, #menu #restartBtn::before { top: -8px; }
+  #menu .fpsBtn b { font-size: 11px; bottom: 1px; }
+}
+@media (prefers-reduced-motion: reduce) { #menu .sheet { animation: none; } }
+/* the log, shown as text when the browser will not copy it by itself */
+.logView { position: fixed; inset: 0; z-index: 200; background: rgba(34,48,60,0.45); display: flex; align-items: center; justify-content: center; padding: 16px; box-sizing: border-box; }
+.logBox { width: min(720px, 100%); height: min(80vh, 640px); display: flex; flex-direction: column; gap: 10px; background: var(--paper); border: 3px solid var(--ink); border-radius: 22px; padding: 12px; box-sizing: border-box; }
+.logBox textarea { flex: 1; width: 100%; box-sizing: border-box; font: 12px/1.35 ui-monospace, Menlo, monospace; border: 2px solid var(--line); border-radius: 12px; padding: 8px; resize: none; background: #fffdf8; color: var(--ink); }
+.logRow { display: flex; gap: 10px; } .logRow button { flex: 1; padding: 12px; border-radius: 14px; border: 3px solid var(--ink); background: #fffaf0; font-weight: 700; font-size: 17px; }
+.logRow button[data-c] { background: #74a857; color: #fff6e4; }
 
 .flycoin { background: var(--accent); }
 .price i { background: var(--accent); border-radius: 50% 50% 50% 50%; }
@@ -173,6 +221,158 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 </head>
 <body>
 
+<script>
+/* ---------- the game log: errors, warnings, frame stalls and recent events, for troubleshooting ----------
+   Runs as its own <script> before everything else, so it still works when the game script fails.
+   The log is kept in localStorage, so after a freeze and a reload the previous session is still there.
+   The settings panel has a button that copies both sessions as plain text, to paste into a chat. */
+(function () {
+  'use strict';
+  var KEY = 'pips-log', MAX = 300, PREV_MAX = 300;
+  var page = (location.pathname.split('/').pop() || 'index.html');
+  var started = Date.now(), closing = false, errs = {}, buf = [], prev = null, dirty = true, frames = 0, lastTick = 0, loopDead = false, lastErr = '';
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function clock(t) { var d = new Date(t || Date.now()); return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
+  function day(t) { var d = new Date(t); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + clock(t); }
+  function add(kind, msg) {
+    msg = String(msg == null ? '' : msg).replace(/\s+/g, ' ').slice(0, 500);
+    if (kind === 'ERROR') { var c = errs[msg] = (errs[msg] || 0) + 1; if (c > 3) { if (c === 4) add('info', 'the error above keeps coming; counted at the top from now on'); return; } }
+    var last = buf[buf.length - 1];
+    if (last && last.k === kind && last.m === msg) { last.n = (last.n || 1) + 1; last.e = clock(); }
+    else { buf.push({ t: clock(), k: kind, m: msg }); if (buf.length > MAX) buf.splice(0, buf.length - MAX); }
+    dirty = true;
+    if (kind === 'ERROR') store();
+  }
+  /* the previous session, read before this one starts writing */
+  try { prev = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { prev = null; }
+  function store() {
+    if (!dirty) return; dirty = false;
+    try { localStorage.setItem(KEY, JSON.stringify({ page: page, start: started, beat: Date.now(), closed: closing, ver: ver(), lines: buf, prev: prevSummary() })); } catch (e) {}
+  }
+  /* one older session is kept, so a freeze is still in the log after one more reload */
+  function prevSummary() { return prev && prev.lines ? { page: prev.page, start: prev.start, beat: prev.beat, closed: prev.closed, ver: prev.ver, lines: prev.lines.slice(-PREV_MAX) } : null; }
+  function ver() { var m = document.querySelector('meta[name="app-ver"]'); return m ? m.content : '?'; }
+
+  /* errors */
+  window.addEventListener('error', function (e) {
+    var t = e.target;
+    if (t && t !== window && (t.src || t.href)) { add('ERROR', 'could not load ' + (t.src || t.href)); return; }
+    var where = e.filename ? ' @ ' + String(e.filename).split('/').pop().slice(0, 40) + ':' + e.lineno + ':' + e.colno : '';
+    var st = e.error && e.error.stack ? ' | ' + String(e.error.stack).split('\n').slice(1, 4).map(function (s) { return s.trim(); }).join(' < ') : '';
+    add('ERROR', (e.message || 'error') + where + st);
+  }, true);
+  window.addEventListener('unhandledrejection', function (e) { var r = e.reason; add('ERROR', 'promise: ' + (r && (r.stack || r.message) || r)); });
+  ['error', 'warn'].forEach(function (lv) {
+    var f = console[lv]; if (!f) return;
+    console[lv] = function () { try { add(lv === 'error' ? 'ERROR' : 'warn', Array.prototype.map.call(arguments, function (a) { return a && a.stack ? a.stack : typeof a === 'object' ? safe(a) : String(a); }).join(' ')); } catch (x) {} return f.apply(console, arguments); };
+  });
+  function safe(o) { try { return JSON.stringify(o).slice(0, 200); } catch (e) { return String(o); } }
+
+  /* the page around the game */
+  document.addEventListener('visibilitychange', function () { add('page', document.hidden ? 'hidden (app in background)' : 'visible again'); skip = true; store(); });
+  window.addEventListener('pagehide', function () { closing = true; add('page', 'closed'); store(); });
+  window.addEventListener('pageshow', function (e) { if (e.persisted) { closing = false; add('page', 'back from the page cache'); } });
+  var rsT = 0; window.addEventListener('resize', function () { clearTimeout(rsT); rsT = setTimeout(function () { add('page', 'size ' + innerWidth + 'x' + innerHeight); }, 400); });
+  window.addEventListener('online', function () { add('page', 'online'); });
+  window.addEventListener('offline', function () { add('page', 'offline'); });
+  /* taps on buttons, so the log shows what the player did just before something went wrong */
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('button,a,[role="button"]') : null; if (!b) return;
+    add('tap', b.id || b.getAttribute('aria-label') || b.className || b.tagName);
+  }, true);
+
+  /* stalls: a watcher of its own, so a stopped game loop shows up too */
+  var skip = false, lastRaf = 0, stalls = 0, worst = 0;
+  function watch(now) {
+    if (lastRaf && !document.hidden) {
+      var gap = now - lastRaf;
+      if (skip) skip = false; else if (gap > 400) { stalls++; worst = Math.max(worst, gap); add('STALL', 'screen stood still for ' + (gap / 1000).toFixed(1) + ' s'); }
+      if (lastTick && !loopDead && now - lastTick > 2500) { loopDead = true; add('STALL', 'the game loop stopped running (last frame ' + ((now - lastTick) / 1000).toFixed(1) + ' s ago)' + (lastErr ? ', last error: ' + lastErr : '')); store(); }
+    }
+    lastRaf = now; requestAnimationFrame(watch);
+  }
+  requestAnimationFrame(watch);
+  
+  /* the game reports in: tick() every frame, probe() for numbers every 30 s, gl(canvas) for the 3D context */
+  var api = {
+    add: add,
+    tick: function () { frames++; var n = performance.now(); if (loopDead) { loopDead = false; add('info', 'the game loop runs again'); } lastTick = n; },
+    caught: function (e) { var m = (e && e.message) || String(e); var w = e && e.stack ? ' | ' + String(e.stack).split('\n').slice(0, 3).map(function (s) { return s.trim(); }).join(' < ') : ''; lastErr = m; add('ERROR', 'in a frame: ' + m + w); },
+    probe: null,
+    gl: function (cv) {
+      if (!cv || cv.__pipsLog) return; cv.__pipsLog = 1;
+      cv.addEventListener('webglcontextlost', function () { add('ERROR', '3D graphics context lost (the device took the graphics memory back)'); store(); });
+      cv.addEventListener('webglcontextrestored', function () { add('info', '3D graphics context restored'); });
+    },
+    text: text
+  };
+  window.PipsLog = api;
+  var fT = performance.now();
+  setInterval(function () {
+    var now = performance.now(), fps = frames / ((now - fT) / 1000); frames = 0; fT = now;
+    var p = ''; try { p = api.probe ? api.probe() : ''; } catch (e) { p = 'probe failed: ' + e.message; }
+    var mem = performance.memory ? ', heap ' + Math.round(performance.memory.usedJSHeapSize / 1048576) + ' MB' : '';
+    if (!document.hidden) add('stats', 'fps ' + fps.toFixed(0) + (p ? ', ' + p : '') + mem);
+  }, 30000);
+  setInterval(function () { dirty = true; store(); }, 3000);
+  add('info', 'start ' + page);
+
+  function lines(L) { return (L || []).map(function (l) { return l.t + (l.n > 1 ? '-' + l.e + ' x' + l.n : '') + ' ' + l.k + ' ' + l.m; }).join('\n'); }
+  function session(title, s) {
+    if (!s || !s.lines) return '';
+    var end = s.closed ? 'closed normally' : 'did NOT close normally (freeze, crash, or the app was killed); last sign of life ' + day(s.beat);
+    return '\n== ' + title + ': ' + (s.page || '?') + ' v' + (s.ver || '?') + ', started ' + day(s.start) + ', ' + end + ' ==\n' + lines(s.lines) + '\n';
+  }
+  function text() {
+    store();
+    var gfx = ''; try { gfx = 'gfx ' + localStorage.getItem('pips-gfx') + ' (' + localStorage.getItem('pips-gfx-by') + ')'; } catch (e) {}
+    var head = 'Pips log, copied ' + day(Date.now()) + '\n'
+      + 'Device: ' + navigator.userAgent + '\n'
+      + 'Screen ' + screen.width + 'x' + screen.height + ' @' + (window.devicePixelRatio || 1) + ', window ' + innerWidth + 'x' + innerHeight + ', ' + gfx + ', cores ' + (navigator.hardwareConcurrency || '?') + (navigator.deviceMemory ? ', memory ' + navigator.deviceMemory + ' GB' : '') + '\n'
+      + 'This session: ' + stalls + ' stalls' + (worst ? ' (worst ' + (worst / 1000).toFixed(1) + ' s)' : '') + (loopDead ? ', GAME LOOP STOPPED' : '') + '\n'
+      + Object.keys(errs).filter(function (m) { return errs[m] > 1; }).map(function (m) { return 'Repeated error x' + errs[m] + ': ' + m.slice(0, 200) + '\n'; }).join('');
+    var older = prev && prev.prev ? prev.prev : null;
+    return head + session('This session', { page: page, start: started, beat: Date.now(), closed: true, ver: ver(), lines: buf }).replace('closed normally', 'running now')
+      + session('Previous session', prev) + session('Session before that', older);
+  }
+
+  /* the copy button in the settings panel */
+  function copy(t, done) {
+    function fallback() {
+      var ta = document.createElement('textarea'); ta.value = t; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0';
+      document.body.appendChild(ta); ta.focus(); ta.select(); try { ta.setSelectionRange(0, t.length); } catch (e) {}
+      var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta); if (ok) done(true); else show(t, done);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(function () { done(true); }, fallback);
+    else fallback();
+  }
+  /* when the browser will not copy: show the text, selected, with its own copy and close buttons */
+  function show(t, done) {
+    var w = document.createElement('div'); w.className = 'logView';
+    w.innerHTML = '<div class="logBox"><textarea readonly></textarea><div class="logRow"><button type="button" data-c>Kopiera</button><button type="button" data-x>Stäng</button></div></div>';
+    var ta = w.querySelector('textarea'); ta.value = t; document.body.appendChild(w);
+    ['pointerdown', 'touchstart', 'mousedown', 'wheel', 'keydown'].forEach(function (ev) { w.addEventListener(ev, function (e) { e.stopPropagation(); }, { passive: true }); });
+    setTimeout(function () { ta.focus(); ta.select(); }, 50);
+    w.querySelector('[data-c]').addEventListener('click', function () { ta.focus(); ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch (e) {} if (ok) { done(true); w.remove(); } });
+    w.querySelector('[data-x]').addEventListener('click', function () { w.remove(); done(false); });
+  }
+  function button() {
+    var top = document.querySelector('#menu .sheetTop'); if (!top || document.getElementById('logBtn')) return;
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'round logBtn'; b.id = 'logBtn'; b.setAttribute('aria-label', 'Kopiera loggen');
+    b.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><g class="clip"><rect x="10" y="9" width="28" height="33" rx="4" fill="#fff6e4" stroke="#22303c" stroke-width="3"/><rect x="17" y="5" width="14" height="8" rx="3" fill="#e9684a" stroke="#22303c" stroke-width="3"/><path d="M16 21 h16 M16 27 h16 M16 33 h10" stroke="#22303c" stroke-width="3" stroke-linecap="round"/></g><path class="chk" d="M12 25 L21 34 L37 15" fill="none" stroke="#2f7d4f" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var up = document.getElementById('updBtn'); top.insertBefore(b, up ? up.nextSibling : document.getElementById('menuClose'));
+    b.addEventListener('click', function (e) {
+      e.stopPropagation();
+      copy(text(), function (ok) {
+        if (!ok) return; b.classList.add('ok'); add('info', 'log copied');
+        setTimeout(function () { b.classList.remove('ok'); }, 2500);
+      });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', button); else button();
+})();
+</script>
 <style>
 /* Pips boot scene: shared by the start page (dusk) and the loading screen (night). Only transform and opacity animate, so it keeps moving while the game script is busy. */
 #boot { position: fixed; inset: 0; z-index: 9000; overflow: hidden; background: #1a2045; font-family: Fredoka, 'Trebuchet MS', system-ui, sans-serif; color: #fff6e4; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; touch-action: manipulation; --gh: clamp(150px, 27vh, 230px); --hz: calc(var(--gh) + clamp(60px, 13vh, 120px)); }
@@ -538,7 +738,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122130726">
+<meta name="app-ver" content="20261122134646">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -4172,7 +4372,20 @@ function step(dt) {
   menuT -= dt; if (menuT <= 0) { menuT = 0.25; const any = UPS.some((u) => state.lv[u.id] < u.max && state.coins >= upCost(u)); $('menuBtn').classList.toggle('ready', false); if (!$('menu').hidden) renderMenu(); }
   Snd.musicStep(dt, musicMood());
 }
-function frame(now) { if (now - lastT < 1000 / fpsCap - 3) { requestAnimationFrame(frame); return; } let dt = (now - lastT) / 1000; lastT = now; if (dt > 0.1) dt = 0.1; if (dt > 0) { step(dt); if (window.PipsBoot) PipsBoot.frame(); } saveT += dt; if (saveT > 5) { saveT = 0; save(); } requestAnimationFrame(frame); }
+/* the next frame is asked for first: an error in one frame is logged and the game goes on, instead of the picture freezing for good */
+const LOG = window.PipsLog;
+function frame(now) {
+  requestAnimationFrame(frame);
+  if (now - lastT < 1000 / fpsCap - 3) return;
+  let dt = (now - lastT) / 1000; lastT = now; if (dt > 0.1) dt = 0.1;
+  if (LOG) LOG.tick();
+  if (dt > 0) { try { step(dt); } catch (e) { if (LOG) LOG.caught(e); else console.error(e); } if (window.PipsBoot) PipsBoot.frame(); }
+  saveT += dt; if (saveT > 5) { saveT = 0; try { save(); } catch (e) { if (LOG) LOG.caught(e); } }
+}
+if (LOG) {
+  LOG.gl(renderer.domElement);
+  LOG.probe = () => { const i = renderer.info; return 'draw calls ' + i.render.calls + ', triangles ' + i.render.triangles + ', meshes ' + i.memory.geometries + ', textures ' + i.memory.textures + (typeof HERE !== 'undefined' ? ', at ' + HERE : '') + ', coins ' + Math.floor(state.coins || 0); };
+}
 if (window.__farmTest) window.__farmTest = { go: (x, z) => target.set(x, 0, z), pip: () => [pip.position.x, pip.position.z], st: () => state, carry: () => carry.items.map((m) => m.userData.type).join(','), zoo: () => zooTest() };
 let started = false;
 function start(data) {

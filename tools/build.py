@@ -37,6 +37,7 @@ GAMES = {
 SOUND = ['engine/sound/soundkit.js', 'engine/sound/sfx.js']
 BOOT = ('engine/boot/boot.css', 'engine/boot/boot.js', 'engine/boot/load.js')
 HEAD = 'engine/head.part'
+LOG = 'engine/log.js'  # its own script, first in <body>, so it still runs when the game script fails
 
 
 def r(path):
@@ -61,7 +62,7 @@ def body(g, three):
     css = ''.join(r(p) for p in g['css'])
     kit, sfx = (r(p) for p in SOUND)
     top = '<title>' + g['title'] + '</title>\n<link rel="stylesheet" href="' + FONTS + '">\n<style>\n' + css + '</style>'
-    rest = ('\n' + loading_screen() + r(g['body']) + '<script src="' + three + '"></script>\n'
+    rest = ('\n<script>\n' + r(LOG) + '</script>\n' + loading_screen() + r(g['body']) + '<script src="' + three + '"></script>\n'
             + '<script>\n' + kit + '\n</script>\n<script>\n' + sfx + '\n</script>\n<script>\n' + script(g['manifest']) + '\n</script>\n')
     return top, rest
 
