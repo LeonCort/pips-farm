@@ -20,7 +20,8 @@ function bmPadPic(p) { return bmIcon('p:' + p.id, (x) => {
   else if (p.kind === 'tractor') drawIcon(x, 'tractor', 64, 66, 1.25);
   else if (p.kind === 'house') { drawIcon(x, 'house', 56, 64, 1.3); drawIcon(x, p.a, 98, 90, 0.62); }
   else if (p.kind === 'source') drawIcon(x, p.t, 64, 64, 1.35);
-  else if (p.kind === 'helper') { drawIcon(x, 'robot', 56, 62, 1.2); drawIcon(x, p.t, 98, 90, 0.7); } }); }
+  else if (p.kind === 'helper') { drawIcon(x, 'robot', 56, 62, 1.2); drawIcon(x, p.t, 98, 90, 0.7); }
+  else if (p.kind === 'xp' && typeof XP !== 'undefined' && XP[p.id]) { drawIcon(x, XP[p.id].icon, 64, 66, 1.3); } }); }
 function bmBPadPic(p) { return bmIcon('b:' + p.id, (x) => { if (p.kind === 'goat') drawIcon(x, 'goat', 64, 66, 1.35); else { drawIcon(x, 'barn', 60, 64, 1.25); drawIcon(x, 'stall', 98, 92, 0.6); } }); }
 function bmSPadPic(p) { return bmIcon('s:' + p.id, (x) => {
   const icon = { tree: 'apple', bakery: 'cake', helper: 'robot', cashier: 'coin', sign: 'guest', stall: p.t, stock: 'robot', seller: 'guest' }[p.kind];
@@ -115,7 +116,7 @@ const bmTabs = [0, 1, 2].map((i) => { const b = document.createElement('button')
 const bmX = document.createElement('button'); bmX.type = 'button'; bmX.className = 'bmX'; bmX.setAttribute('aria-label', 'Tillbaka');
 bmX.innerHTML = '<svg viewBox="0 0 30 30" aria-hidden="true"><path d="M7 7 L23 23 M23 7 L7 23" stroke="#fffaf0" stroke-width="5" stroke-linecap="round"/></svg>'; bmBar.appendChild(bmX);
 [bmBtn, bmLay, bmBar].forEach((el) => ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'mouseup'].forEach((ev) => el.addEventListener(ev, (e) => { e.stopPropagation(); }, { passive: true })));
-bmBtn.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); buyMode(!buyOn); });
+bmBtn.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); umBag(); });
 bmX.addEventListener('click', (e) => { e.stopPropagation(); buyMode(false); });
 /* swipe up or down on the map to go to the next part */
 /* on a tall phone screen the view is narrower than the island: drag sideways to look along it */
@@ -152,7 +153,7 @@ function bmTap(el, it) {
 }
 const bmV = new T.Vector3(), bmP = new T.Vector3(), bmQ = new T.Quaternion(), bmM = new T.Matrix4(), bmUp = new T.Vector3(0, 1, 0);
 function bmRender() {
-  const L = bmList().filter((it) => it.area === BM.area), key = L.map((it) => it.id + (it.head ? 'h' + (bmPurse(it) >= it.left() ? 1 : 0) + it.left() : '')).join(',');
+  const L = bmList().filter((it) => it.area === BM.area && it.head), key = L.map((it) => it.id + (it.head ? 'h' + (bmPurse(it) >= it.left() ? 1 : 0) + it.left() : '')).join(',');
   if (key !== BM.key) {
     BM.key = key; bmLay.innerHTML = ''; BM.els = [];
     L.forEach((it) => { const b = document.createElement('button'); b.type = 'button'; const can = it.head && bmPurse(it) >= it.left() && (!it.open || it.open());
