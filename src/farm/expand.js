@@ -356,12 +356,18 @@ function hrRender() {
   hrEl.innerHTML = '<div class="hrSheet"><div class="hrTop"><button type="button" class="hrAll1" data-all="1" aria-label="Alla vaknar">' + HR_AWAKE + HR_AWAKE + '</button><button type="button" class="hrAll0" data-all="0" aria-label="Alla sover">' + HR_ASLEEP + HR_ASLEEP + '</button></div><div class="hrGrid">' + grp + '</div>'
     + '<button type="button" class="hrClose" aria-label="Stäng"><svg viewBox="0 0 30 30" width="30" height="30" aria-hidden="true"><path d="M7 7 L23 23 M23 7 L7 23" stroke="#22303c" stroke-width="4.5" stroke-linecap="round"/></svg></button></div>';
 }
+/* after a flip, change only the switches that moved: no rebuild, so the sheet keeps its scroll, does not pop again, and the knob slides */
+function hrSync() {
+  hrEl.querySelectorAll('.hrSw').forEach((b) => { const r = hrList[+b.dataset.i]; if (!r) return; const on = r.own && r.on();
+    if (b.classList.contains('on') === on) return;
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); b.firstChild.innerHTML = on ? HR_AWAKE : HR_ASLEEP; });
+}
 hrEl.addEventListener('click', (e) => {
   e.stopPropagation(); const t = e.target.closest('button');
   if (!t) { if (e.target === hrEl) hrClose(); return; }
   if (t.classList.contains('hrClose')) { hrClose(); return; }
-  if (t.dataset.all) { const want = t.dataset.all === '1'; hrList.forEach((r) => { if (r.own && r.on() !== want) r.flip(); }); Snd.play(want ? 'powerup' : 'pop', { gain: 0.4, f: want ? 520 : 260 }); save(); hrRender(); return; }
-  const r = hrList[+t.dataset.i]; if (!r) return; const was = r.on(); r.flip(); if (!r.k.startsWith('f:') && !r.k.startsWith('s:') && !r.k.startsWith('m:')) Snd.play(was ? 'pop' : 'powerup', { gain: 0.4, f: was ? 260 : 520 }); save(); hrRender();
+  if (t.dataset.all) { const want = t.dataset.all === '1'; hrList.forEach((r) => { if (r.own && r.on() !== want) r.flip(); }); Snd.play(want ? 'powerup' : 'pop', { gain: 0.4, f: want ? 520 : 260 }); save(); hrSync(); return; }
+  const r = hrList[+t.dataset.i]; if (!r) return; const was = r.on(); r.flip(); if (!r.k.startsWith('f:') && !r.k.startsWith('s:') && !r.k.startsWith('m:')) Snd.play(was ? 'pop' : 'powerup', { gain: 0.4, f: was ? 260 : 520 }); save(); hrSync();
 });
 ['pointerdown', 'touchstart', 'mousedown'].forEach((ev) => hrEl.addEventListener(ev, (e) => e.stopPropagation()));
 function hrOpen() { hrRender(); hrEl.hidden = false; Snd.play('whoosh', { gain: 0.3 }); }
