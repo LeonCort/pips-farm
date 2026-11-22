@@ -9,9 +9,11 @@
    Parts that keep moving (animals, things being carried) stop being copied after a few tries.
    Trees, grass tufts and flower-bed plants sway in the wind (weather.js). They are copied in their resting pose and
    the same sway is done by the graphics card, with the same formula, so a copied tree sways exactly like before.
+   Very small parts (pebbles, flower heads, nails) no longer cast their own speck of shadow once copied: the sun's
+   shadow pass skips them.
    Nothing in the game needs to know: new parts are picked up by themselves. Light graphics keeps drawing part by part.
    Test page: __batch() counts, __batch().set(false) switches it off. */
-const BATCH = { on: true, layer: 7, cell: 6, settle: 4, scanEvery: 0.5, maxMoves: 3, maxOuts: 6, budget: 3,
+const BATCH = { on: true, layer: 7, cell: 6, settle: 4, scanEvery: 0.5, maxMoves: 3, maxOuts: 6, budget: 3, tinyShadow: 0.14,
   rec: new Map(), chunks: new Map(), dirty: new Set(), sw: new Map(), scanT: 0, lastT: 0, builds: 0, frame: 0 };
 {
   const HID = 1 << BATCH.layer, protoOBR = T.Object3D.prototype.onBeforeRender;
@@ -88,8 +90,8 @@ const BATCH = { on: true, layer: 7, cell: 6, settle: 4, scanEvery: 0.5, maxMoves
 
   function keyOf(r) {
     const o = r.o, e = worldOf(r).elements, cx = Math.floor(e[12] / BATCH.cell), cz = Math.floor(e[14] / BATCH.cell), g = o.geometry;
-    if (!g.boundingSphere) g.computeBoundingSphere(); const big = g.boundingSphere.radius * o.matrixWorld.getMaxScaleOnAxis() > 0.6 ? 'B' : 'S'; /* small parts apart, so the draw distance can still leave them out */
-    return big + o.material.uuid + '|' + attrSig(o.geometry) + '|' + (o.castShadow ? 1 : 0) + (o.receiveShadow ? 1 : 0) + (r.sw ? 's' : '') + '|' + cx + ',' + cz;
+    if (!g.boundingSphere) g.computeBoundingSphere(); const rad = g.boundingSphere.radius * o.matrixWorld.getMaxScaleOnAxis(), big = rad > 0.6 ? 'B' : 'S'; /* small parts apart, so the draw distance can still leave them out */
+    return big + o.material.uuid + '|' + attrSig(o.geometry) + '|' + (o.castShadow && rad >= BATCH.tinyShadow ? 1 : 0) + (o.receiveShadow ? 1 : 0) + (r.sw ? 's' : '') + '|' + cx + ',' + cz;
   }
   function out(r, moved) { /* draw the part on its own again */
     const o = r.o; if (o.layers.mask === HID) o.layers.mask = 1;
@@ -139,7 +141,7 @@ const BATCH = { on: true, layer: 7, cell: 6, settle: 4, scanEvery: 0.5, maxMoves
     if (live.length < 2) { live.forEach(unhide); return; }
     const o0 = live[0].o, sway = !!live[0].sw, mesh = new T.Mesh(build(live, sway), sway ? swayMat(o0.material) : o0.material);
     if (sway) mesh.customDepthMaterial = swayDepth();
-    mesh.castShadow = o0.castShadow; mesh.receiveShadow = o0.receiveShadow; mesh.matrixAutoUpdate = false; mesh.userData.batch = true; mesh.name = 'batch';
+    mesh.castShadow = key.split('|')[2][0] === '1'; mesh.receiveShadow = o0.receiveShadow; mesh.matrixAutoUpdate = false; mesh.userData.batch = true; mesh.name = 'batch';
     let cr = 0; live.forEach((r) => { const g = r.o.geometry; if (!g.boundingSphere) g.computeBoundingSphere(); cr = Math.max(cr, g.boundingSphere.radius * r.o.matrixWorld.getMaxScaleOnAxis()); }); mesh.userData.cullR = cr;
     if (typeof AO !== 'undefined' && AO.done) AO.done.add(mesh.geometry); /* the corner shade is already in the copied colours */
     sc.add(mesh); mesh.updateMatrixWorld(true);

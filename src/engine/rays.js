@@ -164,8 +164,18 @@ let haloT = 0;
 
 /* ----- sharper: the full retina pixel ratio and a bigger shadow map ----- */
 const fxBaseShadow = sun.shadow.mapSize.x;
+/* steady frame rate: when the device cannot keep up, draw a few less pixels (down to three quarters of the sharpness);
+   when it has room again, go back up. Each step up waits longer if the last one did not hold. */
+const DYN = { k: 1, t: 0, n: 0, sum: 0, hold: 0, upWait: 6, lastUp: false };
+function dynStep(dt) {
+  if (FX.bench || document.hidden || !(dt > 0)) return;
+  DYN.hold -= dt; DYN.n++; DYN.sum += dt; DYN.t += dt; if (DYN.t < 2) return;
+  const avg = DYN.sum / DYN.n, want = 1 / fpsCap; DYN.t = DYN.n = DYN.sum = 0; if (DYN.hold > 0) return;
+  if (avg > want * 1.12 && DYN.k > 0.75) { DYN.k -= 0.125; DYN.hold = 3; if (DYN.lastUp) DYN.upWait = Math.min(60, DYN.upWait * 2); DYN.lastUp = false; }
+  else if (avg < want * 1.03 && DYN.k < 1) { DYN.k += 0.125; DYN.hold = DYN.upWait; DYN.lastUp = true; }
+}
 function fxSharp(on) {
-  const pr = Math.min(window.devicePixelRatio || 1, on ? 2 : fpsCap === 20 ? 1 : 1.5); if (Math.abs(renderer.getPixelRatio() - pr) > 0.01) { renderer.setPixelRatio(pr); resize(); }
+  const top = Math.min(window.devicePixelRatio || 1, on ? 2 : fpsCap === 20 ? 1 : 1.5), pr = Math.max(Math.min(1, top), Math.round(top * DYN.k * 8) / 8); if (Math.abs(renderer.getPixelRatio() - pr) > 0.01) { renderer.setPixelRatio(pr); resize(); }
   const sm = on ? Math.max(fxBaseShadow, 1280) : fxBaseShadow; if (sun.shadow.mapSize.x !== sm) { sun.shadow.mapSize.set(sm, sm); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
 }
 
@@ -414,7 +424,7 @@ function fxWorld(dt) {
 }
 const _fxc = new T.Color();
 function fxRender(dt) {
-  fxLight(dt); fxSharp(fxUse('sharp')); fxWorld(dt);
+  dynStep(dt); fxLight(dt); fxSharp(fxUse('sharp')); fxWorld(dt);
   renderer.info.autoReset = false; renderer.info.reset();
   const post = fxUse('rays') || fxUse('bloom') || fxUse('grade');
   if (!post) { renderer.setRenderTarget(null); renderer.render(sc, cam); return; }
@@ -489,4 +499,4 @@ function fxBenchFrame(t0) {
   window.__fxBench = b.res; console.log('fx bench', JSON.stringify(b.res));
 }
 function fxFrame(dt) { const t0 = performance.now(); fxRender(dt); if (FX.bench) fxBenchFrame(t0); }
-if (window.__farmTest) { window.__fx = FX; FX.u = fxComp.uniforms; FX.r = fxRays.uniforms; FX.cl = CLOUDU; FX.ren = renderer; FX.EV = EV; FX.AO = AO; FX.GR = GR; FX.awnInfo = () => { const awn = Object.values(FL.awn), out = [], v = new T.Vector3(); sc.traverse((o) => { if (o.isMesh && awn.includes(o.material)) { o.getWorldPosition(v); let ch = []; for (let p = o; p; p = p.parent) ch.push((p.type[0]) + (p.visible ? "" : "!") + (p.frustumCulled ? "" : "f") + (p.layers.mask !== 1 ? "L" : "")); out.push(v.toArray().map((q) => q.toFixed(1)).join(",") + " " + ch.join(">") + " det" + o.matrixWorld.determinant().toFixed(3)); } }); return out; }; }
+if (window.__farmTest) { window.__dyn = DYN; window.__fx = FX; FX.u = fxComp.uniforms; FX.r = fxRays.uniforms; FX.cl = CLOUDU; FX.ren = renderer; FX.EV = EV; FX.AO = AO; FX.GR = GR; FX.awnInfo = () => { const awn = Object.values(FL.awn), out = [], v = new T.Vector3(); sc.traverse((o) => { if (o.isMesh && awn.includes(o.material)) { o.getWorldPosition(v); let ch = []; for (let p = o; p; p = p.parent) ch.push((p.type[0]) + (p.visible ? "" : "!") + (p.frustumCulled ? "" : "f") + (p.layers.mask !== 1 ? "L" : "")); out.push(v.toArray().map((q) => q.toFixed(1)).join(",") + " " + ch.join(">") + " det" + o.matrixWorld.determinant().toFixed(3)); } }); return out; }; }
