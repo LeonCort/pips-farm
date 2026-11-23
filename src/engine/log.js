@@ -6,7 +6,7 @@
   'use strict';
   var KEY = 'pips-log', MAX = 300, PREV_MAX = 300;
   var page = (location.pathname.split('/').pop() || 'index.html');
-  var started = Date.now(), closing = false, errs = {}, buf = [], prev = null, dirty = true, frames = 0, lastTick = 0, loopDead = false, lastErr = '';
+  var seq = 0, started = Date.now(), closing = false, errs = {}, buf = [], prev = null, dirty = true, frames = 0, lastTick = 0, loopDead = false, lastErr = '';
   function pad(n) { return (n < 10 ? '0' : '') + n; }
   function clock(t) { var d = new Date(t || Date.now()); return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
   function day(t) { var d = new Date(t); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + clock(t); }
@@ -14,10 +14,11 @@
     msg = String(msg == null ? '' : msg).replace(/\s+/g, ' ').slice(0, 500);
     if (kind === 'ERROR') { var c = errs[msg] = (errs[msg] || 0) + 1; if (c > 3) { if (c === 4) add('info', 'the error above keeps coming; counted at the top from now on'); return; } }
     var last = buf[buf.length - 1];
-    if (last && last.k === kind && last.m === msg) { last.n = (last.n || 1) + 1; last.e = clock(); }
-    else { buf.push({ t: clock(), k: kind, m: msg }); if (buf.length > MAX) buf.splice(0, buf.length - MAX); }
+    if (last && last.k === kind && last.m === msg) { last.n = (last.n || 1) + 1; last.e = clock(); last.s = ++seq; }
+    else { buf.push({ t: clock(), k: kind, m: msg, s: ++seq }); if (buf.length > MAX) buf.splice(0, buf.length - MAX); }
     dirty = true;
     if (kind === 'ERROR') store();
+    if (kind === 'ERROR' || kind === 'STALL') soon(kind === 'ERROR' ? 'error' : 'stall');
   }
   /* the previous session, read before this one starts writing */
   try { prev = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { prev = null; }
@@ -90,6 +91,60 @@
     var mem = performance.memory ? ', heap ' + Math.round(performance.memory.usedJSHeapSize / 1048576) + ' MB' : '';
     if (!document.hidden) add('stats', 'fps ' + fps.toFixed(0) + (p ? ', ' + p : '') + mem);
   }, 30000);
+  /* ---------- automatic sending: batches of the log go to the pips-log receiver (a tiny Vercel project, see logserver/) ----------
+     Nothing shows on screen. Sent: an anonymous random device id, the game version, the device type and the log lines.
+     When: about a minute after an error or a stall (batched), every 10 minutes while playing, when the app goes to the
+     background, and once at start for a previous session that did not close normally (freeze or crash).
+     Off on localhost/file pages, with ?nolog in the address, or with localStorage 'pips-log-send' = 'off'. */
+  var SEND_URL = 'https://pips-log-leoncorts-projects.vercel.app/api/log', SEND_MAX = 40, BODY_MAX = 60000;
+  var sendOn = location.protocol === 'https:' && !/^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname) && !/[?&]nolog\b/.test(location.search);
+  var devId = '', sentSeq = 0, sends = 0, sendT = 0, sendR = '', lastSend = 0;
+  try {
+    if (localStorage.getItem('pips-log-send') === 'off') sendOn = false;
+    devId = localStorage.getItem('pips-log-id') || '';
+    if (!devId) { devId = Math.random().toString(36).slice(2, 10); localStorage.setItem('pips-log-id', devId); }
+  } catch (e) { devId = devId || 'nostore'; }
+  function devLine() {
+    var gfx = ''; try { gfx = 'gfx ' + localStorage.getItem('pips-gfx') + ' (' + localStorage.getItem('pips-gfx-by') + ')'; } catch (e) {}
+    return navigator.userAgent + ' | screen ' + screen.width + 'x' + screen.height + ' @' + (window.devicePixelRatio || 1) + ', window ' + innerWidth + 'x' + innerHeight + ', ' + gfx + ', cores ' + (navigator.hardwareConcurrency || '?') + (navigator.deviceMemory ? ', memory ' + navigator.deviceMemory + ' GB' : '');
+  }
+  function post(reason, txt, beacon, pg, vr) {
+    var body = JSON.stringify({ id: devId, page: pg || page, ver: vr || ver(), reason: reason, host: location.hostname, dev: devLine(), text: txt.length > BODY_MAX ? txt.slice(0, 2000) + '\n... (cut) ...\n' + txt.slice(-(BODY_MAX - 2100)) : txt });
+    try {
+      if (beacon && navigator.sendBeacon && navigator.sendBeacon(SEND_URL, new Blob([body], { type: 'text/plain' }))) return;
+      fetch(SEND_URL, { method: 'POST', body: body, headers: { 'Content-Type': 'text/plain' }, keepalive: body.length < 64000, mode: 'cors', credentials: 'omit' }).catch(function () {});
+    } catch (e) {}
+  }
+  function flush(reason, beacon) {
+    clearTimeout(sendT); sendT = 0;
+    if (!sendOn || sends >= SEND_MAX) return false;
+    var L = buf.filter(function (l) { return l.s > sentSeq; }); if (!L.length) return false;
+    if (reason === 'close' && L.every(function (l) { return l.k === 'page' || l.k === 'tap'; })) return false;
+    sentSeq = seq; sends++; lastSend = Date.now();
+    var head = 'session started ' + day(started) + ', batch ' + sends + ', ' + stalls + ' stalls' + (worst ? ' (worst ' + (worst / 1000).toFixed(1) + ' s)' : '') + (loopDead ? ', GAME LOOP STOPPED' : '') + (sends >= SEND_MAX ? ', LAST BATCH (limit reached)' : '') + '\n'
+      + Object.keys(errs).filter(function (m) { return errs[m] > 1; }).map(function (m) { return 'Repeated error x' + errs[m] + ': ' + m.slice(0, 200) + '\n'; }).join('');
+    post(reason, head + lines(L), beacon);
+    return true;
+  }
+  /* errors and stalls: wait a bit so one bad moment goes out as one batch; errors at most one batch a minute, stalls every 3 minutes */
+  function soon(reason) {
+    if (!sendOn || (sendT && (sendR === 'error' || reason !== 'error'))) return;
+    clearTimeout(sendT); sendR = reason;
+    var gap = reason === 'error' ? 60000 : 180000;
+    sendT = setTimeout(function () { sendT = 0; flush(reason); }, Math.max(20000, gap - (Date.now() - lastSend)));
+  }
+  setInterval(function () { if (!document.hidden) flush('periodic'); }, 600000);
+  document.addEventListener('visibilitychange', function () { if (document.hidden) flush('close', true); });
+  window.addEventListener('pagehide', function () { flush('close', true); });
+  /* the previous session froze or crashed: send its last lines once */
+  if (sendOn && prev && prev.lines && !prev.closed) {
+    var rep = ''; try { rep = localStorage.getItem('pips-log-reported') || ''; } catch (e) {}
+    if (rep !== String(prev.start)) {
+      try { localStorage.setItem('pips-log-reported', String(prev.start)); } catch (e) {}
+      setTimeout(function () { post('crash', 'previous session did NOT close normally' + session('Previous session', prev), false, prev.page, prev.ver); }, 8000);
+    }
+  }
+  api.send = flush;
   setInterval(function () { dirty = true; store(); }, 3000);
   add('info', 'start ' + page);
 
@@ -103,6 +158,7 @@
     store();
     var gfx = ''; try { gfx = 'gfx ' + localStorage.getItem('pips-gfx') + ' (' + localStorage.getItem('pips-gfx-by') + ')'; } catch (e) {}
     var head = 'Pips log, copied ' + day(Date.now()) + '\n'
+      + 'Auto-send: ' + (sendOn ? 'on, device ' + devId + ', ' + sends + ' batches sent this session' : 'off') + '\n'
       + 'Device: ' + navigator.userAgent + '\n'
       + 'Screen ' + screen.width + 'x' + screen.height + ' @' + (window.devicePixelRatio || 1) + ', window ' + innerWidth + 'x' + innerHeight + ', ' + gfx + ', cores ' + (navigator.hardwareConcurrency || '?') + (navigator.deviceMemory ? ', memory ' + navigator.deviceMemory + ' GB' : '') + '\n'
       + 'This session: ' + stalls + ' stalls' + (worst ? ' (worst ' + (worst / 1000).toFixed(1) + ' s)' : '') + (loopDead ? ', GAME LOOP STOPPED' : '') + '\n'
