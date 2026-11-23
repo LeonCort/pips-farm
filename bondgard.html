@@ -823,7 +823,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261123172747">
+<meta name="app-ver" content="20261123173408">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -3090,7 +3090,14 @@ function dismount() {
 }
 
 /* ---------- day, night and the seasons ---------- */
-/* one day is 8 minutes; each season lasts one day: spring, summer, autumn, winter */
+/* one day is 480 clock units; each season lasts one day: spring, summer, autumn, winter.
+   Longer days (Leon, 2026-11-23): the daylight part (sunrise to sunset, f 0 to DAY_PART) runs DAY_STRETCH times slower, the
+   night runs as before. state.clock and dayFrac() stay in clock units, so the sun, sky, day dial, time slider, market
+   hours, bedtimes and the new-day/season change all keep their places; only the speed of the clock changes.
+   Daylight 5 min 7 s -> 7 min 41 s, night 2 min 53 s (whole day 8 min -> 10 min 34 s). */
+const DAY_PART = 0.64, DAY_STRETCH = 1.5;
+const clockRate = () => (dayFrac() < DAY_PART ? 1 / DAY_STRETCH : 1); /* clock units per real second */
+let clockPinned = false; /* set by code that places the clock itself this frame (bed, tutorial dusk), so skyStep adds nothing */
 const DAY = 480, SEASONS = ['spring', 'summer', 'autumn', 'winter'], SEASON_SV = { spring: 'Vår', summer: 'Sommar', autumn: 'Höst', winter: 'Vinter' };
 const hemi = sc.children.find((o) => o.isHemisphereLight);
 const SKY_KEYS = [
@@ -3283,7 +3290,8 @@ const SKY_ULTRA = { hor: new T.Color('#a9cbe6'), top: new T.Color('#3d84cf') };
 function skyStep(dt) {
   if (typeof state.clock !== 'number') state.clock = DAY * 0.1;
   bedStep(dt);
-  if (!timeHold) state.clock += dt;
+  if (!timeHold && !clockPinned) state.clock += dt * clockRate();
+  clockPinned = false;
   const f = dayFrac(); let i = 0; while (i < SKY_KEYS.length - 2 && f > SKY_KEYS[i + 1].f) i++;
   if (inHouse) SUN_OFF.copy(SUN_HOME); else sunArc(f);
   const a = SKY_KEYS[i], b = SKY_KEYS[i + 1], q = clamp((f - a.f) / (b.f - a.f), 0, 1), e = q * q * (3 - 2 * q);
@@ -3392,7 +3400,7 @@ function bedStep(dt) {
   }
   /* lie down, let the night run by fast, then hop up in the morning */
   sleep.t += dt; const q = Math.min(1, sleep.t / 3.2), e = q * q * (3 - 2 * q);
-  state.clock = sleep.from + (sleep.to - sleep.from) * e - dt; /* skyStep adds dt back */
+  state.clock = sleep.from + (sleep.to - sleep.from) * e; clockPinned = true; /* skyStep adds nothing this frame */
   pip.position.set(BED.x + 0.8, BED.y || 0.46, BED.z); pip.rotation.y = Math.PI / 2; /* feet at the foot end, head on the pillow */ pb.rotation.x = -Math.PI / 2 * Math.min(1, sleep.t * 3); target.copy(pip.position);
   if (!sleep.z) { sleep.z = new T.Sprite(new T.SpriteMaterial({ map: zTex, transparent: true, depthTest: false })); sleep.z.renderOrder = 6; sleep.z.scale.set(0.7, 0.46, 1); sc.add(sleep.z); }
   sleep.z.position.set(BED.x + 0.2, 1.3 + Math.sin(sleep.t * 2) * 0.1, BED.z); sleep.z.visible = q < 0.95;

@@ -1,6 +1,13 @@
 
 /* ---------- day, night and the seasons ---------- */
-/* one day is 8 minutes; each season lasts one day: spring, summer, autumn, winter */
+/* one day is 480 clock units; each season lasts one day: spring, summer, autumn, winter.
+   Longer days (Leon, 2026-11-23): the daylight part (sunrise to sunset, f 0 to DAY_PART) runs DAY_STRETCH times slower, the
+   night runs as before. state.clock and dayFrac() stay in clock units, so the sun, sky, day dial, time slider, market
+   hours, bedtimes and the new-day/season change all keep their places; only the speed of the clock changes.
+   Daylight 5 min 7 s -> 7 min 41 s, night 2 min 53 s (whole day 8 min -> 10 min 34 s). */
+const DAY_PART = 0.64, DAY_STRETCH = 1.5;
+const clockRate = () => (dayFrac() < DAY_PART ? 1 / DAY_STRETCH : 1); /* clock units per real second */
+let clockPinned = false; /* set by code that places the clock itself this frame (bed, tutorial dusk), so skyStep adds nothing */
 const DAY = 480, SEASONS = ['spring', 'summer', 'autumn', 'winter'], SEASON_SV = { spring: 'Vår', summer: 'Sommar', autumn: 'Höst', winter: 'Vinter' };
 const hemi = sc.children.find((o) => o.isHemisphereLight);
 const SKY_KEYS = [
@@ -193,7 +200,8 @@ const SKY_ULTRA = { hor: new T.Color('#a9cbe6'), top: new T.Color('#3d84cf') };
 function skyStep(dt) {
   if (typeof state.clock !== 'number') state.clock = DAY * 0.1;
   bedStep(dt);
-  if (!timeHold) state.clock += dt;
+  if (!timeHold && !clockPinned) state.clock += dt * clockRate();
+  clockPinned = false;
   const f = dayFrac(); let i = 0; while (i < SKY_KEYS.length - 2 && f > SKY_KEYS[i + 1].f) i++;
   if (inHouse) SUN_OFF.copy(SUN_HOME); else sunArc(f);
   const a = SKY_KEYS[i], b = SKY_KEYS[i + 1], q = clamp((f - a.f) / (b.f - a.f), 0, 1), e = q * q * (3 - 2 * q);
