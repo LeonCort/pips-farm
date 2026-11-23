@@ -7,7 +7,7 @@ const BLD = {
   fire: { max: 3, cost: [null, null, { log: 6, stone: 4 }, { log: 10, stone: 10, clay: 4 }], pic: [null, 'fire', 'fire', 'fire'] }
 };
 const bldLv = (k) => (state.isle && state.isle.bld && state.isle.bld[k]) || 1;
-const enMax = () => [0, 100, 130, 160][bldLv('tent')];
+const enMax = () => [0, 100, 130, 160][bldLv('tent')] + xpEn();
 const enRegen = () => [0, 0.2, 0.33, 0.5][bldLv('fire')];
 const bldCan = (k) => { const c = BLD[k].cost[bldLv(k) + 1]; return !!c && Object.keys(c).every((t) => storeN(t) >= c[t]); };
 let bldPop = null;
@@ -49,7 +49,7 @@ function fireShape(lv) {
 }
 function bldInit() {
   const I = state.isle; I.bld = I.bld || { tent: 1, fire: 1 };
-  tentShape(bldLv('tent')); fireShape(bldLv('fire')); bldBuild(); bldBadge();
+  tentShape(bldLv('tent')); fireShape(bldLv('fire')); bldBuild(); bldBadge(); enBarW();
 }
 function bldStep(dt) {
   if (bldPop) { bldPop.t += dt; const u = Math.min(1, bldPop.t / 0.5), s = u < 1 ? 1 + Math.sin(u * Math.PI) * 0.25 - (1 - u) * 0.3 : 1; bldPop.g.scale.setScalar(s); if (u >= 1) bldPop = null; }
@@ -131,5 +131,5 @@ function bldUp(k) {
   BM.menu.hidden = true; bldBadge(); camFocus.set(k === 'tent' ? -1.1 : 1.4, 0, k === 'tent' ? 1.0 : 1.2);
 }
 /* the energy bar grows with the tent */
-function enBarW() { const b = ENB.el && ENB.el.querySelector('.bar'); if (b) b.style.width = (120 * enMax() / 100) + 'px'; }
+function enBarW() { const b = ENB.el && ENB.el.querySelector('.bar'); if (b) b.style.width = Math.min(220, 120 * enMax() / 100) + 'px'; }
 function bldBadge() { if (BM.btn) BM.btn.classList.toggle('can', bldCan('tent') || bldCan('fire')); if (BM.menu && !BM.menu.hidden) { const key = ['tent', 'fire'].map((k) => bldLv(k) + (bldCan(k) ? 'y' : 'n')).join(); if (key !== BM.key) { BM.key = key; bldFill(); } } }

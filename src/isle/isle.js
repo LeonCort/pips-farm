@@ -16,7 +16,7 @@ const PICKY = { rock: 1, boulder: 1, clay: 1 }; /* swung at with the pickaxe (or
 const NEED = { rock: 'pick', boulder: 'pick', clay: 'shovel', grass: 'sickle' };
 const hasTool = (k) => !NEED[k] || !!(state.isle.tools && state.isle.tools[NEED[k]]);
 const byHand = (k) => !hasTool(k);
-function hitPow(k) { return (hasTool(k) ? 1 : 1 / 3) * (typeof xpPow === 'function' ? xpPow() : 1); }
+function hitPow(k) { return (hasTool(k) ? 1 : 1 / 3) * xpPow(); }
 const KINDS = ['log', 'stone', 'berry', 'hay', 'clay']; /* building things, in counter order */
 const nodes = [], drops = [], signs = [], chests = [];
 let rising = null, hitT = 0, giveT = 0, pickHintT = 0;
@@ -41,6 +41,11 @@ function isleIcon(x, t, cx, cy, s) {
     x.beginPath(); x.moveTo(-7, -22); x.lineTo(7, -22); x.stroke(); x.beginPath(); x.moveTo(-10, 4); x.lineTo(10, 4); x.lineTo(9, 14); x.quadraticCurveTo(0, 24, -9, 14); x.closePath(); blob('#c7ced6'); }
   else if (t === 'sickle') { x.beginPath(); x.moveTo(-14, 20); x.lineTo(-6, 6); x.lineWidth = 7; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.6; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
     x.beginPath(); x.moveTo(-6, 6); x.quadraticCurveTo(-8, -20, 14, -18); x.quadraticCurveTo(-1, -12, -1, 6); x.closePath(); blob('#c7ced6'); }
+  else if (t === 'star') { x.beginPath(); for (let q = 0; q < 10; q++) { const r = q % 2 ? 10 : 22, a = q / 10 * Math.PI * 2 - Math.PI / 2; x.lineTo(Math.cos(a) * r, Math.sin(a) * r + 1); } x.closePath(); blob('#f7c948'); }
+  else if (t === 'clover') { x.fillStyle = '#5fae4a'; [[-8, -8], [8, -8], [-8, 8], [8, 8]].forEach(([a, b]) => { x.beginPath(); x.arc(a, b, 9, 0, 7); x.fill(); x.stroke(); }); x.beginPath(); x.moveTo(2, 4); x.quadraticCurveTo(8, 16, 16, 22); x.stroke(); x.fillStyle = '#9ad67e'; x.beginPath(); x.arc(-10, -10, 3, 0, 7); x.fill(); }
+  else if (t === 'perkEn') { isleIcon(x, 'bolt', -10, 0, 1); x.lineWidth = 3; x.strokeStyle = PAL.ink; for (let q = 0; q < 3; q++) { x.beginPath(); x.roundRect(6, 10 - q * 11, 18, 8, 3); x.fillStyle = '#7cc85a'; x.fill(); x.stroke(); } x.beginPath(); x.moveTo(15, -30); x.lineTo(15, -18); x.moveTo(9, -24); x.lineTo(21, -24); x.lineWidth = 4; x.strokeStyle = '#3f8a3a'; x.stroke(); }
+  else if (t === 'perkHit') { isleIcon(x, 'pick', -4, 4, 0.9); x.lineWidth = 3.5; x.strokeStyle = '#f2a13c'; x.beginPath(); [[14, -18, 22, -26], [18, -8, 28, -10], [8, -22, 10, -32]].forEach(([a, b, c, d]) => { x.moveTo(a, b); x.lineTo(c, d); }); x.stroke(); }
+  else if (t === 'perkLuck') { isleIcon(x, 'clover', -4, -2, 0.95); x.font = '700 14px Fredoka, sans-serif'; x.lineWidth = 4; x.strokeStyle = PAL.ink; x.fillStyle = '#fff6e4'; x.strokeText('x2', 8, 24); x.fillText('x2', 8, 24); }
   else if (t === 'fire') { x.fillStyle = '#a9b2bb'; [[-14, 14], [-5, 17], [5, 17], [14, 14]].forEach(([a, b]) => { x.beginPath(); x.ellipse(a, b, 6, 4, 0, 0, 7); x.fill(); x.stroke(); });
     x.beginPath(); x.moveTo(0, -22); x.quadraticCurveTo(16, -4, 10, 12); x.lineTo(-10, 12); x.quadraticCurveTo(-16, -4, 0, -22); x.closePath(); blob('#f2a13c'); x.beginPath(); x.moveTo(0, -6); x.quadraticCurveTo(8, 4, 4, 12); x.lineTo(-4, 12); x.quadraticCurveTo(-8, 4, 0, -6); x.closePath(); x.fillStyle = '#ffe07a'; x.fill(); }
   else if (t === 'hut') { x.beginPath(); x.rect(-17, -2, 34, 20); blob('#c99158'); x.beginPath(); x.moveTo(-23, 0); x.lineTo(0, -20); x.lineTo(23, 0); x.closePath(); blob('#b5562f'); x.beginPath(); x.rect(-5, 5, 10, 13); blob('#7a3a2a'); x.beginPath(); x.rect(8, 3, 6, 6); blob('#ffe07a'); }
@@ -95,7 +100,7 @@ function riseArea(cx, cz, hx, hz, done) {
 }
 /* raise a whole area (3 by 3 squares) out of the sea, then fill it with what grows there */
 function areaRise(A) {
-  areaMark(A); state.isle.areas[A.id] = 1;
+  areaMark(A); state.isle.areas[A.id] = 1; xpGain(10);
   riseArea(A.cx, A.cz, GS * 1.5 + 1.4, GS * 1.5 + 1.4, () => areaFill(A, true));
   rising.area = A.id;
 }
@@ -348,7 +353,7 @@ function bridgeStep(dt) {
 /* ---- drops: chunks that pop out and wait to be picked up ---- */
 function dropOut(n) {
   const [t, k] = YIELD[n.kind];
-  const out = Array(k).fill(t), tr = TREASURE[n.kind]; if (Math.random() < tr[1]) out.push(tr[0]);
+  const lucky = xpLucky(n), out = Array(lucky ? k * 2 : k).fill(t), tr = TREASURE[n.kind]; xpGain(XP_FOR[n.kind] || 2); if (Math.random() < tr[1]) out.push(tr[0]);
   out.forEach((t) => { const m = itemModel(t), a = Math.random() * 6.28; m.position.set(n.x, 0.6, n.z); sc.add(m); drops.push({ m, t, vx: Math.cos(a) * 1.4, vz: Math.sin(a) * 1.4, vy: 3.2 + Math.random(), land: 0, wait: 0.15 });
     if (VALUABLE[t]) { Snd.play('sparkle', { gain: 0.45 }); burst(n.x, 1.0, n.z, 5); } });
 }
@@ -421,7 +426,7 @@ function isleStep(dt) {
   storeStep2(dt); invFlyStep(dt); invStep();
   for (let k = chests.length - 1; k >= 0; k--) { chestStep(chests[k], dt); if (chests[k].gone) chests.splice(k, 1); }
   if (hintSp.visible) { hintSp.t -= dt; hintSp.material.opacity = Math.min(1, hintSp.t * 2); if (hintSp.t <= 0) hintSp.visible = false; }
-  const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1); bldStep(dt);
+  const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1); bldStep(dt); xpStep(dt); luckStep(dt);
 }
 /* the pets keep inside the box of the land Pip is on: home, or an island once Pip is there */
 function isleBoxStep() { const A = areaAt(pip.position.x, pip.position.z); if (A && HAS[A.id]) { const b = ISLAND.box; b.x0 = A.cx - 5.4; b.x1 = A.cx + 5.4; b.z0 = A.cz - 5.4; b.z1 = A.cz + 5.4; } }
@@ -451,7 +456,7 @@ function isleInit() {
   AREAS.forEach((A) => { if (HAS[A.id] && A.bridge) bridgeBuild(A, true); if (HAS[A.id] || drawn(A.i, A.j)) areaFill(A, false); });
   nodes.forEach((n) => { n.pop = 0; n.g.scale.setScalar(1); });
   chests.forEach((c) => { c.pop = 1; c.g.scale.setScalar(1); });
-  I.store = I.store || { log: 0, stone: 0, berry: 0 }; if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit();
+  I.store = I.store || { log: 0, stone: 0, berry: 0 }; if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit(); xpBuild();
   isleSigns();
   pip.position.set(0, 0, 0.4); target.copy(pip.position); camFocus.copy(pip.position);
   dog.g.position.set(-1.2, 0, -0.6); petsInit();
@@ -464,7 +469,7 @@ function isleTest() {
     fill: (o) => { Object.keys(o).forEach((t) => { state.isle.store[t] = (state.isle.store[t] || 0) + o[t]; }); },
     own: (ids) => { ids.split(',').forEach((id) => { state.isle.areas[id] = 1; }); save(); },
     tp: (x, z) => { pip.position.set(x, 0, z); target.set(x, 0, z); camFocus.set(x, 0, z); }, building: !!building,
-    en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], bld: Object.assign({}, state.isle.bld), max: enMax(), up: (k) => bldUp(k), tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
+    en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], bld: Object.assign({}, state.isle.bld), xp: Object.assign({}, xpS()), gain: (v) => xpGain(v), max: enMax(), up: (k) => bldUp(k), tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
     walk: (x, z) => +walkSdf(x, z).toFixed(2), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
 }
 
