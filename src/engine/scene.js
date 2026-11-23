@@ -61,7 +61,9 @@ function onIsle(v) { if (inHouse) { v.x = clamp(v.x, IN_B.x0, IN_B.x1); v.z = cl
   if (Math.abs(v.x - DOCK.x) < 0.6 && v.z > DOCK.edge - 1 && v.z < DOCK.z1 + 1) { v.x = clamp(v.x, DOCK.x - 0.35, DOCK.x + 0.35); v.z = Math.min(v.z, DOCK.z1 - 0.3); return v; } /* out along the dock */
   if (ISL.clamp) return ISL.clamp(v); /* a game whose island is not an oval keeps points on it itself */
   const d = isleD(v.x, v.z), lim = 0.965; if (d > lim) { v.x *= lim / d; v.z *= lim / d; } return v; }
-const tg = new T.PlaneGeometry(58, 40, 112, 78); tg.rotateX(-Math.PI / 2);
+/* the ground's size: 58 by 40 round the middle, unless the game asks for more (the island game's world of islands: ISLAND.gw, gh, gx, gz) */
+const GRW = ISL.gw || 58, GRH = ISL.gh || 40, GRX = ISL.gx || 0, GRZ = ISL.gz || 0, GRX0 = GRX - GRW / 2, GRZ0 = GRZ - GRH / 2;
+const tg = new T.PlaneGeometry(GRW, GRH, Math.round(GRW / 58 * 112), Math.round(GRH / 40 * 78)); tg.rotateX(-Math.PI / 2); tg.translate(GRX, 0, GRZ);
 { const p = tg.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i) + (hash(i, 1) - 0.5) * 0.3, z = p.getZ(i) + (hash(i, 2) - 0.5) * 0.3; p.setXYZ(i, x, hAt(x, z) + (hAt(x, z) === 0 ? hash(i, 5) * 0.04 : 0), z); } }
 /* cozy ground (farm): soft grass gradients in the vertex colours, and the roads, pebbles, cobbles and painted grass strokes
    in two textures made once at start, so the paths get round, overgrown edges instead of triangle steps */
@@ -74,7 +76,7 @@ const WET_SAND = new T.Color('#b79a70');
 function groundCol(x, y, z, key, grass, beach, warm) {
   if (y < -0.6) return tone(PAL.bed, key, 0.4);
   if (y < -0.05) { const c = tone(beach || PAL.sand, key, 0.4); return c.lerp(WET_SAND, 0.5 * clamp((-y - 0.08) / 0.3, 0, 1)); }
-  const c = grassAt(x, z, grass || PAL.grass, key, warm);
+  const c = grassAt(x, z, grass || PAL.grass, key, warm); if (ISL.tint) ISL.tint(x, z, c); /* a game may tint parts of its land (the island game's islands) */
   const d = isleD(x, z) + 0.012 * Math.sin(x * 1.7 + z * 0.9) + 0.008 * Math.sin(x * 4.1 - z * 3.3), q = clamp((d - 0.925) / 0.05, 0, 1);
   return q > 0 ? c.lerp(tone(beach || PAL.sand, key, 0.4), q * q * (3 - 2 * q)) : c;
 }
@@ -85,7 +87,7 @@ let ground, GMASK = null; /* GMASK: road kind per mask pixel */
   const gm = new T.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
   gm.onBeforeCompile = (sh) => {
     sh.uniforms.gMask = GU.mask; sh.uniforms.gDet = GU.det; sh.uniforms.pathCol = GU.path; sh.uniforms.cobCol = GU.cob;
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vGuv;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvGuv = vec2((position.x + 29.0) / 58.0, (position.z + 20.0) / 40.0);');
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vGuv;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvGuv = vec2((position.x - (' + GRX0.toFixed(3) + ')) / ' + GRW.toFixed(3) + ', (position.z - (' + GRZ0.toFixed(3) + ')) / ' + GRH.toFixed(3) + ');');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec2 vGuv; uniform sampler2D gMask; uniform sampler2D gDet; uniform vec3 pathCol; uniform vec3 cobCol;')
       .replace('#include <color_fragment>', 'vec4 gmk = texture2D(gMask, vGuv); vec3 gdt = texture2D(gDet, vGuv).rgb; vec3 gcl = mix(vColor, pathCol, gmk.r); gcl = mix(gcl, cobCol, gmk.g); diffuseColor.rgb *= gcl * gdt * 1.02;');
   };
@@ -94,11 +96,11 @@ let ground, GMASK = null; /* GMASK: road kind per mask pixel */
   paintGroundTex();
 }
 /* world (x, z) to texture pixels: the farm ground is 58 x 40 */
-const GX = (x, W) => (x + 29) / 58 * W, GZ = (z, H) => (z + 20) / 40 * H;
+const GX = (x, W) => (x - GRX0) / GRW * W, GZ = (z, H) => (z - GRZ0) / GRH * H;
 function paintGroundTex() {
   const MW = 1024, MH = 512, mc = document.createElement('canvas'); mc.width = MW; mc.height = MH; const mx = mc.getContext('2d'), id = mx.createImageData(MW, MH), K = new Uint8Array(MW * MH);
   for (let py = 0; py < MH; py++) for (let px = 0; px < MW; px++) {
-    const x = (px + 0.5) / MW * 58 - 29, z = (py + 0.5) / MH * 40 - 20;
+    const x = (px + 0.5) / MW * GRW + GRX0, z = (py + 0.5) / MH * GRH + GRZ0;
     const wx = x + Math.sin(z * 2.3 + x * 0.7) * 0.09 + Math.sin(z * 5.1) * 0.04, wz = z + Math.sin(x * 2.1 - z * 0.5) * 0.09 + Math.sin(x * 4.7) * 0.04;
     const k = isleD(x, z) < 0.99 ? roadKind(wx, wz) : 0, o = (py * MW + px) * 4; K[py * MW + px] = k;
     id.data[o] = k === 1 ? 255 : 0; id.data[o + 1] = k === 2 ? 255 : 0; id.data[o + 3] = 255;
@@ -132,7 +134,7 @@ function paintGroundTex() {
     else { d.fillStyle = hash(i, 45.1) > 0.5 ? 'rgba(255,255,255,0.6)' : 'rgba(150,130,110,0.4)'; d.fillRect(x, y, r, r); } }
   /* cobbles: hand-laid stones of mixed sizes and shades, fanned in rings round the plaza and in staggered rows along the street,
      with dark joints, the odd sunken or missing stone (dirt or moss showing) and a light top edge on each */
-  { const C = 0.21, gX = (x) => (x + 29) / 58 * DW, gZ = (z) => (z + 20) / 40 * DH;
+  { const C = 0.21, gX = (x) => (x - GRX0) / GRW * DW, gZ = (z) => (z - GRZ0) / GRH * DH;
     /* joints first: dark, a little brown in places and green in others */
     for (let py = 0; py < DH; py += 3) for (let px = 0; px < DW; px += 3) if (kAt(px, py) === 2) { const t = hash(Math.floor(px / 40), Math.floor(py / 40), 7);
       d.fillStyle = t > 0.8 ? 'rgba(124,136,96,0.55)' : t > 0.55 ? 'rgba(140,120,104,0.55)' : 'rgba(146,134,126,0.52)'; d.beginPath(); d.moveTo(px + 2.8, py); d.arc(px, py, 2.8, 0, 6.283); d.fill(); }
@@ -167,12 +169,12 @@ function paintGroundTex() {
 /* contact shade: soft dark pools painted under trees, houses and props once the world is built (a cheap stand-in for ambient occlusion) */
 function groundShade(list) {
   if (!GU.detC) return; const d = GU.detC.getContext('2d'), W = GU.detC.width, H = GU.detC.height; d.save(); d.globalCompositeOperation = 'multiply';
-  list.forEach(([x, z, rx, rz, k]) => { const px = GX(x, W), py = GZ(z, H), sx = rx / 58 * W, sz = rz / 40 * H, r = Math.max(sx, sz); if (r < 1) return;
+  list.forEach(([x, z, rx, rz, k]) => { const px = GX(x, W), py = GZ(z, H), sx = rx / GRW * W, sz = rz / GRH * H, r = Math.max(sx, sz); if (r < 1) return;
     d.save(); d.translate(px, py); d.scale(sx / r, sz / r); const g = d.createRadialGradient(0, 0, r * 0.15, 0, 0, r); const a = k == null ? 0.42 : k; g.addColorStop(0, 'rgba(70,80,60,' + a + ')'); g.addColorStop(0.6, 'rgba(120,130,100,' + a * 0.45 + ')'); g.addColorStop(1, 'rgba(255,255,255,0)'); d.fillStyle = g; d.beginPath(); d.arc(0, 0, r, 0, 6.283); d.fill(); d.restore(); });
   d.restore(); GU.det.value.needsUpdate = true;
 }
 let wg = new T.PlaneGeometry(160, 160, 56, 56); wg.rotateX(-Math.PI / 2);
-wg = fac(wg, (cx, cy, cz, i) => { const d = Math.hypot(cx / 1.6, cz) * 0.8; return tone(d < 16 ? PAL.seaShallow : d < 28 ? PAL.sea : PAL.seaDeep, i, 0.9); });
+wg = fac(wg, (cx, cy, cz, i) => { const d = ISL.d ? 16 * clamp((ISL.d(cx, cz) - 1) / 1.3, 0, 2) : Math.hypot(cx / 1.6, cz) * 0.8; return tone(d < 16 ? PAL.seaShallow : d < 28 ? PAL.sea : PAL.seaDeep, i, 0.9); });
 const water = new T.Mesh(wg, new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.28, metalness: 0.05 })); water.position.y = -0.45; water.receiveShadow = true; sc.add(water);
 const wp = wg.attributes.position, wn = wg.attributes.normal;
 

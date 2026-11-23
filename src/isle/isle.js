@@ -4,10 +4,14 @@
    (a row of pictures) lights up piece by piece. A full sign lifts its square out of the sea with new things on it.
    Everything grows back, so a child can never get stuck. No reading needed: pictures and the guide arrow only. */
 const FISH = []; /* no fish on this island yet (the engine's icon list asks) */
-const NODE_R = { tree: 0.36, rock: 0.55, bush: 0.45 };
-const YIELD = { tree: ['log', 2], rock: ['stone', 2], bush: ['berry', 3] };
-const HITS = { tree: 6, rock: 8, bush: 3 }; /* Leon: slower, so each one feels like work */
-const REGROW = { tree: [12, 30], rock: [8, 50], bush: [25, 0] }; /* seconds as a stump, then seconds growing */
+/* what can be gathered: trees, rocks and bushes everywhere; tall grass (hay) on the Meadow; clay pits and big boulders on Stone island */
+const NODE_R = { tree: 0.36, rock: 0.55, bush: 0.45, grass: 0.32, clay: 0.5, boulder: 0.95 };
+const YIELD = { tree: ['log', 2], rock: ['stone', 2], bush: ['berry', 3], grass: ['hay', 2], clay: ['clay', 2], boulder: ['stone', 5] };
+const HITS = { tree: 6, rock: 8, bush: 3, grass: 3, clay: 6, boulder: 14 }; /* Leon: slower, so each one feels like work */
+const REGROW = { tree: [12, 30], rock: [8, 50], bush: [25, 0], grass: [6, 20], clay: [10, 40], boulder: [10, 70] }; /* seconds gone, then seconds growing */
+const LOW = { rock: 0.35, boulder: 0.35, clay: 0.3, grass: 0.15 }; /* how small it shrinks while it grows back (trees fall, bushes lose their berries) */
+const PICKY = { rock: 1, boulder: 1, clay: 1 }; /* needs the pickaxe */
+const KINDS = ['log', 'stone', 'berry', 'hay', 'clay']; /* building things, in counter order */
 const nodes = [], drops = [], signs = [], chests = [];
 let rising = null, hitT = 0, giveT = 0, pickHintT = 0;
 
@@ -18,6 +22,9 @@ function isleIcon(x, t, cx, cy, s) {
   if (t === 'log') { x.beginPath(); x.roundRect(-20, -9, 34, 18, 9); blob('#a8774f'); x.beginPath(); x.ellipse(14, 0, 6, 9, 0, 0, 7); blob('#e7c48f'); x.beginPath(); x.ellipse(14, 0, 2.2, 3.5, 0, 0, 7); x.strokeStyle = '#a8774f'; x.lineWidth = 1.6; x.stroke(); }
   else if (t === 'stone') { x.beginPath(); x.moveTo(-18, 8); x.quadraticCurveTo(-20, -8, -4, -12); x.quadraticCurveTo(14, -14, 19, 0); x.quadraticCurveTo(20, 12, 4, 12); x.quadraticCurveTo(-12, 14, -18, 8); x.closePath(); blob('#a9b2bb'); x.beginPath(); x.moveTo(-8, -5); x.quadraticCurveTo(0, -8, 6, -5); x.strokeStyle = '#e4e9ee'; x.lineWidth = 2.6; x.stroke(); }
   else if (t === 'berry') { x.beginPath(); x.arc(-6, 4, 9, 0, 7); blob('#d6406a'); x.beginPath(); x.arc(8, 6, 9, 0, 7); blob('#c3335c'); x.beginPath(); x.moveTo(1, -6); x.quadraticCurveTo(10, -16, 16, -10); x.quadraticCurveTo(9, -4, 1, -6); blob('#74a857'); x.fillStyle = '#f6b3c4'; x.beginPath(); x.arc(-9, 1, 2.4, 0, 7); x.fill(); }
+  else if (t === 'hay') { x.beginPath(); x.moveTo(-16, 14); x.quadraticCurveTo(-14, -6, -8, -16); x.lineTo(8, -16); x.quadraticCurveTo(14, -6, 16, 14); x.closePath(); blob('#e8c95a');
+    x.lineWidth = 1.8; x.strokeStyle = '#b8963a'; x.beginPath(); [-8, -2, 4, 10].forEach((q) => { x.moveTo(q * 0.8, -12); x.lineTo(q, 12); }); x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink; x.beginPath(); x.roundRect(-14, -2, 28, 7, 3); blob('#b5562f'); }
+  else if (t === 'clay') { x.beginPath(); x.moveTo(-19, 10); x.quadraticCurveTo(-18, -10, 0, -12); x.quadraticCurveTo(18, -10, 19, 10); x.closePath(); blob('#c9774a'); x.beginPath(); x.moveTo(-8, -4); x.quadraticCurveTo(0, -8, 8, -4); x.strokeStyle = '#f0b48c'; x.lineWidth = 2.6; x.stroke(); }
   else if (t === 'gem') { x.beginPath(); x.moveTo(0, -20); x.lineTo(15, -6); x.lineTo(0, 20); x.lineTo(-15, -6); x.closePath(); blob('#7fd3ef'); x.beginPath(); x.moveTo(-15, -6); x.lineTo(15, -6); x.moveTo(0, -20); x.lineTo(-4, 20); x.lineWidth = 1.8; x.strokeStyle = '#3f9cc0'; x.stroke(); }
   else if (t === 'coin') { x.beginPath(); x.arc(0, 0, 17, 0, 7); blob('#f2c23c'); x.beginPath(); x.arc(0, 0, 11, 0, 7); x.lineWidth = 2.2; x.strokeStyle = '#c08a1a'; x.stroke(); x.fillStyle = '#fff2b0'; x.beginPath(); x.arc(-5, -6, 3, 0, 7); x.fill(); }
   else if (t === 'pick') { x.beginPath(); x.moveTo(-3, -10); x.lineTo(3, 20); x.lineWidth = 6; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.2; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
@@ -45,6 +52,8 @@ function itemGeo(t) {
   let g;
   if (t === 'log') { const a = new T.CylinderGeometry(0.085, 0.085, 0.42, 9); a.rotateZ(Math.PI / 2); g = fac(a, (cx, cy, cz) => Math.abs(cx) > 0.2 ? new T.Color('#e7c48f') : tone('#9a6a3e', cy * 40 + cz * 13, 0.6), 1100); }
   else if (t === 'stone') { const a = ico(0.13, 1, 1101); a.scale(1.2, 0.85, 1); g = fac(a, (cx, cy, cz, i) => shadeY('#aab3bc', cy, -0.12, 0.12, i, 0.5), 1101); }
+  else if (t === 'hay') { const a = new T.CylinderGeometry(0.11, 0.13, 0.3, 9); a.rotateZ(Math.PI / 2); g = fac(a, (cx, cy, cz, i) => Math.abs(cx) < 0.03 ? new T.Color('#b5562f') : tone('#e8c95a', i, 0.6), 1105); }
+  else if (t === 'clay') { const a = ico(0.13, 1, 1106); a.scale(1.25, 0.7, 1.05); g = fac(a, (cx, cy, cz, i) => shadeY('#c9774a', cy, -0.1, 0.1, i, 0.4), 1106); }
   else if (t === 'gem') { const a = new T.OctahedronGeometry(0.11, 0); a.scale(1, 1.4, 1); a.translate(0, 0.14, 0); g = fac(a, (cx, cy, cz, i) => new T.Color(i % 2 ? '#7fd3ef' : '#bdeaf8'), 1103); }
   else if (t === 'coin') { const a = new T.CylinderGeometry(0.12, 0.12, 0.05, 14); a.translate(0, 0.03, 0); g = fac(a, (cx, cy) => new T.Color(cy > 0.04 ? '#ffd75a' : '#d9a520'), 1104); }
   else { const L = [[-0.05, 0, 0.02], [0.06, 0.01, -0.02], [0.0, 0.07, 0.0], [0.02, -0.01, 0.07]].map(([x, y, z], k) => new T.SphereGeometry(0.06, 8, 6).translate(x, y + 0.06, z)); g = fac(mergeGeos(L), (cx, cy, cz, i) => tone('#d6406a', i, 0.7), 1102); }
@@ -59,22 +68,27 @@ function isleGroundTo(idx, t) { /* move the listed ground points from their sea 
   for (let n = 0; n < idx.length; n++) { const i = idx[n], x = p.getX(i), z = p.getZ(i), y = R.y0[n] + (R.y1[n] - R.y0[n]) * e; p.setY(i, y); const c = groundCol(x, y, z, vkey(x, y, z)); col.setXYZ(i, c.r, c.g, c.b); }
   p.needsUpdate = true; col.needsUpdate = true;
 }
+/* lift the ground in a box round (cx, cz) to what hAt now says (call after the land has changed); done runs when it is up */
+function riseArea(cx, cz, hx, hz, done) {
+  const p = ground.geometry.attributes.position, idx = [], y0 = [], y1 = [];
+  for (let k = 0; k < p.count; k++) { const x = p.getX(k), z = p.getZ(k); if (Math.abs(x - cx) > hx || Math.abs(z - cz) > hz) continue; const ht = hAt(x, z); if (Math.abs(ht - p.getY(k)) < 0.05 && ht !== 0) continue; idx.push(k); y0.push(p.getY(k)); y1.push(ht === 0 ? 0.02 * hash(k, 5) : ht); }
+  rising = { cx, cz, hx: hx - 1.4, hz: hz - 1.4, t: 0, idx, y0, y1, sp: 0, done };
+  Snd.play('riser', { gain: 0.5 }); Snd.play('whoosh', { gain: 0.4 });
+}
 function isleRise(i, j) {
   OWN[gIdx(i, j)] = 1; state.isle.own.push(gIdx(i, j));
-  const p = ground.geometry.attributes.position, cx = i * GS, cz = j * GS, h = GS / 2 + 1.4, idx = [], y0 = [], y1 = [];
-  for (let k = 0; k < p.count; k++) { const x = p.getX(k), z = p.getZ(k); if (Math.abs(x - cx) > h || Math.abs(z - cz) > h) continue; const ht = hAt(x, z); idx.push(k); y0.push(p.getY(k)); y1.push(ht === 0 ? 0.02 * hash(k, 5) : ht); }
-  rising = { i, j, t: 0, idx, y0, y1, sp: 0 };
-  Snd.play('riser', { gain: 0.5 }); Snd.play('whoosh', { gain: 0.4 });
-  const b = ISLAND.box; b.x0 = Math.min(b.x0, cx - GS / 2 + 0.6); b.x1 = Math.max(b.x1, cx + GS / 2 - 0.6); b.z0 = Math.min(b.z0, cz - GS / 2 + 0.6); b.z1 = Math.max(b.z1, cz + GS / 2 - 0.6);
+  const cx = i * GS, cz = j * GS;
+  riseArea(cx, cz, GS / 2 + 1.4, GS / 2 + 1.4, () => isleFill(i, j, state.isle.got[gIdx(i, j)], true));
+  const b = HOME_BOX; b.x0 = Math.min(b.x0, cx - GS / 2 + 0.6); b.x1 = Math.max(b.x1, cx + GS / 2 - 0.6); b.z0 = Math.min(b.z0, cz - GS / 2 + 0.6); b.z1 = Math.max(b.z1, cz + GS / 2 - 0.6);
 }
 function isleRiseStep(dt) {
   const R = rising; if (!R) return;
   R.t = Math.min(1, R.t + dt / 1.6); isleGroundTo(R.idx, R.t);
-  R.sp -= dt; if (R.sp <= 0 && R.t < 0.95) { R.sp = 0.12; const a = Math.random() * 4, s = (Math.random() - 0.5) * GS; const ex = R.i * GS + (a < 1 ? s : a < 2 ? GS / 2 : a < 3 ? s : -GS / 2), ez = R.j * GS + (a < 1 ? -GS / 2 : a < 2 ? s : a < 3 ? GS / 2 : s); splash(ex, -0.2, ez, 5); }
+  R.sp -= dt; if (R.sp <= 0 && R.t < 0.95) { R.sp = 0.12; const a = Math.random() * 4, sx = (Math.random() - 0.5) * 2 * R.hx, sz = (Math.random() - 0.5) * 2 * R.hz; const ex = R.cx + (a < 1 ? sx : a < 2 ? R.hx : a < 3 ? sx : -R.hx), ez = R.cz + (a < 1 ? -R.hz : a < 2 ? sz : a < 3 ? R.hz : sz); splash(ex, -0.2, ez, 5); }
   if (R.t >= 1) {
     rising = null; ground.geometry.computeVertexNormals(); smoothGeo(ground.geometry); ground.geometry.attributes.normal.needsUpdate = true; ground.geometry.attributes.color.needsUpdate = true;
-    pop([R.i * GS, R.j * GS]); Snd.play('success', { gain: 0.5 }); Snd.play('sparkle', { gain: 0.4 });
-    isleFill(R.i, R.j, state.isle.got[gIdx(R.i, R.j)], true); isleSigns(); save();
+    pop([R.cx, R.cz]); Snd.play('success', { gain: 0.5 }); Snd.play('sparkle', { gain: 0.4 });
+    if (R.done) R.done(); isleSigns(); save();
   }
 }
 
@@ -82,6 +96,10 @@ function isleRiseStep(dt) {
 const ROCK_GEO = (() => { const g = ico(0.55, 1, 1200, 0.09); g.scale(1.05, 0.72, 0.9); g.translate(0, 0.3, 0); return fac(g, (cx, cy, cz, i) => shadeY('#9da7b1', cy, 0, 0.7, i, 0.6), 1200); })();
 const STUMP_GEO = (() => { const g = new T.CylinderGeometry(0.17, 0.21, 0.24, 9); g.translate(0, 0.12, 0); return fac(g, (cx, cy) => cy > 0.2 ? new T.Color('#e7c48f') : tone(PAL.trunk, cx * 40, 0.5), 1201); })();
 const BUSH_GEO = (() => { const g = fluff(0.42, 1210, 6, 0.8); g.translate(0, 0.36, 0); return fac(g, (cx, cy, cz, i) => leafY('#4f9c48', cy, 0, 0.8, i), 1210); })();
+const GRASS_GEO = (() => { const L = []; for (let k = 0; k < 18; k++) { const a = k / 18 * 6.28 + hash(k, 1400) * 0.5, h = 0.55 + hash(k, 1401) * 0.5, q = new T.ConeGeometry(0.075, h, 4); q.translate(0, h / 2, 0); q.rotateZ(0.18 + hash(k, 1402) * 0.25); q.rotateY(a); q.translate(Math.cos(a) * 0.1, 0, -Math.sin(a) * 0.1); L.push(q); }
+  return fac(mergeGeos(L), (cx, cy, cz, i) => cy > 0.7 ? tone('#f0dc7a', i, 0.4) : leafY('#b9cf58', cy, 0, 0.9, i, 0.5), 1405); })();
+const CLAY_GEO = (() => { const g = ico(0.5, 1, 1410, 0.06); g.scale(1.0, 0.62, 0.9); g.translate(0, 0.16, 0); return fac(g, (cx, cy, cz, i) => cy > 0.42 ? tone('#c47a52', i, 0.5) : shadeY('#9c5534', cy, -0.1, 0.45, i, 0.6), 1410); })();
+const BOULDER_GEO = (() => { const g = ico(0.95, 1, 1420, 0.14); g.scale(1.05, 0.8, 0.95); g.translate(0, 0.55, 0); return fac(g, (cx, cy, cz, i) => cy > 1.0 && hash(i, 3) > 0.35 ? tone('#7f9e5a', i, 0.5) : shadeY('#8e979f', cy, 0, 1.3, i, 0.6), 1420); })();
 const BERRY_GEO = new T.SphereGeometry(0.075, 8, 6);
 const berryMat = new T.MeshStandardMaterial({ color: '#d6406a', roughness: 0.4 });
 function makeNode(kind, x, z, seed) {
@@ -89,7 +107,8 @@ function makeNode(kind, x, z, seed) {
   const n = { kind, x, z, g, st: 'ready', hp: HITS[kind], t: 0, grow: 1, shake: 0, fall: 0, pop: 0, seed };
   if (kind === 'tree') { n.main = tree(hash(seed, 2) > 0.7 ? 'pine' : 'tree', seed); n.main.scale.setScalar(1.05 + hash(seed, 9) * 0.25); n.full = n.main.scale.x; g.add(n.main);
     n.stump = new T.Mesh(STUMP_GEO, MAT); n.stump.castShadow = true; n.stump.receiveShadow = true; n.stump.visible = false; g.add(n.stump); }
-  else if (kind === 'rock') { n.main = new T.Mesh(ROCK_GEO, MAT); n.main.castShadow = true; n.main.receiveShadow = true; n.full = 0.9 + hash(seed, 4) * 0.25; n.main.scale.setScalar(n.full); g.add(n.main); }
+  else if (kind === 'rock' || kind === 'boulder' || kind === 'clay' || kind === 'grass') { n.main = new T.Mesh(kind === 'rock' ? ROCK_GEO : kind === 'boulder' ? BOULDER_GEO : kind === 'clay' ? CLAY_GEO : GRASS_GEO, MAT); n.main.castShadow = kind !== 'clay'; n.main.receiveShadow = true;
+    n.full = kind === 'grass' ? 0.9 + hash(seed, 4) * 0.3 : 0.9 + hash(seed, 4) * 0.25; n.main.scale.setScalar(n.full); g.add(n.main); }
   else { n.main = new T.Mesh(BUSH_GEO, MAT); n.main.castShadow = true; n.main.receiveShadow = true; n.full = 1; g.add(n.main); n.berries = new T.Group(); g.add(n.berries);
     for (let k = 0; k < 7; k++) { const a = k / 7 * 6.28 + hash(seed, k), r = 0.32 + hash(k, seed) * 0.1, b = new T.Mesh(BERRY_GEO, berryMat); b.position.set(Math.cos(a) * r, 0.3 + hash(seed, k + 5) * 0.32, Math.sin(a) * r); n.berries.add(b); } }
   nodes.push(n); return n;
@@ -104,6 +123,45 @@ function isleFill(i, j, n, fresh) {
     if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); } });
   const tool = n != null ? CHEST_AT[n] : null;
   if (tool && !state.isle.chests[gIdx(i, j)]) makeChest(i * GS + SLOTS[4][0], j * GS + SLOTS[4][1], tool, gIdx(i, j));
+}
+/* ---- the islands out at sea: each its own layout. Things are placed in patches (a wavy pattern picks what grows where),
+   so the Meadow has an orchard, grass fields and berry thickets, and Stone island has boulder fields and clay pits. ---- */
+const LAYOUT = {
+  meadow: (x, z, h) => { const n = Math.sin(x * 0.42 + 1.3) + Math.cos(z * 0.37 - 0.4); return n > 0.95 ? (h > 0.35 ? 'tree' : null) : n < -0.9 ? (h > 0.4 ? 'bush' : null) : h > 0.45 ? 'grass' : null; },
+  stone: (x, z, h) => { const n = Math.sin(x * 0.55 - 0.7) + Math.cos(z * 0.5 + 0.9); return n > 0.8 ? (h > 0.45 ? 'boulder' : null) : n < -0.8 ? (h > 0.35 ? 'clay' : null) : h > 0.75 ? 'tree' : h > 0.5 ? 'rock' : null; }
+};
+function isleFillIsle(s, ext) {
+  const parts = ext ? ext.parts : s.parts, ends = [s.ends].concat(ISLES.filter((o) => o.ends && o !== s && o.bridge && Math.hypot(o.bridge.a[0] - s.parts[0][0], o.bridge.a[1] - s.parts[0][1]) < 30).map((o) => o.ends)).filter(Boolean);
+  let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; parts.forEach((p) => { x0 = Math.min(x0, p[0] - p[2]); x1 = Math.max(x1, p[0] + p[2]); z0 = Math.min(z0, p[1] - p[2]); z1 = Math.max(z1, p[1] + p[2]); });
+  const SP = 2.1, base = ISLES.indexOf(s) * 5000 + (ext ? 2500 : 0); let c = 0;
+  for (let gx = x0; gx <= x1; gx += SP) for (let gz = z0; gz <= z1; gz += SP) {
+    const sd = base + Math.round(gx * 13 + gz * 7.7) * 31 + c++, x = gx + (hash(sd, 1) - 0.5) * SP * 0.8, z = gz + (hash(sd, 2) - 0.5) * SP * 0.8;
+    if (isleSdf(s, x, z) > -1.0) continue;
+    if (ext && !parts.some((p) => Math.hypot(x - p[0], z - p[1]) < p[2])) continue;
+    if (!ext && s.ext.some((e) => e.parts.some((p) => Math.hypot(x - p[0], z - p[1]) < p[2] + 0.5))) continue;
+    if (s.holes.some((h) => Math.hypot(x - h[0], z - h[1]) < h[2] + 1.3)) continue;
+    if (ISLES.some((o) => { const e = bridgeEnds0(o); return e && (Math.hypot(x - e.x0, z - e.z0) < 2.6 || Math.hypot(x - e.x1, z - e.z1) < 2.6); })) continue;
+    const k = LAYOUT[s.id](x, z, hash(sd, 3)); if (!k) continue;
+    const nd = makeNode(k, x, z, sd); if (ext) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); }
+  }
+  if (!ext) isleDecor(s);
+}
+/* a bridge's ends without needing the land it starts from to be there yet (for keeping its landing clear) */
+function bridgeEnds0(o) { if (o.ends) return o.ends; const [ax, az] = o.bridge.a, [bx, bz] = o.bridge.b, L = Math.hypot(bx - ax, bz - az); let k = L; for (let q = 0; q <= L; q += 0.2) if (isleSdf(o, ax + (bx - ax) / L * q, az + (bz - az) / L * q) < 0) { k = q; break; } return { x0: ax, z0: az, x1: ax + (bx - ax) / L * k, z1: az + (bz - az) / L * k }; }
+/* little things that make each island look like itself (one mesh each, nothing to gather): flowers and lily pads on the Meadow,
+   pebbles on Stone island */
+function isleDecor(s) {
+  const L = [];
+  if (s.id === 'meadow') {
+    const COLS = ['#ffffff', '#f6d24a', '#f29ab8', '#b89cf0'];
+    for (let k = 0; k < 260; k++) { const x = -13 + hash(k, 61) * 28, z = -44 + hash(k, 62) * 25; if (isleSdf(s, x, z) > -0.6 || nodes.some((n) => Math.abs(n.x - x) < 0.5 && Math.abs(n.z - z) < 0.5)) continue;
+      const q = ico(0.07, 0, 1900 + k); q.translate(x, 0.1, z); L.push(fac(q, COLS[k % 4], 1900 + k)); const st = new T.CylinderGeometry(0.012, 0.012, 0.1, 3); st.translate(x, 0.05, z); L.push(fac(st, '#5d8a3a', 1950)); }
+    s.holes.forEach((h, hi) => { for (let k = 0; k < 6; k++) { const a = k / 6 * 6.28 + hi, r = h[2] * (0.35 + hash(k, 71) * 0.35), q = new T.CylinderGeometry(0.22 + hash(k, 72) * 0.1, 0.22, 0.02, 10, 1, false, 0.4, 5.6); q.translate(h[0] + Math.cos(a) * r, -0.42, h[1] + Math.sin(a) * r); L.push(fac(q, '#5e9e48', 1980 + k)); }
+      const fl = ico(0.08, 0, 1990); fl.translate(h[0] + 0.5, -0.36, h[1] - 0.3); L.push(fac(fl, '#f29ab8', 1990)); });
+  } else if (s.id === 'stone') {
+    for (let k = 0; k < 160; k++) { const x = -34 + hash(k, 81) * 18, z = -45 + hash(k, 82) * 21; if (isleSdf(s, x, z) > -0.4) continue; const r = 0.05 + hash(k, 83) * 0.09, q = ico(r, 0, 2000 + k); q.scale(1.2, 0.6, 1); q.translate(x, r * 0.3, z); L.push(fac(q, tone('#a9b2bb', k, 0.7), 2000 + k)); }
+  }
+  if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; }
 }
 /* the camp in the middle square: a campfire and a little tent */
 const campFlame = (() => {
@@ -152,55 +210,113 @@ const ghostTex = (() => { const c = document.createElement('canvas'); c.width = 
 const ghostGeo = (() => { const g = new T.PlaneGeometry(GS - 0.5, GS - 0.5, 8, 8); g.rotateX(-Math.PI / 2); return g; })();
 const POST_GEO = (() => { const q = new T.BoxGeometry(0.12, 1.0, 0.12); q.translate(0, 0.5, 0); return fac(q, PAL.trunk, 1500); })();
 const BOARD_GEO = (() => { const q = new T.BoxGeometry(0.7, 0.42, 0.08); q.translate(0, 0.98, 0); return fac(q, '#e7c48f', 1501); })();
-const signCost = () => priceOf(state.isle.k);
-function signPaid(s) { return state.isle.paid[s.idx] || (state.isle.paid[s.idx] = { log: 0, stone: 0, berry: 0 }); }
+/* a sign's price: a home square costs by how many squares are bought; a bridge or a bonus piece has its own price */
+const signCost = (s) => (s && s.cost ? s.cost : priceOf(state.isle.k));
+const costKinds = (s) => KINDS.filter((t) => signCost(s)[t] > 0);
+function signPaid(s) { return state.isle.paid[s.key] || (state.isle.paid[s.key] = {}); }
+const paidN = (s, t) => signPaid(s)[t] || 0;
 function drawSign(s) {
-  const cost = signCost(), paid = signPaid(s), rows = ['log', 'stone', 'berry'].filter((t) => cost[t] > 0), W = 256, H = rows.length * 54 + 26;
+  const cost = signCost(s), rows = costKinds(s), W = 256, H = rows.length * 54 + 26;
   if (!s.cv || s.cv.height !== H) { s.cv = document.createElement('canvas'); s.cv.width = W; s.cv.height = H; if (s.tex) s.tex.dispose(); s.tex = new T.CanvasTexture(s.cv); s.sp.material.map = s.tex; }
   const x = s.cv.getContext('2d'); x.clearRect(0, 0, W, H); paperBox(x, W, H);
-  rows.forEach((t, r) => { const n = cost[t], got = Math.min(n, paid[t]), y = 38 + r * 54;
+  rows.forEach((t, r) => { const n = cost[t], got = Math.min(n, paidN(s, t)), y = 38 + r * 54;
     if (n <= 6) for (let k = 0; k < n; k++) { x.globalAlpha = k < got ? 1 : 0.35; isleIcon(x, t, 36 + k * 37, y, 0.85); x.globalAlpha = 1; }
     else { isleIcon(x, t, 36, y, 0.9); x.beginPath(); x.roundRect(66, y - 11, 166, 22, 11); x.fillStyle = '#e6d9c0'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#6e4426'; x.stroke();
       if (got) { x.beginPath(); x.roundRect(68, y - 9, 162 * got / n, 18, 9); x.fillStyle = '#74a857'; x.fill(); } } });
-  s.tex.needsUpdate = true; s.sp.scale.set(2.6, 2.6 * H / W, 1);
+  s.tex.needsUpdate = true; const big = s.kind === 'sq' ? 2.6 : 3.1; s.sp.scale.set(big, big * H / W, 1);
 }
-function isleSigns() {
+/* the ghost of what a sign will make: a dashed square, a dashed bridge, or a dashed round piece of island */
+const ghostRound = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+  x.fillStyle = 'rgba(236,211,160,0.35)'; x.beginPath(); x.arc(64, 64, 56, 0, 7); x.fill(); x.setLineDash([12, 9]); x.lineWidth = 5; x.strokeStyle = 'rgba(255,246,228,0.95)'; x.stroke();
+  return new T.CanvasTexture(c); })();
+function signMake(o) {
+  const g = new T.Group(); g.position.set(o.x, 0, o.z); sc.add(g); part(POST_GEO, g); part(BOARD_GEO, g);
+  if (o.kind !== 'sq') { g.scale.setScalar(1.3); } /* bridges and bonus pieces get a bigger sign */
+  const sp = isleSprite(null, 1); sp.position.y = 2.2; g.add(sp);
+  const ring = new T.Mesh(new T.RingGeometry(0.55, 0.7, 28), ringMat); ring.rotation.x = -Math.PI / 2; ring.position.set(o.x, 0.035, o.z); sc.add(ring);
+  const ghost = new T.Mesh(o.ghostGeo, new T.MeshBasicMaterial({ map: o.ghostTex, transparent: true, depthWrite: false })); ghost.position.set(o.gx, o.gy == null ? -0.3 : o.gy, o.gz); if (o.gr) ghost.rotation.y = o.gr; sc.add(ghost);
+  const sg = Object.assign(o, { g, sp, ring, ghost, fly: {}, bump: 0, seed: signs.length * 1.7 }); signs.push(sg); return sg;
+}
+/* which signs there should be: every sea square of home that touches land, a bridge sign once its bridge may be built,
+   and a bonus sign on an island that has a bonus piece */
+function signWants() {
   const want = new Map();
   for (let i = -GN; i <= GN; i++) for (let j = -GN; j <= GN; j++) {
-    if (owned(i, j) || (rising && rising.i === i && rising.j === j)) continue;
+    if (owned(i, j) || (rising && rising.sq === gIdx(i, j))) continue;
     const d = DIRS.slice().sort((a, b) => (Math.abs(i - a[0]) + Math.abs(j - a[1])) - (Math.abs(i - b[0]) + Math.abs(j - b[1]))).find(([a, b]) => owned(i - a, j - b));
-    if (d) want.set(gIdx(i, j), [i, j, d]);
+    if (d) want.set('q' + gIdx(i, j), { kind: 'sq', i, j, d });
   }
-  for (let k = signs.length - 1; k >= 0; k--) { const s = signs[k]; if (!want.has(s.idx)) { [s.g, s.ring, s.ghost].forEach((m) => sc.remove(m)); signs.splice(k, 1); } else want.delete(s.idx); }
-  want.forEach(([i, j, [a, b]], idx) => {
-    const ni = i - a, nj = j - b, x = ni * GS + a * (GS / 2 - 0.85), z = nj * GS + b * (GS / 2 - 0.85);
-    const g = new T.Group(); g.position.set(x, 0, z); sc.add(g); part(POST_GEO, g); part(BOARD_GEO, g);
-    const sp = isleSprite(null, 1); sp.position.y = 2.2; g.add(sp);
-    const ring = new T.Mesh(new T.RingGeometry(0.55, 0.7, 28), ringMat); ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.035, z); sc.add(ring);
-    const ghost = new T.Mesh(ghostGeo, new T.MeshBasicMaterial({ map: ghostTex, transparent: true, depthWrite: false })); ghost.position.set(i * GS, -0.3, j * GS); sc.add(ghost);
-    signs.push({ idx, i, j, x, z, g, sp, ring, ghost, fly: { log: 0, stone: 0, berry: 0 }, bump: 0 });
+  ISLES.forEach((s) => {
+    if (!OPEN[s.id] && !(building && building.s === s) && s.bridge.need()) want.set('b:' + s.id, { kind: 'bridge', s });
+    if (OPEN[s.id]) s.ext.forEach((e) => { const k = s.id + ':' + e.id; if (!EXT[k] && !(rising && rising.ext === k)) want.set('x:' + k, { kind: 'ext', s, e }); });
+  });
+  return want;
+}
+function isleSigns() {
+  const want = signWants();
+  for (let k = signs.length - 1; k >= 0; k--) { const s = signs[k]; if (!want.has(s.key)) { [s.g, s.ring, s.ghost].forEach((m) => sc.remove(m)); signs.splice(k, 1); } else want.delete(s.key); }
+  want.forEach((w, key) => {
+    if (w.kind === 'sq') { const [a, b] = w.d, ni = w.i - a, nj = w.j - b;
+      signMake({ key, kind: 'sq', i: w.i, j: w.j, x: ni * GS + a * (GS / 2 - 0.85), z: nj * GS + b * (GS / 2 - 0.85), ghostGeo, ghostTex, gx: w.i * GS, gz: w.j * GS }); }
+    else if (w.kind === 'bridge') { const e = bridgeEnds(w.s), px = -e.uz, pz = e.ux, L = e.L, q = new T.PlaneGeometry(1.7, L, 2, 8); q.rotateX(-Math.PI / 2);
+      signMake({ key, kind: 'bridge', s: w.s, cost: w.s.bridge.cost, x: e.x0 - e.ux * 0.7 + px * 1.5, z: e.z0 - e.uz * 0.7 + pz * 1.5, ghostGeo: q, ghostTex, gx: (e.x0 + e.x1) / 2, gz: (e.z0 + e.z1) / 2, gy: -0.15, gr: Math.atan2(e.ux, e.uz) }); }
+    else { const p = w.e.parts[0], c = w.s.parts.reduce((m, q) => (Math.hypot(q[0] - p[0], q[1] - p[1]) < Math.hypot(m[0] - p[0], m[1] - p[1]) ? q : m)), L = Math.hypot(p[0] - c[0], p[1] - c[1]), ux = (c[0] - p[0]) / L, uz = (c[1] - p[1]) / L;
+      let k = 0; for (; k < L; k += 0.1) if (isleSdf(w.s, p[0] + ux * k, p[1] + uz * k) < -1.1) break;
+      const q = new T.PlaneGeometry(p[2] * 2, p[2] * 2); q.rotateX(-Math.PI / 2);
+      signMake({ key, kind: 'ext', s: w.s, e: w.e, cost: w.e.cost, x: p[0] + ux * k, z: p[1] + uz * k, ghostGeo: q, ghostTex: ghostRound, gx: p[0], gz: p[1] }); }
   });
   signs.forEach(drawSign);
 }
-function signNeed(s, t) { return signCost()[t] - signPaid(s)[t] - s.fly[t]; }
-function signFull(s) { const c = signCost(), p = signPaid(s); return ['log', 'stone', 'berry'].every((t) => p[t] >= c[t]); }
+function signNeed(s, t) { return (signCost(s)[t] || 0) - paidN(s, t) - (s.fly[t] || 0); }
+function signFull(s) { const c = signCost(s); return KINDS.every((t) => paidN(s, t) >= (c[t] || 0)); }
 function signStep(s, dt) {
-  s.bump = Math.max(0, s.bump - dt * 4); s.sp.position.y = 2.2 + (reduced ? 0 : Math.sin(time * 2 + s.idx) * 0.04) + s.bump * 0.15;
-  s.ghost.material.opacity = 0.55 + (reduced ? 0 : Math.sin(time * 2.4 + s.idx) * 0.25);
-  if (rising || giveT > 0 || Math.hypot(pip.position.x - s.x, pip.position.z - s.z) > 0.85) return;
-  let t = ['log', 'stone', 'berry'].find((q) => carry.count(q) && signNeed(s, q) > 0), m;
-  if (t) m = carry.take(t);
-  else { t = ['log', 'stone', 'berry'].find((q) => storeN(q) > 0 && signNeed(s, q) > 0); if (!t) return;
-    /* from the storage crate: the piece appears over Pip's head and flies on to the sign */
-    state.isle.store[t]--; m = itemModel(t); m.position.set(pip.position.x, 1.9, pip.position.z); sc.add(m); }
-  giveT = 0.13; s.fly[t]++; invDirty = true;
-  fly(m, () => s.g.localToWorld(tmpV.set(0, 2.1, 0)), () => { sc.remove(m); s.fly[t]--; signPaid(s)[t]++; s.bump = 1; drawSign(s); Snd.play('tock', { gain: 0.4, f: 500 + signPaid(s)[t] * 40 });
-    if (signFull(s) && !rising) isleBuy(s); }, 0.3);
+  s.bump = Math.max(0, s.bump - dt * 4); s.sp.position.y = 2.2 + (reduced ? 0 : Math.sin(time * 2 + s.seed) * 0.04) + s.bump * 0.15;
+  s.ghost.material.opacity = 0.55 + (reduced ? 0 : Math.sin(time * 2.4 + s.seed) * 0.25);
+  if (rising || building || giveT > 0 || Math.hypot(pip.position.x - s.x, pip.position.z - s.z) > 0.85) return;
+  const t = KINDS.find((q) => storeN(q) > 0 && signNeed(s, q) > 0); if (!t) return;
+  /* from the counter: the piece appears over Pip's head and flies on to the sign */
+  state.isle.store[t]--; invWig(t); const m = itemModel(t); m.position.set(pip.position.x, 1.9, pip.position.z); sc.add(m);
+  giveT = s.kind === 'sq' ? 0.13 : 0.08; s.fly[t] = (s.fly[t] || 0) + 1;
+  fly(m, () => s.g.localToWorld(tmpV.set(0, 2.1, 0)), () => { sc.remove(m); s.fly[t]--; signPaid(s)[t] = paidN(s, t) + 1; s.bump = 1; drawSign(s); Snd.play('tock', { gain: 0.4, f: 500 + (paidN(s, t) % 12) * 40 });
+    if (signFull(s) && !rising && !building && signs.includes(s)) isleBuy(s); }, 0.3);
 }
 function isleBuy(s) {
-  const n = state.isle.k; state.isle.k++; state.isle.got[s.idx] = n; delete state.isle.paid[s.idx];
-  [s.g, s.ring, s.ghost].forEach((m) => sc.remove(m)); signs.splice(signs.indexOf(s), 1);
-  isleRise(s.i, s.j); signs.forEach(drawSign); save();
+  delete state.isle.paid[s.key]; [s.g, s.ring, s.ghost].forEach((m) => sc.remove(m)); signs.splice(signs.indexOf(s), 1);
+  if (s.kind === 'sq') { const n = state.isle.k; state.isle.k++; state.isle.got[gIdx(s.i, s.j)] = n; isleRise(s.i, s.j); rising.sq = gIdx(s.i, s.j); }
+  else if (s.kind === 'bridge') bridgeBuild(s.s, false);
+  else { const k = s.s.id + ':' + s.e.id; EXT[k] = 1; state.isle.ext[k] = 1; const p = s.e.parts[0]; riseArea(p[0], p[1], p[2] + 2.4, p[2] + 2.4, () => isleFillIsle(s.s, s.e)); rising.ext = k; }
+  signs.forEach(drawSign); save();
+}
+
+/* ---- bridges: planks laid one by one from the shore to the next island ---- */
+let building = null;
+const PLANK_GEO = (() => { const q = new T.BoxGeometry(1.7, 0.08, 0.38); return fac(q, (cx, cy, cz, i) => tone('#b98a5a', i, 0.7), 1800); })();
+const RAIL_GEO = (() => { const q = new T.BoxGeometry(0.08, 0.08, 1); return fac(q, '#8a6a4e', 1801); })();
+const BPOST_GEO = (() => { const q = new T.CylinderGeometry(0.09, 0.1, 1.5, 7); q.translate(0, -0.35, 0); return fac(q, PAL.trunk, 1802); })();
+function bridgeMesh(s) {
+  const e = bridgeEnds(s), g = new T.Group(); g.position.set(e.x0, 0, e.z0); g.rotation.y = Math.atan2(e.ux, e.uz); sc.add(g);
+  const n = Math.ceil(e.L / 0.42), planks = [];
+  for (let k = 0; k < n; k++) { const m = new T.Mesh(PLANK_GEO, MAT); m.position.set((hash(k, 3) - 0.5) * 0.06, 0.04, 0.21 + k * 0.42); m.rotation.y = (hash(k, 4) - 0.5) * 0.05; m.receiveShadow = true; m.castShadow = true; g.add(m); planks.push(m); }
+  const rails = new T.Group(); g.add(rails);
+  for (let k = 0; k <= Math.floor(e.L / 1.6); k++) { const z = Math.min(e.L - 0.2, 0.2 + k * 1.6), y = 0.04; [-0.85, 0.85].forEach((x) => { const p = new T.Mesh(BPOST_GEO, MAT); p.position.set(x, y + 0.55, z); p.castShadow = true; rails.add(p); }); }
+  [-0.85, 0.85].forEach((x) => { const r = new T.Mesh(RAIL_GEO, MAT); r.scale.z = e.L; r.position.set(x, 0.62 + 0.12, e.L / 2); rails.add(r); });
+  return { g, planks, rails };
+}
+function bridgeBuild(s, now) {
+  const b = bridgeMesh(s);
+  if (now) { OPEN[s.id] = 1; return; }
+  b.planks.forEach((m) => { m.visible = false; }); b.rails.visible = false;
+  building = { s, b, t: 0, k: 0 }; Snd.play('whoosh', { gain: 0.4 });
+}
+function bridgeStep(dt) {
+  const B = building; if (!B) return;
+  B.t += dt; const n = B.b.planks.length, want = Math.min(n, Math.floor(B.t / 0.09));
+  for (; B.k < want; B.k++) { const m = B.b.planks[B.k]; m.visible = true; m.scale.setScalar(0.01); m.userData.p = 0.001; const w = B.b.g.localToWorld(tmpV.copy(m.position)); if (B.k % 2 === 0) { splash(w.x, -0.2, w.z, 3); Snd.play('tock', { gain: 0.3, f: 300 + B.k * 9 }); } }
+  B.b.planks.forEach((m) => { if (m.userData.p > 0 && m.userData.p < 1) { m.userData.p = Math.min(1, m.userData.p + dt * 5); m.scale.setScalar(m.userData.p < 0.7 ? m.userData.p / 0.7 * 1.15 : 1.15 - (m.userData.p - 0.7) / 0.3 * 0.15); } });
+  if (B.k >= n && B.t > n * 0.09 + 0.4) {
+    B.b.rails.visible = true; building = null; OPEN[B.s.id] = 1; state.isle.open[B.s.id] = 1;
+    const e = bridgeEnds(B.s); pop([e.x1, e.z1]); Snd.play('success', { gain: 0.5 }); Snd.play('sparkle', { gain: 0.4 }); isleSigns(); save();
+  }
 }
 
 /* ---- drops: chunks that pop out and wait to be picked up ---- */
@@ -211,11 +327,11 @@ function dropOut(n) {
     if (VALUABLE[t]) { Snd.play('sparkle', { gain: 0.45 }); burst(n.x, 1.0, n.z, 5); } });
 }
 /* treasure: now and then something valuable pops out too. Valuables go in the backpack; building things go straight to the counter. */
-const TREASURE = { tree: ['coin', 0.06], rock: ['gem', 0.15], bush: ['coin', 0.06] };
+const TREASURE = { tree: ['coin', 0.06], rock: ['gem', 0.15], bush: ['coin', 0.06], grass: ['coin', 0.04], clay: ['gem', 0.1], boulder: ['gem', 0.3] };
 const VALUABLE = { gem: 1, coin: 1 };
 function dropStep(d, dt) {
   if (d.land === 0) { d.vy -= 14 * dt; d.m.position.x += d.vx * dt; d.m.position.z += d.vz * dt; d.m.position.y += d.vy * dt; d.m.rotation.y += dt * 6;
-    if (d.m.position.y <= 0.06) { d.m.position.y = 0.06; d.land = 1; const v = tmpV.set(d.m.position.x, 0, d.m.position.z); gClamp(v); d.m.position.x = v.x; d.m.position.z = v.z; } return false; }
+    if (d.m.position.y <= 0.06) { d.m.position.y = 0.06; d.land = 1; const v = tmpV.set(d.m.position.x, 0, d.m.position.z); wClamp(v); d.m.position.x = v.x; d.m.position.z = v.z; } return false; }
   d.wait -= dt; d.m.position.y = 0.06 + (reduced ? 0 : Math.abs(Math.sin(time * 3 + d.vx)) * 0.06);
   if (d.wait > 0 || Math.hypot(pip.position.x - d.m.position.x, pip.position.z - d.m.position.z) > 2.2) return false;
   const m = d.m;
@@ -236,30 +352,30 @@ function nodeStep(n, dt) {
     if (n.fall > 1.4) { n.st = 'gone'; n.main.visible = false; n.main.rotation.z = 0; n.main.position.y = 0; } return; }
   if (n.st === 'gone') { n.t -= dt; if (n.t <= 0) { n.st = 'grow'; n.grow = 0.2; n.main.visible = true;
       if (n.kind === 'tree') { n.stump.visible = false; } if (n.kind === 'bush') n.berries.visible = true; } }
-  if (n.st === 'grow') { const tg = REGROW[n.kind][1]; n.grow = tg ? Math.min(1, n.grow + dt / tg) : 1; n.main.scale.setScalar(n.full * (n.kind === 'rock' ? 0.35 + 0.65 * n.grow : n.grow));
+  if (n.st === 'grow') { const tg = REGROW[n.kind][1], lo = LOW[n.kind]; n.grow = tg ? Math.min(1, n.grow + dt / tg) : 1; n.main.scale.setScalar(n.full * (lo ? lo + (1 - lo) * n.grow : n.grow));
     if (n.kind === 'bush') { n.main.scale.setScalar(1); n.berries.children.forEach((b, k) => { b.scale.setScalar(Math.min(1, n.grow * 1.3)); }); }
     if (n.grow >= 1) { n.st = 'ready'; n.hp = HITS[n.kind]; } }
 }
 function nodeHit(n) {
   n.hp--; n.shake = 0.28; hpShow(n);
   const sx = n.x + (pip.position.x - n.x) * 0.4, sz = n.z + (pip.position.z - n.z) * 0.4;
-  if (n.kind === 'tree') Snd.play('tock', { gain: 0.55, f: 240 + Math.random() * 40 }); else if (n.kind === 'rock') Snd.play('impact', { gain: 0.35 }); else Snd.play('swish', { gain: 0.4 });
-  if (n.kind !== 'bush') splash(sx, 0.6, sz, 3);
+  if (n.kind === 'tree') Snd.play('tock', { gain: 0.55, f: 240 + Math.random() * 40 }); else if (PICKY[n.kind]) Snd.play(n.kind === 'clay' ? 'stamp' : 'impact', { gain: 0.35 }); else Snd.play('swish', { gain: 0.4 });
+  if (n.kind !== 'bush' && n.kind !== 'grass') splash(sx, 0.6, sz, 3);
   if (n.hp > 0) return;
   dropOut(n); n.t = REGROW[n.kind][0];
   if (n.kind === 'tree') { n.st = 'fall'; n.fall = 0; n.stump.visible = true; Snd.play('thud', { gain: 0.5 }); }
-  else if (n.kind === 'rock') { n.st = 'gone'; n.main.scale.setScalar(n.full * 0.35); Snd.play('stamp', { gain: 0.4 }); }
+  else if (LOW[n.kind]) { n.st = 'gone'; n.main.scale.setScalar(n.full * LOW[n.kind]); Snd.play(n.kind === 'grass' ? 'swish' : 'stamp', { gain: 0.4 }); }
   else { n.st = 'gone'; n.berries.visible = false; }
 }
-function canWork(n) { return n.st === 'ready' && n.pop >= 0 && (n.pop === 0 || n.pop >= 1) && (n.kind !== 'rock' || state.isle.tools.pick); }
+function canWork(n) { return n.st === 'ready' && n.pop >= 0 && (n.pop === 0 || n.pop >= 1) && (!PICKY[n.kind] || state.isle.tools.pick); }
 
 /* ---- the island's part of every frame ---- */
 function isleStep(dt) {
   const px = pip.position.x, pz = pip.position.z;
-  isleRiseStep(dt);
+  isleRiseStep(dt); bridgeStep(dt); isleBoxStep();
   /* keep Pip and the touch point on land, and out of trees and rocks */
-  const v = tmpV.set(px, 0, pz); gClamp(v); pip.position.x = v.x; pip.position.z = v.z;
-  nodes.forEach((n) => { const r = n.kind === 'tree' ? NODE_R.tree : n.st === 'ready' || n.st === 'grow' ? NODE_R[n.kind] * (n.kind === 'bush' ? 1 : n.main.scale.x / n.full) : 0.2;
+  const v = tmpV.set(px, 0, pz); wClamp(v); pip.position.x = v.x; pip.position.z = v.z;
+  nodes.forEach((n) => { if (Math.abs(n.x - pip.position.x) > 3 || Math.abs(n.z - pip.position.z) > 3) return; const r = n.kind === 'tree' ? NODE_R.tree : n.kind === 'grass' ? 0.2 : n.st === 'ready' || n.st === 'grow' ? NODE_R[n.kind] * (n.kind === 'bush' ? 1 : n.main.scale.x / n.full) : 0.2;
     const dx = pip.position.x - n.x, dz = pip.position.z - n.z, d = Math.hypot(dx, dz); if (d < r && d > 1e-4) { pip.position.x = n.x + dx / d * r; pip.position.z = n.z + dz / d * r; }
     const tx = target.x - n.x, tz = target.z - n.z, td = Math.hypot(tx, tz); if (td < r) { const k = td > 1e-4 ? (r + 0.05) / td : 0; target.x = n.x + (k ? tx * k : r + 0.05); target.z = n.z + (k ? tz * k : 0); } });
   chests.forEach((c) => { if (c.gone) return; const dx = pip.position.x - c.x, dz = pip.position.z - c.z, d = Math.hypot(dx, dz); if (d < 0.5 && d > 1e-4) { pip.position.x = c.x + dx / d * 0.5; pip.position.z = c.z + dz / d * 0.5; } });
@@ -267,10 +383,10 @@ function isleStep(dt) {
   hitT -= dt; giveT -= dt; pickHintT -= dt;
   let best = null, bd = 9;
   nodes.forEach((n) => { if (n.st !== 'ready') return; const d = Math.hypot(pip.position.x - n.x, pip.position.z - n.z) - NODE_R[n.kind]; if (d < 0.75 && d < bd) { bd = d; best = n; } });
-  if (best && best.kind === 'rock' && !state.isle.tools.pick) {
+  if (best && PICKY[best.kind] && !state.isle.tools.pick) {
     if (pickHintT <= 0) { pickHintT = 2.5; isleHint(best); }
   } else if (best && canWork(best) && hitT <= 0) {
-    hitT = best.kind === 'bush' ? 0.5 : 0.55; workStart(best);
+    hitT = best.kind === 'bush' || best.kind === 'grass' ? 0.5 : 0.55; workStart(best);
   }
   workStep(dt);
   nodes.forEach((n) => nodeStep(n, dt));
@@ -281,6 +397,10 @@ function isleStep(dt) {
   if (hintSp.visible) { hintSp.t -= dt; hintSp.material.opacity = Math.min(1, hintSp.t * 2); if (hintSp.t <= 0) hintSp.visible = false; }
   const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1);
 }
+/* the pets keep inside the box of the land Pip is on: home, or an island once Pip is there */
+const HOME_BOX = ISLAND.box, ISLE_BOX = {};
+ISLES.forEach((s) => { const b = { x0: 1e9, x1: -1e9, z0: 1e9, z1: -1e9 }; s.parts.forEach((p) => { b.x0 = Math.min(b.x0, p[0] - p[2] * 0.6); b.x1 = Math.max(b.x1, p[0] + p[2] * 0.6); b.z0 = Math.min(b.z0, p[1] - p[2] * 0.6); b.z1 = Math.max(b.z1, p[1] + p[2] * 0.6); }); ISLE_BOX[s.id] = b; });
+function isleBoxStep() { const x = pip.position.x, z = pip.position.z; if (gSdf(x, z) < -0.5) { ISLAND.box = HOME_BOX; return; } for (const s of ISLES) if (OPEN[s.id] && isleSdf(s, x, z) < -0.5) { ISLAND.box = ISLE_BOX[s.id]; return; } }
 /* a picture over a rock that needs the pickaxe */
 const hintSp = isleSprite(isleBubble('pick'), 0.8); hintSp.visible = false; sc.add(hintSp);
 function isleHint(n) { hintSp.position.set(n.x, 1.6, n.z); hintSp.visible = true; hintSp.t = 1.8; Snd.play('blip', { gain: 0.2, f: 420 }); }
@@ -292,8 +412,8 @@ function isleGoal() {
   if (rising || hpBar.sp.visible) return null; /* no arrow over the thing Pip is busy with */
   const full = carry.count() >= cap(), some = carry.count() > 0;
   /* a sign that what Pip has (backpack and crate together) can fill right now */
-  const can = by(signs, (o) => ['log', 'stone', 'berry'].every((t) => signNeed(o, t) <= carry.count(t) + storeN(t)));
-  if (can && (full || some)) return [can.x, can.z];
+  const can = by(signs, (o) => KINDS.every((t) => signNeed(o, t) <= storeN(t)));
+  if (can && (full || some || KINDS.some((t) => storeN(t) >= 3))) return [can.x, can.z];
   if (full) return [STORE.x, STORE.z + 0.95];
   if (state.isle.k === 0 && !some && !drops.length) { const n = by(nodes, (o) => o.kind === 'tree' && o.st === 'ready'); if (n) return [n.x, n.z + 0.7]; }
   return null;
@@ -302,10 +422,13 @@ function isleInit() {
   if (nodes.length) return;
   if (!state.isle) state.isle = fresh().isle;
   const I = state.isle; I.paid = I.paid || {}; I.chests = I.chests || {}; I.got = I.got || {}; I.tools = I.tools || { pick: 0, bag: 0 };
+  I.open = I.open || {}; I.ext = I.ext || {};
   for (let i = -GN; i <= GN; i++) for (let j = -GN; j <= GN; j++) if (owned(i, j)) {
-    const b = ISLAND.box; b.x0 = Math.min(b.x0, i * GS - GS / 2 + 0.6); b.x1 = Math.max(b.x1, i * GS + GS / 2 - 0.6); b.z0 = Math.min(b.z0, j * GS - GS / 2 + 0.6); b.z1 = Math.max(b.z1, j * GS + GS / 2 - 0.6);
+    const b = HOME_BOX; b.x0 = Math.min(b.x0, i * GS - GS / 2 + 0.6); b.x1 = Math.max(b.x1, i * GS + GS / 2 - 0.6); b.z0 = Math.min(b.z0, j * GS - GS / 2 + 0.6); b.z1 = Math.max(b.z1, j * GS + GS / 2 - 0.6);
     isleFill(i, j, Math.abs(i) <= 1 && Math.abs(j) <= 1 ? null : I.got[gIdx(i, j)], false);
   }
+  ISLES.forEach((s) => { if (OPEN[s.id]) { bridgeEnds(s); bridgeBuild(s, true); } }); /* in order, so each bridge's start is on land */
+  ISLES.forEach((s) => { isleFillIsle(s, null); s.ext.forEach((e) => { if (EXT[s.id + ':' + e.id]) isleFillIsle(s, e); }); });
   nodes.forEach((n) => { n.pop = 0; n.g.scale.setScalar(1); });
   chests.forEach((c) => { c.pop = 1; c.g.scale.setScalar(1); });
   I.store = I.store || { log: 0, stone: 0, berry: 0 }; invBuild();
@@ -317,7 +440,11 @@ function isleTest() {
   return { work: work ? [work.kind, +work.t.toFixed(2)] : null, arms: limbs.filter((l) => l.arm).map((l) => [+l.g.position.x.toFixed(2), +l.g.rotation.x.toFixed(2)]), tool: [TOOL.axe.visible, !!TOOL.axe.parent], store: Object.assign({}, state.isle.store), inv: INV.el ? INV.el.textContent : '', own: state.isle.own.length, k: state.isle.k, tools: state.isle.tools, signs: signs.length, nodes: nodes.map((n) => n.kind[0] + (n.st === 'ready' ? '' : '-')).join(''), drops: drops.length, rising: !!rising,
     give: (t, n) => { for (let q = 0; q < n && carry.count() < cap(); q++) carry.add(itemModel(t)); },
     signs: () => signs.map((s) => ({ i: s.i, j: s.j, x: s.x, z: s.z, paid: signPaid(s) })), price: () => signCost(),
-    nodesAt: () => nodes.map((n) => ({ kind: n.kind, x: n.x, z: n.z, st: n.st })) };
+    nodesAt: () => nodes.map((n) => ({ kind: n.kind, x: n.x, z: n.z, st: n.st })),
+    fill: (o) => { Object.keys(o).forEach((t) => { state.isle.store[t] = (state.isle.store[t] || 0) + o[t]; }); },
+    buyAll: () => { for (let i = -GN; i <= GN; i++) for (let j = -GN; j <= GN; j++) if (!owned(i, j)) { OWN[gIdx(i, j)] = 1; state.isle.own.push(gIdx(i, j)); } save(); },
+    tp: (x, z) => { pip.position.set(x, 0, z); target.set(x, 0, z); camFocus.set(x, 0, z); }, open: Object.assign({}, OPEN), ext: Object.assign({}, EXT), building: !!building,
+    walk: (x, z) => +walkSdf(x, z).toFixed(2), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
 }
 
 /* ---- the storage crate at the camp: a full backpack empties into it, and signs take from it too ---- */
@@ -367,7 +494,7 @@ function invBuild() {
     + '@keyframes invWig{0%{transform:none}25%{transform:rotate(-9deg) scale(1.16)}55%{transform:rotate(7deg) scale(1.08)}80%{transform:rotate(-3deg) scale(1.03)}100%{transform:none}}'
     + '.invfly{position:fixed;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;pointer-events:none;z-index:6;will-change:transform;filter:drop-shadow(0 3px 0 rgba(34,48,60,.25))}@media (max-width:520px){.inv img{width:30px;height:30px}.inv b{font-size:22px}.inv .it{padding:3px 10px 3px 4px}}';
   document.head.appendChild(st);
-  ['log', 'stone', 'berry', 'gem', 'coin'].forEach((t) => { const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), t, 32, 32, 1.25);
+  KINDS.concat(['gem', 'coin']).forEach((t) => { const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), t, 32, 32, 1.25);
     const it = document.createElement('div'); it.className = 'it'; INV['p' + t] = it; const img = document.createElement('img'); img.alt = ''; img.src = c.toDataURL(); INV['i' + t] = img.src; INV['m' + t] = img; const b = document.createElement('b'); b.textContent = '0';
     it.appendChild(img); it.appendChild(b); el.appendChild(it); INV[t] = b; });
   document.body.appendChild(el); INV.el = el;
@@ -392,13 +519,13 @@ function invFlyStep(dt) {
 function invWig(t) { const it = INV['p' + t]; if (!it) return; it.classList.remove('wig'); void it.offsetWidth; it.classList.add('wig'); }
 function invStep() {
   if (!INV.el) return;
-  const K = ['log', 'stone', 'berry', 'gem', 'coin'], v = K.map((t) => storeN(t) + carry.count(t)), key = v.join(',');
+  const K = KINDS.concat(['gem', 'coin']), v = K.map((t) => storeN(t) + carry.count(t) + invFlies.filter((f) => f.t === t).length * 0), key = v.join(',') + (state.isle.store.hay != null ? 'h' : '') + (state.isle.store.clay != null ? 'c' : '') + invFlies.map((f) => f.t[0]).join('');
   if (key === invLast) return; invLast = key;
-  K.forEach((t, k) => { if (VALUABLE[t]) INV['p' + t].style.display = v[k] ? '' : 'none'; const b = INV[t]; if (b.textContent !== String(v[k])) { b.textContent = v[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); } });
+  K.forEach((t, k) => { if (VALUABLE[t]) INV['p' + t].style.display = v[k] ? '' : 'none'; else if (t === 'hay' || t === 'clay') INV['p' + t].style.display = state.isle.store[t] != null || invFlies.some((f) => f.t === t) ? '' : 'none'; const b = INV[t]; if (b.textContent !== String(v[k])) { b.textContent = v[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); } });
 }
 
 /* ---- a health bar over the thing Pip is working on: it drains with each hit ---- */
-const HP_H = { tree: 2.55, rock: 1.25, bush: 1.2 };
+const HP_H = { tree: 2.55, rock: 1.25, bush: 1.2, grass: 1.25, clay: 0.95, boulder: 2.1 };
 const hpBar = (() => { const c = document.createElement('canvas'); c.width = 160; c.height = 40; const tex = new T.CanvasTexture(c);
   const sp = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false })); sp.scale.set(1.2, 0.3, 1); sp.renderOrder = 10; sp.visible = false; sc.add(sp);
   return { c, tex, sp, n: null, t: 0, shown: 1 }; })();
@@ -440,12 +567,12 @@ function workStep(dt) {
   if (arm) [TOOL.axe, TOOL.pick].forEach((t) => { if (t.parent !== arm.g) arm.g.add(t); });
   toolHold = Math.max(0, toolHold - dt);
   if (!work) { TOOL.axe.visible = TOOL.pick.visible = false; pb.rotation.x *= Math.max(0, 1 - dt * 8); return; }
-  const w = work, n = w.n, D = w.kind === 'bush' ? 0.48 : 0.5;
+  const w = work, n = w.n, D = w.kind === 'bush' || w.kind === 'grass' ? 0.48 : 0.5;
   w.t += dt / D; const u = Math.min(1, w.t);
   pip.rotation.y = Math.atan2(n.x - pip.position.x, n.z - pip.position.z);
-  TOOL.axe.visible = w.kind === 'tree'; TOOL.pick.visible = w.kind === 'rock';
+  TOOL.axe.visible = w.kind === 'tree'; TOOL.pick.visible = !!PICKY[w.kind];
   let a, b, lean;
-  if (w.kind === 'bush') { const s = Math.sin(u * Math.PI * 2); a = -1.25 + s * 0.35; b = -1.25 - s * 0.35; lean = 0.18 * Math.sin(u * Math.PI); if (!w.hit && u > 0.5) { w.hit = true; if (n.st === 'ready') nodeHit(n); } }
+  if (w.kind === 'bush' || w.kind === 'grass') { const s = Math.sin(u * Math.PI * 2); a = -1.25 + s * 0.35; b = -1.25 - s * 0.35; lean = 0.18 * Math.sin(u * Math.PI); if (!w.hit && u > 0.5) { w.hit = true; if (n.st === 'ready') nodeHit(n); } }
   else {
     if (u < 0.55) { const e = ease(u / 0.55); a = -0.35 - 2.55 * e; lean = -0.12 * e; }
     else if (u < 0.72) { const e = (u - 0.55) / 0.17; a = -2.9 + 2.0 * e * e; lean = -0.12 + 0.42 * e; }
