@@ -4,7 +4,7 @@ const WX_KINDS = ['clear', 'windy', 'rain', 'heavy', 'mist', 'snow'];
 const WX_TOAST = { windy: ['wind', 'Det blåser!'], rain: ['rain', 'Det regnar!'], heavy: ['rain', 'Det ösregnar!'], mist: ['mist', 'Dimma!'], snow: ['snow', 'Det snöar!'] };
 const WX_WIND = { clear: 0.12, windy: 1, rain: 0.42, heavy: 0.78, mist: 0, snow: 0.22 }; /* storms sway the trees and hedges harder */
 const raining = () => state.wx.k === 'rain' || state.wx.k === 'heavy';
-const seasonNow = () => SEASONS[Math.floor(state.clock / DAY) % 4]; /* the season variable only catches up in the next skyStep */
+const seasonNow = () => (ISL.seasonAt ? ISL.seasonAt() : SEASONS[Math.floor(state.clock / DAY) % 4]); /* the season variable only catches up in the next skyStep */
 function wxWeights() {
   const f = dayFrac(), morn = f < 0.16 || f > 0.95, k = state.wx.k;
   const s = seasonNow(), w = s === 'winter' ? { clear: 3, windy: 1.3, snow: 3, mist: 0.8 } : s === 'autumn' ? { clear: 3, windy: 2, rain: 1.8, heavy: 0.9, mist: 1.6 } : s === 'summer' ? { clear: 5, windy: 1.2, rain: 1.1, heavy: 0.7, mist: 0.3 } : { clear: 4, windy: 1.4, rain: 1.8, heavy: 0.5, mist: 0.8 };

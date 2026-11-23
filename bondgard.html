@@ -823,7 +823,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261123215531">
+<meta name="app-ver" content="20261123215933">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -3359,7 +3359,7 @@ function skyStep(dt) {
   if (nightAmt > 0.01) for (let k = 0; k < FLY_N; k++) { const s = flySeed[k], t = time * s.s + s.a; flyPos[k * 3] = s.x + Math.sin(t) * 1.2; flyPos[k * 3 + 1] = 0.5 + Math.sin(t * 1.7) * 0.3 + 0.3; flyPos[k * 3 + 2] = s.z + Math.cos(t * 0.8) * 1.0; }
   if (nightAmt > 0.01) flyGeo.attributes.position.needsUpdate = true;
   /* the season changes at sunrise */
-  const s = SEASONS[Math.floor(state.clock / DAY) % 4];
+  const s = ISL.seasonAt ? ISL.seasonAt() : SEASONS[Math.floor(state.clock / DAY) % 4]; /* a game can tie the season to a place (the island's season zones) */
   if (s !== season || seasonShown === null) { const first = seasonShown === null; season = s; seasonShown = s; paintSeason(s); const fl = FALL[s]; fallMat.color.set(fl.c); fallMat.size = fl.size; if (!first) { seasonToast(s); Snd.play('sparkle', { gain: 0.5 }); } }
   /* falling petals, leaves or snow drift around the camera */
   const fl = FALL[season]; falling.visible = !reduced && !inHouse;
@@ -3919,7 +3919,7 @@ const WX_KINDS = ['clear', 'windy', 'rain', 'heavy', 'mist', 'snow'];
 const WX_TOAST = { windy: ['wind', 'Det blåser!'], rain: ['rain', 'Det regnar!'], heavy: ['rain', 'Det ösregnar!'], mist: ['mist', 'Dimma!'], snow: ['snow', 'Det snöar!'] };
 const WX_WIND = { clear: 0.12, windy: 1, rain: 0.42, heavy: 0.78, mist: 0, snow: 0.22 }; /* storms sway the trees and hedges harder */
 const raining = () => state.wx.k === 'rain' || state.wx.k === 'heavy';
-const seasonNow = () => SEASONS[Math.floor(state.clock / DAY) % 4]; /* the season variable only catches up in the next skyStep */
+const seasonNow = () => (ISL.seasonAt ? ISL.seasonAt() : SEASONS[Math.floor(state.clock / DAY) % 4]); /* the season variable only catches up in the next skyStep */
 function wxWeights() {
   const f = dayFrac(), morn = f < 0.16 || f > 0.95, k = state.wx.k;
   const s = seasonNow(), w = s === 'winter' ? { clear: 3, windy: 1.3, snow: 3, mist: 0.8 } : s === 'autumn' ? { clear: 3, windy: 2, rain: 1.8, heavy: 0.9, mist: 1.6 } : s === 'summer' ? { clear: 5, windy: 1.2, rain: 1.1, heavy: 0.7, mist: 0.3 } : { clear: 4, windy: 1.4, rain: 1.8, heavy: 0.5, mist: 0.8 };

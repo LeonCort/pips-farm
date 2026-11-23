@@ -26,12 +26,15 @@ const AREAS = [
   { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, hay: 16, stone: 14 }, chest: 'shovel', bridge: { from: 'm1', x0: -17.4, z0: -16, x1: -22.6, z1: -16 } },
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 24, clay: 10, log: 16 }, ruin: [0.8, -0.8, 0.3] },
   { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 26, clay: 14, hay: 12 } },
+  /* the winter island, east of the orchard, over a bridge */
+  { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 30, hay: 18, stone: 16 }, bridge: { from: 'm2', x0: 18.6, z0: -16, x1: 21.4, z1: -16 } },
+  { id: 'w1', i: 6, j: -9, biome: 'snow', cost: { log: 26, stone: 20, clay: 8 } },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
   { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 }
 ];
 const AREA_BY = {}; AREAS.forEach((a) => { AREA_BY[a.id] = a; a.cx = (a.i + 1) * GS; a.cz = (a.j + 1) * GS; });
 /* what each biome looks like: a tint over the grass */
-const BIOME_TINT = { home: null, rocks: ['#c9c58f', 0.18], berry: ['#7fbf5a', 0.15], meadow: ['#b4e05e', 0.24], orchard: ['#d7e07a', 0.2], stone: ['#9fa592', 0.5], clay: ['#c9a27a', 0.38], cave: ['#5d5249', 0.82] };
+const BIOME_TINT = { home: null, rocks: ['#c9c58f', 0.18], berry: ['#7fbf5a', 0.15], meadow: ['#b4e05e', 0.24], orchard: ['#d7e07a', 0.2], stone: ['#9fa592', 0.5], clay: ['#c9a27a', 0.38], cave: ['#5d5249', 0.82], snow: ['#f4f8fb', 0.9] };
 /* the land: WALK = squares Pip may walk on (areas owned), LAND = squares drawn as land (owned, plus each island's first area
    so it can be seen across the sea). Both are read from the save right away, because the ground is drawn before the game starts. */
 const WALK = new Uint8Array(GWN * GWN), LAND = new Uint8Array(GWN * GWN), AREA_AT = new Int16Array(GWN * GWN).fill(-1);
@@ -76,7 +79,7 @@ function wClamp(v) {
 const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 0, walk: 1.5, ring: { rx: 3, rz: 3, w: 0 }, /* no ring road: w 0 (pets still wander round it) */ roads: [], trees: [],
   box: { x0: -5.4, x1: 5.4, z0: -5.4, z1: 5.4 }, /* pets keep inside this (the area Pip is in) */
   d: (x, z) => 1 + drawSdf(x, z) / 6, clamp: wClamp,
-  gw: 60, gh: 76, gx: -8, gz: 0, /* the ground covers the whole world, the cave hill too */
+  gw: 76, gh: 76, gx: 0, gz: 0, /* the ground covers the whole world, the cave hill too */
   puddles: [[-2.2, 3.0, 0.9, 0.4], [2.8, -3.2, 0.8, 1.2], [2.9, 3.4, 0.7, 0.2], [-3.3, -0.9, 0.8, 1.5], [0.4, -3.6, 0.6, 0.9]], /* rain puddles in the start area (the farm's lie on its roads) */
   tint: (x, z, c) => { const a = areaAt(x, z), t = a && BIOME_TINT[a.biome]; if (t) c.lerp(new T.Color(t[0]), t[1]); } };
 const KENNEL = { x: -1.6, z: -1.5 }; /* the pet's kennel, by the camp in the start area */

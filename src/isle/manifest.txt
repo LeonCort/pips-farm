@@ -21,6 +21,7 @@ xp.js
 ruins.js
 cave.js
 springs.js
+zones.js
 ../engine/pip2.js
 ../engine/walkto.js
 ../engine/sky.js
