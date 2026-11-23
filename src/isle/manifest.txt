@@ -22,6 +22,7 @@ ruins.js
 cave.js
 springs.js
 zones.js
+timed.js
 ../engine/pip2.js
 ../engine/walkto.js
 ../engine/sky.js
