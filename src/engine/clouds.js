@@ -4,11 +4,11 @@
    Clouds are painted procedurally in the shader (no textures): coverage follows the weather and season, they
    drift with the wind, and their colour comes from the same top/horizon colours the day cycle and weather already
    set, so dawn, sunset, rain, snow and night all tint them for free. Stars come out at night. */
-const SKYU = Object.assign({}, sky.material.uniforms, { uHz: { value: -0.2 }, uCover: { value: 0.35 }, uWind: { value: new T.Vector2() }, uNight: { value: 0 }, uT: { value: 0 }, uSun: { value: new T.Vector3(0, 0.5, -1) }, uSunV: { value: SUN_VIS }, uDisk: { value: 0 } });
+const SKYU = Object.assign({}, sky.material.uniforms, { uHz: { value: -0.2 }, uCover: { value: 0.35 }, uWind: { value: new T.Vector2() }, uNight: { value: 0 }, uT: { value: 0 }, uSun: { value: new T.Vector3(0, 0.5, -1) } });
 sky.material = new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: false, uniforms: SKYU,
   vertexShader: 'varying vec3 vD; void main(){ vD = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
   fragmentShader: `
-    varying vec3 vD; uniform vec3 top; uniform vec3 hor; uniform float uHz; uniform float uCover; uniform vec2 uWind; uniform float uNight; uniform float uT; uniform vec3 uSun; uniform vec3 uSunV; uniform float uDisk;
+    varying vec3 vD; uniform vec3 top; uniform vec3 hor; uniform float uHz; uniform float uCover; uniform vec2 uWind; uniform float uNight; uniform float uT; uniform vec3 uSun;
     float h2(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
     float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
       return mix(mix(h2(i), h2(i + vec2(1.0, 0.0)), f.x), mix(h2(i + vec2(0.0, 1.0)), h2(i + vec2(1.0, 1.0)), f.x), f.y); }
@@ -20,8 +20,6 @@ sky.material = new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: 
       vec3 col = mix(hor, top, smoothstep(0.0, 0.12, g));
       /* a soft glow around the sun */
       float sd = max(dot(d, normalize(uSun)), 0.0); col += (hor * 0.35 + 0.08) * pow(sd, 10.0) * (1.0 - uNight) * 0.6;
-      /* the low sun's disk over the far horizon (sunrise or sunset at the top of the screen) */
-      if (uDisk > 0.0) { float vd = max(dot(d, normalize(uSunV)), 0.0); col += vec3(1.0, 0.55, 0.25) * pow(vd, 60.0) * 0.45 * uDisk; col = mix(col, vec3(1.0, 0.86, 0.55), smoothstep(0.9988, 0.9992, vd) * uDisk); }
       if (e > 0.0) {
         /* clouds on a flat layer above: project the view ray onto it */
         vec2 p = d.xz / (e + 0.06) * 0.35 + uWind;
@@ -46,6 +44,28 @@ sky.material = new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: 
 const SKY_COVER = { clear: 0.3, windy: 0.45, rain: 0.85, heavy: 0.97, mist: 0.75, snow: 0.85 }, SEASON_COVER = { spring: 0.08, summer: -0.08, autumn: 0.15, winter: 0.12 };
 let skyCover = 0.35;
 const _sk = new T.Vector3();
+/* the sun (and at night a pale moon) as a round disk in the sky, where the camera can see it: in the direction of the
+   light, but lowered to the thin strip of sky over the bent horizon at the top of the screen, so a sunrise or sunset there
+   shows (sun path top/bottom in the settings). It is a sprite far out, lifted by exactly the curve's drop so it sits where
+   it is meant to; houses and trees in front hide it. */
+const SUN_BALL = (() => {
+  const mk = (stops, sz) => { const m = new T.SpriteMaterial({ map: gradTex(128, 128, stops), transparent: true, depthWrite: false, fog: false }); const s = new T.Sprite(m); s.scale.set(sz, sz, 1); s.frustumCulled = false; s.visible = false; sc.add(s); return s; };
+  const disk = mk([[0, 255, 252, 230, 1], [0.38, 255, 238, 176, 1], [0.44, 255, 214, 130, 0.75], [0.56, 255, 190, 110, 0.28], [0.8, 255, 170, 90, 0.08], [1, 255, 160, 80, 0]], 16);
+  return { disk, d: 90, v: new T.Vector3() };
+})();
+function sunBall() {
+  const s = SUN_BALL.disk, f = dayFrac(), day = f < 0.64, h = Math.hypot(SUN_OFF.x, SUN_OFF.z) || 1;
+  if (inHouse) { s.visible = false; return; }
+  const el = Math.atan2(SUN_OFF.y, h) * 180 / Math.PI; /* 18 at the horizon, up to 55 */
+  /* visible strip: about -19 deg at the top edge of the screen; the low sun sits a little under it and rises out of view */
+  /* sinks under the far edge just before sunset and climbs up from it just after sunrise */
+  const sink = day ? Math.max(0, 1 - Math.min(f, 0.64 - f) / 0.035) : 0;
+  const ve = (-21.5 + (el - 18) * 0.25 - sink * 4) * Math.PI / 180, v = SUN_BALL.v.set(SUN_OFF.x / h * Math.cos(ve), Math.sin(ve), SUN_OFF.z / h * Math.cos(ve));
+  s.position.copy(cam.position).addScaledVector(v, SUN_BALL.d); s.position.y += curveDrop(s.position.x, s.position.z);
+  s.visible = true; const m = s.material;
+  if (day) m.color.setRGB(1, 0.92 + 0.08 * Math.min(1, (el - 18) / 20), 0.8 + 0.2 * Math.min(1, (el - 18) / 20)); else m.color.setRGB(0.62, 0.68, 0.85); /* warm when low; the moon is pale blue */
+  m.opacity = day ? 1 - sink * sink : 0.55 * nightAmt;
+}
 function skyFrame(dt) {
   sky.position.copy(cam.position); sky.updateMatrixWorld();
   /* the visible horizon: the steepest line from the camera that still touches the (bent) ground or sea */
@@ -60,6 +80,7 @@ function skyFrame(dt) {
   if (!reduced) { SKYU.uWind.value.x += Math.cos(ang) * w * dt; SKYU.uWind.value.y += Math.sin(ang) * w * dt; }
   SKYU.uNight.value = nightAmt; SKYU.uT.value = time;
   SKYU.uSun.value.copy(_sk.copy(sun.position).sub(sun.target.position)).normalize();
-  SKYU.uDisk.value = inHouse ? 0 : SUN_DISK.a;
+  sunBall();
 }
 
+if (window.__farmTest) window.__sunBall = () => { const s = SUN_BALL.disk, v = s.position.clone().project(cam); return { vis: s.visible, op: +s.material.opacity.toFixed(2), ndc: [+v.x.toFixed(2), +v.y.toFixed(2), +v.z.toFixed(3)], pos: s.position.toArray().map((q) => +q.toFixed(1)), drop: +curveDrop(s.position.x, s.position.z).toFixed(1) }; };

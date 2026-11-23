@@ -23,8 +23,8 @@ const dayFrac = () => (state.clock % DAY) / DAY;
      tb: rises at the top of the screen (north, a visible sunrise), sets behind the camera
      bt: rises behind the camera, sets at the top of the screen (a visible sunset)
    The moon then goes back the same way, so the shadows never jump at dusk or dawn. Indoors it stays where it was.
-   A sun disk is drawn in the sky low over the far edge of the island (clouds.js) when the path brings it on screen. */
-const SUN_HOME = new T.Vector3(-10, 10, 7.5), SUN_OFF = SUN_HOME.clone(), SUN_VIS = new T.Vector3(0, -0.4, -1), SUN_DISK = { a: 0 };
+   A sun disk is drawn in the sky over the far edge of the island (clouds.js sunBall) when the path brings it on screen. */
+const SUN_HOME = new T.Vector3(-10, 10, 7.5), SUN_OFF = SUN_HOME.clone();
 const SUN_PATHS = { lr: [[1, 0, 0], [0, 0, 1]], tb: [[0, 0, -1], [-1, 0, 0]], bt: [[0, 0, 1], [-1, 0, 0]] }; /* [rise direction, midday direction] */
 let sunPath = 'lr'; try { const v = localStorage.getItem('pips-sunpath'); if (SUN_PATHS[v]) sunPath = v; } catch (e) {}
 if (window.__farmTest) window.__sun = () => SUN_OFF.toArray().map((v) => +v.toFixed(2));
@@ -32,9 +32,6 @@ function sunArc(f) {
   const day = f < 0.64, p = day ? f / 0.64 : 1 - (f - 0.64) / 0.36, el = (18 + 37 * Math.sin(Math.PI * p)) * Math.PI / 180, d = 16;
   const [R, N] = SUN_PATHS[sunPath], c = Math.cos(Math.PI * p), sn = Math.sin(Math.PI * p), hx = R[0] * c + N[0] * sn, hz = R[2] * c + N[2] * sn;
   SUN_OFF.set(hx * Math.cos(el) * d, Math.sin(el) * d, hz * Math.cos(el) * d);
-  /* the disk: same compass direction, but drawn just over the far horizon the camera can see; it climbs out of view as the sun rises */
-  const lo = 1 - Math.min(1, (el * 180 / Math.PI - 18) / 14), hl = Math.hypot(hx, hz) || 1;
-  SUN_VIS.set(hx / hl, -0.37 + (1 - lo) * 0.25, hz / hl); SUN_DISK.a = day ? lo * (hz < -0.2 ? 1 : 0) : 0;
 }
 /* the button: a sun with an arrow showing which way it goes */
 {
