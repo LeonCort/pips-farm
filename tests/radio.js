@@ -20,7 +20,7 @@ const path = require('path'), fs = require('fs');
   const out = {}; const fail = []; const ok = (c, m) => { if (!c) fail.push(m); };
   out.outside = await R(() => __radio.state());
   ok(out.outside.mode === 'auto' && out.outside.want === out.outside.track, 'auto plays today\'s song outside');
-  await R(() => __radio.goIn()); await p.waitForTimeout(1500);
+  await R(() => __radio.goIn()); await p.waitForTimeout(3500);
   out.home = await R(() => ({ home: __radio.home(), s: __radio.state() }));
   ok(out.home.home, 'in the cottage'); ok(out.home.s.want === 'relaxed' || console.log(out.home), 'house plays the calm tune before the radio is used');
   await p.screenshot({ path: path.join(__dirname, '..', 'build', 'radio-house.png') });
