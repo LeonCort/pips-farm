@@ -823,7 +823,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261123175734">
+<meta name="app-ver" content="20261123193839">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1620,7 +1620,7 @@ const sky = new T.Mesh(new T.SphereGeometry(150, 32, 16), new T.ShaderMaterial({
    The game gives the island's shape in ISLAND: an oval a by b with a wavy coast (wob: waves, size, turn), an optional
    point (cape: angle, size, width), a round plaza in the middle, an oval ring road and straight roads. */
 const ISL = ISLAND, RING = ISLAND.ring, ROADS = ISLAND.roads; /* ROADS: x0, z0, x1, z1, half width, kind */
-function isleD(x, z) { const u = x / ISL.a, v = z / ISL.b, th = Math.atan2(v, u), c = ISL.cape; let f = 1;
+function isleD(x, z) { if (ISL.d) return ISL.d(x, z); /* a game may give its own coast (the island game's squares) */ const u = x / ISL.a, v = z / ISL.b, th = Math.atan2(v, u), c = ISL.cape; let f = 1;
   for (const w of ISL.wob) f += w[1] * Math.sin(w[0] * th + w[2]);
   if (c) { const dth = th - c[0]; f += c[1] * Math.exp(-dth * dth / c[2]); }
   return Math.hypot(u, v) / f; }
@@ -1637,6 +1637,7 @@ function roadKind(x, z) {
 /* keep a target point on the island */
 function onIsle(v) { if (inHouse) { v.x = clamp(v.x, IN_B.x0, IN_B.x1); v.z = clamp(v.z, IN_B.z0, IN_B.z1); return v; }
   if (Math.abs(v.x - DOCK.x) < 0.6 && v.z > DOCK.edge - 1 && v.z < DOCK.z1 + 1) { v.x = clamp(v.x, DOCK.x - 0.35, DOCK.x + 0.35); v.z = Math.min(v.z, DOCK.z1 - 0.3); return v; } /* out along the dock */
+  if (ISL.clamp) return ISL.clamp(v); /* a game whose island is not an oval keeps points on it itself */
   const d = isleD(v.x, v.z), lim = 0.965; if (d > lim) { v.x *= lim / d; v.z *= lim / d; } return v; }
 const tg = new T.PlaneGeometry(58, 40, 112, 78); tg.rotateX(-Math.PI / 2);
 { const p = tg.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i) + (hash(i, 1) - 0.5) * 0.3, z = p.getZ(i) + (hash(i, 2) - 0.5) * 0.3; p.setXYZ(i, x, hAt(x, z) + (hAt(x, z) === 0 ? hash(i, 5) * 0.04 : 0), z); } }
@@ -1785,7 +1786,7 @@ function tree(kind, s) {
   }
   return g;
 }
-[[-6.2, -12.8, 'pine'], [7.9, -12.3, 'pine'], [-16.4, -7.6, 'pine'], [-17.6, -3.0, 'tree'], [-17.6, 3.0, 'pine'], [2.6, -13.9, 'tree'], [-7.6, 12.6, 'pine'], [-9.2, 12.0, 'pine'], [-6.0, 13.2, 'pine'], [-2.0, 13.4, 'tree'], [5.4, 12.4, 'tree'], [12.6, 9.8, 'pine'], [17.6, 9.4, 'pine'], [22.0, 3.6, 'tree'], [20.8, -6.6, 'pine'], [15.2, -9.6, 'pine'], [-5.2, -3.8, 'tree'], [5.2, 3.9, 'tree'], [-5.0, 3.6, 'pine'], [5.0, -3.9, 'pine']].forEach((t, i) => { const m = tree(t[2], i * 7 + 3); m.position.set(t[0], hAt(t[0], t[1]), t[1]); m.rotation.y = hash(i, 4) * 6.28; m.scale.setScalar(0.85 + hash(i, 9) * 0.4); sc.add(m); });
+(ISL.trees || [[-6.2, -12.8, 'pine'], [7.9, -12.3, 'pine'], [-16.4, -7.6, 'pine'], [-17.6, -3.0, 'tree'], [-17.6, 3.0, 'pine'], [2.6, -13.9, 'tree'], [-7.6, 12.6, 'pine'], [-9.2, 12.0, 'pine'], [-6.0, 13.2, 'pine'], [-2.0, 13.4, 'tree'], [5.4, 12.4, 'tree'], [12.6, 9.8, 'pine'], [17.6, 9.4, 'pine'], [22.0, 3.6, 'tree'], [20.8, -6.6, 'pine'], [15.2, -9.6, 'pine'], [-5.2, -3.8, 'tree'], [5.2, 3.9, 'tree'], [-5.0, 3.6, 'pine'], [5.0, -3.9, 'pine']]).forEach((t, i) => { const m = tree(t[2], i * 7 + 3); m.position.set(t[0], hAt(t[0], t[1]), t[1]); m.rotation.y = hash(i, 4) * 6.28; m.scale.setScalar(0.85 + hash(i, 9) * 0.4); sc.add(m); });
 /* ---------- building kit: how every game paints its world ----------
    at(x, z, turn) gives a painter for one object; parts painted into STATIC are merged into one mesh
    (cheap to draw); solid() marks a circle Pip walks around, deco() a spot flowers keep clear of;

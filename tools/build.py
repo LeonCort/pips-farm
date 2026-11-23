@@ -31,6 +31,12 @@ GAMES = {
         'body': 'zoo/body.html',
         'css': ['engine/style.css', 'farm/style.css'],
     },
+    'isle.html': {
+        'title': 'Pips ö',
+        'manifest': 'isle/manifest.txt',
+        'body': 'isle/body.html',
+        'css': ['engine/style.css', 'farm/style.css'],
+    },
 }
 
 # the loading screen's frame hook lives in the loop file itself
