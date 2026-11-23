@@ -18,6 +18,8 @@ function isleIcon(x, t, cx, cy, s) {
   if (t === 'log') { x.beginPath(); x.roundRect(-20, -9, 34, 18, 9); blob('#a8774f'); x.beginPath(); x.ellipse(14, 0, 6, 9, 0, 0, 7); blob('#e7c48f'); x.beginPath(); x.ellipse(14, 0, 2.2, 3.5, 0, 0, 7); x.strokeStyle = '#a8774f'; x.lineWidth = 1.6; x.stroke(); }
   else if (t === 'stone') { x.beginPath(); x.moveTo(-18, 8); x.quadraticCurveTo(-20, -8, -4, -12); x.quadraticCurveTo(14, -14, 19, 0); x.quadraticCurveTo(20, 12, 4, 12); x.quadraticCurveTo(-12, 14, -18, 8); x.closePath(); blob('#a9b2bb'); x.beginPath(); x.moveTo(-8, -5); x.quadraticCurveTo(0, -8, 6, -5); x.strokeStyle = '#e4e9ee'; x.lineWidth = 2.6; x.stroke(); }
   else if (t === 'berry') { x.beginPath(); x.arc(-6, 4, 9, 0, 7); blob('#d6406a'); x.beginPath(); x.arc(8, 6, 9, 0, 7); blob('#c3335c'); x.beginPath(); x.moveTo(1, -6); x.quadraticCurveTo(10, -16, 16, -10); x.quadraticCurveTo(9, -4, 1, -6); blob('#74a857'); x.fillStyle = '#f6b3c4'; x.beginPath(); x.arc(-9, 1, 2.4, 0, 7); x.fill(); }
+  else if (t === 'gem') { x.beginPath(); x.moveTo(0, -20); x.lineTo(15, -6); x.lineTo(0, 20); x.lineTo(-15, -6); x.closePath(); blob('#7fd3ef'); x.beginPath(); x.moveTo(-15, -6); x.lineTo(15, -6); x.moveTo(0, -20); x.lineTo(-4, 20); x.lineWidth = 1.8; x.strokeStyle = '#3f9cc0'; x.stroke(); }
+  else if (t === 'coin') { x.beginPath(); x.arc(0, 0, 17, 0, 7); blob('#f2c23c'); x.beginPath(); x.arc(0, 0, 11, 0, 7); x.lineWidth = 2.2; x.strokeStyle = '#c08a1a'; x.stroke(); x.fillStyle = '#fff2b0'; x.beginPath(); x.arc(-5, -6, 3, 0, 7); x.fill(); }
   else if (t === 'pick') { x.beginPath(); x.moveTo(-3, -10); x.lineTo(3, 20); x.lineWidth = 6; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.2; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
     x.beginPath(); x.moveTo(-22, -4); x.quadraticCurveTo(0, -22, 22, -4); x.quadraticCurveTo(0, -12, -22, -4); x.closePath(); blob('#c7ced6'); }
   else if (t === 'bag') { x.beginPath(); x.moveTo(-12, -6); x.quadraticCurveTo(0, -24, 12, -6); x.lineWidth = 4; x.strokeStyle = '#7d5e4e'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink; x.beginPath(); x.moveTo(-18, -6); x.lineTo(18, -6); x.lineTo(14, 16); x.lineTo(-14, 16); x.closePath(); blob('#d9a56b'); x.beginPath(); x.moveTo(-16, 4); x.lineTo(16, 4); x.lineWidth = 2; x.strokeStyle = '#a8743f'; x.stroke(); }
@@ -37,11 +39,14 @@ function isleSprite(tex, s) { const sp = new T.Sprite(new T.SpriteMaterial({ map
 
 /* ---- things Pip carries: logs, stones and berries ---- */
 const ITEM_GEO = {};
+ITEM_H.gem = 0.2; ITEM_H.coin = 0.08;
 function itemGeo(t) {
   if (ITEM_GEO[t]) return ITEM_GEO[t];
   let g;
   if (t === 'log') { const a = new T.CylinderGeometry(0.085, 0.085, 0.42, 9); a.rotateZ(Math.PI / 2); g = fac(a, (cx, cy, cz) => Math.abs(cx) > 0.2 ? new T.Color('#e7c48f') : tone('#9a6a3e', cy * 40 + cz * 13, 0.6), 1100); }
   else if (t === 'stone') { const a = ico(0.13, 1, 1101); a.scale(1.2, 0.85, 1); g = fac(a, (cx, cy, cz, i) => shadeY('#aab3bc', cy, -0.12, 0.12, i, 0.5), 1101); }
+  else if (t === 'gem') { const a = new T.OctahedronGeometry(0.11, 0); a.scale(1, 1.4, 1); a.translate(0, 0.14, 0); g = fac(a, (cx, cy, cz, i) => new T.Color(i % 2 ? '#7fd3ef' : '#bdeaf8'), 1103); }
+  else if (t === 'coin') { const a = new T.CylinderGeometry(0.12, 0.12, 0.05, 14); a.translate(0, 0.03, 0); g = fac(a, (cx, cy) => new T.Color(cy > 0.04 ? '#ffd75a' : '#d9a520'), 1104); }
   else { const L = [[-0.05, 0, 0.02], [0.06, 0.01, -0.02], [0.0, 0.07, 0.0], [0.02, -0.01, 0.07]].map(([x, y, z], k) => new T.SphereGeometry(0.06, 8, 6).translate(x, y + 0.06, z)); g = fac(mergeGeos(L), (cx, cy, cz, i) => tone('#d6406a', i, 0.7), 1102); }
   ITEM_GEO[t] = g; return g;
 }
@@ -201,14 +206,24 @@ function isleBuy(s) {
 /* ---- drops: chunks that pop out and wait to be picked up ---- */
 function dropOut(n) {
   const [t, k] = YIELD[n.kind];
-  for (let q = 0; q < k; q++) { const m = itemModel(t), a = Math.random() * 6.28; m.position.set(n.x, 0.6, n.z); sc.add(m); drops.push({ m, t, vx: Math.cos(a) * 1.4, vz: Math.sin(a) * 1.4, vy: 3.2 + Math.random(), land: 0, wait: 0.15 }); }
+  const out = Array(k).fill(t), tr = TREASURE[n.kind]; if (Math.random() < tr[1]) out.push(tr[0]);
+  out.forEach((t) => { const m = itemModel(t), a = Math.random() * 6.28; m.position.set(n.x, 0.6, n.z); sc.add(m); drops.push({ m, t, vx: Math.cos(a) * 1.4, vz: Math.sin(a) * 1.4, vy: 3.2 + Math.random(), land: 0, wait: 0.15 });
+    if (VALUABLE[t]) { Snd.play('sparkle', { gain: 0.45 }); burst(n.x, 1.0, n.z, 5); } });
 }
+/* treasure: now and then something valuable pops out too. Valuables go in the backpack; building things go straight to the counter. */
+const TREASURE = { tree: ['coin', 0.06], rock: ['gem', 0.15], bush: ['coin', 0.06] };
+const VALUABLE = { gem: 1, coin: 1 };
 function dropStep(d, dt) {
   if (d.land === 0) { d.vy -= 14 * dt; d.m.position.x += d.vx * dt; d.m.position.z += d.vz * dt; d.m.position.y += d.vy * dt; d.m.rotation.y += dt * 6;
     if (d.m.position.y <= 0.06) { d.m.position.y = 0.06; d.land = 1; const v = tmpV.set(d.m.position.x, 0, d.m.position.z); gClamp(v); d.m.position.x = v.x; d.m.position.z = v.z; } return false; }
   d.wait -= dt; d.m.position.y = 0.06 + (reduced ? 0 : Math.abs(Math.sin(time * 3 + d.vx)) * 0.06);
-  if (d.wait > 0 || carry.count() + isleIncoming >= cap() || Math.hypot(pip.position.x - d.m.position.x, pip.position.z - d.m.position.z) > 2.2) return false;
-  isleIncoming++; const m = d.m;
+  if (d.wait > 0 || Math.hypot(pip.position.x - d.m.position.x, pip.position.z - d.m.position.z) > 2.2) return false;
+  const m = d.m;
+  if (!VALUABLE[d.t]) { /* logs, stones and berries: up over Pip's head and into the counter */
+    fly(m, () => tmpV.set(pip.position.x, 2.3, pip.position.z), () => { sc.remove(m); state.isle.store[d.t] = storeN(d.t) + 1; }, 0.3);
+    Snd.play('pop', { gain: 0.35, f: 480 + (storeN(d.t) % 8) * 40 }); return true; }
+  if (carry.count() + isleIncoming >= cap()) return false;
+  isleIncoming++;
   fly(m, () => { carry.parent.updateMatrixWorld(); return pip.localToWorld(tmpV.set(0, 0.72 + carry.items.reduce((a, b) => a + ITEM_H[b.userData.type], 0), -0.32)); }, () => { isleIncoming--; carry.add(m); }, 0.25);
   Snd.play('pop', { gain: 0.4, f: 520 + carry.items.length * 55 }); return true;
 }
@@ -255,7 +270,7 @@ function isleStep(dt) {
   nodes.forEach((n) => { if (n.st !== 'ready') return; const d = Math.hypot(pip.position.x - n.x, pip.position.z - n.z) - NODE_R[n.kind]; if (d < 0.75 && d < bd) { bd = d; best = n; } });
   if (best && best.kind === 'rock' && !state.isle.tools.pick) {
     if (pickHintT <= 0) { pickHintT = 2.5; isleHint(best); }
-  } else if (best && canWork(best) && carry.count() + isleIncoming < cap() && hitT <= 0) {
+  } else if (best && canWork(best) && hitT <= 0) {
     hitT = best.kind === 'bush' ? 0.5 : 0.55; workStart(best);
   }
   workStep(dt);
@@ -351,16 +366,16 @@ function invBuild() {
     + '.inv img{width:40px;height:40px}.inv b{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;min-width:1.4ch;text-align:center}'
     + '.inv b.bump{animation:bump .25s ease-out}@media (max-width:520px){.inv img{width:30px;height:30px}.inv b{font-size:22px}.inv .it{padding:3px 10px 3px 4px}}';
   document.head.appendChild(st);
-  ['log', 'stone', 'berry'].forEach((t) => { const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), t, 32, 32, 1.25);
-    const it = document.createElement('div'); it.className = 'it'; const img = document.createElement('img'); img.alt = ''; img.src = c.toDataURL(); const b = document.createElement('b'); b.textContent = '0';
+  ['log', 'stone', 'berry', 'gem', 'coin'].forEach((t) => { const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), t, 32, 32, 1.25);
+    const it = document.createElement('div'); it.className = 'it'; INV['p' + t] = it; const img = document.createElement('img'); img.alt = ''; img.src = c.toDataURL(); const b = document.createElement('b'); b.textContent = '0';
     it.appendChild(img); it.appendChild(b); el.appendChild(it); INV[t] = b; });
   document.body.appendChild(el); INV.el = el;
 }
 function invStep() {
   if (!INV.el) return;
-  const v = ['log', 'stone', 'berry'].map((t) => storeN(t) + carry.count(t)), key = v.join(',');
+  const K = ['log', 'stone', 'berry', 'gem', 'coin'], v = K.map((t) => storeN(t) + carry.count(t)), key = v.join(',');
   if (key === invLast) return; invLast = key;
-  ['log', 'stone', 'berry'].forEach((t, k) => { const b = INV[t]; if (b.textContent !== String(v[k])) { b.textContent = v[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); } });
+  K.forEach((t, k) => { if (VALUABLE[t]) INV['p' + t].style.display = v[k] ? '' : 'none'; const b = INV[t]; if (b.textContent !== String(v[k])) { b.textContent = v[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); } });
 }
 
 /* ---- a health bar over the thing Pip is working on: it drains with each hit ---- */
