@@ -823,7 +823,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261123191010">
+<meta name="app-ver" content="20261123192000">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -11387,25 +11387,24 @@ const famNext = (k) => animals.some((an) => an.a === k) ? (FAM_MORE[k] || []).fi
 const famNeed = (k) => 10 + 5 * (FAM_MORE[k] || []).filter(famOwn).length;
 const famS = () => { if (!state.fam) state.fam = {}; return state.fam; };
 const FAM_SP = {};
-function famTex(k) {
-  const c = document.createElement('canvas'); c.width = c.height = 192; const x = c.getContext('2d'), n = famS()[k] || 0, need = famNeed(k);
-  x.fillStyle = 'rgba(255,246,228,0.95)'; x.beginPath(); x.arc(96, 96, 88, 0, 7); x.fill();
-  x.lineWidth = 16; x.strokeStyle = '#efe2c4'; x.beginPath(); x.arc(96, 96, 78, 0, 7); x.stroke();
-  x.strokeStyle = '#f2c14a'; x.beginPath(); x.arc(96, 96, 78, -Math.PI / 2, -Math.PI / 2 + 6.2832 * Math.min(1, n / need)); x.stroke();
-  x.strokeStyle = 'rgba(34,48,60,0.35)'; x.lineWidth = 2; for (let i = 0; i < need; i++) { const a = -Math.PI / 2 + i * 6.2832 / need; x.beginPath(); x.moveTo(96 + Math.cos(a) * 70, 96 + Math.sin(a) * 70); x.lineTo(96 + Math.cos(a) * 86, 96 + Math.sin(a) * 86); x.stroke(); }
-  x.lineWidth = 4; x.strokeStyle = PAL.ink; x.beginPath(); x.arc(96, 96, 88, 0, 7); x.stroke();
-  x.fillStyle = '#c9965a'; x.beginPath(); x.ellipse(96, 122, 46, 16, 0, 0, 7); x.fill(); x.stroke();
-  x.strokeStyle = '#8a6232'; x.lineWidth = 3; x.beginPath(); x.moveTo(56, 118); x.quadraticCurveTo(96, 134, 136, 118); x.stroke();
-  if (k === 'hen' || k === 'duck') { x.fillStyle = '#fffaf0'; x.strokeStyle = PAL.ink; x.lineWidth = 4; x.beginPath(); x.ellipse(96, 96, 22, 28, 0, 0, 7); x.fill(); x.stroke(); }
-  else drawIcon(x, k, 96, 92, 0.62);
+function famTex(k) { /* small and quiet: a thin ring that fills round a tiny nest */
+  const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), n = famS()[k] || 0, need = famNeed(k);
+  x.fillStyle = 'rgba(255,246,228,0.55)'; x.beginPath(); x.arc(64, 64, 52, 0, 7); x.fill();
+  x.lineCap = 'round'; x.lineWidth = 9; x.strokeStyle = 'rgba(255,250,240,0.85)'; x.beginPath(); x.arc(64, 64, 52, 0, 7); x.stroke();
+  if (n > 0) { x.strokeStyle = '#f2c14a'; x.beginPath(); x.arc(64, 64, 52, -Math.PI / 2, -Math.PI / 2 + 6.2832 * Math.min(1, n / need)); x.stroke(); }
+  x.lineWidth = 2.5; x.strokeStyle = 'rgba(34,48,60,0.55)'; x.beginPath(); x.arc(64, 64, 57, 0, 7); x.stroke();
+  x.fillStyle = '#c9965a'; x.strokeStyle = 'rgba(34,48,60,0.8)'; x.lineWidth = 3; x.beginPath(); x.ellipse(64, 78, 24, 8, 0, 0, 7); x.fill(); x.stroke();
+  if (k === 'hen' || k === 'duck') { x.fillStyle = '#fffaf0'; x.beginPath(); x.ellipse(64, 63, 11, 14, 0, 0, 7); x.fill(); x.stroke(); }
+  else drawIcon(x, k, 64, 60, 0.34);
   return new T.CanvasTexture(c);
 }
-function famPos(k) { if (k === 'goat') return [BDOOR.x + 1.9, BDOOR.z + 0.9]; const f = feedPos(k); return [f[0], f[1] + 1.35]; }
+/* it floats over the pen's little house (the goats': over the barn door) */
+function famPos(k) { if (k === 'goat') return [BDOOR.x, BDOOR.z + 0.3, 2.9]; const h = housePos(k), pen = pens[k]; return [h[0], h[1], (pen && pen.big ? 1.4 : 0.95) + 0.55]; }
 function famDraw(k) {
   const nx = famNext(k); let o = FAM_SP[k];
   if (!nx || tutOn() || SANDBOX) { if (o) o.sp.visible = false; return; }
-  if (!o) { const sp = new T.Sprite(new T.SpriteMaterial({ map: famTex(k), depthWrite: false })); sp.scale.set(0.95, 0.95, 1); sp.renderOrder = 4; sc.add(sp); o = FAM_SP[k] = { sp, key: '' }; }
-  const p = famPos(k); o.sp.position.set(p[0], 0.85, p[1]); o.sp.visible = true;
+  if (!o) { const sp = new T.Sprite(new T.SpriteMaterial({ map: famTex(k), depthWrite: false, transparent: true, opacity: 0.9 })); sp.scale.set(0.55, 0.55, 1); sp.renderOrder = 4; sc.add(sp); o = FAM_SP[k] = { sp, key: '' }; }
+  const p = famPos(k); o.sp.position.set(p[0], p[2] + (reduced ? 0 : Math.sin(time * 1.5) * 0.03), p[1]); o.sp.visible = true;
   const key = (famS()[k] || 0) + '/' + famNeed(k); if (key !== o.key) { o.key = key; o.sp.material.map.dispose(); o.sp.material.map = famTex(k); }
 }
 function famMeal(k) {
@@ -11419,7 +11418,7 @@ function famBirth(k, p) {
   const mine = animals.filter((an) => an.a === k), an = mine[mine.length - 1]; if (!an || mine.length <= before) { save(); return; }
   if (!state.grow) state.grow = []; state.grow.push({ a: k, k: mine.length - 1, night: 0 });
   an.g.scale.setScalar(0.55); an.hop = 1;
-  const w = famPos(k); confetti(w[0], 0.8, w[1], 50, 3); burst(an.g.position.x, an.h, an.g.position.z, 10);
+  const w = famPos(k); confetti(w[0], w[2], w[1], 50, 3); burst(an.g.position.x, an.h, an.g.position.z, 10);
   Snd.play('success', { gain: 0.6, f: 'G6' }); Snd.play('sparkle', { gain: 0.5 }, 0.1); Snd.animal(k === 'goat' ? 'sheep' : k, { gain: 0.5, rate: 1.3 });
   if (window.PipsLog) PipsLog.add('info', 'family: a new ' + k + ' (' + p.id + ')');
   famDraw(k); save();
