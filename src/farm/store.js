@@ -314,7 +314,7 @@ const CLOTH_GEO = (() => { const g = new T.SphereGeometry(0.34, 14, 6, 0, Math.P
       const hold = new T.Group(); hold.position.set(x, CTR_TOP, z); sc.add(hold);
       const jar = jarModel(); jar.g.position.set(jx, CTR_TOP, jz); jar.g.scale.setScalar(1.35); sc.add(jar.g);
       const tcv = document.createElement('canvas'); tcv.width = 256; tcv.height = 96; const ttex = new T.CanvasTexture(tcv); if ('colorSpace' in ttex) ttex.colorSpace = T.SRGBColorSpace;
-      const tag = new T.Sprite(new T.SpriteMaterial({ map: ttex, transparent: true, depthWrite: false })); tag.scale.set(1.12, 0.42, 1); { const [tx, tz] = ctrPt(c, off + 0.36, 0.5); tag.position.set(tx, CTR_TOP - 0.22, tz); } tag.renderOrder = 3; tag.visible = false; sc.add(tag);
+      const tag = new T.Sprite(new T.SpriteMaterial({ map: ttex, transparent: true, depthWrite: false, depthTest: false })); tag.scale.set(1.12, 0.42, 1); { const [tx, tz] = ctrPt(c, off + 0.36, 0.5); tag.position.set(tx, CTR_TOP - 0.22, tz); } tag.renderOrder = 20; tag.visible = false; sc.add(tag);
       const cloth = new T.Mesh(CLOTH_GEO, MAT); cloth.position.set(x + 0, CTR_TOP, z); cloth.rotation.y = c.ry; cloth.castShadow = true; sc.add(cloth);
       STATIONS_S.push({ kind: 'slot', ctr: c, i: k, x, z, jx, jz, padX, padZ, pad, cv, tex, hold, jar, cloth, tag, tcv, ttex, tagK: '', item: null, key: '', shown: '', tick: 0, pay: 0, poor: false, spin: hash(k + 3, c.x) * 6 });
     }
