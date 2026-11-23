@@ -1,2 +1,4 @@
 build/
 __pycache__/
+logserver/node_modules/
+logserver/package-lock.json
