@@ -18,6 +18,7 @@ world.js
 isle.js
 build.js
 xp.js
+ruins.js
 ../engine/pip2.js
 ../engine/walkto.js
 ../engine/sky.js

@@ -18,13 +18,13 @@ const AREAS = [
   { id: 'h0', i: -1, j: -1, biome: 'home', start: 1 },
   { id: 'h1', i: 2, j: -1, biome: 'rocks', cost: { log: 8, berry: 3 }, chest: 'pick' },
   { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 10, stone: 4, berry: 4 } },
-  { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag' },
+  { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag', ruin: [2.3, 1.0, -0.25] },
   { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, chest: 'sickle', bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
   { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, hay: 10, berry: 6 } },
-  { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, hay: 14, stone: 8 } },
+  { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, hay: 14, stone: 8 }, ruin: [0.4, 0, 0.2] },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 20, hay: 20, berry: 10 } },
   { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, hay: 16, stone: 14 }, chest: 'shovel', bridge: { from: 'm1', x0: -17.4, z0: -16, x1: -22.6, z1: -16 } },
-  { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 24, clay: 10, log: 16 } },
+  { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 24, clay: 10, log: 16 }, ruin: [0.8, -0.8, 0.3] },
   { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 26, clay: 14, hay: 12 } }
 ];
 const AREA_BY = {}; AREAS.forEach((a) => { AREA_BY[a.id] = a; a.cx = (a.i + 1) * GS; a.cz = (a.j + 1) * GS; });
@@ -79,7 +79,7 @@ const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 0, walk: 1.5, ring: {
   tint: (x, z, c) => { const a = areaAt(x, z), t = a && BIOME_TINT[a.biome]; if (t) c.lerp(new T.Color(t[0]), t[1]); } };
 const KENNEL = { x: -1.6, z: -1.5 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
-  isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0, sickle: 0, shovel: 0 }, chests: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
+  isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0, sickle: 0, shovel: 0 }, chests: {}, ruins: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
 const speed = () => 3.2 + 0.45 * state.lv.speed;
 const cap = () => (state.isle && state.isle.tools.bag ? 10 : 6);
 const UPS = [{ id: 'speed', base: 10, g: 1.8, max: 8 }, { id: 'bag', base: 15, g: 1.8, max: 8 }];
