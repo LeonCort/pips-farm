@@ -1,6 +1,6 @@
 # pips-log
 
-Tiny Vercel project that receives the game log from `src/engine/log.js` and stores each batch in Vercel Blob (60 days).
+Tiny Vercel project that receives the game log from `src/engine/log.js` and stores each batch in Vercel Blob (30 days).
 
 - `POST /api/log` (public production address): one batch, JSON `{id, page, ver, reason, host, dev, text}`.
 - `GET /api/logs` (deployment URL only, protected by Vercel Authentication): the stored logs, newest first.

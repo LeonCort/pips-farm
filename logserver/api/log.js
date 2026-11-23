@@ -1,4 +1,4 @@
-// Receives batches of the Pips game log (src/engine/log.js) and keeps each one as a blob for 60 days.
+// Receives batches of the Pips game log (src/engine/log.js) and keeps each one as a blob for 30 days.
 // No personal data: an anonymous random device id, the game version, the device type and the log lines.
 import { put } from '@vercel/blob';
 
@@ -38,7 +38,7 @@ export default async function handler(req, res) {
   };
   const day = rec.at.slice(0, 10), time = rec.at.slice(11, 19).replace(/:/g, '');
   await put(`logs/${day}/${time}-${rec.id || 'x'}-${rec.reason || 'log'}.json`, JSON.stringify(rec), {
-    access: 'public', addRandomSuffix: true, contentType: 'application/json', ttlDays: 60
+    access: 'public', addRandomSuffix: true, contentType: 'application/json', ttlDays: 30
   });
   res.status(200).send('ok');
 }

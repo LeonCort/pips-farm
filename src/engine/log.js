@@ -15,10 +15,10 @@
     if (kind === 'ERROR') { var c = errs[msg] = (errs[msg] || 0) + 1; if (c > 3) { if (c === 4) add('info', 'the error above keeps coming; counted at the top from now on'); return; } }
     var last = buf[buf.length - 1];
     if (last && last.k === kind && last.m === msg) { last.n = (last.n || 1) + 1; last.e = clock(); last.s = ++seq; }
-    else { buf.push({ t: clock(), k: kind, m: msg, s: ++seq }); if (buf.length > MAX) buf.splice(0, buf.length - MAX); }
+    else { buf.push({ t: clock(), k: kind, m: msg, s: ++seq, boot: Date.now() - started < 20000 ? 1 : undefined }); if (buf.length > MAX) buf.splice(0, buf.length - MAX); }
     dirty = true;
     if (kind === 'ERROR') store();
-    if (kind === 'ERROR' || kind === 'STALL') soon(kind === 'ERROR' ? 'error' : 'stall');
+    if (kind === 'ERROR' || (kind === 'STALL' && Date.now() - started >= 20000)) soon(kind === 'ERROR' ? 'error' : 'stall');
   }
   /* the previous session, read before this one starts writing */
   try { prev = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { prev = null; }
@@ -93,8 +93,9 @@
   }, 30000);
   /* ---------- automatic sending: batches of the log go to the pips-log receiver (a tiny Vercel project, see logserver/) ----------
      Nothing shows on screen. Sent: an anonymous random device id, the game version, the device type and the log lines.
-     When: about a minute after an error or a stall (batched), every 10 minutes while playing, when the app goes to the
-     background, and once at start for a previous session that did not close normally (freeze or crash).
+     When: only when something went wrong. About a minute after an error (3 min after a stall), checked again every
+     10 minutes and when the app goes to the background, and once at start for a previous session that did not close
+     normally (its last 60 lines). A session where nothing goes wrong sends nothing.
      Off on localhost/file pages, with ?nolog in the address, or with localStorage 'pips-log-send' = 'off'. */
   var SEND_URL = 'https://pips-log-leoncorts-projects.vercel.app/api/log', SEND_MAX = 40, BODY_MAX = 60000;
   var sendOn = location.protocol === 'https:' && !/^(localhost|127\.|0\.0\.0\.0)/.test(location.hostname) && !/[?&]nolog\b/.test(location.search);
@@ -118,13 +119,26 @@
   function flush(reason, beacon) {
     clearTimeout(sendT); sendT = 0;
     if (!sendOn || sends >= SEND_MAX) return false;
-    var L = buf.filter(function (l) { return l.s > sentSeq; }); if (!L.length) return false;
-    if (reason === 'close' && L.every(function (l) { return l.k === 'page' || l.k === 'tap'; })) return false;
+    var L = keep(buf, sentSeq); if (!L) return false;
     sentSeq = seq; sends++; lastSend = Date.now();
     var head = 'session started ' + day(started) + ', batch ' + sends + ', ' + stalls + ' stalls' + (worst ? ' (worst ' + (worst / 1000).toFixed(1) + ' s)' : '') + (loopDead ? ', GAME LOOP STOPPED' : '') + (sends >= SEND_MAX ? ', LAST BATCH (limit reached)' : '') + '\n'
       + Object.keys(errs).filter(function (m) { return errs[m] > 1; }).map(function (m) { return 'Repeated error x' + errs[m] + ': ' + m.slice(0, 200) + '\n'; }).join('');
     post(reason, head + lines(L), beacon);
     return true;
+  }
+  /* only what is needed: nothing is sent unless there is a new error, warning or stall; then those lines go out
+     with the 15 lines just before each one (what the player did, the last stats), and the rest is left out.
+     Stalls in the first 20 s (loading, shaders being built) do not count. */
+  var BAD = { ERROR: 1, STALL: 1, warn: 1 }, LEAD = 15;
+  function keep(B, after) {
+    var pick = {}, any = false;
+    B.forEach(function (l, i) {
+      if (l.s > after && BAD[l.k] && !(l.k === 'STALL' && l.boot)) { any = true; for (var j = Math.max(0, i - LEAD); j <= i; j++) pick[j] = 1; }
+    });
+    if (!any) return null;
+    var out = [], gap = false;
+    B.forEach(function (l, i) { if (pick[i]) { if (gap && out.length) out.push({ t: '', k: '...', m: '' }); out.push(l); gap = false; } else gap = true; });
+    return out;
   }
   /* errors and stalls: wait a bit so one bad moment goes out as one batch; errors at most one batch a minute, stalls every 3 minutes */
   function soon(reason) {
@@ -141,7 +155,8 @@
     var rep = ''; try { rep = localStorage.getItem('pips-log-reported') || ''; } catch (e) {}
     if (rep !== String(prev.start)) {
       try { localStorage.setItem('pips-log-reported', String(prev.start)); } catch (e) {}
-      setTimeout(function () { post('crash', 'previous session did NOT close normally' + session('Previous session', prev), false, prev.page, prev.ver); }, 8000);
+      var tail = { page: prev.page, start: prev.start, beat: prev.beat, closed: false, ver: prev.ver, lines: prev.lines.slice(-60) };
+      setTimeout(function () { post('crash', 'previous session did NOT close normally, its last ' + tail.lines.length + ' lines:' + session('Previous session', tail), false, prev.page, prev.ver); }, 8000);
     }
   }
   api.send = flush;
