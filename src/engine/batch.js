@@ -15,6 +15,7 @@
    Test page: __batch() counts, __batch().set(false) switches it off. */
 const BATCH = { on: true, layer: 7, cell: 6, settle: 4, scanEvery: 0.5, maxMoves: 3, maxOuts: 6, budget: 3, tinyShadow: 0.14,
   rec: new Map(), chunks: new Map(), dirty: new Set(), sw: new Map(), scanT: 0, lastT: 0, builds: 0, frame: 0 };
+try { if (localStorage.getItem('pips-batch') === '0') BATCH.on = false; } catch (e) {} /* test switch: merging off */
 {
   const HID = 1 << BATCH.layer, protoOBR = T.Object3D.prototype.onBeforeRender;
   /* raycasts still hit the hidden originals */
@@ -32,6 +33,7 @@ const BATCH = { on: true, layer: 7, cell: 6, settle: 4, scanEvery: 0.5, maxMoves
     const g = o.geometry; if (!g || !g.isBufferGeometry || !g.attributes.position || !g.attributes.normal || g.morphAttributes.position) return false; /* groups only matter with a list of materials, which is left out below */
     if (g.drawRange.start !== 0 || g.drawRange.count !== Infinity) return false;
     for (const k in g.attributes) { const a = g.attributes[k]; if (a.isInterleavedBufferAttribute || a.normalized || !(a.array instanceof Float32Array) || k.startsWith('aSw')) return false; }
+    if (!g.boundingSphere) g.computeBoundingSphere(); if (!(g.boundingSphere.radius >= 0)) return false; /* a part with broken points would hide its whole area */
     return okMat(o.material);
   }
   const vers = (g) => { let v = 0; for (const k in g.attributes) v += g.attributes[k].version; return v + (g.index ? g.index.version : 0); };
@@ -55,7 +57,9 @@ const BATCH = { on: true, layer: 7, cell: 6, settle: 4, scanEvery: 0.5, maxMoves
   const _w = new T.Matrix4();
   function worldOf(r) { /* the matrix a part is copied with: its world matrix, or its resting one when it sways */
     if (!r.sw) return r.o.matrixWorld;
-    _w.copy(restOf(r.sw)); const chain = []; for (let p = r.o; p !== r.sw.g; p = p.parent) chain.push(p);
+    const chain = []; let p = r.o; for (; p && p !== r.sw.g; p = p.parent) chain.push(p);
+    if (!p) { r.sw = null; return r.o.matrixWorld; } /* taken off its swaying tree or tuft (picked, moved, removed): from now on a plain part */
+    _w.copy(restOf(r.sw));
     for (let i = chain.length - 1; i >= 0; i--) _w.multiply(chain[i].matrix);
     return _w;
   }
@@ -136,7 +140,9 @@ const BATCH = { on: true, layer: 7, cell: 6, settle: 4, scanEvery: 0.5, maxMoves
     const list = []; BATCH.rec.forEach((r) => { if (r.chunk === key || r.want === key) list.push(r); });
     if (c) { sc.remove(c.mesh); c.mesh.geometry.dispose(); BATCH.chunks.delete(key); }
     list.forEach((r) => { r.want = null; });
-    const live = list.filter((r) => r.chunk === key || (r.st >= BATCH.settle && shown(r.o) && keyOf(r) === key));
+    const swKey = key.split('|')[2].indexOf('s') >= 0;
+    const live = list.filter((r) => { if (!r.o.parent) return false; worldOf(r); if (!!r.sw !== swKey) return false; /* still in the scene, and still on its tree when this area sways */
+      return r.chunk === key || (r.st >= BATCH.settle && shown(r.o) && keyOf(r) === key); });
     list.forEach((r) => { if (!live.includes(r) && r.chunk === key) unhide(r); });
     if (live.length < 2) { live.forEach(unhide); return; }
     const o0 = live[0].o, sway = !!live[0].sw, mesh = new T.Mesh(build(live, sway), sway ? swayMat(o0.material) : o0.material);
@@ -192,10 +198,15 @@ const BATCH = { on: true, layer: 7, cell: 6, settle: 4, scanEvery: 0.5, maxMoves
     if (!BATCH.on || (typeof gfxLow !== 'undefined' && gfxLow)) { if (BATCH.chunks.size) clear(); return; } /* light mode already draws little and leaves far small things out; it stays as it was */
     BATCH.frame++;
     const now = performance.now() / 1000, dt = BATCH.lastT ? Math.min(0.1, now - BATCH.lastT) : 0; BATCH.lastT = now;
-    swaySync(); check();
-    BATCH.scanT -= dt; if (BATCH.scanT <= 0) { BATCH.scanT = BATCH.scanEvery; scan(); }
-    /* areas are glued for at most a few milliseconds per frame, so a big change never stalls one frame */
-    const t0 = performance.now(); for (const k of BATCH.dirty) { BATCH.dirty.delete(k); rebuild(k); if (performance.now() - t0 > BATCH.budget) break; }
+    try {
+      swaySync(); check();
+      BATCH.scanT -= dt; if (BATCH.scanT <= 0) { BATCH.scanT = BATCH.scanEvery; scan(); }
+      /* areas are glued for at most a few milliseconds per frame, so a big change never stalls one frame */
+      const t0 = performance.now(); for (const k of BATCH.dirty) { BATCH.dirty.delete(k); rebuild(k); if (performance.now() - t0 > BATCH.budget) break; }
+    } catch (e) { /* never let the merging stop the picture: put every part back and switch it off for this session */
+      BATCH.on = false; try { clear(); } catch (e2) {}
+      if (typeof console !== 'undefined') console.error('batching switched off: ' + (e && e.message));
+    }
   };
 }
 if (window.__farmTest) window.__batch = () => { let parts = 0, sway = 0; BATCH.chunks.forEach((c) => { parts += c.n; if (c.mesh.customDepthMaterial) sway += c.n; }); return { on: BATCH.on, chunks: BATCH.chunks.size, parts, sway, builds: BATCH.builds, dirty: BATCH.dirty.size, set: (v) => { BATCH.on = !!v; }, budget: (v) => { BATCH.budget = v; }, pick: (i) => { let k = 0, f = null; BATCH.rec.forEach((r) => { if (r.chunk && k++ === (i || 0)) f = r.o; }); return f; }, inChunk: (o) => { const r = BATCH.rec.get(o); return !!(r && r.chunk); } }; };
