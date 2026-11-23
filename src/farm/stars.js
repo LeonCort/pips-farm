@@ -20,14 +20,19 @@ function starSync() {
   if (SANDBOX || typeof state === 'undefined' || !state) return;
   const picks = stS2(), k = picks.join(','); if (k === starKey) return; starKey = k;
   const out = [], base = STAR_BASE.slice();
+  /* an animal's house costs about what the stretch it lands in costs, so the order the animals came in doesn't matter */
+  const nice = (v) => v < 100 ? Math.round(v / 5) * 5 : v < 1000 ? Math.round(v / 10) * 10 : Math.round(v / 50) * 50;
+  const house = (id, items) => { const ps = items.map(([, c]) => c).filter((c) => c > 0), c = nice(ps.reduce((a, b) => a + b, 0) / Math.max(1, ps.length));
+    Q_PRICE[id] = c; const p = PADS.find((q) => q.id === id); if (p) p.cost = c; out.push([id, c]); };
   STAR_SIZES.forEach((n, i) => {
-    if (i === 2) out.push(Q_H0.find(([id]) => id === 'house-pig'));
-    const prev = picks[i - 1]; if (prev && STAR_HOUSE[prev]) out.push(Q_H0.find(([id]) => id === STAR_HOUSE[prev]));
-    base.splice(0, n).forEach((q) => out.push(q));
+    const items = base.splice(0, n);
+    if (i === 2) house('house-pig', items);
+    const prev = picks[i - 1]; if (prev && STAR_HOUSE[prev]) house(STAR_HOUSE[prev], items);
+    items.forEach((q) => out.push(q));
     out.push(['star:' + (i + 1), 0]);
     if (picks[i]) out.push([starFirst(picks[i]), 0]);
   });
-  const last = picks[STAR_SIZES.length - 1]; if (last && STAR_HOUSE[last]) out.push(Q_H0.find(([id]) => id === STAR_HOUSE[last]));
+  const last = picks[STAR_SIZES.length - 1]; if (last && STAR_HOUSE[last]) house(STAR_HOUSE[last], base.slice(0, 5));
   base.forEach((q) => out.push(q));
   QUEUE.h.length = 0; out.filter(Boolean).forEach((q) => QUEUE.h.push(q));
 }
