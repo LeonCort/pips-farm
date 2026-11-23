@@ -9,7 +9,7 @@ const YIELD = { tree: ['log', 2], rock: ['stone', 2], bush: ['berry', 3] };
 const HITS = { tree: 6, rock: 8, bush: 3 }; /* Leon: slower, so each one feels like work */
 const REGROW = { tree: [12, 30], rock: [8, 50], bush: [25, 0] }; /* seconds as a stump, then seconds growing */
 const nodes = [], drops = [], signs = [], chests = [];
-let rising = null, hitT = 0, swing = 0, giveT = 0, pickHintT = 0;
+let rising = null, hitT = 0, giveT = 0, pickHintT = 0;
 
 /* ---- pictures: drawn on a 2D canvas for the signs and bubbles ---- */
 function isleIcon(x, t, cx, cy, s) {
@@ -227,7 +227,7 @@ function nodeStep(n, dt) {
     if (n.grow >= 1) { n.st = 'ready'; n.hp = HITS[n.kind]; } }
 }
 function nodeHit(n) {
-  n.hp--; n.shake = 0.28; swing = 1; hpShow(n);
+  n.hp--; n.shake = 0.28; hpShow(n);
   const sx = n.x + (pip.position.x - n.x) * 0.4, sz = n.z + (pip.position.z - n.z) * 0.4;
   if (n.kind === 'tree') Snd.play('tock', { gain: 0.55, f: 240 + Math.random() * 40 }); else if (n.kind === 'rock') Snd.play('impact', { gain: 0.35 }); else Snd.play('swish', { gain: 0.4 });
   if (n.kind !== 'bush') splash(sx, 0.6, sz, 3);
@@ -256,9 +256,9 @@ function isleStep(dt) {
   if (best && best.kind === 'rock' && !state.isle.tools.pick) {
     if (pickHintT <= 0) { pickHintT = 2.5; isleHint(best); }
   } else if (best && canWork(best) && carry.count() + isleIncoming < cap() && hitT <= 0) {
-    hitT = best.kind === 'bush' ? 0.45 : 0.5; pip.rotation.y = Math.atan2(best.x - pip.position.x, best.z - pip.position.z); nodeHit(best);
+    hitT = best.kind === 'bush' ? 0.5 : 0.55; workStart(best);
   }
-  swing = Math.max(0, swing - dt * 4); pb.rotation.x = reduced ? 0 : Math.sin(swing * Math.PI) * 0.35;
+  workStep(dt);
   nodes.forEach((n) => nodeStep(n, dt));
   for (let k = drops.length - 1; k >= 0; k--) if (dropStep(drops[k], dt)) drops.splice(k, 1);
   signs.forEach((s) => signStep(s, dt)); hpStep(dt);
@@ -300,7 +300,7 @@ function isleInit() {
   dog.g.position.set(-1.2, 0, -0.6); petsInit();
 }
 function isleTest() {
-  return { store: Object.assign({}, state.isle.store), inv: INV.el ? INV.el.textContent : '', own: state.isle.own.length, k: state.isle.k, tools: state.isle.tools, signs: signs.length, nodes: nodes.map((n) => n.kind[0] + (n.st === 'ready' ? '' : '-')).join(''), drops: drops.length, rising: !!rising,
+  return { work: work ? [work.kind, +work.t.toFixed(2)] : null, arms: limbs.filter((l) => l.arm).map((l) => [+l.g.position.x.toFixed(2), +l.g.rotation.x.toFixed(2)]), tool: [TOOL.axe.visible, !!TOOL.axe.parent], store: Object.assign({}, state.isle.store), inv: INV.el ? INV.el.textContent : '', own: state.isle.own.length, k: state.isle.k, tools: state.isle.tools, signs: signs.length, nodes: nodes.map((n) => n.kind[0] + (n.st === 'ready' ? '' : '-')).join(''), drops: drops.length, rising: !!rising,
     give: (t, n) => { for (let q = 0; q < n && carry.count() < cap(); q++) carry.add(itemModel(t)); },
     signs: () => signs.map((s) => ({ i: s.i, j: s.j, x: s.x, z: s.z, paid: signPaid(s) })), price: () => signCost(),
     nodesAt: () => nodes.map((n) => ({ kind: n.kind, x: n.x, z: n.z, st: n.st })) };
@@ -383,4 +383,41 @@ function hpStep(dt) {
   b.sp.position.set(b.n.x, HP_H[b.n.kind] * (b.n.kind === 'tree' ? b.n.full : 1), b.n.z);
   b.sp.material.opacity = Math.min(1, b.t * 3);
   if (b.t <= 0 || (b.n.st !== 'ready' && b.shown < 0.02 && b.t < 1.6)) { b.sp.visible = false; b.n = null; }
+}
+
+/* ---- Pip's tools and the work animation: a two-handed overhead swing with the axe (trees) or the pickaxe (rocks);
+   the hit lands when the tool comes down. Bushes: both hands reach in and pick. ---- */
+const TOOL = (() => {
+  const mk = (kind) => { const g = new T.Group(), L = [];
+    let q = new T.CylinderGeometry(0.028, 0.032, 0.56, 7); q.translate(0, -0.6, 0); L.push(fac(q, '#a8774f', 1700));
+    q = new T.CylinderGeometry(0.036, 0.036, 0.08, 7); q.translate(0, -0.36, 0); L.push(fac(q, '#6e4426', 1701)); /* grip */
+    if (kind === 'axe') { q = new T.BoxGeometry(0.06, 0.12, 0.13); q.translate(0, -0.84, 0.06); L.push(fac(q, '#8b939c', 1702));
+      q = new T.BoxGeometry(0.05, 0.22, 0.1); q.translate(0, -0.84, 0.16); L.push(fac(q, (cx, cy, cz) => cz > 0.19 ? new T.Color('#eef2f5') : new T.Color('#b9c1c9'), 1703)); }
+    else { q = new T.CylinderGeometry(0.035, 0.035, 0.08, 7); q.translate(0, -0.86, 0); L.push(fac(q, '#6e7680', 1704));
+      [1, -1].forEach((k) => { const c = new T.ConeGeometry(0.045, 0.26, 6); c.rotateX(k * Math.PI / 2 + k * 0.25); c.translate(0, -0.85 + 0.03, k * 0.14); L.push(fac(c, '#b9c1c9', 1705 + k)); }); }
+    merged(L, MAT, g); g.scale.setScalar(1.35); g.position.y = 0.12; g.visible = false; return g; };
+  return { axe: mk('axe'), pick: mk('pick') };
+})();
+let work = null, toolHold = 0;
+function workStart(n) { work = { n, t: 0, hit: false, kind: n.kind }; }
+const ease = (u) => u * u * (3 - 2 * u);
+function workStep(dt) {
+  const R = limbs.filter((l) => l.arm), arm = R.find((l) => l.g.position.x < 0) || R[0], other = R.find((l) => l !== arm);
+  if (arm) [TOOL.axe, TOOL.pick].forEach((t) => { if (t.parent !== arm.g) arm.g.add(t); });
+  toolHold = Math.max(0, toolHold - dt);
+  if (!work) { TOOL.axe.visible = TOOL.pick.visible = false; pb.rotation.x *= Math.max(0, 1 - dt * 8); return; }
+  const w = work, n = w.n, D = w.kind === 'bush' ? 0.48 : 0.5;
+  w.t += dt / D; const u = Math.min(1, w.t);
+  pip.rotation.y = Math.atan2(n.x - pip.position.x, n.z - pip.position.z);
+  TOOL.axe.visible = w.kind === 'tree'; TOOL.pick.visible = w.kind === 'rock';
+  let a, b, lean;
+  if (w.kind === 'bush') { const s = Math.sin(u * Math.PI * 2); a = -1.25 + s * 0.35; b = -1.25 - s * 0.35; lean = 0.18 * Math.sin(u * Math.PI); if (!w.hit && u > 0.5) { w.hit = true; if (n.st === 'ready') nodeHit(n); } }
+  else {
+    if (u < 0.55) { const e = ease(u / 0.55); a = -0.35 - 2.55 * e; lean = -0.12 * e; }
+    else if (u < 0.72) { const e = (u - 0.55) / 0.17; a = -2.9 + 2.0 * e * e; lean = -0.12 + 0.42 * e; }
+    else { const e = ease((u - 0.72) / 0.28); a = -0.9 + 0.5 * e; lean = 0.3 * (1 - e); }
+    b = a; if (!w.hit && u >= 0.72) { w.hit = true; if (n.st === 'ready') nodeHit(n); }
+  }
+  if (!reduced) { if (arm) arm.g.rotation.x = a; if (other) other.g.rotation.x = b; pb.rotation.x = lean; }
+  if (u >= 1) { work = null; toolHold = 0.4; }
 }
