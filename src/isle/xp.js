@@ -1,7 +1,7 @@
 /* ---------- Pip grows (Leon's idea list, 2026-11-23): every thing gathered gives stars (XP); a full star ring is a new
    level, and on each level the child picks one of three pictures: more energy (a longer bar), harder hits (things break
    sooner), or luck (now and then a clover: everything from that one comes twice). ---------- */
-const XP_FOR = { tree: 3, bush: 2, grass: 2, rock: 4, clay: 4, boulder: 8 };
+const XP_FOR = { crystal: 8, planks: 5, tree: 3, bush: 2, grass: 2, rock: 4, clay: 4, boulder: 8 };
 const XP_PERK_MAX = 5;
 const xpS = () => { const I = state.isle; if (!I.xp) I.xp = { n: 0, lv: 1, en: 0, hit: 0, luck: 0, pend: 0 }; return I.xp; };
 const xpNeed = (lv) => 20 + 15 * (lv - 1);

@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261123214627">
+<meta name="app-ver" content="20261123215243">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1147,7 +1147,7 @@ const SAVE_KEY = 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip l
 const HERE = 'isle';
 const MAP_V = 'areas-1'; /* the map's version: a save made for another map starts over */
 const GS = 4; /* one square, in world units; an area is 3 by 3 squares (12 by 12) */
-const GI0 = -9, GWN = 15; /* squares from -9 to 5 along x (i) and along z (j) */
+const GI0 = -9, GWN = 19; /* squares from -9 to 9 along x (i) and along z (j) */
 const gIdx = (i, j) => (i - GI0) * GWN + (j - GI0);
 const gIn = (i, j) => i >= GI0 && i < GI0 + GWN && j >= GI0 && j < GI0 + GWN;
 const gCell = (x) => Math.round(x / GS);
@@ -1157,18 +1157,20 @@ const AREAS = [
   { id: 'h0', i: -1, j: -1, biome: 'home', start: 1 },
   { id: 'h1', i: 2, j: -1, biome: 'rocks', cost: { log: 8, berry: 3 }, chest: 'pick' },
   { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 10, stone: 4, berry: 4 } },
-  { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag', ruin: [2.3, 1.0, -0.25] },
+  { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag', ruin: [2.3, 1.0, -0.25], stairs: [-2.6, 2.2] },
   { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, chest: 'sickle', bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
   { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, hay: 10, berry: 6 } },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, hay: 14, stone: 8 }, ruin: [0.4, 0, 0.2] },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 20, hay: 20, berry: 10 } },
   { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, hay: 16, stone: 14 }, chest: 'shovel', bridge: { from: 'm1', x0: -17.4, z0: -16, x1: -22.6, z1: -16 } },
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 24, clay: 10, log: 16 }, ruin: [0.8, -0.8, 0.3] },
-  { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 26, clay: 14, hay: 12 } }
+  { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 26, clay: 14, hay: 12 } },
+  /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
+  { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 }
 ];
 const AREA_BY = {}; AREAS.forEach((a) => { AREA_BY[a.id] = a; a.cx = (a.i + 1) * GS; a.cz = (a.j + 1) * GS; });
 /* what each biome looks like: a tint over the grass */
-const BIOME_TINT = { home: null, rocks: ['#c9c58f', 0.18], berry: ['#7fbf5a', 0.15], meadow: ['#b4e05e', 0.24], orchard: ['#d7e07a', 0.2], stone: ['#9fa592', 0.5], clay: ['#c9a27a', 0.38] };
+const BIOME_TINT = { home: null, rocks: ['#c9c58f', 0.18], berry: ['#7fbf5a', 0.15], meadow: ['#b4e05e', 0.24], orchard: ['#d7e07a', 0.2], stone: ['#9fa592', 0.5], clay: ['#c9a27a', 0.38], cave: ['#5d5249', 0.82] };
 /* the land: WALK = squares Pip may walk on (areas owned), LAND = squares drawn as land (owned, plus each island's first area
    so it can be seen across the sea). Both are read from the save right away, because the ground is drawn before the game starts. */
 const WALK = new Uint8Array(GWN * GWN), LAND = new Uint8Array(GWN * GWN), AREA_AT = new Int16Array(GWN * GWN).fill(-1);
@@ -1177,10 +1179,10 @@ const HAS = {}; /* areas owned */
 try { if (/[?&]new=1/.test(location.search)) localStorage.removeItem(SAVE_KEY); } catch (e) {}
 function areaSquares(a, f) { for (let i = a.i; i < a.i + 3; i++) for (let j = a.j; j < a.j + 3; j++) f(i, j); }
 function areaMark(a) { HAS[a.id] = 1; areaSquares(a, (i, j) => { WALK[gIdx(i, j)] = 1; LAND[gIdx(i, j)] = 1; }); }
-AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge) LAND[gIdx(i, j)] = 1; }); });
+AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.cave) LAND[gIdx(i, j)] = 1; }); });
 (function () {
   let I = null; try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && s.v === 1 && s.isle && s.isle.map === MAP_V) I = s.isle; } catch (e) {}
-  AREAS.forEach((a) => { if (a.start || (I && I.areas && I.areas[a.id])) areaMark(a); });
+  AREAS.forEach((a) => { if (a.start || a.cave || (I && I.areas && I.areas[a.id])) areaMark(a); });
 })();
 const owned = (i, j) => gIn(i, j) && WALK[gIdx(i, j)] === 1;
 const drawn = (i, j) => gIn(i, j) && LAND[gIdx(i, j)] === 1;
@@ -1213,7 +1215,7 @@ function wClamp(v) {
 const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 0, walk: 1.5, ring: { rx: 3, rz: 3, w: 0 }, /* no ring road: w 0 (pets still wander round it) */ roads: [], trees: [],
   box: { x0: -5.4, x1: 5.4, z0: -5.4, z1: 5.4 }, /* pets keep inside this (the area Pip is in) */
   d: (x, z) => 1 + drawSdf(x, z) / 6, clamp: wClamp,
-  gw: 60, gh: 60, gx: -8, gz: -8, /* the ground covers the whole world */
+  gw: 60, gh: 76, gx: -8, gz: 0, /* the ground covers the whole world, the cave hill too */
   puddles: [[-2.2, 3.0, 0.9, 0.4], [2.8, -3.2, 0.8, 1.2], [2.9, 3.4, 0.7, 0.2], [-3.3, -0.9, 0.8, 1.5], [0.4, -3.6, 0.6, 0.9]], /* rain puddles in the start area (the farm's lie on its roads) */
   tint: (x, z, c) => { const a = areaAt(x, z), t = a && BIOME_TINT[a.biome]; if (t) c.lerp(new T.Color(t[0]), t[1]); } };
 const KENNEL = { x: -1.6, z: -1.5 }; /* the pet's kennel, by the camp in the start area */
@@ -2076,15 +2078,15 @@ function radioMood(m) { return m === 'pastoral' ? 'sway' : m; }
    Everything grows back, so a child can never get stuck. No reading needed: pictures and the guide arrow only. */
 const FISH = []; /* no fish on this island yet (the engine's icon list asks) */
 /* what can be gathered: trees, rocks and bushes everywhere; tall grass (hay) on the Meadow; clay pits and big boulders on Stone island */
-const NODE_R = { planks: 0.4, tree: 0.36, rock: 0.55, bush: 0.45, grass: 0.32, clay: 0.5, boulder: 0.95 };
-const YIELD = { planks: ['log', 1], tree: ['log', 2], rock: ['stone', 2], bush: ['berry', 3], grass: ['hay', 2], clay: ['clay', 2], boulder: ['stone', 5] };
-const HITS = { planks: 5, tree: 6, rock: 8, bush: 3, grass: 3, clay: 6, boulder: 14 }; /* Leon: slower, so each one feels like work */
-const REGROW = { planks: [1e9, 0], tree: [8, 16], rock: [6, 25], bush: [10, 0], grass: [5, 12], clay: [8, 25], boulder: [10, 40] }; /* seconds gone, then seconds growing (Leon: waiting is boring, so quicker) */
-const LOW = { rock: 0.35, boulder: 0.35, clay: 0.3, grass: 0.15 }; /* how small it shrinks while it grows back (trees fall, bushes lose their berries) */
-const PICKY = { rock: 1, boulder: 1, clay: 1 }; /* swung at with the pickaxe (or the spade, for clay) */
+const NODE_R = { crystal: 0.42, planks: 0.4, tree: 0.36, rock: 0.55, bush: 0.45, grass: 0.32, clay: 0.5, boulder: 0.95 };
+const YIELD = { crystal: ['gem', 2], planks: ['log', 1], tree: ['log', 2], rock: ['stone', 2], bush: ['berry', 3], grass: ['hay', 2], clay: ['clay', 2], boulder: ['stone', 5] };
+const HITS = { crystal: 6, planks: 5, tree: 6, rock: 8, bush: 3, grass: 3, clay: 6, boulder: 14 }; /* Leon: slower, so each one feels like work */
+const REGROW = { crystal: [25, 30], planks: [1e9, 0], tree: [8, 16], rock: [6, 25], bush: [10, 0], grass: [5, 12], clay: [8, 25], boulder: [10, 40] }; /* seconds gone, then seconds growing (Leon: waiting is boring, so quicker) */
+const LOW = { crystal: 0.3, rock: 0.35, boulder: 0.35, clay: 0.3, grass: 0.15 }; /* how small it shrinks while it grows back (trees fall, bushes lose their berries) */
+const PICKY = { crystal: 1, rock: 1, boulder: 1, clay: 1 }; /* swung at with the pickaxe (or the spade, for clay) */
 /* the right tool for each thing (Leon, 2026-11-23): without it Pip still gets it, by hand, just three times slower,
    so a new island can be started at once and the tool found there makes it quick */
-const NEED = { rock: 'pick', boulder: 'pick', clay: 'shovel', grass: 'sickle' };
+const NEED = { crystal: 'pick', rock: 'pick', boulder: 'pick', clay: 'shovel', grass: 'sickle' };
 const hasTool = (k) => !NEED[k] || !!(state.isle.tools && state.isle.tools[NEED[k]]);
 const byHand = (k) => !hasTool(k);
 function hitPow(k) { return (hasTool(k) ? 1 : 1 / 3) * xpPow(); }
@@ -2112,6 +2114,8 @@ function isleIcon(x, t, cx, cy, s) {
     x.beginPath(); x.moveTo(-7, -22); x.lineTo(7, -22); x.stroke(); x.beginPath(); x.moveTo(-10, 4); x.lineTo(10, 4); x.lineTo(9, 14); x.quadraticCurveTo(0, 24, -9, 14); x.closePath(); blob('#c7ced6'); }
   else if (t === 'sickle') { x.beginPath(); x.moveTo(-14, 20); x.lineTo(-6, 6); x.lineWidth = 7; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.6; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
     x.beginPath(); x.moveTo(-6, 6); x.quadraticCurveTo(-8, -20, 14, -18); x.quadraticCurveTo(-1, -12, -1, 6); x.closePath(); blob('#c7ced6'); }
+  else if (t === 'stairsDown' || t === 'stairsUp') { const up = t === 'stairsUp'; x.beginPath(); x.moveTo(-20, 16); [[-20, 6], [-8, 6], [-8, -4], [4, -4], [4, -14], [16, -14], [16, 16]].forEach(([a, b]) => x.lineTo(a, b)); x.closePath(); blob(up ? '#c9b98f' : '#a69c8a');
+    x.beginPath(); if (up) { x.moveTo(-6, -24); x.lineTo(6, -24); x.moveTo(0, -30); x.lineTo(-6, -24); x.lineTo(0, -18); } else { x.moveTo(-22, -22); x.lineTo(-10, -10); x.moveTo(-10, -18); x.lineTo(-10, -10); x.lineTo(-18, -10); } x.lineWidth = 4.5; x.strokeStyle = up ? '#3f8a3a' : '#f4d76a'; x.stroke(); }
   else if (t === 'star') { x.beginPath(); for (let q = 0; q < 10; q++) { const r = q % 2 ? 10 : 22, a = q / 10 * Math.PI * 2 - Math.PI / 2; x.lineTo(Math.cos(a) * r, Math.sin(a) * r + 1); } x.closePath(); blob('#f7c948'); }
   else if (t === 'clover') { x.fillStyle = '#5fae4a'; [[-8, -8], [8, -8], [-8, 8], [8, 8]].forEach(([a, b]) => { x.beginPath(); x.arc(a, b, 9, 0, 7); x.fill(); x.stroke(); }); x.beginPath(); x.moveTo(2, 4); x.quadraticCurveTo(8, 16, 16, 22); x.stroke(); x.fillStyle = '#9ad67e'; x.beginPath(); x.arc(-10, -10, 3, 0, 7); x.fill(); }
   else if (t === 'perkEn') { isleIcon(x, 'bolt', -10, 0, 1); x.lineWidth = 3; x.strokeStyle = PAL.ink; for (let q = 0; q < 3; q++) { x.beginPath(); x.roundRect(6, 10 - q * 11, 18, 8, 3); x.fillStyle = '#7cc85a'; x.fill(); x.stroke(); } x.beginPath(); x.moveTo(15, -30); x.lineTo(15, -18); x.moveTo(9, -24); x.lineTo(21, -24); x.lineWidth = 4; x.strokeStyle = '#3f8a3a'; x.stroke(); }
@@ -2199,7 +2203,8 @@ const berryMat = new T.MeshStandardMaterial({ color: '#d6406a', roughness: 0.4 }
 function makeNode(kind, x, z, seed) {
   const g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = hash(seed, 3) * 6.28; sc.add(g);
   const n = { kind, x, z, g, st: 'ready', hp: HITS[kind], t: 0, grow: 1, shake: 0, fall: 0, pop: 0, seed };
-  if (kind === 'planks') { n.main = new T.Mesh(RUIN_BOARDS, MAT); n.main.castShadow = true; n.full = 1; g.add(n.main); }
+  if (kind === 'crystal') { n.main = new T.Mesh(CRYSTAL_GEO, crystalMat); n.full = 0.9 + hash(seed, 4) * 0.3; n.main.scale.setScalar(n.full); g.add(n.main); }
+  else if (kind === 'planks') { n.main = new T.Mesh(RUIN_BOARDS, MAT); n.main.castShadow = true; n.full = 1; g.add(n.main); }
   else if (kind === 'tree') { n.main = tree(hash(seed, 2) > 0.7 ? 'pine' : 'tree', seed); n.main.scale.setScalar(1.05 + hash(seed, 9) * 0.25); n.full = n.main.scale.x; g.add(n.main);
     n.stump = new T.Mesh(STUMP_GEO, MAT); n.stump.castShadow = true; n.stump.receiveShadow = true; n.stump.visible = false; g.add(n.stump); }
   else if (kind === 'rock' || kind === 'boulder' || kind === 'clay' || kind === 'grass') { n.main = new T.Mesh(kind === 'rock' ? ROCK_GEO : kind === 'boulder' ? BOULDER_GEO : kind === 'clay' ? CLAY_GEO : GRASS_GEO, MAT); n.main.castShadow = kind !== 'clay'; n.main.receiveShadow = true;
@@ -2217,12 +2222,15 @@ const LAYOUT = {
   meadow: (x, z, h, n) => (n > 1.0 ? (h > 0.35 ? 'tree' : null) : n < -0.9 ? (h > 0.4 ? 'bush' : null) : h > 0.42 ? 'grass' : null),
   orchard: (x, z, h, n) => (n > 0 ? (h > 0.3 ? 'tree' : null) : h > 0.55 ? 'grass' : h > 0.4 ? 'bush' : null),
   stone: (x, z, h, n) => (n > 0.8 ? (h > 0.45 ? 'boulder' : null) : n < -0.9 ? (h > 0.4 ? 'clay' : null) : h > 0.8 ? 'tree' : h > 0.5 ? 'rock' : null),
+  cave: (x, z, h, n) => (n > 0.6 ? (h > 0.4 ? 'crystal' : null) : n < -0.8 ? (h > 0.5 ? 'boulder' : null) : h > 0.62 ? 'rock' : h > 0.5 ? 'crystal' : null),
   clay: (x, z, h, n) => (n > 0.2 ? (h > 0.35 ? 'clay' : null) : h > 0.75 ? 'boulder' : h > 0.5 ? 'rock' : h > 0.4 ? 'tree' : null)
 };
 /* spots that must stay clear: the camp, each chest, both ends of each bridge, and where signs stand */
 function areaClear(x, z) {
   if (Math.hypot(x, z - 0.2) < 3.3) return false; /* the camp */
   for (const a of AREAS) { if (a.chest && Math.hypot(x - a.cx, z - a.cz) < 1.4) return false;
+    if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
+    if (a.cave && Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
   if (Math.max(Math.abs(x), Math.abs(z)) < 6 && Math.max(Math.abs(x), Math.abs(z)) > 4.6) return false; /* the start area's shore, where its signs stand */
@@ -2242,6 +2250,8 @@ function areaFill(A, fresh) {
   }
   if (A.chest && !state.isle.chests[A.id]) makeChest(A.cx, A.cz - 0.4, A.chest, A.id);
   if (A.ruin) makeRuin(A, fresh);
+  if (A.stairs) stairsBuild(A, fresh);
+  if (A.cave) caveBuild(A);
   areaDecor(A);
 }
 /* little things that make each biome look like itself (one mesh per area, nothing to gather): flowers on grass, pebbles on stone */
@@ -2252,6 +2262,7 @@ function areaDecor(A) {
       const q = ico(0.07, 0, 1900 + k); q.translate(x, 0.1, z); L.push(fac(q, COLS[k % 4], 1900 + k)); const st = new T.CylinderGeometry(0.012, 0.012, 0.1, 3); st.translate(x, 0.05, z); L.push(fac(st, '#5d8a3a', 1950)); } }
   else if (b === 'stone' || b === 'clay' || b === 'rocks') {
     for (let k = 0; k < (b === 'rocks' ? 40 : 90); k++) { const x = A.cx + (hash(k, 81 + base) - 0.5) * 11.4, z = A.cz + (hash(k, 82 + base) - 0.5) * 11.4; const r = 0.05 + hash(k, 83) * 0.09, q = ico(r, 0, 2000 + k); q.scale(1.2, 0.6, 1); q.translate(x, r * 0.3, z); L.push(fac(q, tone(b === 'clay' ? '#b98a6a' : '#a9b2bb', k, 0.7), 2000 + k)); } }
+  if (b === 'cave') caveDecor(A, L, base);
   if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; }
 }
 /* the camp in the start area: a campfire and a little tent */
@@ -2432,7 +2443,7 @@ function dropOut(n) {
     if (VALUABLE[t]) { Snd.play('sparkle', { gain: 0.45 }); burst(n.x, 1.0, n.z, 5); } });
 }
 /* treasure: now and then something valuable pops out too. Valuables go in the backpack; building things go straight to the counter. */
-const TREASURE = { planks: ['coin', 0], tree: ['coin', 0.06], rock: ['gem', 0.15], bush: ['coin', 0.06], grass: ['coin', 0.04], clay: ['gem', 0.1], boulder: ['gem', 0.3] };
+const TREASURE = { crystal: ['coin', 0.3], planks: ['coin', 0], tree: ['coin', 0.06], rock: ['gem', 0.15], bush: ['coin', 0.06], grass: ['coin', 0.04], clay: ['gem', 0.1], boulder: ['gem', 0.3] };
 const VALUABLE = { gem: 1, coin: 1 };
 function dropStep(d, dt) {
   if (d.land === 0) { d.vy -= 14 * dt; d.m.position.x += d.vx * dt; d.m.position.z += d.vz * dt; d.m.position.y += d.vy * dt; d.m.rotation.y += dt * 6;
@@ -2501,10 +2512,10 @@ function isleStep(dt) {
   storeStep2(dt); invFlyStep(dt); invStep();
   for (let k = chests.length - 1; k >= 0; k--) { chestStep(chests[k], dt); if (chests[k].gone) chests.splice(k, 1); }
   if (hintSp.visible) { hintSp.t -= dt; hintSp.material.opacity = Math.min(1, hintSp.t * 2); if (hintSp.t <= 0) hintSp.visible = false; }
-  const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1); bldStep(dt); xpStep(dt); luckStep(dt); ruinStep(dt);
+  const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1); bldStep(dt); xpStep(dt); luckStep(dt); ruinStep(dt); caveStep(dt);
 }
 /* the pets keep inside the box of the land Pip is on: home, or an island once Pip is there */
-function isleBoxStep() { const A = areaAt(pip.position.x, pip.position.z); if (A && HAS[A.id]) { const b = ISLAND.box; b.x0 = A.cx - 5.4; b.x1 = A.cx + 5.4; b.z0 = A.cz - 5.4; b.z1 = A.cz + 5.4; } }
+function isleBoxStep() { const A = areaAt(pip.position.x, pip.position.z); if (A && HAS[A.id] && !A.cave) { const b = ISLAND.box; b.x0 = A.cx - 5.4; b.x1 = A.cx + 5.4; b.z0 = A.cz - 5.4; b.z1 = A.cz + 5.4; } }
 /* a picture over a rock that needs the pickaxe */
 const hintSp = isleSprite(isleBubble('pick'), 0.8); hintSp.visible = false; sc.add(hintSp);
 function isleHint(n) { hintSp.material.map = isleBubble(NEED[n.kind] || 'pick'); hintSp.position.set(n.x, (HP_H[n.kind] || 1.2) + 0.75, n.z); hintSp.visible = true; hintSp.t = 1.8; Snd.play('blip', { gain: 0.2, f: 420 }); }
@@ -2545,7 +2556,7 @@ function isleTest() {
     fill: (o) => { Object.keys(o).forEach((t) => { state.isle.store[t] = (state.isle.store[t] || 0) + o[t]; }); },
     own: (ids) => { ids.split(',').forEach((id) => { state.isle.areas[id] = 1; }); save(); },
     tp: (x, z) => { pip.position.set(x, 0, z); target.set(x, 0, z); camFocus.set(x, 0, z); }, building: !!building,
-    en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], bld: Object.assign({}, state.isle.bld), xp: Object.assign({}, xpS()), gain: (v) => xpGain(v), max: enMax(), up: (k) => bldUp(k), tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
+    en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], bld: Object.assign({}, state.isle.bld), cave: inCave, down: stairsDown ? [stairsDown.x, stairsDown.z] : null, upMat: caveA && caveA.mat ? [caveA.mat.x, caveA.mat.z] : null, xp: Object.assign({}, xpS()), gain: (v) => xpGain(v), max: enMax(), up: (k) => bldUp(k), tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
     walk: (x, z) => +walkSdf(x, z).toFixed(2), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
 }
 
@@ -2627,7 +2638,7 @@ function invStep() {
 }
 
 /* ---- a health bar over the thing Pip is working on: it drains with each hit ---- */
-const HP_H = { planks: 1.45, tree: 2.55, rock: 1.25, bush: 1.2, grass: 1.25, clay: 0.95, boulder: 2.1 };
+const HP_H = { crystal: 1.5, planks: 1.45, tree: 2.55, rock: 1.25, bush: 1.2, grass: 1.25, clay: 0.95, boulder: 2.1 };
 const hpBar = (() => { const c = document.createElement('canvas'); c.width = 160; c.height = 40; const tex = new T.CanvasTexture(c);
   const sp = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false })); sp.scale.set(1.2, 0.3, 1); sp.renderOrder = 10; sp.visible = false; sc.add(sp);
   return { c, tex, sp, n: null, t: 0, shown: 1 }; })();
@@ -2720,7 +2731,7 @@ Object.assign(CURVE_DEF, { strength: 0.011, side: 0.1, pitch: 47, dist: 15.5, ah
    When Pip is too tired to work, the guide arrow points to the tent; standing on the mat in front of it, Pip crawls in,
    sleeps till morning (a short nap in the daytime) and comes out full again. A slow trickle comes back on its own too,
    so a child is never stuck. ---------- */
-const EN_COST = { bush: 1, grass: 1, tree: 1, rock: 2, clay: 2, boulder: 2 }; /* the most energy and how fast it comes back: from the tent's and the campfire's level (build.js) */
+const EN_COST = { crystal: 2, planks: 1, bush: 1, grass: 1, tree: 1, rock: 2, clay: 2, boulder: 2 }; /* the most energy and how fast it comes back: from the tent's and the campfire's level (build.js) */
 let enSleep = null, enShow = -1, enNapT = 0;
 const enCost = (k) => (byHand(k) ? 1 : EN_COST[k] || 1); /* light scratching by hand: cheaper per go, but it takes three times as many */
 const enHas = (k) => state.isle.en >= enCost(k);
@@ -2938,7 +2949,7 @@ function bldBadge() { if (BM.btn) BM.btn.classList.toggle('can', bldCan('tent') 
 /* ---------- Pip grows (Leon's idea list, 2026-11-23): every thing gathered gives stars (XP); a full star ring is a new
    level, and on each level the child picks one of three pictures: more energy (a longer bar), harder hits (things break
    sooner), or luck (now and then a clover: everything from that one comes twice). ---------- */
-const XP_FOR = { tree: 3, bush: 2, grass: 2, rock: 4, clay: 4, boulder: 8 };
+const XP_FOR = { crystal: 8, planks: 5, tree: 3, bush: 2, grass: 2, rock: 4, clay: 4, boulder: 8 };
 const XP_PERK_MAX = 5;
 const xpS = () => { const I = state.isle; if (!I.xp) I.xp = { n: 0, lv: 1, en: 0, hit: 0, luck: 0, pend: 0 }; return I.xp; };
 const xpNeed = (lv) => 20 + 15 * (lv - 1);
@@ -3085,6 +3096,101 @@ function ruinDrop(R, t) {
   m.position.set(R.x + s * 0.7, 0.5, R.z + c * 0.7); sc.add(m);
   drops.push({ m, t, vx: Math.sin(a) * 1.8, vz: Math.cos(a) * 1.8, vy: 3.4 + Math.random(), land: 0, wait: 0.2 });
   Snd.play('sparkle', { gain: 0.35 }); burst(R.x + s * 0.9, 1.0, R.z + c * 0.9, 3);
+}
+/* ---------- the cave (Leon's idea list, 2026-11-23): stairs go down into a cave with rare crystals ----------
+   The stairs stand in h3 (the second rocks area). Standing on the mat in front of them, the screen goes dark and Pip
+   comes out in the cave: a rocky room with glowing crystals (gems, with the pickaxe) and the usual rocks and boulders.
+   The cave is really a hill out at sea, south of h3: from outside it has a grassy rocky top; inside, the top is
+   lifted off, the ground is dark and the edges of the screen go dim. Stairs up lead back out. */
+const crystalMat = new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.25, metalness: 0.1, emissive: new T.Color('#5a3fa0'), emissiveIntensity: 0.55 });
+const CRYSTAL_GEO = (() => {
+  const L = [];
+  [[0, 0, 0.62, 0, 0], [0.2, 0.1, 0.42, 0.4, 0.25], [-0.2, 0.06, 0.48, -0.35, -0.2], [0.05, -0.22, 0.36, 0.15, -0.45], [-0.12, 0.22, 0.3, -0.2, 0.5]].forEach(([x, z, h, rz, rx], k) => {
+    const q = new T.OctahedronGeometry(0.13, 0); q.scale(1, h / 0.13 * 0.5, 1); q.translate(0, h * 0.45, 0); q.rotateZ(rz); q.rotateX(rx); q.translate(x, 0, z);
+    L.push(fac(q, (cx, cy, cz, i) => new T.Color(i % 3 === 0 ? '#e7dbff' : k % 2 ? '#9f7ff0' : '#7fd3ef'), 1600 + k)); });
+  const b = ico(0.22, 0, 1610); b.scale(1.3, 0.5, 1.2); b.translate(0, 0.05, 0); L.push(fac(b, '#6a625a', 1610));
+  return merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), MAT, new T.Group()).geometry;
+})();
+let inCave = false, caveT = null, caveRoof = null, caveA = null;
+const CAVE_IN = { x: 0, z: 0 }, CAVE_OUT = { x: 0, z: 0 };
+/* little glowing mushrooms and dark pebbles on the cave floor */
+function caveDecor(A, L, base) {
+  for (let k = 0; k < 26; k++) { const x = A.cx + (hash(k, 91 + base) - 0.5) * 11, z = A.cz + (hash(k, 92 + base) - 0.5) * 11; if (!areaClear(x, z)) continue;
+    const st = new T.CylinderGeometry(0.025, 0.03, 0.12, 5); st.translate(x, 0.06, z); L.push(fac(st, '#e8e0d0', 2100 + k));
+    const cap = new T.SphereGeometry(0.075, 7, 4, 0, Math.PI * 2, 0, Math.PI / 2); cap.translate(x, 0.11, z); L.push(fac(cap, k % 3 ? '#7fd3ef' : '#c59cf2', 2130 + k)); }
+}
+/* the cave's walls, the hill top seen from outside, and the stairs back up */
+function caveBuild(A) {
+  caveA = A; const L = [], R = [];
+  const ring = (x, z, k) => { const h = 1.7 + hash(k, 5) * 1.5, r = 0.75 + hash(k, 6) * 0.35, q = ico(r, 1, 2200 + k); q.scale(1, h / r * 0.62, 1); jit(q, 0.06, 2200 + k); q.translate(x, h * 0.42, z);
+    L.push(fac(q, (cx, cy, cz, i) => shadeY(hash(i, k) > 0.85 ? '#6f665c' : '#857a6e', cy, 0, h, i, 0.5), 2200 + k)); };
+  let k = 0; const E = 5.7;
+  for (let t = -E; t <= E + 0.01; t += 0.95) { ring(A.cx + t, A.cz - E, k++); ring(A.cx - E, A.cz + t, k++); ring(A.cx + E, A.cz + t, k++); if (Math.abs(t) > 1.4) ring(A.cx + t, A.cz + E, k++); }
+  merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), MAT);
+  /* the stairs up: steps rising to the south, under a hole of daylight */
+  const sx = A.cx, sz = A.cz + 4.6;
+  for (let s = 0; s < 6; s++) { const q = new T.BoxGeometry(1.4, 0.18 + s * 0.18, 0.32); q.translate(sx, (0.18 + s * 0.18) / 2, sz + s * 0.3); R.push(fac(q, (cx, cy, cz, i) => tone('#a69c8a', i + s, 0.5), 2300 + s)); }
+  merged(R.map((q) => (q.index ? q.toNonIndexed() : q)), MAT);
+  const shaft = new T.Mesh(new T.CylinderGeometry(0.55, 0.95, 2.6, 14, 1, true), new T.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: 0.12, depthWrite: false, side: T.DoubleSide })); shaft.position.set(sx, 1.9, sz + 1.1); sc.add(shaft);
+  CAVE_IN.x = sx; CAVE_IN.z = sz - 2.1; /* where Pip comes out in the cave */
+  caveA.mat = stairMat('up', sx, sz - 0.9);
+  /* the hill top, seen from outside */
+  const H = []; const top = new T.SphereGeometry(7.4, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2); top.scale(1, 0.42, 1); jit(top, 0.22, 2400); top.translate(A.cx, 0, A.cz);
+  H.push(fac(top, (cx, cy, cz, i) => (cy > 2.0 ? tone('#8fbf5a', i, 0.6) : shadeY('#9a8f80', cy, 0, 2.2, i, 0.5)), 2400));
+  for (let q = 0; q < 6; q++) { const a = q / 6 * 6.28 + 0.4, b = ico(1.0 + hash(q, 2) * 0.6, 1, 2410 + q); b.scale(1, 0.8, 1); jit(b, 0.08, 2410 + q); b.translate(A.cx + Math.cos(a) * 5.6, 0.5, A.cz + Math.sin(a) * 5.6); H.push(fac(b, (cx, cy, cz, i) => shadeY('#8a8074', cy, 0, 1.6, i, 0.5), 2410 + q)); }
+  caveRoof = merged(H.map((q) => (q.index ? q.toNonIndexed() : q)), MAT);
+}
+/* a round mat with a stairs picture: 'down' into the cave, 'up' out of it; a gold arc fills while Pip stands on it */
+function stairMat(dir, x, z) {
+  const R = 0.6, c = document.createElement('canvas'); c.width = c.height = 256; const q = c.getContext('2d');
+  q.fillStyle = dir === 'down' ? '#3b3348' : '#f4e3b0'; q.beginPath(); q.arc(128, 128, 124, 0, 7); q.fill();
+  isleIcon(q, dir === 'down' ? 'stairsDown' : 'stairsUp', 128, 132, 3.4);
+  const pad = new T.Mesh(new T.CircleGeometry(R, 40), new T.MeshBasicMaterial({ map: new T.CanvasTexture(c), transparent: true })); pad.rotation.x = -Math.PI / 2; pad.position.set(x, 0.05, z); sc.add(pad);
+  const fg = new T.RingGeometry(R - 0.02, R + 0.1, 40, 1, Math.PI / 2, -Math.PI * 2);
+  const f = new T.Mesh(fg, new T.MeshBasicMaterial({ color: '#f4b23a', side: T.DoubleSide })); f.rotation.x = -Math.PI / 2; f.position.set(x, 0.06, z); sc.add(f); fg.setDrawRange(0, 0);
+  return { x, z, R, pad, fg, w: 0, dir };
+}
+/* the way down, in h3: a stone frame round a dark hole with steps going down */
+let stairsDown = null;
+function stairsBuild(A, fresh) {
+  const x = A.cx + A.stairs[0], z = A.cz + A.stairs[1], g = new T.Group(); g.position.set(x, 0, z); sc.add(g); const L = [];
+  const hole = new T.Mesh(new T.PlaneGeometry(1.25, 1.5), new T.MeshBasicMaterial({ color: '#1d1824' })); hole.rotation.x = -Math.PI / 2; hole.position.set(0, 0.03, -0.15); g.add(hole);
+  for (let s = 0; s < 4; s++) { const q = new T.PlaneGeometry(1.15, 0.26); q.rotateX(-Math.PI / 2); q.translate(0, 0.035, 0.42 - s * 0.3); const m = new T.Mesh(q, new T.MeshBasicMaterial({ color: new T.Color('#8a8074').multiplyScalar(1 - s * 0.22) })); g.add(m); }
+  [-0.78, 0.78].forEach((px, k) => { const q = new T.BoxGeometry(0.28, 1.25, 0.32); jit(q, 0.02, 2500 + k); q.translate(px, 0.62, -0.9); L.push(fac(q, (cx, cy, cz, i) => shadeY('#9a9184', cy, 0, 1.3, i, 0.5), 2500 + k)); });
+  let q = new T.BoxGeometry(1.9, 0.3, 0.38); jit(q, 0.02, 2502); q.translate(0, 1.36, -0.9); L.push(fac(q, (cx, cy, cz, i) => (cy > 1.45 && hash(i, 3) > 0.4 ? new T.Color('#6f9a4a') : shadeY('#a39a8c', cy, 1.2, 1.5, i, 0.5)), 2502));
+  for (let k = 0; k < 6; k++) { const a = k / 6 * 6.28, b = ico(0.16 + hash(k, 8) * 0.1, 0, 2510 + k); b.scale(1.2, 0.6, 1); b.translate(Math.cos(a) * 0.95, 0.06, Math.sin(a) * 1.0 - 0.15); L.push(fac(b, tone('#a9a090', k, 0.6), 2510 + k)); }
+  merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g);
+  stairsDown = stairMat('down', x, z + 1.15); stairsDown.g = g; CAVE_OUT.x = x; CAVE_OUT.z = z + 2.25;
+  if (fresh) { g.scale.setScalar(0.01); stairsDown.pop = 0.001; }
+}
+/* the dark edges of the screen in the cave, and the black fade on the way through */
+const caveDark = (() => { const d = document.createElement('div'); d.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .6s;background:radial-gradient(ellipse 62% 58% at 50% 52%,rgba(20,14,30,0) 35%,rgba(20,14,30,.55) 75%,rgba(12,8,20,.85) 100%)'; document.body.appendChild(d); return d; })();
+const caveFade = (() => { const d = document.createElement('div'); d.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:30;opacity:0;background:#0d0a12'; document.body.appendChild(d); return d; })();
+function caveGo(down) {
+  caveT = { t: 0, down, moved: false }; Snd.play(down ? 'whoosh' : 'pop', { gain: 0.35, f: down ? 300 : 520 }); work = null;
+}
+function caveStep(dt) {
+  if (stairsDown && stairsDown.pop) { stairsDown.pop = Math.min(1, stairsDown.pop + dt * 1.5); stairsDown.g.scale.setScalar(stairsDown.pop); if (stairsDown.pop >= 1) stairsDown.pop = 0; }
+  if (caveRoof) caveRoof.visible = !inCave;
+  if (inCave) { streaks.visible = ringMesh.visible = dropPts.visible = pudMesh.visible = false; } /* no rain under the hill */
+  if (caveT) {
+    const C = caveT; C.t += dt; caveFade.style.opacity = String(C.t < 0.45 ? C.t / 0.45 : Math.max(0, 1 - (C.t - 0.65) / 0.45));
+    target.copy(pip.position);
+    if (!C.moved && C.t >= 0.5) { C.moved = true; inCave = C.down; const p = inCave ? CAVE_IN : CAVE_OUT;
+      pip.position.set(p.x, 0, p.z); target.copy(pip.position); camFocus.copy(pip.position); if (typeof lastP !== 'undefined') lastP.copy(pip.position);
+      if (typeof dog !== 'undefined' && dog.g) dog.g.position.set(p.x - 0.8, 0, p.z + 0.4);
+      caveDark.style.opacity = inCave ? '1' : '0'; if (!inCave) isleBoxStep(); }
+    if (C.t > 1.15) { caveFade.style.opacity = '0'; caveT = null; }
+    return;
+  }
+  /* inside, Pip stays off the walls */
+  if (inCave && caveA) { pip.position.x = clamp(pip.position.x, caveA.cx - 4.9, caveA.cx + 4.9); pip.position.z = clamp(pip.position.z, caveA.cz - 4.9, caveA.cz + 4.2); }
+  [stairsDown, caveA && caveA.mat].forEach((M) => {
+    if (!M) return; const d = Math.hypot(pip.position.x - M.x, pip.position.z - M.z), still = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) < 0.3;
+    const on = d < M.R && still && !enSleep && (M.dir === 'down' ? !inCave : inCave);
+    M.w = on ? Math.min(1, M.w + dt / 0.6) : Math.max(0, M.w - dt * 3); M.fg.setDrawRange(0, 6 * Math.round(40 * M.w));
+    if (M.w >= 1) { M.w = 0; M.fg.setDrawRange(0, 0); caveGo(M.dir === 'down'); }
+  });
 }
 /* ---------- Pip, second pass: a smooth, merged figure ----------
    Same rig as before (pb, limbs[] at the hips and shoulders, eyes[] for the blink, the head group at y 1.3), so the walk,

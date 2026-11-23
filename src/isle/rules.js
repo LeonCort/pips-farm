@@ -8,7 +8,7 @@ const SAVE_KEY = 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip l
 const HERE = 'isle';
 const MAP_V = 'areas-1'; /* the map's version: a save made for another map starts over */
 const GS = 4; /* one square, in world units; an area is 3 by 3 squares (12 by 12) */
-const GI0 = -9, GWN = 15; /* squares from -9 to 5 along x (i) and along z (j) */
+const GI0 = -9, GWN = 19; /* squares from -9 to 9 along x (i) and along z (j) */
 const gIdx = (i, j) => (i - GI0) * GWN + (j - GI0);
 const gIn = (i, j) => i >= GI0 && i < GI0 + GWN && j >= GI0 && j < GI0 + GWN;
 const gCell = (x) => Math.round(x / GS);
@@ -18,18 +18,20 @@ const AREAS = [
   { id: 'h0', i: -1, j: -1, biome: 'home', start: 1 },
   { id: 'h1', i: 2, j: -1, biome: 'rocks', cost: { log: 8, berry: 3 }, chest: 'pick' },
   { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 10, stone: 4, berry: 4 } },
-  { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag', ruin: [2.3, 1.0, -0.25] },
+  { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag', ruin: [2.3, 1.0, -0.25], stairs: [-2.6, 2.2] },
   { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, chest: 'sickle', bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
   { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, hay: 10, berry: 6 } },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, hay: 14, stone: 8 }, ruin: [0.4, 0, 0.2] },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 20, hay: 20, berry: 10 } },
   { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, hay: 16, stone: 14 }, chest: 'shovel', bridge: { from: 'm1', x0: -17.4, z0: -16, x1: -22.6, z1: -16 } },
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 24, clay: 10, log: 16 }, ruin: [0.8, -0.8, 0.3] },
-  { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 26, clay: 14, hay: 12 } }
+  { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 26, clay: 14, hay: 12 } },
+  /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
+  { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 }
 ];
 const AREA_BY = {}; AREAS.forEach((a) => { AREA_BY[a.id] = a; a.cx = (a.i + 1) * GS; a.cz = (a.j + 1) * GS; });
 /* what each biome looks like: a tint over the grass */
-const BIOME_TINT = { home: null, rocks: ['#c9c58f', 0.18], berry: ['#7fbf5a', 0.15], meadow: ['#b4e05e', 0.24], orchard: ['#d7e07a', 0.2], stone: ['#9fa592', 0.5], clay: ['#c9a27a', 0.38] };
+const BIOME_TINT = { home: null, rocks: ['#c9c58f', 0.18], berry: ['#7fbf5a', 0.15], meadow: ['#b4e05e', 0.24], orchard: ['#d7e07a', 0.2], stone: ['#9fa592', 0.5], clay: ['#c9a27a', 0.38], cave: ['#5d5249', 0.82] };
 /* the land: WALK = squares Pip may walk on (areas owned), LAND = squares drawn as land (owned, plus each island's first area
    so it can be seen across the sea). Both are read from the save right away, because the ground is drawn before the game starts. */
 const WALK = new Uint8Array(GWN * GWN), LAND = new Uint8Array(GWN * GWN), AREA_AT = new Int16Array(GWN * GWN).fill(-1);
@@ -38,10 +40,10 @@ const HAS = {}; /* areas owned */
 try { if (/[?&]new=1/.test(location.search)) localStorage.removeItem(SAVE_KEY); } catch (e) {}
 function areaSquares(a, f) { for (let i = a.i; i < a.i + 3; i++) for (let j = a.j; j < a.j + 3; j++) f(i, j); }
 function areaMark(a) { HAS[a.id] = 1; areaSquares(a, (i, j) => { WALK[gIdx(i, j)] = 1; LAND[gIdx(i, j)] = 1; }); }
-AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge) LAND[gIdx(i, j)] = 1; }); });
+AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.cave) LAND[gIdx(i, j)] = 1; }); });
 (function () {
   let I = null; try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && s.v === 1 && s.isle && s.isle.map === MAP_V) I = s.isle; } catch (e) {}
-  AREAS.forEach((a) => { if (a.start || (I && I.areas && I.areas[a.id])) areaMark(a); });
+  AREAS.forEach((a) => { if (a.start || a.cave || (I && I.areas && I.areas[a.id])) areaMark(a); });
 })();
 const owned = (i, j) => gIn(i, j) && WALK[gIdx(i, j)] === 1;
 const drawn = (i, j) => gIn(i, j) && LAND[gIdx(i, j)] === 1;
@@ -74,7 +76,7 @@ function wClamp(v) {
 const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 0, walk: 1.5, ring: { rx: 3, rz: 3, w: 0 }, /* no ring road: w 0 (pets still wander round it) */ roads: [], trees: [],
   box: { x0: -5.4, x1: 5.4, z0: -5.4, z1: 5.4 }, /* pets keep inside this (the area Pip is in) */
   d: (x, z) => 1 + drawSdf(x, z) / 6, clamp: wClamp,
-  gw: 60, gh: 60, gx: -8, gz: -8, /* the ground covers the whole world */
+  gw: 60, gh: 76, gx: -8, gz: 0, /* the ground covers the whole world, the cave hill too */
   puddles: [[-2.2, 3.0, 0.9, 0.4], [2.8, -3.2, 0.8, 1.2], [2.9, 3.4, 0.7, 0.2], [-3.3, -0.9, 0.8, 1.5], [0.4, -3.6, 0.6, 0.9]], /* rain puddles in the start area (the farm's lie on its roads) */
   tint: (x, z, c) => { const a = areaAt(x, z), t = a && BIOME_TINT[a.biome]; if (t) c.lerp(new T.Color(t[0]), t[1]); } };
 const KENNEL = { x: -1.6, z: -1.5 }; /* the pet's kennel, by the camp in the start area */
