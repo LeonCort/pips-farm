@@ -44,7 +44,7 @@ function bedStep(dt) {
   }
   /* lie down, let the night run by fast, then hop up in the morning */
   sleep.t += dt; const q = Math.min(1, sleep.t / 3.2), e = q * q * (3 - 2 * q);
-  state.clock = sleep.from + (sleep.to - sleep.from) * e - dt; /* skyStep adds dt back */
+  state.clock = sleep.from + (sleep.to - sleep.from) * e; clockPinned = true; /* skyStep adds nothing this frame */
   pip.position.set(BED.x + 0.8, BED.y || 0.46, BED.z); pip.rotation.y = Math.PI / 2; /* feet at the foot end, head on the pillow */ pb.rotation.x = -Math.PI / 2 * Math.min(1, sleep.t * 3); target.copy(pip.position);
   if (!sleep.z) { sleep.z = new T.Sprite(new T.SpriteMaterial({ map: zTex, transparent: true, depthTest: false })); sleep.z.renderOrder = 6; sleep.z.scale.set(0.7, 0.46, 1); sc.add(sleep.z); }
   sleep.z.position.set(BED.x + 0.2, 1.3 + Math.sin(sleep.t * 2) * 0.1, BED.z); sleep.z.visible = q < 0.95;
