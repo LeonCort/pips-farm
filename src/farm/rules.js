@@ -1,4 +1,6 @@
-const SAVE_KEY = 'pip-farm-care-v1'; /* the farm's save in localStorage */
+/* the sandbox (start page, bondgard.html?sandbox=1: everything unlocked, nothing to buy) keeps its own save, see sandbox.js */
+const SANDBOX = /[?&]sandbox=1\b/.test(location.search);
+const SAVE_KEY = SANDBOX ? 'pip-farm-sandbox-v1' : 'pip-farm-care-v1'; /* the farm's save in localStorage */
 /* the island (scene.js draws it): a round town island with a wavy coast, a little point for the lighthouse,
    a cobbled plaza (walk: the path round the fountain), the ring road round the town, straight roads (x0, z0, x1, z1, half width,
    kind 1 dirt / 2 cobbles), and the box pets and helpers keep inside */
