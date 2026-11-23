@@ -148,5 +148,5 @@ function polishStep(dt) {
   if (inHouse) { LAMP_LIGHTS.forEach((l, i) => { const p = INT.lights[i]; l.position.set(HO.x + p[0], p[1], HO.z + p[2]); l.intensity = 2.2 * (0.9 + 0.1 * Math.sin(time * 9 + i * 2)); l.distance = 5.5; }); sun.intensity *= 0.6; if (hemi) hemi.intensity *= 0.75; }
   else { const k = clamp(nightAmt * 2.6, 0, 1); LAMP_LIGHTS.forEach((l, i) => { l.position.set(LAMP_AT[i][0], 1.6 - curveDrop(LAMP_AT[i][0], LAMP_AT[i][1]), LAMP_AT[i][1]); l.intensity = 2.4 * k; l.distance = 5; }); }
   pipBlob.position.set(pip.position.x, pip.position.y + 0.05, pip.position.z); pipBlob.visible = !inHouse;
-  dogBlob.position.set(dog.g.position.x, dog.g.position.y + 0.05, dog.g.position.z); dogBlob.rotation.y = dog.g.rotation.y; dogBlob.visible = dog.g.visible && !inHouse;
+  dogBlob.position.set(dog.g.position.x, dog.g.position.y + 0.05, dog.g.position.z); dogBlob.rotation.y = dog.g.rotation.y; dogBlob.visible = dog.g.visible && !inHouse && state.pet !== 'none';
 }

@@ -49,8 +49,9 @@ let dog = (() => {
   return { g, body, head, tail, legs, h: 0.72, chase: false, wanderT: 0, tx: KENNEL.x, tz: KENNEL.z + 1, barkT: 12, hop: 0, petT: -99, away: false, asleep: false };
 })();
 function bark(gain) { dog.hop = 1; petVoice(dog.kind || 'dog', gain); }
-function petDog() { petPet(nearPet() || dog); }
+function petDog() { const d = nearPet() || (state.pet === 'none' ? null : dog); if (d) petPet(d); }
 function dogStep(dt) {
+  if (state.pet === 'none') return; /* no pet chosen: the town strollers (pets.js) move every pet */
   const d = dog, p = d.g.position, pp = pip.position, pl = petPlace(d), home = pl.home, away = pl.away;
   if (home !== !!d.inH) { d.inH = home; PTRAIL.length = 0; d.chase = false; const q = pl.door(home); p.set(q[0], 0, q[1]); if (home) d.g.rotation.y = Math.PI; }
   let tx, tz, sp = 1.1;

@@ -148,6 +148,7 @@ function edRows() {
 /* the chosen pet sits on the rug beside Pip; swapped when the child has picked another one in the pet corner */
 function edPetClone() {
   if (typeof dog === 'undefined' || !dog.g) return;
+  if (state.pet === 'none') { if (ED.dog) { ED.sc.remove(ED.dog.g); ED.dog = null; ED.dogKind = null; } return; }
   if (ED.dog) { if (ED.dogKind === dog.kind) return; ED.sc.remove(ED.dog.g); }
   const d = dog.g.clone(true); d.position.set(-0.74, 0, 0.3); d.rotation.set(0, 0.45, 0); d.scale.setScalar(dog.kind === 'bear' ? 1.0 : 1.15); ED.sc.add(d);
   const bi = dog.g.children.indexOf(dog.body), body = d.children[bi];
