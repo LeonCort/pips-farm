@@ -420,7 +420,7 @@ function isleGoal() {
 }
 function isleInit() {
   if (nodes.length) return;
-  if (!state.isle) state.isle = fresh().isle;
+  if (!state.isle || state.isle.gw !== GRID_W) state.isle = fresh().isle; /* a save from another map size starts over */
   const I = state.isle; I.paid = I.paid || {}; I.chests = I.chests || {}; I.got = I.got || {}; I.tools = I.tools || { pick: 0, bag: 0 };
   I.open = I.open || {}; I.ext = I.ext || {};
   for (let i = -GN; i <= GN; i++) for (let j = -GN; j <= GN; j++) if (owned(i, j)) {
@@ -583,6 +583,33 @@ function workStep(dt) {
   if (u >= 1) { work = null; toolHold = 0.4; }
 }
 
+/* ---------- start over: a button in the settings sheet; hold it until the ring is full, then the island starts fresh (copied from the farm's catalog.js) ----------
+   Only the game's progress is wiped; how Pip looks and the device settings (sound, steering) stay. */
+{
+  const top = document.querySelector('#menu .sheetTop'), close = document.getElementById('menuClose');
+  if (top) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'round'; b.id = 'restartBtn'; b.setAttribute('aria-label', 'Börja om från början (håll inne)');
+    b.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="21" fill="none" stroke="#e6d9bd" stroke-width="4"/><circle class="hold" cx="24" cy="24" r="21" fill="none" stroke="#e9684a" stroke-width="4" stroke-linecap="round" stroke-dasharray="0 999" transform="rotate(-90 24 24)"/><path d="M33 17 A11 11 0 1 0 35 26" fill="none" stroke="#22303c" stroke-width="4" stroke-linecap="round"/><path d="M28 12 L34 17 L27 21" fill="none" stroke="#22303c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    top.insertBefore(b, close || null);
+    const arc = b.querySelector('.hold'), L = 2 * Math.PI * 21, HOLD = 2.0; let t0 = 0, raf = 0, done = false;
+    const draw = (f) => arc.setAttribute('stroke-dasharray', (f * L).toFixed(1) + ' 999');
+    const stop = () => { if (done) return; cancelAnimationFrame(raf); t0 = 0; draw(0); };
+    const tick = () => { if (!t0) return; const f = Math.min(1, (performance.now() - t0) / 1000 / HOLD); draw(f); if (f >= 1) return restart(); if (Math.round(f * 10) !== Math.round((f - 0.016) * 10)) Snd.play('tick', { gain: 0.25, f: 600 + f * 900 }); raf = requestAnimationFrame(tick); };
+    const restart = () => {
+      done = true; Snd.play('whoosh', { gain: 0.4 });
+      /* the island is wiped in place, so every later save (the page's own save on the way out included) writes the fresh island */
+      const keep = Object.assign(fresh(), { sound: state.sound, ctrl: state.ctrl }), own = [];
+      for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) own.push(gIdx(i, j));
+      keep.isle.own = own; keep.isle.open = {}; keep.isle.ext = {};
+      Object.keys(state).forEach((k) => { delete state[k]; }); Object.assign(state, keep);
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+      const f = document.getElementById('fade'); if (f) f.style.opacity = '1'; setTimeout(() => location.replace(location.pathname + location.search.replace(/[?&]new=1/, '')), 450);
+    };
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); Snd.init(); if (done) return; t0 = performance.now(); raf = requestAnimationFrame(tick); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach((ev) => b.addEventListener(ev, stop));
+    b.addEventListener('click', (e) => { e.stopPropagation(); if (!done && !t0) { Snd.play('tock', { gain: 0.3, f: 420 }); b.animate([{ transform: 'rotate(0)' }, { transform: 'rotate(-12deg)' }, { transform: 'rotate(10deg)' }, { transform: 'rotate(0)' }], { duration: 300 }); } });
+  }
+}
 /* the island's own camera (Leon's picks, 2026-11-23): a little higher and further back than the farm, with a slight side bend.
    Changing CURVE_DEF here also makes the dev panel's Reset come back to these. */
 Object.assign(CURVE_DEF, { strength: 0.011, side: 0.1, pitch: 47, dist: 15.5, ahead: 1.1 }); curveLoadDev();

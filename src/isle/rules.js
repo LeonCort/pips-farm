@@ -19,6 +19,7 @@ try { if (/[?&]new=1/.test(location.search)) localStorage.removeItem(SAVE_KEY); 
 const OPEN = {}, EXT = {}; /* islands whose bridge is built, and bonus pieces bought (both read from the save before the ground is drawn) */
 (function () {
   let I = null; try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && s.v === 1 && s.isle) I = s.isle; } catch (e) {}
+  if (I && I.gw !== GRID_W) I = null; /* a save from another map size (the first test's 7 by 7) starts over */
   if (I && Array.isArray(I.own) && I.own.length) I.own.forEach((k) => { if (k >= 0 && k < OWN.length) OWN[k] = 1; });
   else for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) OWN[gIdx(i, j)] = 1;
   if (I && I.open) Object.assign(OPEN, I.open); if (I && I.ext) Object.assign(EXT, I.ext);
@@ -98,7 +99,7 @@ const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 0, walk: 1.5, ring: {
   tint: (x, z, c) => { for (const s of ISLES) { const d = isleSdf(s, x, z); if (d < 1.5) { c.lerp(new T.Color(s.tint[0]), s.tint[1] * clamp(1 - d / 1.5, 0, 1)); return; } } } };
 const KENNEL = { x: -1.6, z: -1.5 }; /* the pet's kennel, by the camp in the middle square */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
-  isle: { own: Array.from(OWN.keys()).filter((k) => OWN[k]), k: 0, paid: {}, tools: { pick: 0, bag: 0 }, chests: {}, got: {}, store: { log: 0, stone: 0, berry: 0 }, open: {}, ext: {} } }; }
+  isle: { gw: GRID_W, own: Array.from(OWN.keys()).filter((k) => OWN[k]), k: 0, paid: {}, tools: { pick: 0, bag: 0 }, chests: {}, got: {}, store: { log: 0, stone: 0, berry: 0 }, open: {}, ext: {} } }; }
 const speed = () => 3.2 + 0.45 * state.lv.speed;
 const cap = () => (state.isle && state.isle.tools.bag ? 10 : 6);
 const UPS = [{ id: 'speed', base: 10, g: 1.8, max: 8 }, { id: 'bag', base: 15, g: 1.8, max: 8 }];

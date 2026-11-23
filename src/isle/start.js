@@ -3,7 +3,7 @@ let started = false;
 function start(data) {
   if (started) return; started = true;
   const hot = data && data.state && data.state.v === 1 ? data.state : null;
-  state = hot || load() || fresh();
+  state = load() || hot || fresh(); /* the saved game first: a live-update snapshot can be from an older map (Leon's sunken middle, 2026-11-23) */
   isleInit(); { const c = document.querySelector(".coins"); if (c) c.style.display = "none"; }
   $('hint').hidden = !!state.moved; if (avNew) openWardrobe(true);
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
