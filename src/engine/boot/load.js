@@ -9,7 +9,7 @@
   var g = el.querySelector('.ground'), h = '<div class="track">';
   LAMPS.forEach(function (f) { h += '<div class="lamp" style="left:' + (f * 100) + '%"><span class="glow"></span>' + PipsScene.LAMP + '<span class="flame"></span></div>'; });
   h += '<div class="end"><span class="heart">' + PipsScene.HEART + '</span>' + PipsScene.GATE + '</div>';
-  h += '<div class="walker walk go petw"><div class="who pet"><div class="bob">' + PipsScene.petSVG(me.pet) + '</div><span class="shadow"></span></div></div>';
+  if (me.pet !== 'none') h += '<div class="walker walk go petw"><div class="who pet"><div class="bob">' + PipsScene.petSVG(me.pet) + '</div><span class="shadow"></span></div></div>';
   h += '<div class="walker walk go"><div class="who pip"><div class="bob">' + PipsScene.pipSVG(me.av) + '</div><span class="shadow"></span></div></div>';
   g.insertAdjacentHTML('beforeend', h + '</div>');
   var lamps = [].slice.call(el.querySelectorAll('.lamp')), walkers = [].slice.call(el.querySelectorAll('.walker'));
@@ -22,7 +22,7 @@
     if (ending) return; ending = true; frames = -1;
     var wait = Math.max(0, 1100 - (Date.now() - t0));
     setTimeout(function () {
-      var p = Math.min(0.99, at(walkers[1])), D = Math.max(0.5, (0.95 - p) * 1.7);
+      var p = Math.min(0.99, at(walkers[walkers.length - 1])), D = Math.max(0.5, (0.95 - p) * 1.7);
       walkers.forEach(function (w, k) { var q = at(w); w.classList.remove('go'); w.style.animation = 'none'; w.style.transform = 'translateX(' + (q * 100) + '%)'; void w.offsetWidth; w.style.transition = 'transform ' + D + 's linear' + (k === 0 ? ' 0.1s' : ''); w.style.transform = 'translateX(95%)'; });
       lamps.forEach(function (l, i) { var f = l.querySelector('.flame'); if (+getComputedStyle(f).opacity > 0.05) return; l.classList.remove('lit'); void f.offsetWidth; l.style.transitionDelay = Math.max(0, (LAMPS[i] - p) / (0.95 - p) * D).toFixed(2) + 's'; l.classList.add('lit'); });
       setTimeout(function () {

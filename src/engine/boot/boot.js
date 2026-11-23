@@ -16,7 +16,7 @@
     return a;
   }
   function readPet() {
-    try { var s = JSON.parse(localStorage.getItem('pip-farm-care-v1') || 'null'); if (s && ['dog', 'cat', 'wolf', 'bear'].indexOf(s.pet) >= 0) return s.pet; } catch (e) {}
+    try { var s = JSON.parse(localStorage.getItem('pip-farm-care-v1') || 'null'); if (s && ['dog', 'cat', 'wolf', 'bear', 'none'].indexOf(s.pet) >= 0) return s.pet; /* 'none': no pet walks along */ } catch (e) {}
     return 'dog';
   }
   function pick(arr, i) { return arr[i] || arr[0]; }

@@ -30,7 +30,7 @@ html, body { margin: 0; height: 100%; background: #1a2045; }
     ? '<a class="pick main" data-go="go" href="bondgard.html' + q + '" aria-label="Forts\u00e4tt spela"><span class="disc">' + FARM + PLAY + '</span>Forts\u00e4tt</a>'
       + '<a class="pick hold" data-go="new" href="bondgard.html' + q + '" aria-label="Nytt spel: h\u00e5ll inne"><span class="disc">' + SPROUT + RING + '</span>Nytt spel</a>'
     : '<a class="pick main" data-go="new" href="bondgard.html' + q + '" aria-label="Nytt spel"><span class="disc">' + SPROUT + PLAY + '</span>Nytt spel</a>';
-  el.insertAdjacentHTML('beforeend', '<div class="stand"><div class="who pet" style="width:clamp(60px,11vh,96px)">' + PipsScene.petSVG(me.pet) + '</div><div class="who pip" style="width:clamp(54px,10vh,86px)">' + PipsScene.pipSVG(me.av, true) + '</div></div><nav class="picks">' + picks + '</nav>');
+  el.insertAdjacentHTML('beforeend', '<div class="stand">' + (me.pet === 'none' ? '' : '<div class="who pet" style="width:clamp(60px,11vh,96px)">' + PipsScene.petSVG(me.pet) + '</div>') + '<div class="who pip" style="width:clamp(54px,10vh,86px)">' + PipsScene.pipSVG(me.av, true) + '</div></div><nav class="picks">' + picks + '</nav>');
   var going = false;
   function go(a) {
     if (going) return; going = true;

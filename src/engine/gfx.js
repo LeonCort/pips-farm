@@ -45,7 +45,7 @@ function gfxSet(lv, byHand) {
       + '<g class="lite"><path d="M27 11 q6 4 2 9 q6 -1 6 -7" fill="#74a857" stroke="#22303c" stroke-width="2" stroke-linejoin="round"/></g>'
       + '<g class="ultra"><path d="M9 25 L14 19 L18 23 L23 16 L28 22 L33 18 L39 25" fill="#9cc7dc" stroke="#22303c" stroke-width="2" stroke-linejoin="round"/><path d="M22 6 l1.6 3.2 3.2 1.6 -3.2 1.6 -1.6 3.2 -1.6 -3.2 -3.2 -1.6 3.2 -1.6 z" fill="#ffe27a" stroke="#22303c" stroke-width="1.5" stroke-linejoin="round"/><path d="M41 7 l1 2 2 1 -2 1 -1 2 -1 -2 -2 -1 2 -1 z" fill="#ffe27a" stroke="#22303c" stroke-width="1.2" stroke-linejoin="round"/></g></svg>';
     if (fb && fb.nextSibling) row.insertBefore(b, fb.nextSibling); else row.appendChild(b);
-    b.addEventListener('click', (e) => { e.stopPropagation(); gfxSet((gfxLv + 1) % 3, true); Snd.play('pop', { gain: 0.4, f: [420, 760, 980][gfxLv] }); if (gfxLv) Snd.play('sparkle', { gain: 0.3 }, 0.05); if (gfxLv === 2) Snd.play('sparkle', { gain: 0.3, f: 1.3 }, 0.18); });
+    b.addEventListener('click', (e) => { e.stopPropagation(); const nl = (gfxLv + 1) % 3; gfxSet(nl, true); Snd.play('pop', { gain: 0.4, f: [420, 760, 980][nl] }); if (nl) Snd.play('sparkle', { gain: 0.3 }, 0.05); if (nl === 2) Snd.play('sparkle', { gain: 0.3, f: 1.3 }, 0.18); });
     const st = document.createElement('style'); st.textContent = '.gfxBtn .lite,.gfxBtn .ultra{display:none}.gfxBtn[data-lv="0"] .lite{display:inline}.gfxBtn[data-lv="0"] .rich{display:none}.gfxBtn[data-lv="0"]{background:#e3ecd9}.gfxBtn[data-lv="2"] .ultra{display:inline}.gfxBtn[data-lv="2"]{background:#fff1c9;box-shadow:0 0 0 3px #f2c14a inset}';
     document.head.appendChild(st);
   }

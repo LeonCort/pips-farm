@@ -29,7 +29,7 @@ function frame(now) {
   if (now - lastT < 1000 / fpsCap - 3) return;
   let dt = (now - lastT) / 1000; lastT = now; if (dt > 0.1) dt = 0.1;
   if (LOG) LOG.tick();
-  if (dt > 0) { try { step(dt); } catch (e) { if (LOG) LOG.caught(e); else console.error(e); } if (window.PipsBoot) PipsBoot.frame(); }
+  if (dt > 0) { try { step(dt); } catch (e) { if (LOG) LOG.caught(e); else console.error(e); } if (typeof warmStep === 'function') warmStep(); else if (window.PipsBoot) PipsBoot.frame(); }
   saveT += dt; if (saveT > 5) { saveT = 0; try { save(); } catch (e) { if (LOG) LOG.caught(e); } }
 }
 if (LOG) {
