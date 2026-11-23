@@ -31,6 +31,11 @@ function isleIcon(x, t, cx, cy, s) {
     x.beginPath(); x.moveTo(-22, -4); x.quadraticCurveTo(0, -22, 22, -4); x.quadraticCurveTo(0, -12, -22, -4); x.closePath(); blob('#c7ced6'); }
   else if (t === 'bag') { x.beginPath(); x.moveTo(-12, -6); x.quadraticCurveTo(0, -24, 12, -6); x.lineWidth = 4; x.strokeStyle = '#7d5e4e'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink; x.beginPath(); x.moveTo(-18, -6); x.lineTo(18, -6); x.lineTo(14, 16); x.lineTo(-14, 16); x.closePath(); blob('#d9a56b'); x.beginPath(); x.moveTo(-16, 4); x.lineTo(16, 4); x.lineWidth = 2; x.strokeStyle = '#a8743f'; x.stroke(); }
   else if (t === 'bolt') { x.beginPath(); x.moveTo(4, -22); x.lineTo(-14, 4); x.lineTo(-1, 4); x.lineTo(-6, 22); x.lineTo(14, -4); x.lineTo(1, -4); x.closePath(); blob('#f7c948'); x.fillStyle = '#fff2b0'; x.beginPath(); x.moveTo(2, -15); x.lineTo(-7, -1); x.lineTo(-3, -1); x.closePath(); x.fill(); }
+  else if (t === 'fire') { x.fillStyle = '#a9b2bb'; [[-14, 14], [-5, 17], [5, 17], [14, 14]].forEach(([a, b]) => { x.beginPath(); x.ellipse(a, b, 6, 4, 0, 0, 7); x.fill(); x.stroke(); });
+    x.beginPath(); x.moveTo(0, -22); x.quadraticCurveTo(16, -4, 10, 12); x.lineTo(-10, 12); x.quadraticCurveTo(-16, -4, 0, -22); x.closePath(); blob('#f2a13c'); x.beginPath(); x.moveTo(0, -6); x.quadraticCurveTo(8, 4, 4, 12); x.lineTo(-4, 12); x.quadraticCurveTo(-8, 4, 0, -6); x.closePath(); x.fillStyle = '#ffe07a'; x.fill(); }
+  else if (t === 'hut') { x.beginPath(); x.rect(-17, -2, 34, 20); blob('#c99158'); x.beginPath(); x.moveTo(-23, 0); x.lineTo(0, -20); x.lineTo(23, 0); x.closePath(); blob('#b5562f'); x.beginPath(); x.rect(-5, 5, 10, 13); blob('#7a3a2a'); x.beginPath(); x.rect(8, 3, 6, 6); blob('#ffe07a'); }
+  else if (t === 'hammer') { x.beginPath(); x.moveTo(-14, 18); x.lineTo(6, -6); x.lineWidth = 8; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 4.5; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
+    x.save(); x.translate(8, -9); x.rotate(-0.7); x.beginPath(); x.roundRect(-15, -7, 30, 14, 3); blob('#8b939c'); x.restore(); }
   else if (t === 'tent') { x.beginPath(); x.moveTo(-22, 16); x.lineTo(0, -20); x.lineTo(22, 16); x.closePath(); blob('#e9684a'); x.beginPath(); x.moveTo(-7, 16); x.lineTo(0, 2); x.lineTo(7, 16); x.closePath(); blob('#7a3a2a');
     x.fillStyle = '#f4d76a'; const mn = new Path2D('M14 -24 A8 8 0 1 0 24 -12 A6 6 0 1 1 14 -24 Z'); x.fill(mn); x.lineWidth = 2; x.stroke(mn); }
   x.restore();
@@ -172,7 +177,7 @@ const campFlame = (() => {
   const t = new T.Group(); t.position.set(-1.1, 0, 1.0); t.rotation.y = 0.5; sc.add(t);
   let q = new T.ConeGeometry(0.85, 1.15, 4); q.rotateY(Math.PI / 4); q.translate(0, 0.575, 0); part(fac(q, (cx, cy, cz, i) => shadeY('#e9684a', cy, 0, 1.2, i, 0.4), 1320), t);
   q = new T.PlaneGeometry(0.42, 0.62); q.translate(0, 0.31, 0.62); part(fac(q, '#7a3a2a', 1321), t, 0, 0, 0, true);
-  return { g, f, f2 };
+  return { g, f, f2, t };
 })();
 
 /* ---- chests: a tool inside ---- */
@@ -407,7 +412,7 @@ function isleStep(dt) {
   storeStep2(dt); invFlyStep(dt); invStep();
   for (let k = chests.length - 1; k >= 0; k--) { chestStep(chests[k], dt); if (chests[k].gone) chests.splice(k, 1); }
   if (hintSp.visible) { hintSp.t -= dt; hintSp.material.opacity = Math.min(1, hintSp.t * 2); if (hintSp.t <= 0) hintSp.visible = false; }
-  const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1);
+  const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1); bldStep(dt);
 }
 /* the pets keep inside the box of the land Pip is on: home, or an island once Pip is there */
 function isleBoxStep() { const A = areaAt(pip.position.x, pip.position.z); if (A && HAS[A.id]) { const b = ISLAND.box; b.x0 = A.cx - 5.4; b.x1 = A.cx + 5.4; b.z0 = A.cz - 5.4; b.z1 = A.cz + 5.4; } }
@@ -437,7 +442,7 @@ function isleInit() {
   AREAS.forEach((A) => { if (HAS[A.id] && A.bridge) bridgeBuild(A, true); if (HAS[A.id] || drawn(A.i, A.j)) areaFill(A, false); });
   nodes.forEach((n) => { n.pop = 0; n.g.scale.setScalar(1); });
   chests.forEach((c) => { c.pop = 1; c.g.scale.setScalar(1); });
-  I.store = I.store || { log: 0, stone: 0, berry: 0 }; if (typeof I.en !== 'number') I.en = EN_MAX; invBuild(); enBuild();
+  I.store = I.store || { log: 0, stone: 0, berry: 0 }; if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit();
   isleSigns();
   pip.position.set(0, 0, 0.4); target.copy(pip.position); camFocus.copy(pip.position);
   dog.g.position.set(-1.2, 0, -0.6); petsInit();
@@ -450,7 +455,7 @@ function isleTest() {
     fill: (o) => { Object.keys(o).forEach((t) => { state.isle.store[t] = (state.isle.store[t] || 0) + o[t]; }); },
     own: (ids) => { ids.split(',').forEach((id) => { state.isle.areas[id] = 1; }); save(); },
     tp: (x, z) => { pip.position.set(x, 0, z); target.set(x, 0, z); camFocus.set(x, 0, z); }, building: !!building,
-    en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
+    en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], bld: Object.assign({}, state.isle.bld), max: enMax(), up: (k) => bldUp(k), tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
     walk: (x, z) => +walkSdf(x, z).toFixed(2), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
 }
 
@@ -623,7 +628,7 @@ Object.assign(CURVE_DEF, { strength: 0.011, side: 0.1, pitch: 47, dist: 15.5, ah
    When Pip is too tired to work, the guide arrow points to the tent; standing on the mat in front of it, Pip crawls in,
    sleeps till morning (a short nap in the daytime) and comes out full again. A slow trickle comes back on its own too,
    so a child is never stuck. ---------- */
-const EN_MAX = 100, EN_COST = { bush: 1, grass: 1, tree: 1, rock: 2, clay: 2, boulder: 2 }, EN_REGEN = 1 / 5; /* one point every 5 seconds */
+const EN_COST = { bush: 1, grass: 1, tree: 1, rock: 2, clay: 2, boulder: 2 }; /* the most energy and how fast it comes back: from the tent's and the campfire's level (build.js) */
 let enSleep = null, enShow = -1, enNapT = 0;
 const enCost = (k) => EN_COST[k] || 1;
 const enHas = (k) => state.isle.en >= enCost(k);
@@ -658,25 +663,25 @@ function enBuild() {
     + '.enb.low{animation:enLow 1s ease-in-out infinite}.enb.wig{animation:invWig .32s ease-out}@keyframes enLow{50%{transform:scale(1.07)}}'
     + '@media (max-width:520px){.enb{top:calc(max(12px,env(safe-area-inset-top,0px)) + 50px)}.enb img{width:28px;height:28px}.enb .bar{width:90px;height:14px}}';
   document.head.appendChild(st);
-  const el = document.createElement('div'); el.className = 'enb'; el.setAttribute('role', 'meter'); el.setAttribute('aria-label', 'Energi'); el.setAttribute('aria-valuemin', '0'); el.setAttribute('aria-valuemax', String(EN_MAX));
+  const el = document.createElement('div'); el.className = 'enb'; el.setAttribute('role', 'meter'); el.setAttribute('aria-label', 'Energi'); el.setAttribute('aria-valuemin', '0'); el.setAttribute('aria-valuemax', String(enMax()));
   const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), 'bolt', 32, 32, 1.25); const img = document.createElement('img'); img.alt = ''; img.src = c.toDataURL();
   const bar = document.createElement('div'); bar.className = 'bar'; const fill = document.createElement('i'); bar.appendChild(fill);
   el.appendChild(img); el.appendChild(bar); document.body.appendChild(el); ENB.el = el; ENB.fill = fill;
 }
 function enDraw() {
   if (!ENB.el) return; const v = Math.round(state.isle.en); if (v === enShow) return; enShow = v;
-  const f = v / EN_MAX; ENB.fill.style.width = Math.max(4, f * 100) + '%'; ENB.fill.style.backgroundColor = f > 0.5 ? '#7cc85a' : f > 0.2 ? '#f2c23c' : '#e9684a';
+  const f = v / enMax(); ENB.fill.style.width = Math.max(4, f * 100) + '%'; ENB.fill.style.backgroundColor = f > 0.5 ? '#7cc85a' : f > 0.2 ? '#f2c23c' : '#e9684a';
   ENB.el.classList.toggle('low', f <= 0.2); ENB.el.setAttribute('aria-valuenow', String(v));
 }
 function enStep(dt) {
-  const I = state.isle; if (typeof I.en !== 'number') I.en = EN_MAX;
+  const I = state.isle; if (typeof I.en !== 'number') I.en = enMax();
   if (enHint.visible) { enHint.t -= dt; enHint.position.set(pip.position.x, 2.1 + Math.sin(time * 4) * 0.05, pip.position.z); enHint.material.opacity = Math.min(1, enHint.t * 2); if (enHint.t <= 0) enHint.visible = false; }
-  const R = TENT_RING, low = I.en < EN_MAX * 0.35;
+  const R = TENT_RING, low = I.en < enMax() * 0.35;
   R.glow.material.opacity = low ? 0.3 + (reduced ? 0.2 : 0.3 * (0.5 + 0.5 * Math.sin(time * 3.2))) : 0;
   if (!enSleep) {
-    if (!work) I.en = Math.min(EN_MAX, I.en + dt * EN_REGEN);
+    if (!work) I.en = Math.min(enMax(), I.en + dt * enRegen() * (Math.hypot(pip.position.x - 1.4, pip.position.z - 1.2) < 2.6 ? 2 : 1) /* twice as fast by the fire */);
     const d = Math.hypot(pip.position.x - R.x, pip.position.z - R.z), still = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) < 0.3;
-    const on = d < R.R && still && I.en < EN_MAX - 1 && !rising;
+    const on = d < R.R && still && I.en < enMax() - 1 && !rising;
     R.w = on ? Math.min(1, R.w + dt / 0.7) : Math.max(0, R.w - dt * 3); R.fg.setDrawRange(0, 6 * Math.round(40 * R.w));
     if (R.w >= 1) { R.w = 0; R.fg.setDrawRange(0, 0); enSleepStart(); }
     enDraw(); return;
@@ -684,14 +689,14 @@ function enStep(dt) {
   /* asleep in the tent: the night runs by fast and the bar fills; then Pip crawls out in the morning */
   const S = enSleep; S.t += dt; const q = Math.min(1, Math.max(0, (S.t - 0.6) / 3.0)), e = q * q * (3 - 2 * q);
   if (S.t > 0.6) { state.clock = S.from + (S.to - S.from) * e; clockPinned = true; }
-  I.en = S.en0 + (EN_MAX - S.en0) * e;
+  I.en = S.en0 + (enMax() - S.en0) * e;
   const u = Math.min(1, S.t / 0.6); /* walk into the door, shrinking */
   pip.position.set(R.x + (S.dx - R.x) * u, 0, R.z + (S.dz - R.z) * u); pip.scale.setScalar(Math.max(0.01, 1 - u * 0.9)); pip.visible = u < 1; target.copy(pip.position);
   if (!S.z) { S.z = new T.Sprite(new T.SpriteMaterial({ map: zTex, transparent: true, depthTest: false })); S.z.renderOrder = 6; S.z.scale.set(0.7, 0.46, 1); sc.add(S.z); }
   S.z.visible = S.t > 0.6 && q < 0.97; S.z.position.set(-1.1 + 0.15, 1.6 + Math.sin(S.t * 2.2) * 0.12, 1.0);
   enDraw();
   if (q >= 1 && S.t > 4.0) {
-    sc.remove(S.z); pip.visible = true; pip.scale.setScalar(1); pip.position.set(R.x, 0, R.z); target.copy(pip.position); pip.rotation.y = 0.5; enSleep = null; I.en = EN_MAX; save();
+    sc.remove(S.z); pip.visible = true; pip.scale.setScalar(1); pip.position.set(R.x, 0, R.z); target.copy(pip.position); pip.rotation.y = 0.5; enSleep = null; I.en = enMax(); save();
     Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.1);
     const el = $('toast'); if (el) { el.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true">' + SUN_SVG + '</svg><b>God morgon!</b>'; el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); clearTimeout(enNapT); enNapT = setTimeout(() => { el.hidden = true; }, 3200); }
   }
