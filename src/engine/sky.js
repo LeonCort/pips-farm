@@ -17,6 +17,41 @@ const _ca = new T.Color(), _cb = new T.Color();
 const mixHex = (a, b, q, out) => out.copy(_ca.set(a)).lerp(_cb.set(b), q);
 let nightAmt = 0, isNight = false, season = 'spring', seasonShown = null;
 const dayFrac = () => (state.clock % DAY) / DAY;
+/* the sun crosses the sky, low with long shadows morning and evening, so the shadows show the time of day.
+   Three paths to try (settings button, 'pips-sunpath'):
+     bt (Leon's pick 2026-11-23, default): rises behind the camera, goes nearly straight over, sets at the top of the screen
+     tb: the other way round (a sunrise at the top)
+     lr: rises right (east), high behind the camera at midday, sets left (west)
+   The moon then goes back the same way, so the shadows never jump at dusk or dawn. Indoors it stays where it was.
+   A sun disk is drawn in the sky over the far edge of the island (clouds.js sunBall) when the path brings it on screen. */
+const SUN_HOME = new T.Vector3(-10, 10, 7.5), SUN_OFF = SUN_HOME.clone();
+const SUN_PATHS = { lr: [[1, 0, 0], [0, 0, 1]], tb: [[0, 0, -1], [-0.35, 0, 0]], bt: [[0, 0, 1], [-0.35, 0, 0]] }; /* [rise direction, midday lean]: top/bottom go nearly straight over, with a slight arc to the left */
+let sunPath = 'bt'; try { const v = localStorage.getItem('pips-sunpath2'); if (SUN_PATHS[v]) sunPath = v; } catch (e) {}
+if (window.__farmTest) window.__sun = () => SUN_OFF.toArray().map((v) => +v.toFixed(2));
+/* the sea's shine: a hard cap made flat bright patches (the "blobs"), and at night the moon, which sits above the screen,
+   lit a patch with nothing to explain it. Now the highlight is squeezed smoothly (round, soft edges, never white) and
+   fades almost away at night, so the dark sea only keeps its gentle sheen */
+const SEA_SPEC = { value: 1 };
+if (typeof water !== 'undefined' && water.material && water.material.isMeshStandardMaterial) {
+  water.material.onBeforeCompile = (sh) => { sh.uniforms.uSeaSpec = SEA_SPEC;
+    sh.fragmentShader = 'uniform float uSeaSpec;\n' + sh.fragmentShader.replace('reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance', 'reflectedLight.directSpecular / ( vec3( 1.0 ) + reflectedLight.directSpecular * 3.0 ) * 0.55 * uSeaSpec + reflectedLight.indirectSpecular + totalEmissiveRadiance'); };
+  water.material.customProgramCacheKey = () => 'pipsSeaSoft2'; water.material.needsUpdate = true;
+}
+function sunArc(f) {
+  const day = f < 0.64, p = day ? f / 0.64 : 1 - (f - 0.64) / 0.36, el = (18 + 37 * Math.sin(Math.PI * p)) * Math.PI / 180, d = 16;
+  const [R, N] = SUN_PATHS[sunPath], c = Math.cos(Math.PI * p), sn = Math.sin(Math.PI * p), hx0 = R[0] * c + N[0] * sn, hz0 = R[2] * c + N[2] * sn, hl = Math.hypot(hx0, hz0) || 1, hx = hx0 / hl, hz = hz0 / hl;
+  SUN_OFF.set(hx * Math.cos(el) * d, Math.sin(el) * d, hz * Math.cos(el) * d);
+}
+/* the button: a sun with an arrow showing which way it goes */
+{
+  const fb = document.getElementById('fpsBtn'), row = fb ? fb.parentNode : document.querySelector('#menu .sheetTop');
+  if (row) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'round sunBtn'; b.id = 'sunBtn';
+    const draw = () => { const r = { lr: 0, tb: 90, bt: -90 }[sunPath]; b.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="8" fill="#f2c14a" stroke="#22303c" stroke-width="2.5"/><g transform="rotate(' + r + ' 24 24)"><path d="M40 40 H10 M16 34 L10 40 L16 46" fill="none" stroke="#22303c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -4)"/></g></svg>'; b.setAttribute('aria-label', 'Sun path ' + sunPath); };
+    draw(); row.appendChild(b);
+    b.addEventListener('click', (e) => { e.stopPropagation(); const k = ['bt', 'tb', 'lr']; sunPath = k[(k.indexOf(sunPath) + 1) % 3]; try { localStorage.setItem('pips-sunpath2', sunPath); } catch (er) {} draw(); Snd.play('pop', { gain: 0.4, f: 700 }); });
+  }
+}
 /* a soft warm light that follows Pip at night, and one for the tractor's headlights */
 const pipLamp = new T.PointLight(0xffd8a0, 0, 4.5, 2); pipLamp.position.set(0, 1.6, 0.4); pip.add(pipLamp);
 const tractorLamp = new T.PointLight(0xfff0c0, 0, 6, 2); sc.add(tractorLamp);
@@ -158,8 +193,9 @@ const SKY_ULTRA = { hor: new T.Color('#a9cbe6'), top: new T.Color('#3d84cf') };
 function skyStep(dt) {
   if (typeof state.clock !== 'number') state.clock = DAY * 0.1;
   bedStep(dt);
-  state.clock += dt;
+  if (!timeHold) state.clock += dt;
   const f = dayFrac(); let i = 0; while (i < SKY_KEYS.length - 2 && f > SKY_KEYS[i + 1].f) i++;
+  if (inHouse) SUN_OFF.copy(SUN_HOME); else sunArc(f);
   const a = SKY_KEYS[i], b = SKY_KEYS[i + 1], q = clamp((f - a.f) / (b.f - a.f), 0, 1), e = q * q * (3 - 2 * q);
   mixHex(a.top, b.top, e, sky.material.uniforms.top.value); mixHex(a.hor, b.hor, e, sky.material.uniforms.hor.value);
   { const dd = 1 - (a.n + (b.n - a.n) * e) * 2; if (dd > 0) { sky.material.uniforms.hor.value.lerp(SKY_ULTRA.hor, 0.6 * dd); sky.material.uniforms.top.value.lerp(SKY_ULTRA.top, 0.3 * dd); } }
@@ -167,6 +203,7 @@ function skyStep(dt) {
   mixHex(a.sun, b.sun, e, sun.color); sun.intensity = a.si + (b.si - a.si) * e;
   if (hemi) { mixHex(a.hs, b.hs, e, hemi.color); mixHex(a.hg, b.hg, e, hemi.groundColor); hemi.intensity = a.hi + (b.hi - a.hi) * e; }
   nightAmt = a.n + (b.n - a.n) * e; isNight = f > 0.68 && f < 0.95;
+  SEA_SPEC.value = 1 - 0.9 * clamp(nightAmt * 1.6, 0, 1);
   lampMat.color.copy(lampOff).lerp(lampOn, clamp(nightAmt * 2.6, 0, 1)); glowMat.opacity = Math.min(0.65, nightAmt * 1.3);
   pipLamp.intensity = nightAmt * 1.1;
   if (tractor) { tractor.g.updateMatrixWorld(); tractorLamp.position.copy(tractor.g.localToWorld(tmpV.set(0, 0.8, 1.6))); tractorLamp.intensity = nightAmt * (mount && mount.kind === 'tractor' ? 1.6 : 0.5); }
@@ -194,4 +231,28 @@ function skyStep(dt) {
   if (falling.visible) fallGeo.attributes.position.needsUpdate = true;
   skyT -= dt; if (skyT <= 0) { skyT = 1; paintFloors(); renderClock(); }
 }
-let skyT = 0;
+let skyT = 0, timeHold = false;
+/* test control in the settings: a slider over the whole day (sunrise at the left, night at the right) and a button that
+   stops the clock, so the light, the sun's path and the shadows can be looked at hour by hour. Stays within today, so the season is kept. */
+{
+  const row = document.querySelector('#menu .sheetTop');
+  if (row) {
+    const w = document.createElement('div'); w.id = 'timeRow';
+    w.innerHTML = '<button type="button" class="round" id="timeHold" aria-label="Stop time"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="16" fill="#fffaf0" stroke="#22303c" stroke-width="3"/><path d="M24 14 V24 L31 29" fill="none" stroke="#22303c" stroke-width="3" stroke-linecap="round"/><g class="hold"><rect x="15" y="15" width="6" height="18" rx="2" fill="#c8643a" stroke="#22303c" stroke-width="2"/><rect x="27" y="15" width="6" height="18" rx="2" fill="#c8643a" stroke="#22303c" stroke-width="2"/></g></svg></button>'
+      + '<input type="range" id="timeSlide" min="0" max="1000" step="1" aria-label="Time of day"><span id="timeTxt"></span>';
+    row.appendChild(w);
+    const sl = w.querySelector('#timeSlide'), hb = w.querySelector('#timeHold'), tx = w.querySelector('#timeTxt');
+    const clockTxt = (f) => { const h = (6 + f * 24) % 24; return String(Math.floor(h)).padStart(2, '0') + ':' + String(Math.floor((h % 1) * 60)).padStart(2, '0'); }; /* f 0 = sunrise, shown as 06:00 */
+    const show = () => { const f = dayFrac(); if (document.activeElement !== sl) sl.value = Math.round(f * 1000); tx.textContent = clockTxt(f); hb.classList.toggle('on', timeHold); };
+    sl.addEventListener('input', () => { const day = Math.floor(state.clock / DAY); state.clock = day * DAY + (+sl.value / 1000) * DAY * 0.9999; show(); });
+    hb.addEventListener('click', (e) => { e.stopPropagation(); timeHold = !timeHold; show(); Snd.play('pop', { gain: 0.4, f: timeHold ? 500 : 800 }); });
+    ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'click'].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation(), { passive: true }));
+    setInterval(() => { if (!$('menu').hidden) show(); }, 250);
+    const st = document.createElement('style');
+    st.textContent = '#menu #timeRow{order:16;display:flex;align-items:center;gap:10px;width:min(290px,calc(86vw - 30px));margin-top:6px}#timeRow .round{position:relative;flex:none;width:54px;height:54px;padding:6px;margin:0}#timeRow .round::after{content:none!important}#timeRow .hold{display:none}#timeRow .on .hold{display:inline}#timeRow .on{background:#fff1c9}'
+      + '#timeSlide{flex:1;min-width:0;height:34px;accent-color:#c8643a;background:linear-gradient(90deg,#ffc9a0,#8fc0e8 12%,#7db7dd 50%,#ff9f6e 64%,#1c2650 72%,#1c2650 94%,#ffc9a0);border-radius:17px;-webkit-appearance:none;appearance:none;border:2px solid #22303c}'
+      + '#timeSlide::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:#f2c14a;border:3px solid #22303c}#timeSlide::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#f2c14a;border:3px solid #22303c}'
+      + '#timeTxt{font:700 15px system-ui,sans-serif;min-width:44px;color:#22303c}';
+    document.head.appendChild(st);
+  }
+}

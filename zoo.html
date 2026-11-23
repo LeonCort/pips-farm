@@ -138,7 +138,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 #menu .fxQBtn b { display: none; }
 /* order and groups: play, picture, help, start over */
 #menu #soundBtn { order: 1; } #menu #wardBtn { order: 2; } #menu #ctrlBtn { order: 3; }
-#menu #fpsBtn { order: 10; } #menu #gfxBtn { order: 11; } #menu #drawBtn { order: 12; } #menu #fxQBtn { order: 13; }
+#menu #fpsBtn { order: 10; } #menu #gfxBtn { order: 11; } #menu #drawBtn { order: 12; } #menu #fxQBtn { order: 13; } #menu #grassBtn { order: 14; } #menu #sunBtn { order: 15; }
 #menu #updBtn { order: 20; } #menu #logBtn { order: 21; } #menu #homeBtn { order: 22; } #menu #devBtn { order: 23; }
 #menu #restartBtn { order: 30; }
 #menu #fpsBtn, #menu #updBtn, #menu #logBtn:first-child, #menu #restartBtn { margin-top: 14px; }
@@ -169,6 +169,11 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 .logBox textarea { flex: 1; width: 100%; box-sizing: border-box; font: 12px/1.35 ui-monospace, Menlo, monospace; border: 2px solid var(--line); border-radius: 12px; padding: 8px; resize: none; background: #fffdf8; color: var(--ink); }
 .logRow { display: flex; gap: 10px; } .logRow button { flex: 1; padding: 12px; border-radius: 14px; border: 3px solid var(--ink); background: #fffaf0; font-weight: 700; font-size: 17px; }
 .logRow button[data-c] { background: #74a857; color: #fff6e4; }
+
+/* grass size test switch */
+.grassBtn{position:relative}.grassBtn b{position:absolute;left:0;right:0;bottom:2px;font:800 12px/1 system-ui,sans-serif;color:var(--ink);text-align:center}
+#menu .sheetTop > #grassBtn::after { content: 'Gräs runt Pip (17 / 24 / 34)'; }
+#menu .sheetTop > #sunBtn::after { content: 'Solens väg'; }
 
 .flycoin { background: var(--accent); }
 .price i { background: var(--accent); border-radius: 50% 50% 50% 50%; }
@@ -738,7 +743,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261122212244">
+<meta name="app-ver" content="20261123065452">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2271,6 +2276,41 @@ const _ca = new T.Color(), _cb = new T.Color();
 const mixHex = (a, b, q, out) => out.copy(_ca.set(a)).lerp(_cb.set(b), q);
 let nightAmt = 0, isNight = false, season = 'spring', seasonShown = null;
 const dayFrac = () => (state.clock % DAY) / DAY;
+/* the sun crosses the sky, low with long shadows morning and evening, so the shadows show the time of day.
+   Three paths to try (settings button, 'pips-sunpath'):
+     bt (Leon's pick 2026-11-23, default): rises behind the camera, goes nearly straight over, sets at the top of the screen
+     tb: the other way round (a sunrise at the top)
+     lr: rises right (east), high behind the camera at midday, sets left (west)
+   The moon then goes back the same way, so the shadows never jump at dusk or dawn. Indoors it stays where it was.
+   A sun disk is drawn in the sky over the far edge of the island (clouds.js sunBall) when the path brings it on screen. */
+const SUN_HOME = new T.Vector3(-10, 10, 7.5), SUN_OFF = SUN_HOME.clone();
+const SUN_PATHS = { lr: [[1, 0, 0], [0, 0, 1]], tb: [[0, 0, -1], [-0.35, 0, 0]], bt: [[0, 0, 1], [-0.35, 0, 0]] }; /* [rise direction, midday lean]: top/bottom go nearly straight over, with a slight arc to the left */
+let sunPath = 'bt'; try { const v = localStorage.getItem('pips-sunpath2'); if (SUN_PATHS[v]) sunPath = v; } catch (e) {}
+if (window.__farmTest) window.__sun = () => SUN_OFF.toArray().map((v) => +v.toFixed(2));
+/* the sea's shine: a hard cap made flat bright patches (the "blobs"), and at night the moon, which sits above the screen,
+   lit a patch with nothing to explain it. Now the highlight is squeezed smoothly (round, soft edges, never white) and
+   fades almost away at night, so the dark sea only keeps its gentle sheen */
+const SEA_SPEC = { value: 1 };
+if (typeof water !== 'undefined' && water.material && water.material.isMeshStandardMaterial) {
+  water.material.onBeforeCompile = (sh) => { sh.uniforms.uSeaSpec = SEA_SPEC;
+    sh.fragmentShader = 'uniform float uSeaSpec;\n' + sh.fragmentShader.replace('reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance', 'reflectedLight.directSpecular / ( vec3( 1.0 ) + reflectedLight.directSpecular * 3.0 ) * 0.55 * uSeaSpec + reflectedLight.indirectSpecular + totalEmissiveRadiance'); };
+  water.material.customProgramCacheKey = () => 'pipsSeaSoft2'; water.material.needsUpdate = true;
+}
+function sunArc(f) {
+  const day = f < 0.64, p = day ? f / 0.64 : 1 - (f - 0.64) / 0.36, el = (18 + 37 * Math.sin(Math.PI * p)) * Math.PI / 180, d = 16;
+  const [R, N] = SUN_PATHS[sunPath], c = Math.cos(Math.PI * p), sn = Math.sin(Math.PI * p), hx0 = R[0] * c + N[0] * sn, hz0 = R[2] * c + N[2] * sn, hl = Math.hypot(hx0, hz0) || 1, hx = hx0 / hl, hz = hz0 / hl;
+  SUN_OFF.set(hx * Math.cos(el) * d, Math.sin(el) * d, hz * Math.cos(el) * d);
+}
+/* the button: a sun with an arrow showing which way it goes */
+{
+  const fb = document.getElementById('fpsBtn'), row = fb ? fb.parentNode : document.querySelector('#menu .sheetTop');
+  if (row) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'round sunBtn'; b.id = 'sunBtn';
+    const draw = () => { const r = { lr: 0, tb: 90, bt: -90 }[sunPath]; b.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="8" fill="#f2c14a" stroke="#22303c" stroke-width="2.5"/><g transform="rotate(' + r + ' 24 24)"><path d="M40 40 H10 M16 34 L10 40 L16 46" fill="none" stroke="#22303c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -4)"/></g></svg>'; b.setAttribute('aria-label', 'Sun path ' + sunPath); };
+    draw(); row.appendChild(b);
+    b.addEventListener('click', (e) => { e.stopPropagation(); const k = ['bt', 'tb', 'lr']; sunPath = k[(k.indexOf(sunPath) + 1) % 3]; try { localStorage.setItem('pips-sunpath2', sunPath); } catch (er) {} draw(); Snd.play('pop', { gain: 0.4, f: 700 }); });
+  }
+}
 /* a soft warm light that follows Pip at night, and one for the tractor's headlights */
 const pipLamp = new T.PointLight(0xffd8a0, 0, 4.5, 2); pipLamp.position.set(0, 1.6, 0.4); pip.add(pipLamp);
 const tractorLamp = new T.PointLight(0xfff0c0, 0, 6, 2); sc.add(tractorLamp);
@@ -2412,8 +2452,9 @@ const SKY_ULTRA = { hor: new T.Color('#a9cbe6'), top: new T.Color('#3d84cf') };
 function skyStep(dt) {
   if (typeof state.clock !== 'number') state.clock = DAY * 0.1;
   bedStep(dt);
-  state.clock += dt;
+  if (!timeHold) state.clock += dt;
   const f = dayFrac(); let i = 0; while (i < SKY_KEYS.length - 2 && f > SKY_KEYS[i + 1].f) i++;
+  if (inHouse) SUN_OFF.copy(SUN_HOME); else sunArc(f);
   const a = SKY_KEYS[i], b = SKY_KEYS[i + 1], q = clamp((f - a.f) / (b.f - a.f), 0, 1), e = q * q * (3 - 2 * q);
   mixHex(a.top, b.top, e, sky.material.uniforms.top.value); mixHex(a.hor, b.hor, e, sky.material.uniforms.hor.value);
   { const dd = 1 - (a.n + (b.n - a.n) * e) * 2; if (dd > 0) { sky.material.uniforms.hor.value.lerp(SKY_ULTRA.hor, 0.6 * dd); sky.material.uniforms.top.value.lerp(SKY_ULTRA.top, 0.3 * dd); } }
@@ -2421,6 +2462,7 @@ function skyStep(dt) {
   mixHex(a.sun, b.sun, e, sun.color); sun.intensity = a.si + (b.si - a.si) * e;
   if (hemi) { mixHex(a.hs, b.hs, e, hemi.color); mixHex(a.hg, b.hg, e, hemi.groundColor); hemi.intensity = a.hi + (b.hi - a.hi) * e; }
   nightAmt = a.n + (b.n - a.n) * e; isNight = f > 0.68 && f < 0.95;
+  SEA_SPEC.value = 1 - 0.9 * clamp(nightAmt * 1.6, 0, 1);
   lampMat.color.copy(lampOff).lerp(lampOn, clamp(nightAmt * 2.6, 0, 1)); glowMat.opacity = Math.min(0.65, nightAmt * 1.3);
   pipLamp.intensity = nightAmt * 1.1;
   if (tractor) { tractor.g.updateMatrixWorld(); tractorLamp.position.copy(tractor.g.localToWorld(tmpV.set(0, 0.8, 1.6))); tractorLamp.intensity = nightAmt * (mount && mount.kind === 'tractor' ? 1.6 : 0.5); }
@@ -2448,7 +2490,31 @@ function skyStep(dt) {
   if (falling.visible) fallGeo.attributes.position.needsUpdate = true;
   skyT -= dt; if (skyT <= 0) { skyT = 1; paintFloors(); renderClock(); }
 }
-let skyT = 0;
+let skyT = 0, timeHold = false;
+/* test control in the settings: a slider over the whole day (sunrise at the left, night at the right) and a button that
+   stops the clock, so the light, the sun's path and the shadows can be looked at hour by hour. Stays within today, so the season is kept. */
+{
+  const row = document.querySelector('#menu .sheetTop');
+  if (row) {
+    const w = document.createElement('div'); w.id = 'timeRow';
+    w.innerHTML = '<button type="button" class="round" id="timeHold" aria-label="Stop time"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="16" fill="#fffaf0" stroke="#22303c" stroke-width="3"/><path d="M24 14 V24 L31 29" fill="none" stroke="#22303c" stroke-width="3" stroke-linecap="round"/><g class="hold"><rect x="15" y="15" width="6" height="18" rx="2" fill="#c8643a" stroke="#22303c" stroke-width="2"/><rect x="27" y="15" width="6" height="18" rx="2" fill="#c8643a" stroke="#22303c" stroke-width="2"/></g></svg></button>'
+      + '<input type="range" id="timeSlide" min="0" max="1000" step="1" aria-label="Time of day"><span id="timeTxt"></span>';
+    row.appendChild(w);
+    const sl = w.querySelector('#timeSlide'), hb = w.querySelector('#timeHold'), tx = w.querySelector('#timeTxt');
+    const clockTxt = (f) => { const h = (6 + f * 24) % 24; return String(Math.floor(h)).padStart(2, '0') + ':' + String(Math.floor((h % 1) * 60)).padStart(2, '0'); }; /* f 0 = sunrise, shown as 06:00 */
+    const show = () => { const f = dayFrac(); if (document.activeElement !== sl) sl.value = Math.round(f * 1000); tx.textContent = clockTxt(f); hb.classList.toggle('on', timeHold); };
+    sl.addEventListener('input', () => { const day = Math.floor(state.clock / DAY); state.clock = day * DAY + (+sl.value / 1000) * DAY * 0.9999; show(); });
+    hb.addEventListener('click', (e) => { e.stopPropagation(); timeHold = !timeHold; show(); Snd.play('pop', { gain: 0.4, f: timeHold ? 500 : 800 }); });
+    ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'click'].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation(), { passive: true }));
+    setInterval(() => { if (!$('menu').hidden) show(); }, 250);
+    const st = document.createElement('style');
+    st.textContent = '#menu #timeRow{order:16;display:flex;align-items:center;gap:10px;width:min(290px,calc(86vw - 30px));margin-top:6px}#timeRow .round{position:relative;flex:none;width:54px;height:54px;padding:6px;margin:0}#timeRow .round::after{content:none!important}#timeRow .hold{display:none}#timeRow .on .hold{display:inline}#timeRow .on{background:#fff1c9}'
+      + '#timeSlide{flex:1;min-width:0;height:34px;accent-color:#c8643a;background:linear-gradient(90deg,#ffc9a0,#8fc0e8 12%,#7db7dd 50%,#ff9f6e 64%,#1c2650 72%,#1c2650 94%,#ffc9a0);border-radius:17px;-webkit-appearance:none;appearance:none;border:2px solid #22303c}'
+      + '#timeSlide::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:#f2c14a;border:3px solid #22303c}#timeSlide::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#f2c14a;border:3px solid #22303c}'
+      + '#timeTxt{font:700 15px system-ui,sans-serif;min-width:44px;color:#22303c}';
+    document.head.appendChild(st);
+  }
+}
 /* ---------- the pet dog and its kennel, and the sleeping z's (moved here from the farm's extras.js and family.js) ---------- */
 /* a soft dark spot that lies under Pip, the pets and other things, so nothing floats on the grass (polish.js, pets.js) */
 const blobTex = gradTex(64, 64, [[0, 255, 255, 255, 1], [0.5, 217, 217, 217, 0.85], [1, 0, 0, 0, 0]]); /* used as an alphaMap: the green channel is the alpha */
@@ -2652,7 +2718,8 @@ function gustStep(dt, on) {
     if (u >= 1 || !on && u < 0.05) { q.m.visible = false; continue; }
     const sp = 3 + 3 * WIND.g; q.m.position.x += WIND.x * sp * dt; q.m.position.z += WIND.z * sp * dt;
     const a = Math.floor(Math.max(0, u * 1.5 - 0.6) * GUST_SEG), b = Math.floor(Math.min(1, u * 1.5) * GUST_SEG); q.m.geometry.setDrawRange(a * 6, (b - a) * 6);
-    q.m.material.opacity = 0.9 * Math.min(1, windAmt * 1.3) * Math.min(1, (1 - u) * 4);
+    q.m.material.opacity = 0.9 * Math.min(1, windAmt * 1.3) * Math.min(1, (1 - u) * 4) * (1 - 0.75 * nightAmt); /* faint at night, not bright white */
+    q.m.material.color.setRGB(1 - 0.4 * nightAmt, 1 - 0.32 * nightAmt, 1 - 0.12 * nightAmt);
   }
 }
 /* snow on the roofs: one shared material, so every cap whitens together */
@@ -3755,6 +3822,28 @@ sky.material = new T.ShaderMaterial({ side: T.BackSide, depthWrite: false, fog: 
 const SKY_COVER = { clear: 0.3, windy: 0.45, rain: 0.85, heavy: 0.97, mist: 0.75, snow: 0.85 }, SEASON_COVER = { spring: 0.08, summer: -0.08, autumn: 0.15, winter: 0.12 };
 let skyCover = 0.35;
 const _sk = new T.Vector3();
+/* the sun (and at night a pale moon) as a round disk in the sky, where the camera can see it: in the direction of the
+   light, but lowered to the thin strip of sky over the bent horizon at the top of the screen, so a sunrise or sunset there
+   shows (sun path top/bottom in the settings). It is a sprite far out, lifted by exactly the curve's drop so it sits where
+   it is meant to; houses and trees in front hide it. */
+const SUN_BALL = (() => {
+  const mk = (stops, sz) => { const m = new T.SpriteMaterial({ map: gradTex(128, 128, stops), transparent: true, depthWrite: false, fog: false }); const s = new T.Sprite(m); s.scale.set(sz, sz, 1); s.frustumCulled = false; s.visible = false; sc.add(s); return s; };
+  const disk = mk([[0, 255, 252, 230, 1], [0.38, 255, 238, 176, 1], [0.44, 255, 214, 130, 0.75], [0.56, 255, 190, 110, 0.28], [0.8, 255, 170, 90, 0.08], [1, 255, 160, 80, 0]], 16);
+  return { disk, d: 90, v: new T.Vector3() };
+})();
+function sunBall() {
+  const s = SUN_BALL.disk, f = dayFrac(), day = f < 0.64, h = Math.hypot(SUN_OFF.x, SUN_OFF.z) || 1;
+  if (inHouse) { s.visible = false; return; }
+  const el = Math.atan2(SUN_OFF.y, h) * 180 / Math.PI; /* 18 at the horizon, up to 55 */
+  /* visible strip: about -19 deg at the top edge of the screen; the low sun sits a little under it and rises out of view */
+  /* sinks under the far edge just before sunset and climbs up from it just after sunrise */
+  const sink = day ? Math.max(0, 1 - Math.min(f, 0.64 - f) / 0.035) : 0;
+  const ve = (-21.5 + (el - 18) * 0.25 - sink * 4) * Math.PI / 180, v = SUN_BALL.v.set(SUN_OFF.x / h * Math.cos(ve), Math.sin(ve), SUN_OFF.z / h * Math.cos(ve));
+  s.position.copy(cam.position).addScaledVector(v, SUN_BALL.d); s.position.y += curveDrop(s.position.x, s.position.z);
+  s.visible = true; const m = s.material;
+  if (day) m.color.setRGB(1, 0.92 + 0.08 * Math.min(1, (el - 18) / 20), 0.8 + 0.2 * Math.min(1, (el - 18) / 20)); else m.color.setRGB(0.62, 0.68, 0.85); /* warm when low; the moon is pale blue */
+  m.opacity = day ? 1 - sink * sink : 0.55 * nightAmt;
+}
 function skyFrame(dt) {
   sky.position.copy(cam.position); sky.updateMatrixWorld();
   /* the visible horizon: the steepest line from the camera that still touches the (bent) ground or sea */
@@ -3769,8 +3858,10 @@ function skyFrame(dt) {
   if (!reduced) { SKYU.uWind.value.x += Math.cos(ang) * w * dt; SKYU.uWind.value.y += Math.sin(ang) * w * dt; }
   SKYU.uNight.value = nightAmt; SKYU.uT.value = time;
   SKYU.uSun.value.copy(_sk.copy(sun.position).sub(sun.target.position)).normalize();
+  sunBall();
 }
 
+if (window.__farmTest) window.__sunBall = () => { const s = SUN_BALL.disk, v = s.position.clone().project(cam); return { vis: s.visible, op: +s.material.opacity.toFixed(2), ndc: [+v.x.toFixed(2), +v.y.toFixed(2), +v.z.toFixed(3)], pos: s.position.toArray().map((q) => +q.toFixed(1)), drop: +curveDrop(s.position.x, s.position.z).toFixed(1) }; };
 /* ---------- high quality light (rays.js): god rays, bloom, sun shafts, dust motes, lamp halos, golden glow, sharper image ----------
    A third graphics tier above normal. Everything is off unless the quality is 'high', and each effect can be switched on its own.
    Post effects (rays, bloom, glow) render the scene into a multisampled target, then do cheap passes at a quarter of the size
@@ -3863,11 +3954,20 @@ function fxLight(dt) {
   FX.k.night = inside ? 0 : clamp(nightAmt * 2.6, 0, 1);
 }
 function smoothstep(a, b, x) { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
-/* where the rays come from: the sun is behind the camera on the left, so the source sits off screen, up and to the left */
+/* where the rays come from: with the sun behind the camera the source sits off screen at the top, to the side of the sun.
+   The sun moves now: when it is ahead of the camera the rays come from where it really is, and when it is ahead but high
+   above the screen they fade out (the source far above smeared a soft bright column onto the sea) */
+const _fv3 = new T.Vector3(); let fxRayK = 1;
 function fxSource() {
   _fv1.copy(camFocus).project(cam); _fv2.copy(sun.position).sub(sun.target.position).normalize().multiplyScalar(2).add(camFocus).project(cam);
   let dx = _fv2.x - _fv1.x; dx = clamp(dx * 3, -1, 1);
-  fxRays.uniforms.uSrc.value.set(0.5 + dx * 0.75, 1.3);
+  const sd = _fv3.copy(sun.position).sub(sun.target.position).normalize(), fw = cam.getWorldDirection(_fv2);
+  const ahead = smoothstep(-0.1, 0.35, sd.x * fw.x + sd.z * fw.z);
+  _fv2.copy(cam.position).addScaledVector(sd, 100).project(cam);
+  const sx = clamp(0.5 + _fv2.x * 0.5, -0.3, 1.3), sy = 0.5 + _fv2.y * 0.5;
+  const ok = _fv2.z < 1 ? 1 - smoothstep(1.15, 1.6, sy) : 0;
+  fxRayK = (1 - ahead) + ahead * ok;
+  fxRays.uniforms.uSrc.value.set((0.5 + dx * 0.75) * (1 - ahead) + sx * ahead, 1.3 * (1 - ahead) + Math.min(1.3, sy) * ahead);
 }
 
 /* ----- sun shafts: soft slanted beams anchored to the ground, picked from a world grid near Pip, one draw call ----- */
@@ -3898,7 +3998,7 @@ function shPlace() {
   const aC = shGeo.attributes.aC.array, aW = shGeo.attributes.aW.array; let n = 0;
   for (let dz = -5; dz <= 2 && n < SH_N; dz++) for (let dx = -4; dx <= 4 && n < SH_N; dx++) {
     const gx = cx + dx, gz = cz + dz, h = hash(gx * 13.1 + gz * 71.7, 5.3); if (h > 0.36) continue;
-    const x = (gx + hash(gx, gz + 0.5) - 0.5) * SH_CELL, z = (gz + hash(gz, gx + 1.5) - 0.5) * SH_CELL; if (isleD(x, z) > 0.98) continue;
+    const x = (gx + hash(gx, gz + 0.5) - 0.5) * SH_CELL, z = (gz + hash(gz, gx + 1.5) - 0.5) * SH_CELL; if (isleD(x, z) > 0.82) continue; /* well inland: beams by the shore lay soft patches on the sea */
     const wdt = 0.8 + hash(gx, gz + 7.1) * 1.3, len = 7 + hash(gx + 3.3, gz) * 5, seed = hash(gx + 9.9, gz + 2.2);
     for (let j = 0; j < 4; j++) { const o = (n * 4 + j) * 3; aC[o] = x; aC[o + 1] = 0; aC[o + 2] = z; aW[o] = wdt; aW[o + 1] = len; aW[o + 2] = seed; } n++;
   }
@@ -3937,8 +4037,18 @@ let haloT = 0;
 
 /* ----- sharper: the full retina pixel ratio and a bigger shadow map ----- */
 const fxBaseShadow = sun.shadow.mapSize.x;
+/* steady frame rate: when the device cannot keep up, draw a few less pixels (down to three quarters of the sharpness);
+   when it has room again, go back up. Each step up waits longer if the last one did not hold. */
+const DYN = { k: 1, t: 0, n: 0, sum: 0, hold: 0, upWait: 6, lastUp: false };
+function dynStep(dt) {
+  if (FX.bench || document.hidden || !(dt > 0)) return;
+  DYN.hold -= dt; DYN.n++; DYN.sum += dt; DYN.t += dt; if (DYN.t < 2) return;
+  const avg = DYN.sum / DYN.n, want = 1 / fpsCap; DYN.t = DYN.n = DYN.sum = 0; if (DYN.hold > 0) return;
+  if (avg > want * 1.12 && DYN.k > 0.75) { DYN.k -= 0.125; DYN.hold = 3; if (DYN.lastUp) DYN.upWait = Math.min(60, DYN.upWait * 2); DYN.lastUp = false; }
+  else if (avg < want * 1.03 && DYN.k < 1) { DYN.k += 0.125; DYN.hold = DYN.upWait; DYN.lastUp = true; }
+}
 function fxSharp(on) {
-  const pr = Math.min(window.devicePixelRatio || 1, on ? 2 : fpsCap === 20 ? 1 : 1.5); if (Math.abs(renderer.getPixelRatio() - pr) > 0.01) { renderer.setPixelRatio(pr); resize(); }
+  const top = Math.min(window.devicePixelRatio || 1, on ? 2 : fpsCap === 20 ? 1 : 1.5), pr = Math.max(Math.min(1, top), Math.round(top * DYN.k * 8) / 8); if (Math.abs(renderer.getPixelRatio() - pr) > 0.01) { renderer.setPixelRatio(pr); resize(); }
   const sm = on ? Math.max(fxBaseShadow, 1280) : fxBaseShadow; if (sun.shadow.mapSize.x !== sm) { sun.shadow.mapSize.set(sm, sm); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
 }
 
@@ -4048,7 +4158,10 @@ function aoApply(r, on) { const a = r.c.array; if (on) for (let i = 0; i < r.ao.
 /* ----- 3D grass: one instanced draw of blade clumps in a square that wraps around Pip, fading into the painted ground.
    Colour and where it may grow come from a small texture built from the ground's own colours, the road mask and the
    pens, houses and props; wind waves and bending happen in the vertex shader. ----- */
-const GR = { L: 17, N: 0, mesh: null, t: 0, tex: null, W: 116, H: 80, push: [] };
+/* grass patch size (test switch in the settings, 2026-11-22): side of the square and where it fades out around Pip */
+const GR_SIZES = { 17: [5.2, 7.8], 24: [8, 11], 34: [12, 16] };
+let grSize = 34; try { const v = +localStorage.getItem('pips-grass2'); /* Leon 2026-11-23: 34 in ultra, no noticeable cost */ if (GR_SIZES[v]) grSize = v; } catch (e) {}
+const GR = { L: grSize, N: 0, mesh: null, t: 0, tex: null, W: 116, H: 80, push: [] };
 for (let i = 0; i < 8; i++) GR.push.push(new T.Vector4(0, 0, 0, 0));
 function grClump() {
   const P = [], C = [], N = [], I = [];
@@ -4062,7 +4175,7 @@ function grBuild(dens) {
   g.setAttribute('aI', new T.InstancedBufferAttribute(a, 4)); g.instanceCount = n; GR.N = n;
   const d = new Uint8Array(GR.W * GR.H * 4); GR.tex = new T.DataTexture(d, GR.W, GR.H, T.RGBAFormat); GR.tex.magFilter = GR.tex.minFilter = T.LinearFilter; GR.tex.needsUpdate = true;
   const m = new T.MeshLambertMaterial({ vertexColors: true, side: T.DoubleSide });
-  GR.u = { uGFocus: { value: new T.Vector3() }, uGL: { value: L }, uGT: { value: 0 }, uGWind: { value: new T.Vector2() }, uGPush: { value: GR.push }, uGTex: { value: GR.tex }, uGH: { value: 0.42 }, uGFade: { value: new T.Vector2(5.2, 7.8) } };
+  GR.u = { uGFocus: { value: new T.Vector3() }, uGL: { value: L }, uGT: { value: 0 }, uGWind: { value: new T.Vector2() }, uGPush: { value: GR.push }, uGTex: { value: GR.tex }, uGH: { value: 0.42 }, uGFade: { value: new T.Vector2(GR_SIZES[GR.L][0], GR_SIZES[GR.L][1]) } };
   m.onBeforeCompile = (sh) => { Object.assign(sh.uniforms, GR.u); sh.uniforms.gMask = GU.mask; sh.uniforms.gDet = GU.det;
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 aI; uniform vec3 uGFocus; uniform float uGL, uGT, uGH; uniform vec2 uGWind, uGFade; uniform vec4 uGPush[8]; uniform sampler2D uGTex, gMask, gDet;')
       .replace('#include <color_vertex>', `#include <color_vertex>
@@ -4146,19 +4259,23 @@ if (ground && ground.material) { const gm = ground.material, ob = gm.onBeforeCom
 function fxWorld(dt) {
   const k = FX.k, out = !inHouse && !inBarn && !(typeof inStore !== 'undefined' && inStore), top = cam.position.y > 22;
   /* shafts */
-  const shOn = fxUse('shafts') && out && !top && k.sun > 0.02; shafts.visible = shOn;
+  /* the beams only read as beams when the sun is behind or beside the camera; with the sun ahead (it moves now) they are
+     seen end-on as soft bright blobs, and by moonlight they are not wanted at all */
+  const shSd = _fv1.copy(sun.position).sub(sun.target.position).setY(0).normalize(), shFw = cam.getWorldDirection(_fv2).setY(0).normalize();
+  const shK = k.sun * smoothstep(0.55, 0.9, k.sun) * (1 - smoothstep(-0.25, 0.3, shSd.dot(shFw)));
+  const shOn = fxUse('shafts') && out && !top && shK > 0.02; shafts.visible = shOn;
   if (shOn) { shPlace(); const u = shMat.uniforms; u.uL.value.copy(sun.position).sub(sun.target.position).normalize(); u.uFocus.value.copy(camFocus); u.uT.value = reduced ? 0 : time;
-    u.uOp.value = k.sun * (0.18 + 0.12 * k.gold); u.uCol.value.copy(sun.color).lerp(_fxc.set('#ffd9a0'), 0.4); }
+    u.uOp.value = shK * (0.18 + 0.12 * k.gold); u.uCol.value.copy(sun.color).lerp(_fxc.set('#ffd9a0'), 0.4); }
   /* motes */
-  const moOn = fxUse('motes') && out && !top && k.sun > 0.02; motes.visible = moOn;
-  if (moOn) { const u = moMat.uniforms; u.uFocus.value.copy(camFocus); u.uT.value = reduced ? 0 : time; u.uOp.value = k.sun * (1.1 + 0.6 * k.gold); u.uScale.value = fxSize.y > 0 ? fxSize.y * 0.5 / Math.tan(cam.fov * Math.PI / 360) : 400;
+  const moOn = fxUse('motes') && out && !top && k.sun > 0.55; /* not by moonlight: lone bright specks at night */ motes.visible = moOn;
+  if (moOn) { const u = moMat.uniforms; u.uFocus.value.copy(camFocus); u.uT.value = reduced ? 0 : time; u.uOp.value = k.sun * smoothstep(0.55, 0.9, k.sun) * (1.1 + 0.6 * k.gold); u.uScale.value = fxSize.y > 0 ? fxSize.y * 0.5 / Math.tan(cam.fov * Math.PI / 360) : 400;
     u.uCol.value.set('#fff3d2').lerp(_fxc.set('#ffc88a'), k.gold); if (typeof WIND !== 'undefined' && !reduced) { u.uWind.value.x += WIND.x * WIND.g * dt * 0.8; u.uWind.value.y += WIND.z * WIND.g * dt * 0.8; } }
   /* cloud shadows: more cover, more shade; none on grey days (everything is in the shade then) or indoors */
   const clK = fxUse('clouds') && out ? k.sun : 0; CLOUDU.uCloudK.value = clK * 0.5;
   if (clK > 0) { const cv = typeof skyCover === 'number' ? skyCover : 0.35; CLOUDU.uCloudThr.value = 0.66 - cv * 0.32; const w = 0.004 + 0.012 * (typeof windAmt === 'number' ? windAmt : 0), ang = typeof wxAng === 'number' ? wxAng : 0.6;
     if (!reduced) { CLOUDU.uCloudOff.value.x -= Math.cos(ang) * w * dt; CLOUDU.uCloudOff.value.y -= Math.sin(ang) * w * dt; } }
   /* glints */
-  const glOn = fxUse('glints') && out && !top && k.sun > 0.05; glints.visible = glOn;
+  const glOn = fxUse('glints') && out && !top && k.sun > 0.3; glints.visible = glOn;
   if (glOn) { const u = glMat.uniforms; u.uT.value = reduced ? 0 : time; u.uOp.value = k.sun * (0.9 + 0.5 * k.gold); u.uScale.value = moMat.uniforms.uScale.value || 400; if (!moOn) u.uScale.value = fxSize.y > 0 ? fxSize.y * 0.5 / Math.tan(cam.fov * Math.PI / 360) : 400; u.uFocus.value.copy(camFocus);
     u.uG.value.set(1, pond && pond.water && pond.water.visible ? 1 : 0, fountain && fountain.water && fountain.water.visible ? 1 : 0); u.uCol.value.set('#fff8e6').lerp(_fxc.set('#ffd29a'), k.gold); }
   /* evening details: from late afternoon to morning */
@@ -4187,7 +4304,7 @@ function fxWorld(dt) {
 }
 const _fxc = new T.Color();
 function fxRender(dt) {
-  fxLight(dt); fxSharp(fxUse('sharp')); fxWorld(dt);
+  dynStep(dt); fxLight(dt); fxSharp(fxUse('sharp')); fxWorld(dt);
   renderer.info.autoReset = false; renderer.info.reset();
   const post = fxUse('rays') || fxUse('bloom') || fxUse('grade');
   if (!post) { renderer.setRenderTarget(null); renderer.render(sc, cam); return; }
@@ -4197,7 +4314,7 @@ function fxRender(dt) {
   if (rays) { fxSource(); fxRays.uniforms.tM.value = fxA.texture; fxPass(fxRays, fxR); const u = fxBlur.uniforms; u.tS.value = fxR.texture; u.uDir.value.set(1.5 / qw, 0); fxPass(fxBlur, fxR2); u.tS.value = fxR2.texture; u.uDir.value.set(0, 1.5 / qh); fxPass(fxBlur, fxR); }
   if (bloom) { const u = fxBlur.uniforms; for (let i = 0; i < 2; i++) { const s = 1 + i * 1.6; u.tS.value = fxA.texture; u.uDir.value.set(s / qw, 0); fxPass(fxBlur, fxB); u.tS.value = fxB.texture; u.uDir.value.set(0, s / qh); fxPass(fxBlur, fxA); } }
   const c = fxComp.uniforms; c.tS.value = fxMain.texture; c.tB.value = fxA.texture; c.tR.value = fxR.texture;
-  c.uBloom.value = bloom ? (0.8 + 0.1 * k.night + 0.25 * k.gold) * 0.6 : 0; c.uRays.value = rays ? k.sun * (2.2 + 0.8 * k.gold) * 0.55 : 0;
+  c.uBloom.value = bloom ? (0.8 + 0.1 * k.night + 0.25 * k.gold) * 0.6 : 0; c.uRays.value = rays ? k.sun * smoothstep(0.4, 0.8, k.sun) * fxRayK * (2.2 + 0.8 * k.gold) * 0.55 : 0;
   c.uRayCol.value.copy(sun.color).lerp(_fxc.set('#fff0d0'), 0.35);
   c.uGrade.value = fxUse('grade') ? 1 : 0; c.uGold.value = fxUse('grade') ? k.gold * 0.55 : 0; c.uAsp.value = fxSize.x / fxSize.y;
   if (!rays) fxSource();
@@ -4218,12 +4335,20 @@ function fxRender(dt) {
   const qb = document.createElement('button'); qb.type = 'button'; qb.className = 'round fxQBtn'; qb.id = 'fxQBtn';
   qb.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 6 L28 19 L41 23 L28 27 L24 40 L20 27 L7 23 L20 19 Z" fill="#ffd66a" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/><circle cx="38" cy="10" r="3" fill="#ffd66a" stroke="#22303c" stroke-width="2"/></svg><b></b>';
   if (db && db.parentNode) db.parentNode.insertBefore(qb, db.nextSibling);
+  /* grass size: 17, 24 or 34 units around Pip (only seen with high quality on, as in ultra) */
+  const gb = document.createElement('button'); gb.type = 'button'; gb.className = 'round grassBtn'; gb.id = 'grassBtn';
+  gb.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 38 Q12 24 8 14 Q16 24 17 38 M19 38 Q22 20 24 8 Q26 20 29 38 M31 38 Q32 24 40 14 Q36 24 38 38" fill="#8fc163" stroke="#22303c" stroke-width="2.5" stroke-linejoin="round"/></svg><b></b>';
+  if (qb.parentNode) qb.parentNode.insertBefore(gb, qb.nextSibling);
+  const gsync = () => { gb.querySelector('b').textContent = grSize; gb.setAttribute('aria-label', 'Grass size ' + grSize); gb.style.opacity = FX.hi && FX.on.grass ? 1 : 0.5; };
+  gb.addEventListener('click', (e) => { e.stopPropagation(); const k = [17, 24, 34]; grSize = k[(k.indexOf(grSize) + 1) % 3]; try { localStorage.setItem('pips-grass2', grSize); } catch (er) {}
+    if (GR.mesh) { sc.remove(GR.mesh); GR.mesh.geometry.dispose(); GR.mesh.material.dispose(); GR.mesh = null; } GR.L = grSize; gsync(); Snd.play('pop', { gain: 0.4, f: 400 + grSize * 12 }); });
+  FX.gsync = gsync;
   const btn = document.createElement('button'); btn.id = 'fxBtn'; btn.type = 'button'; btn.textContent = '✨'; btn.setAttribute('aria-label', 'Light effects'); btn.hidden = !FX_TEST && !devOn;
   const pan = document.createElement('div'); pan.id = 'fxPan'; pan.hidden = true;
   pan.innerHTML = '<h3>Light effects</h3><label class="hi"><input type="checkbox" data-hi><span>High quality<small>off = the normal game look</small></span></label>'
     + FX_KEYS.map(([k, n, d]) => '<label><input type="checkbox" data-k="' + k + '"><span>' + n + '<small>' + d + '</small></span><em data-ms="' + k + '"></em></label>').join('')
     + '<div class="row"><button type="button" data-bench>Measure cost</button><button type="button" data-close>Close</button></div><div class="note" data-note>Measure switches each effect on alone for a moment and times the frame (about 15 s). Stand still while it runs.</div>';
-  const sync = () => { qb.classList.toggle('on', FX.hi); qb.querySelector('b').textContent = FX.hi ? 'HIGH' : ''; qb.setAttribute('aria-label', 'Graphics quality: ' + (FX.hi ? 'high' : 'normal')); qb.setAttribute('aria-pressed', String(FX.hi)); btn.classList.toggle('on', FX.hi);
+  const sync = () => { if (FX.gsync) FX.gsync(); qb.classList.toggle('on', FX.hi); qb.querySelector('b').textContent = FX.hi ? 'HIGH' : ''; qb.setAttribute('aria-label', 'Graphics quality: ' + (FX.hi ? 'high' : 'normal')); qb.setAttribute('aria-pressed', String(FX.hi)); btn.classList.toggle('on', FX.hi);
     pan.querySelector('[data-hi]').checked = FX.hi; FX_KEYS.forEach(([k]) => { const c = pan.querySelector('[data-k="' + k + '"]'); c.checked = FX.on[k]; c.disabled = !FX.hi && !FX_LOW.has(k); }); };
   FX.sync = sync;
   qb.addEventListener('click', () => { FX.hi = !FX.hi; fxSave(); sync(); Snd.play('sparkle', { gain: 0.35 }); });
@@ -4262,7 +4387,7 @@ function fxBenchFrame(t0) {
   window.__fxBench = b.res; console.log('fx bench', JSON.stringify(b.res));
 }
 function fxFrame(dt) { const t0 = performance.now(); fxRender(dt); if (FX.bench) fxBenchFrame(t0); }
-if (window.__farmTest) { window.__fx = FX; FX.u = fxComp.uniforms; FX.r = fxRays.uniforms; FX.cl = CLOUDU; FX.ren = renderer; FX.EV = EV; FX.AO = AO; FX.GR = GR; FX.awnInfo = () => { const awn = Object.values(FL.awn), out = [], v = new T.Vector3(); sc.traverse((o) => { if (o.isMesh && awn.includes(o.material)) { o.getWorldPosition(v); let ch = []; for (let p = o; p; p = p.parent) ch.push((p.type[0]) + (p.visible ? "" : "!") + (p.frustumCulled ? "" : "f") + (p.layers.mask !== 1 ? "L" : "")); out.push(v.toArray().map((q) => q.toFixed(1)).join(",") + " " + ch.join(">") + " det" + o.matrixWorld.determinant().toFixed(3)); } }); return out; }; }
+if (window.__farmTest) { window.__dyn = DYN; window.__fx = FX; FX.u = fxComp.uniforms; FX.r = fxRays.uniforms; FX.cl = CLOUDU; FX.ren = renderer; FX.EV = EV; FX.AO = AO; FX.GR = GR; FX.awnInfo = () => { const awn = Object.values(FL.awn), out = [], v = new T.Vector3(); sc.traverse((o) => { if (o.isMesh && awn.includes(o.material)) { o.getWorldPosition(v); let ch = []; for (let p = o; p; p = p.parent) ch.push((p.type[0]) + (p.visible ? "" : "!") + (p.frustumCulled ? "" : "f") + (p.layers.mask !== 1 ? "L" : "")); out.push(v.toArray().map((q) => q.toFixed(1)).join(",") + " " + ch.join(">") + " det" + o.matrixWorld.determinant().toFixed(3)); } }); return out; }; }
 
 /* ---------- camera and input ---------- */
 let aspect = 1;
@@ -4389,7 +4514,7 @@ function step(dt) {
   waterT -= dt; if (waterT <= 0) { waterT = 0.1; for (let i = 0; i < wp.count; i++) { const x = wp.getX(i), z = wp.getZ(i); wp.setY(i, Math.sin(x * 0.5 + time * 0.9) * 0.06 + Math.sin(z * 0.42 - time * 0.7) * 0.06); const ax = -Math.cos(x * 0.5 + time * 0.9) * 0.18, az = -Math.cos(z * 0.42 - time * 0.7) * 0.15, l = Math.hypot(ax, 1, az); wn.setXYZ(i, ax / l, 1 / l, az / l); } wp.needsUpdate = true; wn.needsUpdate = true; }
   /* the camera keeps up closely, so it stops with Pip instead of gliding on after the finger lifts */ camFocus.lerp(pip.position, 1 - Math.exp(-dt * 10)); if (inBarn) camFocus.z = Math.min(camFocus.z, BI.z + 0.9); if (inStore) camFocus.z = Math.min(camFocus.z, SI.z + 1.2);
   dressT += ((dressing ? 1 : 0) - dressT) * Math.min(1, dt * 5); const k = (aspect < 1 ? 1.5 : 1.15) * (1 - 0.7 * dressT) * (inBarn ? 1.22 : 1); cam.position.set(camFocus.x, 9.5 * k, camFocus.z + 8.5 * k); cam.lookAt(camFocus.x + (aspect < 1 ? 0 : 0.75) * dressT, 0.55 * dressT, camFocus.z + 0.3 + (aspect < 1 ? 0.55 : -0.1) * dressT);
-  sun.position.set(camFocus.x - 10, 10, camFocus.z + 7.5); sun.target.position.copy(camFocus); curveFrame(aspect < 1 ? 1.15 : 1, dt); skyFrame(dt);
+  sun.position.set(camFocus.x + SUN_OFF.x, SUN_OFF.y, camFocus.z + SUN_OFF.z); sun.target.position.copy(camFocus); curveFrame(aspect < 1 ? 1.15 : 1, dt); skyFrame(dt);
   if (buyCam(dt)) {} else if (window.__camTop) { const c = window.__camTop; cam.position.set(c[0], c[2], c[1] + (c[3] || 0)); cam.lookAt(c[0], 0, c[1]); cam.far = 300; }
   if (ED.on) edRender(dt); else fxFrame(dt);
   $('coins').textContent = fmt(state.coins);

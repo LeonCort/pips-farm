@@ -74,7 +74,8 @@ function gustStep(dt, on) {
     if (u >= 1 || !on && u < 0.05) { q.m.visible = false; continue; }
     const sp = 3 + 3 * WIND.g; q.m.position.x += WIND.x * sp * dt; q.m.position.z += WIND.z * sp * dt;
     const a = Math.floor(Math.max(0, u * 1.5 - 0.6) * GUST_SEG), b = Math.floor(Math.min(1, u * 1.5) * GUST_SEG); q.m.geometry.setDrawRange(a * 6, (b - a) * 6);
-    q.m.material.opacity = 0.9 * Math.min(1, windAmt * 1.3) * Math.min(1, (1 - u) * 4);
+    q.m.material.opacity = 0.9 * Math.min(1, windAmt * 1.3) * Math.min(1, (1 - u) * 4) * (1 - 0.75 * nightAmt); /* faint at night, not bright white */
+    q.m.material.color.setRGB(1 - 0.4 * nightAmt, 1 - 0.32 * nightAmt, 1 - 0.12 * nightAmt);
   }
 }
 /* snow on the roofs: one shared material, so every cap whitens together */

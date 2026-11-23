@@ -122,7 +122,7 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 #menu .fxQBtn b { display: none; }
 /* order and groups: play, picture, help, start over */
 #menu #soundBtn { order: 1; } #menu #wardBtn { order: 2; } #menu #ctrlBtn { order: 3; }
-#menu #fpsBtn { order: 10; } #menu #gfxBtn { order: 11; } #menu #drawBtn { order: 12; } #menu #fxQBtn { order: 13; }
+#menu #fpsBtn { order: 10; } #menu #gfxBtn { order: 11; } #menu #drawBtn { order: 12; } #menu #fxQBtn { order: 13; } #menu #grassBtn { order: 14; } #menu #sunBtn { order: 15; }
 #menu #updBtn { order: 20; } #menu #logBtn { order: 21; } #menu #homeBtn { order: 22; } #menu #devBtn { order: 23; }
 #menu #restartBtn { order: 30; }
 #menu #fpsBtn, #menu #updBtn, #menu #logBtn:first-child, #menu #restartBtn { margin-top: 14px; }
@@ -153,3 +153,8 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 .logBox textarea { flex: 1; width: 100%; box-sizing: border-box; font: 12px/1.35 ui-monospace, Menlo, monospace; border: 2px solid var(--line); border-radius: 12px; padding: 8px; resize: none; background: #fffdf8; color: var(--ink); }
 .logRow { display: flex; gap: 10px; } .logRow button { flex: 1; padding: 12px; border-radius: 14px; border: 3px solid var(--ink); background: #fffaf0; font-weight: 700; font-size: 17px; }
 .logRow button[data-c] { background: #74a857; color: #fff6e4; }
+
+/* grass size test switch */
+.grassBtn{position:relative}.grassBtn b{position:absolute;left:0;right:0;bottom:2px;font:800 12px/1 system-ui,sans-serif;color:var(--ink);text-align:center}
+#menu .sheetTop > #grassBtn::after { content: 'Gräs runt Pip (17 / 24 / 34)'; }
+#menu .sheetTop > #sunBtn::after { content: 'Solens väg'; }

@@ -70,6 +70,7 @@ mobile.js
 ../engine/gfx.js
 ../engine/clouds.js
 ../engine/rays.js
+../engine/batch.js
 ../engine/input.js
 ../engine/loop.js
 step.js
