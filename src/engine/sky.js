@@ -187,7 +187,7 @@ const SKY_ULTRA = { hor: new T.Color('#a9cbe6'), top: new T.Color('#3d84cf') };
 function skyStep(dt) {
   if (typeof state.clock !== 'number') state.clock = DAY * 0.1;
   bedStep(dt);
-  state.clock += dt;
+  if (!timeHold) state.clock += dt;
   const f = dayFrac(); let i = 0; while (i < SKY_KEYS.length - 2 && f > SKY_KEYS[i + 1].f) i++;
   if (inHouse) SUN_OFF.copy(SUN_HOME); else sunArc(f);
   const a = SKY_KEYS[i], b = SKY_KEYS[i + 1], q = clamp((f - a.f) / (b.f - a.f), 0, 1), e = q * q * (3 - 2 * q);
@@ -224,4 +224,28 @@ function skyStep(dt) {
   if (falling.visible) fallGeo.attributes.position.needsUpdate = true;
   skyT -= dt; if (skyT <= 0) { skyT = 1; paintFloors(); renderClock(); }
 }
-let skyT = 0;
+let skyT = 0, timeHold = false;
+/* test control in the settings: a slider over the whole day (sunrise at the left, night at the right) and a button that
+   stops the clock, so the light, the sun's path and the shadows can be looked at hour by hour. Stays within today, so the season is kept. */
+{
+  const row = document.querySelector('#menu .sheetTop');
+  if (row) {
+    const w = document.createElement('div'); w.id = 'timeRow';
+    w.innerHTML = '<button type="button" class="round" id="timeHold" aria-label="Stop time"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="16" fill="#fffaf0" stroke="#22303c" stroke-width="3"/><path d="M24 14 V24 L31 29" fill="none" stroke="#22303c" stroke-width="3" stroke-linecap="round"/><g class="hold"><rect x="15" y="15" width="6" height="18" rx="2" fill="#c8643a" stroke="#22303c" stroke-width="2"/><rect x="27" y="15" width="6" height="18" rx="2" fill="#c8643a" stroke="#22303c" stroke-width="2"/></g></svg></button>'
+      + '<input type="range" id="timeSlide" min="0" max="1000" step="1" aria-label="Time of day"><span id="timeTxt"></span>';
+    row.appendChild(w);
+    const sl = w.querySelector('#timeSlide'), hb = w.querySelector('#timeHold'), tx = w.querySelector('#timeTxt');
+    const clockTxt = (f) => { const h = (6 + f * 24) % 24; return String(Math.floor(h)).padStart(2, '0') + ':' + String(Math.floor((h % 1) * 60)).padStart(2, '0'); }; /* f 0 = sunrise, shown as 06:00 */
+    const show = () => { const f = dayFrac(); if (document.activeElement !== sl) sl.value = Math.round(f * 1000); tx.textContent = clockTxt(f); hb.classList.toggle('on', timeHold); };
+    sl.addEventListener('input', () => { const day = Math.floor(state.clock / DAY); state.clock = day * DAY + (+sl.value / 1000) * DAY * 0.9999; show(); });
+    hb.addEventListener('click', (e) => { e.stopPropagation(); timeHold = !timeHold; show(); Snd.play('pop', { gain: 0.4, f: timeHold ? 500 : 800 }); });
+    ['pointerdown', 'pointermove', 'touchstart', 'touchmove', 'click'].forEach((ev) => w.addEventListener(ev, (e) => e.stopPropagation(), { passive: true }));
+    setInterval(() => { if (!$('menu').hidden) show(); }, 250);
+    const st = document.createElement('style');
+    st.textContent = '#menu #timeRow{order:16;display:flex;align-items:center;gap:10px;width:min(290px,calc(86vw - 30px));margin-top:6px}#timeRow .round{position:relative;flex:none;width:54px;height:54px;padding:6px;margin:0}#timeRow .round::after{content:none!important}#timeRow .hold{display:none}#timeRow .on .hold{display:inline}#timeRow .on{background:#fff1c9}'
+      + '#timeSlide{flex:1;min-width:0;height:34px;accent-color:#c8643a;background:linear-gradient(90deg,#ffc9a0,#8fc0e8 12%,#7db7dd 50%,#ff9f6e 64%,#1c2650 72%,#1c2650 94%,#ffc9a0);border-radius:17px;-webkit-appearance:none;appearance:none;border:2px solid #22303c}'
+      + '#timeSlide::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:#f2c14a;border:3px solid #22303c}#timeSlide::-moz-range-thumb{width:26px;height:26px;border-radius:50%;background:#f2c14a;border:3px solid #22303c}'
+      + '#timeTxt{font:700 15px system-ui,sans-serif;min-width:44px;color:#22303c}';
+    document.head.appendChild(st);
+  }
+}
