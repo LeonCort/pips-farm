@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261123213137">
+<meta name="app-ver" content="20261123213523">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1158,11 +1158,11 @@ const AREAS = [
   { id: 'h1', i: 2, j: -1, biome: 'rocks', cost: { log: 8, berry: 3 }, chest: 'pick' },
   { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 10, stone: 4, berry: 4 } },
   { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag' },
-  { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
+  { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, chest: 'sickle', bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
   { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, hay: 10, berry: 6 } },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, hay: 14, stone: 8 } },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 20, hay: 20, berry: 10 } },
-  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, hay: 16, stone: 14 }, bridge: { from: 'm1', x0: -17.4, z0: -16, x1: -22.6, z1: -16 } },
+  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, hay: 16, stone: 14 }, chest: 'shovel', bridge: { from: 'm1', x0: -17.4, z0: -16, x1: -22.6, z1: -16 } },
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 24, clay: 10, log: 16 } },
   { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 26, clay: 14, hay: 12 } }
 ];
@@ -1218,7 +1218,7 @@ const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 0, walk: 1.5, ring: {
   tint: (x, z, c) => { const a = areaAt(x, z), t = a && BIOME_TINT[a.biome]; if (t) c.lerp(new T.Color(t[0]), t[1]); } };
 const KENNEL = { x: -1.6, z: -1.5 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
-  isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0 }, chests: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
+  isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0, sickle: 0, shovel: 0 }, chests: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
 const speed = () => 3.2 + 0.45 * state.lv.speed;
 const cap = () => (state.isle && state.isle.tools.bag ? 10 : 6);
 const UPS = [{ id: 'speed', base: 10, g: 1.8, max: 8 }, { id: 'bag', base: 15, g: 1.8, max: 8 }];
@@ -2081,7 +2081,13 @@ const YIELD = { tree: ['log', 2], rock: ['stone', 2], bush: ['berry', 3], grass:
 const HITS = { tree: 6, rock: 8, bush: 3, grass: 3, clay: 6, boulder: 14 }; /* Leon: slower, so each one feels like work */
 const REGROW = { tree: [8, 16], rock: [6, 25], bush: [10, 0], grass: [5, 12], clay: [8, 25], boulder: [10, 40] }; /* seconds gone, then seconds growing (Leon: waiting is boring, so quicker) */
 const LOW = { rock: 0.35, boulder: 0.35, clay: 0.3, grass: 0.15 }; /* how small it shrinks while it grows back (trees fall, bushes lose their berries) */
-const PICKY = { rock: 1, boulder: 1, clay: 1 }; /* needs the pickaxe */
+const PICKY = { rock: 1, boulder: 1, clay: 1 }; /* swung at with the pickaxe (or the spade, for clay) */
+/* the right tool for each thing (Leon, 2026-11-23): without it Pip still gets it, by hand, just three times slower,
+   so a new island can be started at once and the tool found there makes it quick */
+const NEED = { rock: 'pick', boulder: 'pick', clay: 'shovel', grass: 'sickle' };
+const hasTool = (k) => !NEED[k] || !!(state.isle.tools && state.isle.tools[NEED[k]]);
+const byHand = (k) => !hasTool(k);
+function hitPow(k) { return (hasTool(k) ? 1 : 1 / 3) * (typeof xpPow === 'function' ? xpPow() : 1); }
 const KINDS = ['log', 'stone', 'berry', 'hay', 'clay']; /* building things, in counter order */
 const nodes = [], drops = [], signs = [], chests = [];
 let rising = null, hitT = 0, giveT = 0, pickHintT = 0;
@@ -2102,6 +2108,10 @@ function isleIcon(x, t, cx, cy, s) {
     x.beginPath(); x.moveTo(-22, -4); x.quadraticCurveTo(0, -22, 22, -4); x.quadraticCurveTo(0, -12, -22, -4); x.closePath(); blob('#c7ced6'); }
   else if (t === 'bag') { x.beginPath(); x.moveTo(-12, -6); x.quadraticCurveTo(0, -24, 12, -6); x.lineWidth = 4; x.strokeStyle = '#7d5e4e'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink; x.beginPath(); x.moveTo(-18, -6); x.lineTo(18, -6); x.lineTo(14, 16); x.lineTo(-14, 16); x.closePath(); blob('#d9a56b'); x.beginPath(); x.moveTo(-16, 4); x.lineTo(16, 4); x.lineWidth = 2; x.strokeStyle = '#a8743f'; x.stroke(); }
   else if (t === 'bolt') { x.beginPath(); x.moveTo(4, -22); x.lineTo(-14, 4); x.lineTo(-1, 4); x.lineTo(-6, 22); x.lineTo(14, -4); x.lineTo(1, -4); x.closePath(); blob('#f7c948'); x.fillStyle = '#fff2b0'; x.beginPath(); x.moveTo(2, -15); x.lineTo(-7, -1); x.lineTo(-3, -1); x.closePath(); x.fill(); }
+  else if (t === 'shovel') { x.beginPath(); x.moveTo(0, -22); x.lineTo(0, 6); x.lineWidth = 7; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.6; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
+    x.beginPath(); x.moveTo(-7, -22); x.lineTo(7, -22); x.stroke(); x.beginPath(); x.moveTo(-10, 4); x.lineTo(10, 4); x.lineTo(9, 14); x.quadraticCurveTo(0, 24, -9, 14); x.closePath(); blob('#c7ced6'); }
+  else if (t === 'sickle') { x.beginPath(); x.moveTo(-14, 20); x.lineTo(-6, 6); x.lineWidth = 7; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.6; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
+    x.beginPath(); x.moveTo(-6, 6); x.quadraticCurveTo(-8, -20, 14, -18); x.quadraticCurveTo(-1, -12, -1, 6); x.closePath(); blob('#c7ced6'); }
   else if (t === 'fire') { x.fillStyle = '#a9b2bb'; [[-14, 14], [-5, 17], [5, 17], [14, 14]].forEach(([a, b]) => { x.beginPath(); x.ellipse(a, b, 6, 4, 0, 0, 7); x.fill(); x.stroke(); });
     x.beginPath(); x.moveTo(0, -22); x.quadraticCurveTo(16, -4, 10, 12); x.lineTo(-10, 12); x.quadraticCurveTo(-16, -4, 0, -22); x.closePath(); blob('#f2a13c'); x.beginPath(); x.moveTo(0, -6); x.quadraticCurveTo(8, 4, 4, 12); x.lineTo(-4, 12); x.quadraticCurveTo(-8, 4, 0, -6); x.closePath(); x.fillStyle = '#ffe07a'; x.fill(); }
   else if (t === 'hut') { x.beginPath(); x.rect(-17, -2, 34, 20); blob('#c99158'); x.beginPath(); x.moveTo(-23, 0); x.lineTo(0, -20); x.lineTo(23, 0); x.closePath(); blob('#b5562f'); x.beginPath(); x.rect(-5, 5, 10, 13); blob('#7a3a2a'); x.beginPath(); x.rect(8, 3, 6, 6); blob('#ffe07a'); }
@@ -2265,7 +2275,7 @@ function makeChest(x, z, tool, idx) {
 function chestStep(c, dt) {
   if (c.pop > 0 && c.pop < 1) { c.pop = Math.min(1, c.pop + dt * 2.2); const s = c.pop < 0.7 ? c.pop / 0.7 * 1.15 : 1.15 - (c.pop - 0.7) / 0.3 * 0.15; c.g.scale.setScalar(s); }
   if (!c.open && Math.hypot(pip.position.x - c.x, pip.position.z - (c.z + 0.85)) < 0.9) {
-    c.open = 0.001; state.isle.chests[c.idx] = 1; if (c.tool === 'pick') state.isle.tools.pick = 1; if (c.tool === 'bag') state.isle.tools.bag = 1;
+    c.open = 0.001; state.isle.chests[c.idx] = 1; state.isle.tools[c.tool] = 1;
     c.sp.visible = true; Snd.play('powerup', { gain: 0.5 }); burst(c.x, 1.0, c.z, 8); save();
   }
   if (c.open) {
@@ -2444,17 +2454,17 @@ function nodeStep(n, dt) {
     if (n.grow >= 1) { n.st = 'ready'; n.hp = HITS[n.kind]; } }
 }
 function nodeHit(n) {
-  n.hp--; n.shake = 0.28; hpShow(n);
+  n.hp -= hitPow(n.kind); n.shake = byHand(n.kind) ? 0.12 : 0.28; hpShow(n);
   const sx = n.x + (pip.position.x - n.x) * 0.4, sz = n.z + (pip.position.z - n.z) * 0.4;
   if (n.kind === 'tree') Snd.play('tock', { gain: 0.55, f: 240 + Math.random() * 40 }); else if (PICKY[n.kind]) Snd.play(n.kind === 'clay' ? 'stamp' : 'impact', { gain: 0.35 }); else Snd.play('swish', { gain: 0.4 });
   if (n.kind !== 'bush' && n.kind !== 'grass') splash(sx, 0.6, sz, 3);
-  if (n.hp > 0) return;
+  if (n.hp > 0.01) return;
   dropOut(n); n.t = REGROW[n.kind][0];
   if (n.kind === 'tree') { n.st = 'fall'; n.fall = 0; n.stump.visible = true; Snd.play('thud', { gain: 0.5 }); }
   else if (LOW[n.kind]) { n.st = 'gone'; n.main.scale.setScalar(n.full * LOW[n.kind]); Snd.play(n.kind === 'grass' ? 'swish' : 'stamp', { gain: 0.4 }); }
   else { n.st = 'gone'; n.berries.visible = false; }
 }
-function canWork(n) { return n.st === 'ready' && n.pop >= 0 && (n.pop === 0 || n.pop >= 1) && (!PICKY[n.kind] || state.isle.tools.pick); }
+function canWork(n) { return n.st === 'ready' && n.pop >= 0 && (n.pop === 0 || n.pop >= 1) }
 
 /* ---- the island's part of every frame ---- */
 function isleStep(dt) {
@@ -2470,9 +2480,8 @@ function isleStep(dt) {
   hitT -= dt; giveT -= dt; pickHintT -= dt;
   let best = null, bd = 9;
   nodes.forEach((n) => { if (n.st !== 'ready') return; const d = Math.hypot(pip.position.x - n.x, pip.position.z - n.z) - NODE_R[n.kind]; if (d < 0.75 && d < bd) { bd = d; best = n; } });
-  if (best && PICKY[best.kind] && !state.isle.tools.pick) {
-    if (pickHintT <= 0) { pickHintT = 2.5; isleHint(best); }
-  } else if (best && canWork(best) && hitT <= 0 && !enSleep) {
+  if (best && byHand(best.kind) && pickHintT <= 0 && hitT <= 0) { pickHintT = 5; isleHint(best); } /* the tool that would make it quick */
+  if (best && canWork(best) && hitT <= 0 && !enSleep) {
     if (enHas(best.kind)) { hitT = best.kind === 'bush' || best.kind === 'grass' ? 0.5 : 0.55; workStart(best); enUse(best.kind); }
     else if (pickHintT <= 0) { pickHintT = 2.5; enTired(); }
   }
@@ -2489,7 +2498,7 @@ function isleStep(dt) {
 function isleBoxStep() { const A = areaAt(pip.position.x, pip.position.z); if (A && HAS[A.id]) { const b = ISLAND.box; b.x0 = A.cx - 5.4; b.x1 = A.cx + 5.4; b.z0 = A.cz - 5.4; b.z1 = A.cz + 5.4; } }
 /* a picture over a rock that needs the pickaxe */
 const hintSp = isleSprite(isleBubble('pick'), 0.8); hintSp.visible = false; sc.add(hintSp);
-function isleHint(n) { hintSp.position.set(n.x, 1.6, n.z); hintSp.visible = true; hintSp.t = 1.8; Snd.play('blip', { gain: 0.2, f: 420 }); }
+function isleHint(n) { hintSp.material.map = isleBubble(NEED[n.kind] || 'pick'); hintSp.position.set(n.x, (HP_H[n.kind] || 1.2) + 0.75, n.z); hintSp.visible = true; hintSp.t = 1.8; Snd.play('blip', { gain: 0.2, f: 420 }); }
 
 /* the guide arrow: to a chest, to a sign once the backpack is full, and to a tree right at the start */
 function isleGoal() {
@@ -2637,25 +2646,27 @@ const TOOL = (() => {
     q = new T.CylinderGeometry(0.036, 0.036, 0.08, 7); q.translate(0, -0.36, 0); L.push(fac(q, '#6e4426', 1701)); /* grip */
     if (kind === 'axe') { q = new T.BoxGeometry(0.06, 0.12, 0.13); q.translate(0, -0.84, 0.06); L.push(fac(q, '#8b939c', 1702));
       q = new T.BoxGeometry(0.05, 0.22, 0.1); q.translate(0, -0.84, 0.16); L.push(fac(q, (cx, cy, cz) => cz > 0.19 ? new T.Color('#eef2f5') : new T.Color('#b9c1c9'), 1703)); }
+    else if (kind === 'shovel') { q = new T.BoxGeometry(0.03, 0.2, 0.16); q.translate(0, -0.96, 0); L.push(fac(q, (cx, cy) => new T.Color(cy < -1.02 ? '#eef2f5' : '#b9c1c9'), 1708)); }
+    else if (kind === 'sickle') { const c = new T.TorusGeometry(0.13, 0.022, 5, 12, Math.PI * 1.2); c.rotateY(Math.PI / 2); c.translate(0, -0.9, 0.1); L.push(fac(c, '#d4dade', 1709)); }
     else { q = new T.CylinderGeometry(0.035, 0.035, 0.08, 7); q.translate(0, -0.86, 0); L.push(fac(q, '#6e7680', 1704));
       [1, -1].forEach((k) => { const c = new T.ConeGeometry(0.045, 0.26, 6); c.rotateX(k * Math.PI / 2 + k * 0.25); c.translate(0, -0.85 + 0.03, k * 0.14); L.push(fac(c, '#b9c1c9', 1705 + k)); }); }
     merged(L, MAT, g); g.scale.setScalar(1.35); g.position.y = 0.12; g.visible = false; return g; };
-  return { axe: mk('axe'), pick: mk('pick') };
+  return { axe: mk('axe'), pick: mk('pick'), shovel: mk('shovel'), sickle: mk('sickle') };
 })();
 let work = null, toolHold = 0;
 function workStart(n) { work = { n, t: 0, hit: false, kind: n.kind }; }
 const ease = (u) => u * u * (3 - 2 * u);
 function workStep(dt) {
   const R = limbs.filter((l) => l.arm), arm = R.find((l) => l.g.position.x < 0) || R[0], other = R.find((l) => l !== arm);
-  if (arm) [TOOL.axe, TOOL.pick].forEach((t) => { if (t.parent !== arm.g) arm.g.add(t); });
+  if (arm) [TOOL.axe, TOOL.pick, TOOL.shovel, TOOL.sickle].forEach((t) => { if (t.parent !== arm.g) arm.g.add(t); });
   toolHold = Math.max(0, toolHold - dt);
-  if (!work) { TOOL.axe.visible = TOOL.pick.visible = false; pb.rotation.x *= Math.max(0, 1 - dt * 8); return; }
-  const w = work, n = w.n, D = w.kind === 'bush' || w.kind === 'grass' ? 0.48 : 0.5;
+  if (!work) { TOOL.axe.visible = TOOL.pick.visible = TOOL.shovel.visible = TOOL.sickle.visible = false; pb.rotation.x *= Math.max(0, 1 - dt * 8); return; }
+  const w = work, n = w.n, hand = w.kind === 'bush' || w.kind === 'grass' || byHand(w.kind), D = hand ? 0.48 : 0.5;
   w.t += dt / D; const u = Math.min(1, w.t);
   pip.rotation.y = Math.atan2(n.x - pip.position.x, n.z - pip.position.z);
-  TOOL.axe.visible = w.kind === 'tree'; TOOL.pick.visible = !!PICKY[w.kind];
+  TOOL.axe.visible = w.kind === 'tree'; TOOL.pick.visible = !byHand(w.kind) && NEED[w.kind] === 'pick'; TOOL.shovel.visible = !byHand(w.kind) && NEED[w.kind] === 'shovel'; TOOL.sickle.visible = !byHand(w.kind) && NEED[w.kind] === 'sickle';
   let a, b, lean;
-  if (w.kind === 'bush' || w.kind === 'grass') { const s = Math.sin(u * Math.PI * 2); a = -1.25 + s * 0.35; b = -1.25 - s * 0.35; lean = 0.18 * Math.sin(u * Math.PI); if (!w.hit && u > 0.5) { w.hit = true; if (n.st === 'ready') nodeHit(n); } }
+  if (hand) { const s = Math.sin(u * Math.PI * 2); a = -1.25 + s * 0.35; b = -1.25 - s * 0.35; lean = 0.18 * Math.sin(u * Math.PI); if (!w.hit && u > 0.5) { w.hit = true; if (n.st === 'ready') nodeHit(n); } }
   else {
     if (u < 0.55) { const e = ease(u / 0.55); a = -0.35 - 2.55 * e; lean = -0.12 * e; }
     else if (u < 0.72) { const e = (u - 0.55) / 0.17; a = -2.9 + 2.0 * e * e; lean = -0.12 + 0.42 * e; }
@@ -2701,7 +2712,7 @@ Object.assign(CURVE_DEF, { strength: 0.011, side: 0.1, pitch: 47, dist: 15.5, ah
    so a child is never stuck. ---------- */
 const EN_COST = { bush: 1, grass: 1, tree: 1, rock: 2, clay: 2, boulder: 2 }; /* the most energy and how fast it comes back: from the tent's and the campfire's level (build.js) */
 let enSleep = null, enShow = -1, enNapT = 0;
-const enCost = (k) => EN_COST[k] || 1;
+const enCost = (k) => (byHand(k) ? 1 : EN_COST[k] || 1); /* light scratching by hand: cheaper per go, but it takes three times as many */
 const enHas = (k) => state.isle.en >= enCost(k);
 function enUse(k) { state.isle.en = Math.max(0, state.isle.en - enCost(k)); }
 /* tired: not enough for the cheapest thing nearby (or under a tenth left) */
