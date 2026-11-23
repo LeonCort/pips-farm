@@ -439,7 +439,7 @@ function isleStep(dt) {
   storeStep2(dt); invFlyStep(dt); invStep();
   for (let k = chests.length - 1; k >= 0; k--) { chestStep(chests[k], dt); if (chests[k].gone) chests.splice(k, 1); }
   if (hintSp.visible) { hintSp.t -= dt; hintSp.material.opacity = Math.min(1, hintSp.t * 2); if (hintSp.t <= 0) hintSp.visible = false; }
-  const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1); bldStep(dt); xpStep(dt); luckStep(dt); ruinStep(dt); caveStep(dt);
+  const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1); bldStep(dt); xpStep(dt); luckStep(dt); ruinStep(dt); caveStep(dt); springStep(dt);
 }
 /* the pets keep inside the box of the land Pip is on: home, or an island once Pip is there */
 function isleBoxStep() { const A = areaAt(pip.position.x, pip.position.z); if (A && HAS[A.id] && !A.cave) { const b = ISLAND.box; b.x0 = A.cx - 5.4; b.x1 = A.cx + 5.4; b.z0 = A.cz - 5.4; b.z1 = A.cz + 5.4; } }
@@ -450,7 +450,8 @@ function isleHint(n) { hintSp.material.map = isleBubble(NEED[n.kind] || 'pick');
 /* the guide arrow: to a chest, to a sign once the backpack is full, and to a tree right at the start */
 function isleGoal() {
   const pp = pip.position, by = (L, f) => { let b = null, bd = 1e9; L.forEach((o) => { const d = Math.hypot(pp.x - o.x, pp.z - o.z); if ((!f || f(o)) && d < bd) { bd = d; b = o; } }); return b; };
-  const c = by(chests, (o) => !o.open && o.pop >= 1); if (c) return [c.x, c.z + 0.85];
+  if (spring && !spring.used && !inCave) return [spring.x, spring.z]; /* a spring is splashing: run into it */
+  const c = by(chests, (o) => !o.open && o.pop >= 1 && HAS[o.idx]); if (c) return [c.x, c.z + 0.85]; /* only on land Pip can reach */
   const ru = by(ruins, (o) => !o.open && HAS[o.A.id] && Math.hypot(pp.x - o.x, pp.z - o.z) < 8); if (ru && !enLow()) return [ru.dx, ru.dz];
   if (enSleep) return null;
   if (enLow()) return [TENT_RING.x, TENT_RING.z]; /* too tired to work: off to the tent */
@@ -483,7 +484,7 @@ function isleTest() {
     fill: (o) => { Object.keys(o).forEach((t) => { state.isle.store[t] = (state.isle.store[t] || 0) + o[t]; }); },
     own: (ids) => { ids.split(',').forEach((id) => { state.isle.areas[id] = 1; }); save(); },
     tp: (x, z) => { pip.position.set(x, 0, z); target.set(x, 0, z); camFocus.set(x, 0, z); }, building: !!building,
-    en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], bld: Object.assign({}, state.isle.bld), cave: inCave, down: stairsDown ? [stairsDown.x, stairsDown.z] : null, upMat: caveA && caveA.mat ? [caveA.mat.x, caveA.mat.z] : null, xp: Object.assign({}, xpS()), gain: (v) => xpGain(v), max: enMax(), up: (k) => bldUp(k), tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
+    en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], bld: Object.assign({}, state.isle.bld), cave: inCave, spring: spring ? [spring.x, spring.z, spring.used] : null, springNow: () => { springT = 0; }, down: stairsDown ? [stairsDown.x, stairsDown.z] : null, upMat: caveA && caveA.mat ? [caveA.mat.x, caveA.mat.z] : null, xp: Object.assign({}, xpS()), gain: (v) => xpGain(v), max: enMax(), up: (k) => bldUp(k), tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
     walk: (x, z) => +walkSdf(x, z).toFixed(2), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
 }
 
