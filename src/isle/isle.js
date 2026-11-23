@@ -30,6 +30,9 @@ function isleIcon(x, t, cx, cy, s) {
   else if (t === 'pick') { x.beginPath(); x.moveTo(-3, -10); x.lineTo(3, 20); x.lineWidth = 6; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.2; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
     x.beginPath(); x.moveTo(-22, -4); x.quadraticCurveTo(0, -22, 22, -4); x.quadraticCurveTo(0, -12, -22, -4); x.closePath(); blob('#c7ced6'); }
   else if (t === 'bag') { x.beginPath(); x.moveTo(-12, -6); x.quadraticCurveTo(0, -24, 12, -6); x.lineWidth = 4; x.strokeStyle = '#7d5e4e'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink; x.beginPath(); x.moveTo(-18, -6); x.lineTo(18, -6); x.lineTo(14, 16); x.lineTo(-14, 16); x.closePath(); blob('#d9a56b'); x.beginPath(); x.moveTo(-16, 4); x.lineTo(16, 4); x.lineWidth = 2; x.strokeStyle = '#a8743f'; x.stroke(); }
+  else if (t === 'bolt') { x.beginPath(); x.moveTo(4, -22); x.lineTo(-14, 4); x.lineTo(-1, 4); x.lineTo(-6, 22); x.lineTo(14, -4); x.lineTo(1, -4); x.closePath(); blob('#f7c948'); x.fillStyle = '#fff2b0'; x.beginPath(); x.moveTo(2, -15); x.lineTo(-7, -1); x.lineTo(-3, -1); x.closePath(); x.fill(); }
+  else if (t === 'tent') { x.beginPath(); x.moveTo(-22, 16); x.lineTo(0, -20); x.lineTo(22, 16); x.closePath(); blob('#e9684a'); x.beginPath(); x.moveTo(-7, 16); x.lineTo(0, 2); x.lineTo(7, 16); x.closePath(); blob('#7a3a2a');
+    x.fillStyle = '#f4d76a'; const mn = new Path2D('M14 -24 A8 8 0 1 0 24 -12 A6 6 0 1 1 14 -24 Z'); x.fill(mn); x.lineWidth = 2; x.stroke(mn); }
   x.restore();
 }
 function paperBox(x, w, h) { x.save(); x.shadowColor = 'rgba(70,40,18,0.35)'; x.shadowBlur = 8; x.shadowOffsetY = 4; x.beginPath(); x.roundRect(6, 6, w - 12, h - 14, 18); x.fillStyle = '#fff6e4'; x.fill(); x.restore(); x.beginPath(); x.roundRect(6, 6, w - 12, h - 14, 18); x.lineWidth = 4; x.strokeStyle = '#6e4426'; x.stroke(); }
@@ -393,13 +396,14 @@ function isleStep(dt) {
   nodes.forEach((n) => { if (n.st !== 'ready') return; const d = Math.hypot(pip.position.x - n.x, pip.position.z - n.z) - NODE_R[n.kind]; if (d < 0.75 && d < bd) { bd = d; best = n; } });
   if (best && PICKY[best.kind] && !state.isle.tools.pick) {
     if (pickHintT <= 0) { pickHintT = 2.5; isleHint(best); }
-  } else if (best && canWork(best) && hitT <= 0) {
-    hitT = best.kind === 'bush' || best.kind === 'grass' ? 0.5 : 0.55; workStart(best);
+  } else if (best && canWork(best) && hitT <= 0 && !enSleep) {
+    if (enHas(best.kind)) { hitT = best.kind === 'bush' || best.kind === 'grass' ? 0.5 : 0.55; workStart(best); enUse(best.kind); }
+    else if (pickHintT <= 0) { pickHintT = 2.5; enTired(); }
   }
   workStep(dt);
   nodes.forEach((n) => nodeStep(n, dt));
   for (let k = drops.length - 1; k >= 0; k--) if (dropStep(drops[k], dt)) drops.splice(k, 1);
-  signs.forEach((s) => signStep(s, dt)); hpStep(dt);
+  signs.forEach((s) => signStep(s, dt)); hpStep(dt); enStep(dt);
   storeStep2(dt); invFlyStep(dt); invStep();
   for (let k = chests.length - 1; k >= 0; k--) { chestStep(chests[k], dt); if (chests[k].gone) chests.splice(k, 1); }
   if (hintSp.visible) { hintSp.t -= dt; hintSp.material.opacity = Math.min(1, hintSp.t * 2); if (hintSp.t <= 0) hintSp.visible = false; }
@@ -415,6 +419,8 @@ function isleHint(n) { hintSp.position.set(n.x, 1.6, n.z); hintSp.visible = true
 function isleGoal() {
   const pp = pip.position, by = (L, f) => { let b = null, bd = 1e9; L.forEach((o) => { const d = Math.hypot(pp.x - o.x, pp.z - o.z); if ((!f || f(o)) && d < bd) { bd = d; b = o; } }); return b; };
   const c = by(chests, (o) => !o.open && o.pop >= 1); if (c) return [c.x, c.z + 0.85];
+  if (enSleep) return null;
+  if (enLow()) return [TENT_RING.x, TENT_RING.z]; /* too tired to work: off to the tent */
   if (rising || hpBar.sp.visible) return null; /* no arrow over the thing Pip is busy with */
   const full = carry.count() >= cap(), some = carry.count() > 0;
   /* a sign that what Pip has (backpack and crate together) can fill right now */
@@ -431,7 +437,7 @@ function isleInit() {
   AREAS.forEach((A) => { if (HAS[A.id] && A.bridge) bridgeBuild(A, true); if (HAS[A.id] || drawn(A.i, A.j)) areaFill(A, false); });
   nodes.forEach((n) => { n.pop = 0; n.g.scale.setScalar(1); });
   chests.forEach((c) => { c.pop = 1; c.g.scale.setScalar(1); });
-  I.store = I.store || { log: 0, stone: 0, berry: 0 }; invBuild();
+  I.store = I.store || { log: 0, stone: 0, berry: 0 }; if (typeof I.en !== 'number') I.en = EN_MAX; invBuild(); enBuild();
   isleSigns();
   pip.position.set(0, 0, 0.4); target.copy(pip.position); camFocus.copy(pip.position);
   dog.g.position.set(-1.2, 0, -0.6); petsInit();
@@ -444,6 +450,7 @@ function isleTest() {
     fill: (o) => { Object.keys(o).forEach((t) => { state.isle.store[t] = (state.isle.store[t] || 0) + o[t]; }); },
     own: (ids) => { ids.split(',').forEach((id) => { state.isle.areas[id] = 1; }); save(); },
     tp: (x, z) => { pip.position.set(x, 0, z); target.set(x, 0, z); camFocus.set(x, 0, z); }, building: !!building,
+    en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
     walk: (x, z) => +walkSdf(x, z).toFixed(2), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
 }
 
@@ -611,3 +618,88 @@ function workStep(dt) {
 /* the island's own camera (Leon's picks, 2026-11-23): a little higher and further back than the farm, with a slight side bend.
    Changing CURVE_DEF here also makes the dev panel's Reset come back to these. */
 Object.assign(CURVE_DEF, { strength: 0.011, side: 0.1, pitch: 47, dist: 15.5, ahead: 1.1 }); curveLoadDev();
+
+/* ---------- energy (Leon's idea list, 2026-11-23): each hit costs a little, mining costs more than picking berries.
+   When Pip is too tired to work, the guide arrow points to the tent; standing on the mat in front of it, Pip crawls in,
+   sleeps till morning (a short nap in the daytime) and comes out full again. A slow trickle comes back on its own too,
+   so a child is never stuck. ---------- */
+const EN_MAX = 100, EN_COST = { bush: 1, grass: 1, tree: 1, rock: 2, clay: 2, boulder: 2 }, EN_REGEN = 1 / 5; /* one point every 5 seconds */
+let enSleep = null, enShow = -1, enNapT = 0;
+const enCost = (k) => EN_COST[k] || 1;
+const enHas = (k) => state.isle.en >= enCost(k);
+function enUse(k) { state.isle.en = Math.max(0, state.isle.en - enCost(k)); }
+/* tired: not enough for the cheapest thing nearby (or under a tenth left) */
+function enLow() { return state.isle && typeof state.isle.en === 'number' && state.isle.en < 3; }
+/* a bubble over Pip: a sleepy tent, so the child knows where to go */
+const enHint = isleSprite(isleBubble('tent'), 0.85); enHint.visible = false; sc.add(enHint);
+function enTired() { enHint.visible = true; enHint.t = 2; Snd.play('blip', { gain: 0.2, f: 300 }); const b = ENB.el; if (b) { b.classList.remove('wig'); void b.offsetWidth; b.classList.add('wig'); } }
+/* the mat in front of the tent: night-blue with a tent and moon, a gold arc fills while Pip stands on it */
+const TENT_RING = (() => {
+  const x = -1.1 + Math.sin(0.5) * 1.45, z = 1.0 + Math.cos(0.5) * 1.45, R = 0.6;
+  const c = document.createElement('canvas'); c.width = c.height = 256; const q = c.getContext('2d');
+  q.fillStyle = '#2b3560'; q.beginPath(); q.arc(128, 128, 124, 0, 7); q.fill();
+  q.fillStyle = '#f4ecc8'; [[48, 70], [208, 86], [70, 196], [196, 186], [128, 34]].forEach(([a, b]) => { q.beginPath(); q.arc(a, b, 4.5, 0, 7); q.fill(); });
+  isleIcon(q, 'tent', 128, 140, 3.2);
+  const pad = new T.Mesh(new T.CircleGeometry(R, 40), new T.MeshBasicMaterial({ map: new T.CanvasTexture(c), transparent: true }));
+  pad.rotation.x = -Math.PI / 2; pad.position.set(x, 0.05, z); sc.add(pad);
+  const glow = new T.Mesh(new T.RingGeometry(R + 0.06, R + 0.26, 40), new T.MeshBasicMaterial({ color: '#f4d76a', transparent: true, opacity: 0, depthWrite: false }));
+  glow.rotation.x = -Math.PI / 2; glow.position.set(x, 0.045, z); sc.add(glow);
+  const fg = new T.RingGeometry(R - 0.02, R + 0.1, 40, 1, Math.PI / 2, -Math.PI * 2);
+  const f = new T.Mesh(fg, new T.MeshBasicMaterial({ color: '#f4b23a', side: T.DoubleSide })); f.rotation.x = -Math.PI / 2; f.position.set(x, 0.06, z); sc.add(f); fg.setDrawRange(0, 0);
+  return { x, z, R, pad, glow, fg, w: 0 };
+})();
+/* the energy bar under the counters: a bolt and a bar that goes green, yellow, red, and pulses when nearly empty */
+const ENB = {};
+function enBuild() {
+  if (ENB.el) return;
+  const st = document.createElement('style');
+  st.textContent = '.enb{position:fixed;top:calc(max(12px,env(safe-area-inset-top,0px)) + 62px);left:max(16px,env(safe-area-inset-left,0px));display:flex;align-items:center;gap:6px;padding:4px 10px 4px 4px;border-radius:999px;background:var(--paper);border:3px solid var(--ink);box-shadow:0 4px 0 rgba(34,48,60,.25);pointer-events:none;z-index:5}'
+    + '.enb img{width:36px;height:36px}.enb .bar{width:120px;height:18px;border-radius:9px;background:#5a4a40;border:2px solid var(--ink);overflow:hidden}.enb .bar i{display:block;height:100%;width:100%;border-radius:7px;background:#7cc85a;box-shadow:inset 0 4px 0 rgba(255,255,255,.4);transition:width .25s ease-out,background-color .3s}'
+    + '.enb.low{animation:enLow 1s ease-in-out infinite}.enb.wig{animation:invWig .32s ease-out}@keyframes enLow{50%{transform:scale(1.07)}}'
+    + '@media (max-width:520px){.enb{top:calc(max(12px,env(safe-area-inset-top,0px)) + 50px)}.enb img{width:28px;height:28px}.enb .bar{width:90px;height:14px}}';
+  document.head.appendChild(st);
+  const el = document.createElement('div'); el.className = 'enb'; el.setAttribute('role', 'meter'); el.setAttribute('aria-label', 'Energi'); el.setAttribute('aria-valuemin', '0'); el.setAttribute('aria-valuemax', String(EN_MAX));
+  const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), 'bolt', 32, 32, 1.25); const img = document.createElement('img'); img.alt = ''; img.src = c.toDataURL();
+  const bar = document.createElement('div'); bar.className = 'bar'; const fill = document.createElement('i'); bar.appendChild(fill);
+  el.appendChild(img); el.appendChild(bar); document.body.appendChild(el); ENB.el = el; ENB.fill = fill;
+}
+function enDraw() {
+  if (!ENB.el) return; const v = Math.round(state.isle.en); if (v === enShow) return; enShow = v;
+  const f = v / EN_MAX; ENB.fill.style.width = Math.max(4, f * 100) + '%'; ENB.fill.style.backgroundColor = f > 0.5 ? '#7cc85a' : f > 0.2 ? '#f2c23c' : '#e9684a';
+  ENB.el.classList.toggle('low', f <= 0.2); ENB.el.setAttribute('aria-valuenow', String(v));
+}
+function enStep(dt) {
+  const I = state.isle; if (typeof I.en !== 'number') I.en = EN_MAX;
+  if (enHint.visible) { enHint.t -= dt; enHint.position.set(pip.position.x, 2.1 + Math.sin(time * 4) * 0.05, pip.position.z); enHint.material.opacity = Math.min(1, enHint.t * 2); if (enHint.t <= 0) enHint.visible = false; }
+  const R = TENT_RING, low = I.en < EN_MAX * 0.35;
+  R.glow.material.opacity = low ? 0.3 + (reduced ? 0.2 : 0.3 * (0.5 + 0.5 * Math.sin(time * 3.2))) : 0;
+  if (!enSleep) {
+    if (!work) I.en = Math.min(EN_MAX, I.en + dt * EN_REGEN);
+    const d = Math.hypot(pip.position.x - R.x, pip.position.z - R.z), still = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) < 0.3;
+    const on = d < R.R && still && I.en < EN_MAX - 1 && !rising;
+    R.w = on ? Math.min(1, R.w + dt / 0.7) : Math.max(0, R.w - dt * 3); R.fg.setDrawRange(0, 6 * Math.round(40 * R.w));
+    if (R.w >= 1) { R.w = 0; R.fg.setDrawRange(0, 0); enSleepStart(); }
+    enDraw(); return;
+  }
+  /* asleep in the tent: the night runs by fast and the bar fills; then Pip crawls out in the morning */
+  const S = enSleep; S.t += dt; const q = Math.min(1, Math.max(0, (S.t - 0.6) / 3.0)), e = q * q * (3 - 2 * q);
+  if (S.t > 0.6) { state.clock = S.from + (S.to - S.from) * e; clockPinned = true; }
+  I.en = S.en0 + (EN_MAX - S.en0) * e;
+  const u = Math.min(1, S.t / 0.6); /* walk into the door, shrinking */
+  pip.position.set(R.x + (S.dx - R.x) * u, 0, R.z + (S.dz - R.z) * u); pip.scale.setScalar(Math.max(0.01, 1 - u * 0.9)); pip.visible = u < 1; target.copy(pip.position);
+  if (!S.z) { S.z = new T.Sprite(new T.SpriteMaterial({ map: zTex, transparent: true, depthTest: false })); S.z.renderOrder = 6; S.z.scale.set(0.7, 0.46, 1); sc.add(S.z); }
+  S.z.visible = S.t > 0.6 && q < 0.97; S.z.position.set(-1.1 + 0.15, 1.6 + Math.sin(S.t * 2.2) * 0.12, 1.0);
+  enDraw();
+  if (q >= 1 && S.t > 4.0) {
+    sc.remove(S.z); pip.visible = true; pip.scale.setScalar(1); pip.position.set(R.x, 0, R.z); target.copy(pip.position); pip.rotation.y = 0.5; enSleep = null; I.en = EN_MAX; save();
+    Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.1);
+    const el = $('toast'); if (el) { el.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true">' + SUN_SVG + '</svg><b>God morgon!</b>'; el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); clearTimeout(enNapT); enNapT = setTimeout(() => { el.hidden = true; }, 3200); }
+  }
+}
+function enSleepStart() {
+  /* at night (or late afternoon), sleep to the next morning; in the daytime, a short nap */
+  const f = dayFrac(), day = Math.floor(state.clock / DAY);
+  const to = f > 0.5 ? (day + 1) * DAY + DAY * 0.03 : f < 0.03 ? day * DAY + DAY * 0.03 : state.clock + DAY * 0.12;
+  enSleep = { t: 0, from: state.clock, to, en0: state.isle.en, dx: -1.1 + Math.sin(0.5) * 0.5, dz: 1.0 + Math.cos(0.5) * 0.5, z: null };
+  work = null; Snd.play('pop', { gain: 0.35, f: 380 });
+}
