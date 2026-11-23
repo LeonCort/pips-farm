@@ -421,3 +421,7 @@ function workStep(dt) {
   if (!reduced) { if (arm) arm.g.rotation.x = a; if (other) other.g.rotation.x = b; pb.rotation.x = lean; }
   if (u >= 1) { work = null; toolHold = 0.4; }
 }
+
+/* the island's own camera (Leon's picks, 2026-11-23): a little higher and further back than the farm, with a slight side bend.
+   Changing CURVE_DEF here also makes the dev panel's Reset come back to these. */
+Object.assign(CURVE_DEF, { strength: 0.011, side: 0.1, pitch: 47, dist: 15.5, ahead: 1.1 }); curveLoadDev();

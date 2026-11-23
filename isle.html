@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261123200053">
+<meta name="app-ver" content="20261123200212">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2458,6 +2458,10 @@ function workStep(dt) {
   if (!reduced) { if (arm) arm.g.rotation.x = a; if (other) other.g.rotation.x = b; pb.rotation.x = lean; }
   if (u >= 1) { work = null; toolHold = 0.4; }
 }
+
+/* the island's own camera (Leon's picks, 2026-11-23): a little higher and further back than the farm, with a slight side bend.
+   Changing CURVE_DEF here also makes the dev panel's Reset come back to these. */
+Object.assign(CURVE_DEF, { strength: 0.011, side: 0.1, pitch: 47, dist: 15.5, ahead: 1.1 }); curveLoadDev();
 /* ---------- Pip, second pass: a smooth, merged figure ----------
    Same rig as before (pb, limbs[] at the hips and shoulders, eyes[] for the blink, the head group at y 1.3), so the walk,
    the bed, riding, the wardrobe, the store gear and the rain gear keep working. What changes is how the shapes are made:
