@@ -823,7 +823,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261123172747">
+<meta name="app-ver" content="20261123173804">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -11104,7 +11104,7 @@ function gfxSet(lv, byHand) {
       + '<g class="lite"><path d="M27 11 q6 4 2 9 q6 -1 6 -7" fill="#74a857" stroke="#22303c" stroke-width="2" stroke-linejoin="round"/></g>'
       + '<g class="ultra"><path d="M9 25 L14 19 L18 23 L23 16 L28 22 L33 18 L39 25" fill="#9cc7dc" stroke="#22303c" stroke-width="2" stroke-linejoin="round"/><path d="M22 6 l1.6 3.2 3.2 1.6 -3.2 1.6 -1.6 3.2 -1.6 -3.2 -3.2 -1.6 3.2 -1.6 z" fill="#ffe27a" stroke="#22303c" stroke-width="1.5" stroke-linejoin="round"/><path d="M41 7 l1 2 2 1 -2 1 -1 2 -1 -2 -2 -1 2 -1 z" fill="#ffe27a" stroke="#22303c" stroke-width="1.2" stroke-linejoin="round"/></g></svg>';
     if (fb && fb.nextSibling) row.insertBefore(b, fb.nextSibling); else row.appendChild(b);
-    b.addEventListener('click', (e) => { e.stopPropagation(); gfxSet((gfxLv + 1) % 3, true); Snd.play('pop', { gain: 0.4, f: [420, 760, 980][gfxLv] }); if (gfxLv) Snd.play('sparkle', { gain: 0.3 }, 0.05); if (gfxLv === 2) Snd.play('sparkle', { gain: 0.3, f: 1.3 }, 0.18); });
+    b.addEventListener('click', (e) => { e.stopPropagation(); const nl = (gfxLv + 1) % 3; gfxSet(nl, true); Snd.play('pop', { gain: 0.4, f: [420, 760, 980][nl] }); if (nl) Snd.play('sparkle', { gain: 0.3 }, 0.05); if (nl === 2) Snd.play('sparkle', { gain: 0.3, f: 1.3 }, 0.18); });
     const st = document.createElement('style'); st.textContent = '.gfxBtn .lite,.gfxBtn .ultra{display:none}.gfxBtn[data-lv="0"] .lite{display:inline}.gfxBtn[data-lv="0"] .rich{display:none}.gfxBtn[data-lv="0"]{background:#e3ecd9}.gfxBtn[data-lv="2"] .ultra{display:inline}.gfxBtn[data-lv="2"]{background:#fff1c9;box-shadow:0 0 0 3px #f2c14a inset}';
     document.head.appendChild(st);
   }
@@ -11940,6 +11940,7 @@ try { if (localStorage.getItem('pips-batch') === '0') BATCH.on = false; } catch 
   sc.onBeforeRender = function (r, s, camera, rt) {
     if (ob0 !== protoOBR) ob0.call(this, r, s, camera, rt);
     if (camera !== cam) return; /* only the game's own view: thumbnails and shots leave the pieces as they are */
+    if (BATCH.pause) return; /* the warm-up frame (warm.js) shows hidden things for a moment: leave the pieces alone */
     if (!BATCH.on || (typeof gfxLow !== 'undefined' && gfxLow)) { if (BATCH.chunks.size) clear(); return; } /* light mode already draws little and leaves far small things out; it stays as it was */
     BATCH.frame++;
     const now = performance.now() / 1000, dt = BATCH.lastT ? Math.min(0.1, now - BATCH.lastT) : 0; BATCH.lastT = now;
@@ -11956,6 +11957,65 @@ try { if (localStorage.getItem('pips-batch') === '0') BATCH.on = false; } catch 
 }
 if (window.__farmTest) window.__batch = () => { let parts = 0, sway = 0; BATCH.chunks.forEach((c) => { parts += c.n; if (c.mesh.customDepthMaterial) sway += c.n; }); return { on: BATCH.on, chunks: BATCH.chunks.size, parts, sway, builds: BATCH.builds, dirty: BATCH.dirty.size, set: (v) => { BATCH.on = !!v; }, budget: (v) => { BATCH.budget = v; }, pick: (i) => { let k = 0, f = null; BATCH.rec.forEach((r) => { if (r.chunk && k++ === (i || 0)) f = r.o; }); return f; }, inChunk: (o) => { const r = BATCH.rec.get(o); return !!(r && r.chunk); } }; };
 if (window.__farmTest) window.__batchWhy = () => { const w = {}; sc.traverseVisible((o) => { if (!o.isMesh || o.layers.mask !== 1 || o.userData.batch) return; const r = BATCH.rec.get(o); const k = !r ? 'other' : r.moves >= BATCH.maxMoves ? 'moving' : r.outs >= BATCH.maxOuts ? 'blinking' : r.want ? 'queued' : r.sw ? 'sw-st' + r.st : 'st' + r.st; w[k] = (w[k] || 0) + 1; }); return w; };
+/* ---------- warm-up: hide the slow first draws behind the loading screen ----------
+   The first time a material is drawn, the browser builds its shader, and the first time a mesh is drawn its shape is sent
+   to the graphics chip. On an iPad that took seconds: after the loading screen, after closing the wardrobe, after
+   switching graphics. Now the loading screen stays up until the scenery is merged, then one frame is drawn with every
+   hidden thing shown for a moment (interiors, night and weather pieces, everything off screen), so all of that work is
+   done while the loading screen still covers the game. Switching graphics by hand shows a short cover and does the same. */
+const WARM = { st: 0, t0: performance.now(), frames: 0 };
+function warmScene() {
+  const vis = [], cull = [], mats = [];
+  if (typeof BATCH !== 'undefined') BATCH.pause = true;
+  try {
+    sc.traverse((o) => {
+      if (o.isLight) return; /* lights keep their state: a different light count would build every shader a second time */
+      if (!o.visible) { vis.push(o); o.visible = true; }
+      if (o.frustumCulled && (o.isMesh || o.isPoints || o.isLine || o.isSprite)) { cull.push(o); o.frustumCulled = false; }
+      if (o.material) [].concat(o.material).forEach((m) => { if (m && m.visible === false) { mats.push(m); m.visible = true; } });
+    });
+    if (typeof ED !== 'undefined' && ED.on) { renderer.setRenderTarget(null); renderer.render(sc, cam); } else fxFrame(1 / 60);
+  } catch (e) { if (window.PipsLog) PipsLog.caught(e); }
+  vis.forEach((o) => { o.visible = false; }); cull.forEach((o) => { o.frustumCulled = true; }); mats.forEach((m) => { m.visible = false; });
+  if (typeof BATCH !== 'undefined') BATCH.pause = false;
+}
+/* called after every frame instead of telling the loading screen straight away */
+function warmStep() {
+  if (WARM.st >= 2) return;
+  if (!window.PipsBoot) { WARM.st = 2; return; }
+  const t = performance.now() - WARM.t0; WARM.frames++;
+  if (WARM.st === 0) {
+    const edOn = typeof ED !== 'undefined' && ED.on;
+    const merged = typeof BATCH === 'undefined' || !BATCH.on || gfxLow || edOn || (BATCH.builds > 0 && BATCH.dirty.size === 0);
+    if (WARM.frames >= 3 && (merged || t > 7000)) { const w0 = performance.now(); warmScene(); WARM.ms = Math.round(performance.now() - w0); WARM.st = 1; if (window.PipsLog && PipsLog.add) PipsLog.add('info', 'warm-up ' + WARM.ms + ' ms, ready after ' + (t / 1000).toFixed(1) + ' s'); }
+    return;
+  }
+  WARM.st = 2; PipsBoot.frame(); PipsBoot.done();
+}
+/* switching graphics by hand: a soft cover first, so the pause looks like loading instead of a frozen game */
+{
+  const set0 = gfxSet;
+  let cover = null;
+  gfxSet = function (lv, byHand) {
+    if (!byHand || WARM.st < 2) return set0(lv, byHand);
+    if (!cover) {
+      cover = document.createElement('div'); cover.id = 'warmCover';
+      cover.innerHTML = '<span></span><span></span><span></span>';
+      const st = document.createElement('style');
+      st.textContent = '#warmCover{position:fixed;inset:0;z-index:8000;display:flex;align-items:center;justify-content:center;gap:14px;background:rgba(26,32,69,.45);opacity:0;transition:opacity .18s;pointer-events:none}'
+        + '#warmCover.on{opacity:1;pointer-events:auto}#warmCover span{width:18px;height:18px;border-radius:50%;background:#fff6e4;animation:warmB .9s ease-in-out infinite}'
+        + '#warmCover span:nth-child(2){animation-delay:.15s}#warmCover span:nth-child(3){animation-delay:.3s}@keyframes warmB{0%,100%{transform:translateY(0);opacity:.6}50%{transform:translateY(-12px);opacity:1}}';
+      document.head.appendChild(st); document.body.appendChild(cover);
+    }
+    cover.classList.add('on');
+    /* two frames so the cover is really on screen before the slow part starts */
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      try { set0(lv, byHand); warmScene(); } catch (e) { if (window.PipsLog) PipsLog.caught(e); }
+      setTimeout(() => { cover.classList.remove('on'); }, 120);
+    }));
+  };
+}
+if (window.__farmTest) window.__warm = () => ({ st: WARM.st, ms: WARM.ms, frames: WARM.frames });
 
 /* ---------- camera and input ---------- */
 let aspect = 1;
@@ -12165,7 +12225,7 @@ function frame(now) {
   if (now - lastT < 1000 / fpsCap - 3) return;
   let dt = (now - lastT) / 1000; lastT = now; if (dt > 0.1) dt = 0.1;
   if (LOG) LOG.tick();
-  if (dt > 0) { try { step(dt); } catch (e) { if (LOG) LOG.caught(e); else console.error(e); } if (window.PipsBoot) PipsBoot.frame(); }
+  if (dt > 0) { try { step(dt); } catch (e) { if (LOG) LOG.caught(e); else console.error(e); } if (typeof warmStep === 'function') warmStep(); else if (window.PipsBoot) PipsBoot.frame(); }
   saveT += dt; if (saveT > 5) { saveT = 0; try { save(); } catch (e) { if (LOG) LOG.caught(e); } }
 }
 if (LOG) {

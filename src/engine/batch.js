@@ -195,6 +195,7 @@ try { if (localStorage.getItem('pips-batch') === '0') BATCH.on = false; } catch 
   sc.onBeforeRender = function (r, s, camera, rt) {
     if (ob0 !== protoOBR) ob0.call(this, r, s, camera, rt);
     if (camera !== cam) return; /* only the game's own view: thumbnails and shots leave the pieces as they are */
+    if (BATCH.pause) return; /* the warm-up frame (warm.js) shows hidden things for a moment: leave the pieces alone */
     if (!BATCH.on || (typeof gfxLow !== 'undefined' && gfxLow)) { if (BATCH.chunks.size) clear(); return; } /* light mode already draws little and leaves far small things out; it stays as it was */
     BATCH.frame++;
     const now = performance.now() / 1000, dt = BATCH.lastT ? Math.min(0.1, now - BATCH.lastT) : 0; BATCH.lastT = now;
