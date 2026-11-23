@@ -287,7 +287,7 @@ function aoApply(r, on) { const a = r.c.array; if (on) for (let i = 0; i < r.ao.
    pens, houses and props; wind waves and bending happen in the vertex shader. ----- */
 /* grass patch size (test switch in the settings, 2026-11-22): side of the square and where it fades out around Pip */
 const GR_SIZES = { 17: [5.2, 7.8], 24: [8, 11], 34: [12, 16] };
-let grSize = 17; try { const v = +localStorage.getItem('pips-grass'); if (GR_SIZES[v]) grSize = v; } catch (e) {}
+let grSize = 34; try { const v = +localStorage.getItem('pips-grass2'); /* Leon 2026-11-23: 34 in ultra, no noticeable cost */ if (GR_SIZES[v]) grSize = v; } catch (e) {}
 const GR = { L: grSize, N: 0, mesh: null, t: 0, tex: null, W: 116, H: 80, push: [] };
 for (let i = 0; i < 8; i++) GR.push.push(new T.Vector4(0, 0, 0, 0));
 function grClump() {
@@ -463,7 +463,7 @@ function fxRender(dt) {
   gb.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 38 Q12 24 8 14 Q16 24 17 38 M19 38 Q22 20 24 8 Q26 20 29 38 M31 38 Q32 24 40 14 Q36 24 38 38" fill="#8fc163" stroke="#22303c" stroke-width="2.5" stroke-linejoin="round"/></svg><b></b>';
   if (qb.parentNode) qb.parentNode.insertBefore(gb, qb.nextSibling);
   const gsync = () => { gb.querySelector('b').textContent = grSize; gb.setAttribute('aria-label', 'Grass size ' + grSize); gb.style.opacity = FX.hi && FX.on.grass ? 1 : 0.5; };
-  gb.addEventListener('click', (e) => { e.stopPropagation(); const k = [17, 24, 34]; grSize = k[(k.indexOf(grSize) + 1) % 3]; try { localStorage.setItem('pips-grass', grSize); } catch (er) {}
+  gb.addEventListener('click', (e) => { e.stopPropagation(); const k = [17, 24, 34]; grSize = k[(k.indexOf(grSize) + 1) % 3]; try { localStorage.setItem('pips-grass2', grSize); } catch (er) {}
     if (GR.mesh) { sc.remove(GR.mesh); GR.mesh.geometry.dispose(); GR.mesh.material.dispose(); GR.mesh = null; } GR.L = grSize; gsync(); Snd.play('pop', { gain: 0.4, f: 400 + grSize * 12 }); });
   FX.gsync = gsync;
   const btn = document.createElement('button'); btn.id = 'fxBtn'; btn.type = 'button'; btn.textContent = '✨'; btn.setAttribute('aria-label', 'Light effects'); btn.hidden = !FX_TEST && !devOn;

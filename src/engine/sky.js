@@ -19,18 +19,24 @@ let nightAmt = 0, isNight = false, season = 'spring', seasonShown = null;
 const dayFrac = () => (state.clock % DAY) / DAY;
 /* the sun crosses the sky, low with long shadows morning and evening, so the shadows show the time of day.
    Three paths to try (settings button, 'pips-sunpath'):
+     bt (Leon's pick 2026-11-23, default): rises behind the camera, goes nearly straight over, sets at the top of the screen
+     tb: the other way round (a sunrise at the top)
      lr: rises right (east), high behind the camera at midday, sets left (west)
-     tb: rises at the top of the screen (north, a visible sunrise), sets behind the camera
-     bt: rises behind the camera, sets at the top of the screen (a visible sunset)
    The moon then goes back the same way, so the shadows never jump at dusk or dawn. Indoors it stays where it was.
    A sun disk is drawn in the sky over the far edge of the island (clouds.js sunBall) when the path brings it on screen. */
 const SUN_HOME = new T.Vector3(-10, 10, 7.5), SUN_OFF = SUN_HOME.clone();
-const SUN_PATHS = { lr: [[1, 0, 0], [0, 0, 1]], tb: [[0, 0, -1], [-1, 0, 0]], bt: [[0, 0, 1], [-1, 0, 0]] }; /* [rise direction, midday direction] */
-let sunPath = 'lr'; try { const v = localStorage.getItem('pips-sunpath'); if (SUN_PATHS[v]) sunPath = v; } catch (e) {}
+const SUN_PATHS = { lr: [[1, 0, 0], [0, 0, 1]], tb: [[0, 0, -1], [-0.35, 0, 0]], bt: [[0, 0, 1], [-0.35, 0, 0]] }; /* [rise direction, midday lean]: top/bottom go nearly straight over, with a slight arc to the left */
+let sunPath = 'bt'; try { const v = localStorage.getItem('pips-sunpath2'); if (SUN_PATHS[v]) sunPath = v; } catch (e) {}
 if (window.__farmTest) window.__sun = () => SUN_OFF.toArray().map((v) => +v.toFixed(2));
+/* the sea's shine: with the sun low in front of the camera the wavy sea made big white glare blobs; its sun highlight is
+   now capped and softened, so it reads as a gentle glitter path */
+if (typeof water !== 'undefined' && water.material && water.material.isMeshStandardMaterial) {
+  water.material.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance', 'min( reflectedLight.directSpecular, vec3( 0.32 ) ) * 0.7 + reflectedLight.indirectSpecular + totalEmissiveRadiance'); };
+  water.material.customProgramCacheKey = () => 'pipsSeaSoft'; water.material.needsUpdate = true;
+}
 function sunArc(f) {
   const day = f < 0.64, p = day ? f / 0.64 : 1 - (f - 0.64) / 0.36, el = (18 + 37 * Math.sin(Math.PI * p)) * Math.PI / 180, d = 16;
-  const [R, N] = SUN_PATHS[sunPath], c = Math.cos(Math.PI * p), sn = Math.sin(Math.PI * p), hx = R[0] * c + N[0] * sn, hz = R[2] * c + N[2] * sn;
+  const [R, N] = SUN_PATHS[sunPath], c = Math.cos(Math.PI * p), sn = Math.sin(Math.PI * p), hx0 = R[0] * c + N[0] * sn, hz0 = R[2] * c + N[2] * sn, hl = Math.hypot(hx0, hz0) || 1, hx = hx0 / hl, hz = hz0 / hl;
   SUN_OFF.set(hx * Math.cos(el) * d, Math.sin(el) * d, hz * Math.cos(el) * d);
 }
 /* the button: a sun with an arrow showing which way it goes */
@@ -40,7 +46,7 @@ function sunArc(f) {
     const b = document.createElement('button'); b.type = 'button'; b.className = 'round sunBtn'; b.id = 'sunBtn';
     const draw = () => { const r = { lr: 0, tb: 90, bt: -90 }[sunPath]; b.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="8" fill="#f2c14a" stroke="#22303c" stroke-width="2.5"/><g transform="rotate(' + r + ' 24 24)"><path d="M40 40 H10 M16 34 L10 40 L16 46" fill="none" stroke="#22303c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -4)"/></g></svg>'; b.setAttribute('aria-label', 'Sun path ' + sunPath); };
     draw(); row.appendChild(b);
-    b.addEventListener('click', (e) => { e.stopPropagation(); const k = ['lr', 'tb', 'bt']; sunPath = k[(k.indexOf(sunPath) + 1) % 3]; try { localStorage.setItem('pips-sunpath', sunPath); } catch (er) {} draw(); Snd.play('pop', { gain: 0.4, f: 700 }); });
+    b.addEventListener('click', (e) => { e.stopPropagation(); const k = ['bt', 'tb', 'lr']; sunPath = k[(k.indexOf(sunPath) + 1) % 3]; try { localStorage.setItem('pips-sunpath2', sunPath); } catch (er) {} draw(); Snd.play('pop', { gain: 0.4, f: 700 }); });
   }
 }
 /* a soft warm light that follows Pip at night, and one for the tractor's headlights */
