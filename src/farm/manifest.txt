@@ -71,6 +71,7 @@ mobile.js
 ../engine/clouds.js
 ../engine/rays.js
 ../engine/batch.js
+../engine/warm.js
 ../engine/input.js
 ../engine/loop.js
 step.js
