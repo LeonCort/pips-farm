@@ -585,7 +585,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     return a;
   }
   function readPet() {
-    try { var s = JSON.parse(localStorage.getItem('pip-farm-care-v1') || 'null'); if (s && ['dog', 'cat', 'wolf', 'bear'].indexOf(s.pet) >= 0) return s.pet; } catch (e) {}
+    try { var s = JSON.parse(localStorage.getItem('pip-farm-care-v1') || 'null'); if (s && ['dog', 'cat', 'wolf', 'bear', 'none'].indexOf(s.pet) >= 0) return s.pet; /* 'none': no pet walks along */ } catch (e) {}
     return 'dog';
   }
   function pick(arr, i) { return arr[i] || arr[0]; }
@@ -736,7 +736,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
   var g = el.querySelector('.ground'), h = '<div class="track">';
   LAMPS.forEach(function (f) { h += '<div class="lamp" style="left:' + (f * 100) + '%"><span class="glow"></span>' + PipsScene.LAMP + '<span class="flame"></span></div>'; });
   h += '<div class="end"><span class="heart">' + PipsScene.HEART + '</span>' + PipsScene.GATE + '</div>';
-  h += '<div class="walker walk go petw"><div class="who pet"><div class="bob">' + PipsScene.petSVG(me.pet) + '</div><span class="shadow"></span></div></div>';
+  if (me.pet !== 'none') h += '<div class="walker walk go petw"><div class="who pet"><div class="bob">' + PipsScene.petSVG(me.pet) + '</div><span class="shadow"></span></div></div>';
   h += '<div class="walker walk go"><div class="who pip"><div class="bob">' + PipsScene.pipSVG(me.av) + '</div><span class="shadow"></span></div></div>';
   g.insertAdjacentHTML('beforeend', h + '</div>');
   var lamps = [].slice.call(el.querySelectorAll('.lamp')), walkers = [].slice.call(el.querySelectorAll('.walker'));
@@ -749,7 +749,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     if (ending) return; ending = true; frames = -1;
     var wait = Math.max(0, 1100 - (Date.now() - t0));
     setTimeout(function () {
-      var p = Math.min(0.99, at(walkers[1])), D = Math.max(0.5, (0.95 - p) * 1.7);
+      var p = Math.min(0.99, at(walkers[walkers.length - 1])), D = Math.max(0.5, (0.95 - p) * 1.7);
       walkers.forEach(function (w, k) { var q = at(w); w.classList.remove('go'); w.style.animation = 'none'; w.style.transform = 'translateX(' + (q * 100) + '%)'; void w.offsetWidth; w.style.transition = 'transform ' + D + 's linear' + (k === 0 ? ' 0.1s' : ''); w.style.transform = 'translateX(95%)'; });
       lamps.forEach(function (l, i) { var f = l.querySelector('.flame'); if (+getComputedStyle(f).opacity > 0.05) return; l.classList.remove('lit'); void f.offsetWidth; l.style.transitionDelay = Math.max(0, (LAMPS[i] - p) / (0.95 - p) * D).toFixed(2) + 's'; l.classList.add('lit'); });
       setTimeout(function () {
@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261123175639">
+<meta name="app-ver" content="20261123175734">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2687,8 +2687,9 @@ let dog = (() => {
   return { g, body, head, tail, legs, h: 0.72, chase: false, wanderT: 0, tx: KENNEL.x, tz: KENNEL.z + 1, barkT: 12, hop: 0, petT: -99, away: false, asleep: false };
 })();
 function bark(gain) { dog.hop = 1; petVoice(dog.kind || 'dog', gain); }
-function petDog() { petPet(nearPet() || dog); }
+function petDog() { const d = nearPet() || (state.pet === 'none' ? null : dog); if (d) petPet(d); }
 function dogStep(dt) {
+  if (state.pet === 'none') return; /* no pet chosen: the town strollers (pets.js) move every pet */
   const d = dog, p = d.g.position, pp = pip.position, pl = petPlace(d), home = pl.home, away = pl.away;
   if (home !== !!d.inH) { d.inH = home; PTRAIL.length = 0; d.chase = false; const q = pl.door(home); p.set(q[0], 0, q[1]); if (home) d.g.rotation.y = Math.PI; }
   let tx, tz, sp = 1.1;
@@ -3389,6 +3390,7 @@ function edRows() {
 /* the chosen pet sits on the rug beside Pip; swapped when the child has picked another one in the pet corner */
 function edPetClone() {
   if (typeof dog === 'undefined' || !dog.g) return;
+  if (state.pet === 'none') { if (ED.dog) { ED.sc.remove(ED.dog.g); ED.dog = null; ED.dogKind = null; } return; }
   if (ED.dog) { if (ED.dogKind === dog.kind) return; ED.sc.remove(ED.dog.g); }
   const d = dog.g.clone(true); d.position.set(-0.74, 0, 0.3); d.rotation.set(0, 0.45, 0); d.scale.setScalar(dog.kind === 'bear' ? 1.0 : 1.15); ED.sc.add(d);
   const bi = dog.g.children.indexOf(dog.body), body = d.children[bi];
@@ -3690,22 +3692,31 @@ function wanderStop(d) { const w = WANDER.find((q) => q.d === d); if (w) { w.on 
 
 /* ---------- choosing ---------- */
 function setPet(kind, quiet) {
-  if (!PETS[kind]) kind = 'dog';
-  const old = dog, nu = PETS[kind];
-  if (old !== nu) {
+  /* 'none': no pet follows Pip; the last friend goes out to stroll the town with the others (dog keeps pointing at it) */
+  if (kind !== 'none' && !PETS[kind]) kind = 'dog';
+  const wasNone = state.pet === 'none', old = dog, nu = kind === 'none' ? old : PETS[kind];
+  if (kind === 'none') {
+    if (!wasNone && old) { const out = inHouse ? [HDOOR.x + 1.2, HDOOR.z + 1.4] : [old.g.position.x, old.g.position.z]; wanderStart(old, out[0], out[1]); old.hop = 1; }
+    state.pet = 'none'; PTRAIL.length = 0;
+    if (!quiet) { Snd.play('pop', { gain: 0.4, f: 420 }); save(); }
+    return;
+  }
+  if (old !== nu || wasNone) {
     wanderStop(nu);
     /* the old friend goes out for a walk round the town; the new one pops up beside Pip */
-    if (old) { const out = inHouse ? [HDOOR.x + 1.2, HDOOR.z + 1.4] : [old.g.position.x, old.g.position.z]; wanderStart(old, out[0], out[1]); old.hop = 1; }
-    dog = nu; nu.chase = false; nu.asleep = false;
-    if (!quiet) { const a = pip.rotation.y, x = pip.position.x + Math.sin(a) * 0.8 + Math.cos(a) * 0.5, z = pip.position.z + Math.cos(a) * 0.8 - Math.sin(a) * 0.5; nu.g.position.set(x, 0, z); nu.g.rotation.y = a + Math.PI; burst(x, 0.7, z, 6); PTRAIL.length = 0; }
+    if (old && old !== nu && !wasNone) { const out = inHouse ? [HDOOR.x + 1.2, HDOOR.z + 1.4] : [old.g.position.x, old.g.position.z]; wanderStart(old, out[0], out[1]); old.hop = 1; }
+    dog = nu; nu.chase = false; nu.asleep = false; nu.inH = inHouse && !inBarn && !inStore;
+    if (!quiet) { const a = pip.rotation.y, x = pip.position.x + Math.sin(a) * 0.8 + Math.cos(a) * 0.5, z = pip.position.z + Math.cos(a) * 0.8 - Math.sin(a) * 0.5; nu.g.position.set(x, 0, z); nu.g.rotation.y = a + Math.PI; burst(x, 0.7, z, 6); PTRAIL.length = 0; PTRAIL.push([x, z]); }
   }
   state.pet = kind;
   if (!quiet) { dog.hop = 1; petVoice(kind, 0.7); Snd.play('sparkle', { gain: 0.4 }, 0.05); save(); }
 }
+const petNone = () => state.pet === 'none';
 function petsInit() {
-  const k = PET_KINDS.indexOf(state.pet) >= 0 ? state.pet : 'dog';
+  const none = state.pet === 'none', k = PET_KINDS.indexOf(state.pet) >= 0 ? state.pet : 'dog';
   /* everyone starts as a town stroller, spread round the ring road; then the chosen one comes home */
   PET_KINDS.forEach((q, i) => { const a = 0.7 + i * 1.57; if (PETS[q] !== dog) wanderStart(PETS[q], Math.cos(a) * RING.rx, Math.sin(a) * RING.rz); });
+  if (none) { wanderStart(dog, Math.cos(0.7) * RING.rx, Math.sin(0.7) * RING.rz); state.pet = 'none'; return; }
   if (k !== 'dog') { const d = PETS[k]; wanderStop(d); wanderStart(dog, Math.cos(0.7) * RING.rx, Math.sin(0.7) * RING.rz); dog = d; d.g.position.set(KENNEL.x - 0.6, 0, KENNEL.z + 0.9); }
   state.pet = k;
 }
@@ -3749,12 +3760,12 @@ const petSign = (() => {
 let petLatch = false;
 function petCornerStep(dt) {
   petMat.visible = petSign.visible = inHouse && !inBarn && !inStore;
-  if (!inHouse || inBarn || inStore) return;
+  if (!inHouse || inBarn || inStore) { if (PP.open) petPickClose(); return; }
   petSign.position.y = 1.45 + (reduced ? 0 : Math.sin(time * 2) * 0.05);
   const on = Math.hypot(pip.position.x - PCORNER.x, pip.position.z - PCORNER.z) < 0.5, still = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) < 0.15;
   petMat.scale.setScalar(on ? 1.1 : 1 + (reduced ? 0 : Math.sin(time * 3) * 0.04));
   if (on && still && !petLatch && !dressing && !PP.open) { petLatch = true; petPickOpen(); }
-  if (!on) petLatch = false;
+  if (!on) { petLatch = false; if (PP.open) petPickClose(); }
 }
 
 /* ---------- the picker: four big pictures, no words. Tap one, it comes to Pip; the green tick closes ---------- */
@@ -3770,12 +3781,23 @@ function petPickBuild() {
     b.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); setPet(k); petPickSync(); b.classList.remove('boing'); void b.offsetWidth; b.classList.add('boing'); });
     row.appendChild(b);
   });
+  {
+    /* no pet: the paw, faded, under a red "no" ring, so a child who can't read sees "nobody follows" */
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ppPet ppNone'; b.dataset.k = 'none'; b.setAttribute('aria-label', 'Inget husdjur');
+    const c = document.createElement('canvas'); c.width = c.height = 160; const x = c.getContext('2d');
+    x.globalAlpha = 0.55; drawIcon(x, 'paw', 80, 84, 2.0); x.globalAlpha = 1;
+    x.strokeStyle = '#d9443a'; x.lineWidth = 13; x.lineCap = 'round'; x.beginPath(); x.arc(80, 80, 60, 0, 7); x.stroke();
+    x.beginPath(); x.moveTo(80 - 42, 80 - 42); x.lineTo(80 + 42, 80 + 42); x.stroke();
+    const img = new Image(); img.alt = ''; img.src = c.toDataURL(); b.appendChild(img);
+    b.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); setPet('none'); petPickSync(); b.classList.remove('boing'); void b.offsetWidth; b.classList.add('boing'); });
+    row.appendChild(b);
+  }
   el.querySelector('.ppDone').addEventListener('click', (e) => { e.stopPropagation(); petPickClose(); });
-  el.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (e.target === el) petPickClose(); });
+  el.querySelector('.ppPanel').addEventListener('pointerdown', (e) => { e.stopPropagation(); });
   const st = document.createElement('style'); st.textContent = `
-.petPick { position: fixed; inset: 0; z-index: 25; display: flex; align-items: flex-end; justify-content: center; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); background: linear-gradient(rgba(28,19,14,0) 40%, rgba(28,19,14,0.35)); }
+.petPick { position: fixed; inset: 0; z-index: 25; pointer-events: none; display: flex; align-items: flex-end; justify-content: center; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); background: linear-gradient(rgba(28,19,14,0) 40%, rgba(28,19,14,0.35)); }
 .petPick[hidden] { display: none; }
-.ppPanel { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 26px; max-width: calc(100% - 20px); box-sizing: border-box;
+.ppPanel { pointer-events: auto; display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 26px; max-width: calc(100% - 20px); box-sizing: border-box;
   background: repeating-linear-gradient(93deg, rgba(255,220,170,0.07) 0 3px, rgba(0,0,0,0.05) 3px 7px, rgba(0,0,0,0) 7px 15px), linear-gradient(170deg, #9a6a42, #6e4426 60%, #7d5232);
   box-shadow: inset 0 2px 0 rgba(255,220,170,0.35), inset 0 -3px 0 rgba(0,0,0,0.25), 0 0 0 3px #3a2416, 0 10px 0 3px rgba(20,12,6,0.45), 0 18px 34px rgba(0,0,0,0.45); animation: ppIn 0.38s cubic-bezier(.2,1.3,.5,1); }
 @keyframes ppIn { from { transform: translateY(50px); opacity: 0; } }
@@ -3798,7 +3820,7 @@ function petPickBuild() {
 .ppDone svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 2px 0 rgba(20,60,25,0.6)); }
 .ppDone:active { transform: translateY(5px); box-shadow: inset 0 3px 0 rgba(255,255,255,0.35), 0 1px 0 #1f4d27; }
 @media (max-width: 700px) { .ppRow { gap: 12px; } .ppPet { width: 84px; height: 84px; } .ppPanel { gap: 10px; padding: 10px; } .ppPage { padding: 12px; } .ppDone { width: 64px; height: 64px; } }
-@media (max-width: 470px) { .ppPanel { flex-direction: column; } .ppRow { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 22px; } .ppPet { width: 96px; height: 96px; } }
+@media (max-width: 470px) { .ppPanel { flex-direction: column; } .ppRow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px 22px; } .ppPet { width: 96px; height: 96px; } }
 @media (max-height: 460px) { .ppPet { width: 76px; height: 76px; } .ppPage { padding: 10px 12px; } }
 @media (prefers-reduced-motion: reduce) { .ppPanel, .ppPet.boing { animation: none; } }
 `; document.head.appendChild(st);

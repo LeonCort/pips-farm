@@ -183,22 +183,31 @@ function wanderStop(d) { const w = WANDER.find((q) => q.d === d); if (w) { w.on 
 
 /* ---------- choosing ---------- */
 function setPet(kind, quiet) {
-  if (!PETS[kind]) kind = 'dog';
-  const old = dog, nu = PETS[kind];
-  if (old !== nu) {
+  /* 'none': no pet follows Pip; the last friend goes out to stroll the town with the others (dog keeps pointing at it) */
+  if (kind !== 'none' && !PETS[kind]) kind = 'dog';
+  const wasNone = state.pet === 'none', old = dog, nu = kind === 'none' ? old : PETS[kind];
+  if (kind === 'none') {
+    if (!wasNone && old) { const out = inHouse ? [HDOOR.x + 1.2, HDOOR.z + 1.4] : [old.g.position.x, old.g.position.z]; wanderStart(old, out[0], out[1]); old.hop = 1; }
+    state.pet = 'none'; PTRAIL.length = 0;
+    if (!quiet) { Snd.play('pop', { gain: 0.4, f: 420 }); save(); }
+    return;
+  }
+  if (old !== nu || wasNone) {
     wanderStop(nu);
     /* the old friend goes out for a walk round the town; the new one pops up beside Pip */
-    if (old) { const out = inHouse ? [HDOOR.x + 1.2, HDOOR.z + 1.4] : [old.g.position.x, old.g.position.z]; wanderStart(old, out[0], out[1]); old.hop = 1; }
-    dog = nu; nu.chase = false; nu.asleep = false;
-    if (!quiet) { const a = pip.rotation.y, x = pip.position.x + Math.sin(a) * 0.8 + Math.cos(a) * 0.5, z = pip.position.z + Math.cos(a) * 0.8 - Math.sin(a) * 0.5; nu.g.position.set(x, 0, z); nu.g.rotation.y = a + Math.PI; burst(x, 0.7, z, 6); PTRAIL.length = 0; }
+    if (old && old !== nu && !wasNone) { const out = inHouse ? [HDOOR.x + 1.2, HDOOR.z + 1.4] : [old.g.position.x, old.g.position.z]; wanderStart(old, out[0], out[1]); old.hop = 1; }
+    dog = nu; nu.chase = false; nu.asleep = false; nu.inH = inHouse && !inBarn && !inStore;
+    if (!quiet) { const a = pip.rotation.y, x = pip.position.x + Math.sin(a) * 0.8 + Math.cos(a) * 0.5, z = pip.position.z + Math.cos(a) * 0.8 - Math.sin(a) * 0.5; nu.g.position.set(x, 0, z); nu.g.rotation.y = a + Math.PI; burst(x, 0.7, z, 6); PTRAIL.length = 0; PTRAIL.push([x, z]); }
   }
   state.pet = kind;
   if (!quiet) { dog.hop = 1; petVoice(kind, 0.7); Snd.play('sparkle', { gain: 0.4 }, 0.05); save(); }
 }
+const petNone = () => state.pet === 'none';
 function petsInit() {
-  const k = PET_KINDS.indexOf(state.pet) >= 0 ? state.pet : 'dog';
+  const none = state.pet === 'none', k = PET_KINDS.indexOf(state.pet) >= 0 ? state.pet : 'dog';
   /* everyone starts as a town stroller, spread round the ring road; then the chosen one comes home */
   PET_KINDS.forEach((q, i) => { const a = 0.7 + i * 1.57; if (PETS[q] !== dog) wanderStart(PETS[q], Math.cos(a) * RING.rx, Math.sin(a) * RING.rz); });
+  if (none) { wanderStart(dog, Math.cos(0.7) * RING.rx, Math.sin(0.7) * RING.rz); state.pet = 'none'; return; }
   if (k !== 'dog') { const d = PETS[k]; wanderStop(d); wanderStart(dog, Math.cos(0.7) * RING.rx, Math.sin(0.7) * RING.rz); dog = d; d.g.position.set(KENNEL.x - 0.6, 0, KENNEL.z + 0.9); }
   state.pet = k;
 }
@@ -242,12 +251,12 @@ const petSign = (() => {
 let petLatch = false;
 function petCornerStep(dt) {
   petMat.visible = petSign.visible = inHouse && !inBarn && !inStore;
-  if (!inHouse || inBarn || inStore) return;
+  if (!inHouse || inBarn || inStore) { if (PP.open) petPickClose(); return; }
   petSign.position.y = 1.45 + (reduced ? 0 : Math.sin(time * 2) * 0.05);
   const on = Math.hypot(pip.position.x - PCORNER.x, pip.position.z - PCORNER.z) < 0.5, still = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) < 0.15;
   petMat.scale.setScalar(on ? 1.1 : 1 + (reduced ? 0 : Math.sin(time * 3) * 0.04));
   if (on && still && !petLatch && !dressing && !PP.open) { petLatch = true; petPickOpen(); }
-  if (!on) petLatch = false;
+  if (!on) { petLatch = false; if (PP.open) petPickClose(); }
 }
 
 /* ---------- the picker: four big pictures, no words. Tap one, it comes to Pip; the green tick closes ---------- */
@@ -263,12 +272,23 @@ function petPickBuild() {
     b.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); setPet(k); petPickSync(); b.classList.remove('boing'); void b.offsetWidth; b.classList.add('boing'); });
     row.appendChild(b);
   });
+  {
+    /* no pet: the paw, faded, under a red "no" ring, so a child who can't read sees "nobody follows" */
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ppPet ppNone'; b.dataset.k = 'none'; b.setAttribute('aria-label', 'Inget husdjur');
+    const c = document.createElement('canvas'); c.width = c.height = 160; const x = c.getContext('2d');
+    x.globalAlpha = 0.55; drawIcon(x, 'paw', 80, 84, 2.0); x.globalAlpha = 1;
+    x.strokeStyle = '#d9443a'; x.lineWidth = 13; x.lineCap = 'round'; x.beginPath(); x.arc(80, 80, 60, 0, 7); x.stroke();
+    x.beginPath(); x.moveTo(80 - 42, 80 - 42); x.lineTo(80 + 42, 80 + 42); x.stroke();
+    const img = new Image(); img.alt = ''; img.src = c.toDataURL(); b.appendChild(img);
+    b.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); setPet('none'); petPickSync(); b.classList.remove('boing'); void b.offsetWidth; b.classList.add('boing'); });
+    row.appendChild(b);
+  }
   el.querySelector('.ppDone').addEventListener('click', (e) => { e.stopPropagation(); petPickClose(); });
-  el.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (e.target === el) petPickClose(); });
+  el.querySelector('.ppPanel').addEventListener('pointerdown', (e) => { e.stopPropagation(); });
   const st = document.createElement('style'); st.textContent = `
-.petPick { position: fixed; inset: 0; z-index: 25; display: flex; align-items: flex-end; justify-content: center; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); background: linear-gradient(rgba(28,19,14,0) 40%, rgba(28,19,14,0.35)); }
+.petPick { position: fixed; inset: 0; z-index: 25; pointer-events: none; display: flex; align-items: flex-end; justify-content: center; padding-bottom: max(14px, env(safe-area-inset-bottom, 0px)); background: linear-gradient(rgba(28,19,14,0) 40%, rgba(28,19,14,0.35)); }
 .petPick[hidden] { display: none; }
-.ppPanel { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 26px; max-width: calc(100% - 20px); box-sizing: border-box;
+.ppPanel { pointer-events: auto; display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 26px; max-width: calc(100% - 20px); box-sizing: border-box;
   background: repeating-linear-gradient(93deg, rgba(255,220,170,0.07) 0 3px, rgba(0,0,0,0.05) 3px 7px, rgba(0,0,0,0) 7px 15px), linear-gradient(170deg, #9a6a42, #6e4426 60%, #7d5232);
   box-shadow: inset 0 2px 0 rgba(255,220,170,0.35), inset 0 -3px 0 rgba(0,0,0,0.25), 0 0 0 3px #3a2416, 0 10px 0 3px rgba(20,12,6,0.45), 0 18px 34px rgba(0,0,0,0.45); animation: ppIn 0.38s cubic-bezier(.2,1.3,.5,1); }
 @keyframes ppIn { from { transform: translateY(50px); opacity: 0; } }
@@ -291,7 +311,7 @@ function petPickBuild() {
 .ppDone svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 2px 0 rgba(20,60,25,0.6)); }
 .ppDone:active { transform: translateY(5px); box-shadow: inset 0 3px 0 rgba(255,255,255,0.35), 0 1px 0 #1f4d27; }
 @media (max-width: 700px) { .ppRow { gap: 12px; } .ppPet { width: 84px; height: 84px; } .ppPanel { gap: 10px; padding: 10px; } .ppPage { padding: 12px; } .ppDone { width: 64px; height: 64px; } }
-@media (max-width: 470px) { .ppPanel { flex-direction: column; } .ppRow { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 22px; } .ppPet { width: 96px; height: 96px; } }
+@media (max-width: 470px) { .ppPanel { flex-direction: column; } .ppRow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px 22px; } .ppPet { width: 96px; height: 96px; } }
 @media (max-height: 460px) { .ppPet { width: 76px; height: 76px; } .ppPage { padding: 10px 12px; } }
 @media (prefers-reduced-motion: reduce) { .ppPanel, .ppPet.boing { animation: none; } }
 `; document.head.appendChild(st);

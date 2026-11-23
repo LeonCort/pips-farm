@@ -49,7 +49,7 @@ html, body { margin: 0; height: 100%; background: #1a2045; }
     : '<a class="pick main" data-go="new" href="bondgard.html' + q + '" aria-label="Nytt spel"><span class="disc">' + SPROUT + PLAY + '</span>Nytt spel</a>';
   /* the sandbox has its own save, so it never touches the farm above */
   picks += '<a class="pick sbx" data-go="go" href="bondgard.html?sandbox=1' + (v ? '&v=' + encodeURIComponent(v) : '') + '" aria-label="Sandl\u00e5da: allt \u00e4r redan k\u00f6pt"><span class="disc">' + RAINBOW + '</span>Sandl\u00e5da</a>';
-  el.insertAdjacentHTML('beforeend', '<div class="stand"><div class="who pet" style="width:clamp(60px,11vh,96px)">' + PipsScene.petSVG(me.pet) + '</div><div class="who pip" style="width:clamp(54px,10vh,86px)">' + PipsScene.pipSVG(me.av, true) + '</div></div><nav class="picks three">' + picks + '</nav>');
+  el.insertAdjacentHTML('beforeend', '<div class="stand">' + (me.pet === 'none' ? '' : '<div class="who pet" style="width:clamp(60px,11vh,96px)">' + PipsScene.petSVG(me.pet) + '</div>') + '<div class="who pip" style="width:clamp(54px,10vh,86px)">' + PipsScene.pipSVG(me.av, true) + '</div></div><nav class="picks three">' + picks + '</nav>');
   var going = false;
   function go(a) {
     if (going) return; going = true;
