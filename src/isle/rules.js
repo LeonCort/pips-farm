@@ -47,7 +47,7 @@ const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 0, walk: 1.5, ring: {
   d: (x, z) => 1 + gSdf(x, z) / 6, clamp: gClamp };
 const KENNEL = { x: -1.6, z: -1.5 }; /* the pet's kennel, by the camp in the middle square */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
-  isle: { own: Array.from(OWN.keys()).filter((k) => OWN[k]), k: 0, paid: {}, tools: { pick: 0, bag: 0 }, chests: {}, got: {} } }; }
+  isle: { own: Array.from(OWN.keys()).filter((k) => OWN[k]), k: 0, paid: {}, tools: { pick: 0, bag: 0 }, chests: {}, got: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
 const speed = () => 3.2 + 0.45 * state.lv.speed;
 const cap = () => (state.isle && state.isle.tools.bag ? 10 : 6);
 const UPS = [{ id: 'speed', base: 10, g: 1.8, max: 8 }, { id: 'bag', base: 15, g: 1.8, max: 8 }];

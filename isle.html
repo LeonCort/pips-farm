@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261123193927">
+<meta name="app-ver" content="20261123194958">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1186,7 +1186,7 @@ const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 0, walk: 1.5, ring: {
   d: (x, z) => 1 + gSdf(x, z) / 6, clamp: gClamp };
 const KENNEL = { x: -1.6, z: -1.5 }; /* the pet's kennel, by the camp in the middle square */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
-  isle: { own: Array.from(OWN.keys()).filter((k) => OWN[k]), k: 0, paid: {}, tools: { pick: 0, bag: 0 }, chests: {}, got: {} } }; }
+  isle: { own: Array.from(OWN.keys()).filter((k) => OWN[k]), k: 0, paid: {}, tools: { pick: 0, bag: 0 }, chests: {}, got: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
 const speed = () => 3.2 + 0.45 * state.lv.speed;
 const cap = () => (state.isle && state.isle.tools.bag ? 10 : 6);
 const UPS = [{ id: 'speed', base: 10, g: 1.8, max: 8 }, { id: 'bag', base: 15, g: 1.8, max: 8 }];
@@ -2220,8 +2220,12 @@ function signStep(s, dt) {
   s.bump = Math.max(0, s.bump - dt * 4); s.sp.position.y = 2.2 + (reduced ? 0 : Math.sin(time * 2 + s.idx) * 0.04) + s.bump * 0.15;
   s.ghost.material.opacity = 0.55 + (reduced ? 0 : Math.sin(time * 2.4 + s.idx) * 0.25);
   if (rising || giveT > 0 || Math.hypot(pip.position.x - s.x, pip.position.z - s.z) > 0.85) return;
-  const t = ['log', 'stone', 'berry'].find((q) => carry.count(q) && signNeed(s, q) > 0); if (!t) return;
-  giveT = 0.13; const m = carry.take(t); s.fly[t]++;
+  let t = ['log', 'stone', 'berry'].find((q) => carry.count(q) && signNeed(s, q) > 0), m;
+  if (t) m = carry.take(t);
+  else { t = ['log', 'stone', 'berry'].find((q) => storeN(q) > 0 && signNeed(s, q) > 0); if (!t) return;
+    /* from the storage crate: the piece appears over Pip's head and flies on to the sign */
+    state.isle.store[t]--; m = itemModel(t); m.position.set(pip.position.x, 1.9, pip.position.z); sc.add(m); }
+  giveT = 0.13; s.fly[t]++; invDirty = true;
   fly(m, () => s.g.localToWorld(tmpV.set(0, 2.1, 0)), () => { sc.remove(m); s.fly[t]--; signPaid(s)[t]++; s.bump = 1; drawSign(s); Snd.play('tock', { gain: 0.4, f: 500 + signPaid(s)[t] * 40 });
     if (signFull(s) && !rising) isleBuy(s); }, 0.3);
 }
@@ -2295,6 +2299,7 @@ function isleStep(dt) {
   nodes.forEach((n) => nodeStep(n, dt));
   for (let k = drops.length - 1; k >= 0; k--) if (dropStep(drops[k], dt)) drops.splice(k, 1);
   signs.forEach((s) => signStep(s, dt));
+  storeStep2(dt); invStep();
   for (let k = chests.length - 1; k >= 0; k--) { chestStep(chests[k], dt); if (chests[k].gone) chests.splice(k, 1); }
   if (hintSp.visible) { hintSp.t -= dt; hintSp.material.opacity = Math.min(1, hintSp.t * 2); if (hintSp.t <= 0) hintSp.visible = false; }
   const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1);
@@ -2309,9 +2314,10 @@ function isleGoal() {
   const c = by(chests, (o) => !o.open && o.pop >= 1); if (c) return [c.x, c.z + 0.85];
   if (rising) return null;
   const full = carry.count() >= cap(), some = carry.count() > 0;
-  if (full || (state.isle.k === 0 && some && carry.count('log') + signs.reduce((a, s) => Math.max(a, signPaid(s).log), 0) >= signCost().log)) {
-    const s = by(signs, (o) => ['log', 'stone', 'berry'].some((t) => carry.count(t) && signNeed(o, t) > 0)); if (s) return [s.x, s.z];
-  }
+  /* a sign that what Pip has (backpack and crate together) can fill right now */
+  const can = by(signs, (o) => ['log', 'stone', 'berry'].every((t) => signNeed(o, t) <= carry.count(t) + storeN(t)));
+  if (can && (full || some)) return [can.x, can.z];
+  if (full) return [STORE.x, STORE.z + 0.95];
   if (state.isle.k === 0 && !some && !drops.length) { const n = by(nodes, (o) => o.kind === 'tree' && o.st === 'ready'); if (n) return [n.x, n.z + 0.7]; }
   return null;
 }
@@ -2325,15 +2331,73 @@ function isleInit() {
   }
   nodes.forEach((n) => { n.pop = 0; n.g.scale.setScalar(1); });
   chests.forEach((c) => { c.pop = 1; c.g.scale.setScalar(1); });
+  I.store = I.store || { log: 0, stone: 0, berry: 0 }; invBuild();
   isleSigns();
   pip.position.set(0, 0, 0.4); target.copy(pip.position); camFocus.copy(pip.position);
   dog.g.position.set(-1.2, 0, -0.6); petsInit();
 }
 function isleTest() {
-  return { own: state.isle.own.length, k: state.isle.k, tools: state.isle.tools, signs: signs.length, nodes: nodes.map((n) => n.kind[0] + (n.st === 'ready' ? '' : '-')).join(''), drops: drops.length, rising: !!rising,
+  return { store: Object.assign({}, state.isle.store), inv: INV.el ? INV.el.textContent : '', own: state.isle.own.length, k: state.isle.k, tools: state.isle.tools, signs: signs.length, nodes: nodes.map((n) => n.kind[0] + (n.st === 'ready' ? '' : '-')).join(''), drops: drops.length, rising: !!rising,
     give: (t, n) => { for (let q = 0; q < n && carry.count() < cap(); q++) carry.add(itemModel(t)); },
     signs: () => signs.map((s) => ({ i: s.i, j: s.j, x: s.x, z: s.z, paid: signPaid(s) })), price: () => signCost(),
     nodesAt: () => nodes.map((n) => ({ kind: n.kind, x: n.x, z: n.z, st: n.st })) };
+}
+
+/* ---- the storage crate at the camp: a full backpack empties into it, and signs take from it too ---- */
+const STORE = { x: 1.7, z: -1.5 };
+const storeN = (t) => (state.isle && state.isle.store ? state.isle.store[t] || 0 : 0);
+const storeG = (() => {
+  const g = new T.Group(); g.position.set(STORE.x, 0, STORE.z); sc.add(g); const L = [];
+  let q = new T.BoxGeometry(1.3, 0.12, 0.9); q.translate(0, 0.06, 0); L.push(fac(q, '#8a6a4e', 1600));
+  [[0, 0.45, 1.3, 0.1], [0, -0.45, 1.3, 0.1], [0.65, 0, 0.1, 0.9], [-0.65, 0, 0.1, 0.9]].forEach(([x, z, w, d], k) => { for (let r = 0; r < 3; r++) { q = new T.BoxGeometry(w, 0.15, d); q.translate(x, 0.14 + r * 0.17, z); L.push(fac(q, tone('#c99158', k * 3 + r, 0.8), 1601 + k * 3 + r)); } });
+  [[-0.62, -0.42], [0.62, -0.42], [-0.62, 0.42], [0.62, 0.42]].forEach(([x, z], k) => { q = new T.BoxGeometry(0.12, 0.62, 0.12); q.translate(x, 0.31, z); L.push(fac(q, '#7d5e4e', 1620 + k)); });
+  merged(L, MAT, g);
+  /* what is inside: a few logs, stones and berries show once there are some */
+  const fill = { log: [], stone: [], berry: [] };
+  [['log', [[-0.3, -0.15], [-0.3, 0.12], [-0.05, -0.02]]], ['stone', [[0.25, -0.2], [0.42, 0.05], [0.2, 0.15]]], ['berry', [[0.0, 0.25], [0.15, 0.3], [-0.15, 0.3]]]].forEach(([t, P]) => P.forEach(([x, z], k) => {
+    const m = itemModel(t); m.position.set(x, 0.42, z); m.rotation.y = k; m.visible = false; g.add(m); fill[t].push(m); }));
+  /* a picture board: the crate with a log, a stone and berries on it, so a child knows what it is */
+  const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x = c.getContext('2d'); paperBox(x, 256, 96);
+  ['log', 'stone', 'berry'].forEach((t, k) => isleIcon(x, t, 60 + k * 68, 46, 1.0));
+  const sp = isleSprite(new T.CanvasTexture(c), 1); sp.scale.set(1.5, 0.56, 1); sp.position.set(0, 1.35, 0); g.add(sp);
+  const ring = new T.Mesh(new T.RingGeometry(0.62, 0.78, 28), ringMat); ring.rotation.x = -Math.PI / 2; ring.position.set(STORE.x, 0.035, STORE.z + 0.95); sc.add(ring);
+  return { g, fill, sp };
+})();
+let storeT = 0;
+function storeStep2(dt) {
+  /* Pip can't walk through the crate */
+  const dx = pip.position.x - STORE.x, dz = pip.position.z - STORE.z;
+  if (Math.abs(dx) < 0.85 && Math.abs(dz) < 0.65) { if (0.85 - Math.abs(dx) < 0.65 - Math.abs(dz)) pip.position.x = STORE.x + Math.sign(dx || 1) * 0.85; else pip.position.z = STORE.z + Math.sign(dz || 1) * 0.65; }
+  storeT -= dt;
+  if (storeT <= 0 && carry.count() && Math.hypot(pip.position.x - STORE.x, pip.position.z - (STORE.z + 0.95)) < 0.8) {
+    storeT = 0.12; const m = carry.take(); const t = m.userData.type;
+    fly(m, () => storeG.g.localToWorld(tmpV.set(0, 0.5, 0)), () => { sc.remove(m); state.isle.store[t] = storeN(t) + 1; invDirty = true; Snd.play('tock', { gain: 0.35, f: 380 + (storeN(t) % 8) * 30 }); }, 0.26);
+  }
+  ['log', 'stone', 'berry'].forEach((t) => storeG.fill[t].forEach((m, k) => { m.visible = storeN(t) > k * 4; }));
+}
+
+/* ---- the counter at the top: how many of each Pip has (crate and backpack together), pictures and numbers ---- */
+let invDirty = true, invLast = '';
+const INV = {};
+function invBuild() {
+  if (INV.el) return;
+  const el = document.createElement('div'); el.className = 'inv'; el.setAttribute('role', 'status'); el.setAttribute('aria-label', 'What Pip has');
+  const st = document.createElement('style');
+  st.textContent = '.inv{position:fixed;top:max(12px,env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));display:flex;gap:8px;pointer-events:none;z-index:5}'
+    + '.inv .it{display:flex;align-items:center;gap:4px;padding:4px 14px 4px 6px;border-radius:999px;background:var(--paper);border:3px solid var(--ink);box-shadow:0 4px 0 rgba(34,48,60,.25)}'
+    + '.inv img{width:40px;height:40px}.inv b{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;min-width:1.4ch;text-align:center}'
+    + '.inv b.bump{animation:bump .25s ease-out}@media (max-width:520px){.inv img{width:30px;height:30px}.inv b{font-size:22px}.inv .it{padding:3px 10px 3px 4px}}';
+  document.head.appendChild(st);
+  ['log', 'stone', 'berry'].forEach((t) => { const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), t, 32, 32, 1.25);
+    const it = document.createElement('div'); it.className = 'it'; const img = document.createElement('img'); img.alt = ''; img.src = c.toDataURL(); const b = document.createElement('b'); b.textContent = '0';
+    it.appendChild(img); it.appendChild(b); el.appendChild(it); INV[t] = b; });
+  document.body.appendChild(el); INV.el = el;
+}
+function invStep() {
+  if (!INV.el) return;
+  const v = ['log', 'stone', 'berry'].map((t) => storeN(t) + carry.count(t)), key = v.join(',');
+  if (key === invLast) return; invLast = key;
+  ['log', 'stone', 'berry'].forEach((t, k) => { const b = INV[t]; if (b.textContent !== String(v[k])) { b.textContent = v[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); } });
 }
 /* ---------- Pip, second pass: a smooth, merged figure ----------
    Same rig as before (pb, limbs[] at the hips and shoulders, eyes[] for the blink, the head group at y 1.3), so the walk,
