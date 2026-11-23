@@ -1,7 +1,9 @@
 /* ---------- the boat between the farm and the shop ---------- */
 /* a dock at the south end of the path; stand on it and the boat sails to the other island */
 const HERE = typeof DIET !== 'undefined' ? 'farm' : 'shop', THERE_PAGE = HERE === 'farm' ? 'butik.html' : 'bondgard.html';
-const canSail = /github\.io$/.test(location.hostname) || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const canSail0 = /github\.io$/.test(location.hostname) || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+/* the sandbox stays home: the boat sails round and comes back, so the real farm is never opened by mistake */
+const canSail = canSail0 && !(typeof SANDBOX !== 'undefined' && SANDBOX);
 const DOCK = (() => { const X = 0; let z = 0; while (hAt(X, z) > -0.02 && z < 30) z += 0.1; return { x: X, edge: z, z0: z - 0.9, z1: z + 2.6, boat: z + 3.75 }; })();
 const dockG = new T.Group(); sc.add(dockG);
 {
