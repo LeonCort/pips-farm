@@ -16,10 +16,10 @@ const gCell = (x) => Math.round(x / GS);
    bridge from another area (x0, z0 to x1, z1), and drawn from the start so it can be seen across the water. chest: a tool inside. */
 const AREAS = [
   { id: 'h0', i: -1, j: -1, biome: 'home', start: 1 },
-  { id: 'h1', i: 2, j: -1, biome: 'rocks', cost: { log: 12, berry: 4 }, chest: 'pick' },
-  { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 14, stone: 6, berry: 4 } },
-  { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 18, stone: 10, berry: 6 }, chest: 'bag' },
-  { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 22, stone: 12, berry: 6 }, bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
+  { id: 'h1', i: 2, j: -1, biome: 'rocks', cost: { log: 8, berry: 3 }, chest: 'pick' },
+  { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 10, stone: 4, berry: 4 } },
+  { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag' },
+  { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
   { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, hay: 10, berry: 6 } },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, hay: 14, stone: 8 } },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 20, hay: 20, berry: 10 } },

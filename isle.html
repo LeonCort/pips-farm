@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261123204245">
+<meta name="app-ver" content="20261123204943">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1155,10 +1155,10 @@ const gCell = (x) => Math.round(x / GS);
    bridge from another area (x0, z0 to x1, z1), and drawn from the start so it can be seen across the water. chest: a tool inside. */
 const AREAS = [
   { id: 'h0', i: -1, j: -1, biome: 'home', start: 1 },
-  { id: 'h1', i: 2, j: -1, biome: 'rocks', cost: { log: 12, berry: 4 }, chest: 'pick' },
-  { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 14, stone: 6, berry: 4 } },
-  { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 18, stone: 10, berry: 6 }, chest: 'bag' },
-  { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 22, stone: 12, berry: 6 }, bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
+  { id: 'h1', i: 2, j: -1, biome: 'rocks', cost: { log: 8, berry: 3 }, chest: 'pick' },
+  { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 10, stone: 4, berry: 4 } },
+  { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag' },
+  { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
   { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, hay: 10, berry: 6 } },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, hay: 14, stone: 8 } },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 20, hay: 20, berry: 10 } },
@@ -2078,7 +2078,7 @@ const FISH = []; /* no fish on this island yet (the engine's icon list asks) */
 const NODE_R = { tree: 0.36, rock: 0.55, bush: 0.45, grass: 0.32, clay: 0.5, boulder: 0.95 };
 const YIELD = { tree: ['log', 2], rock: ['stone', 2], bush: ['berry', 3], grass: ['hay', 2], clay: ['clay', 2], boulder: ['stone', 5] };
 const HITS = { tree: 6, rock: 8, bush: 3, grass: 3, clay: 6, boulder: 14 }; /* Leon: slower, so each one feels like work */
-const REGROW = { tree: [12, 30], rock: [8, 50], bush: [25, 0], grass: [6, 20], clay: [10, 40], boulder: [10, 70] }; /* seconds gone, then seconds growing */
+const REGROW = { tree: [8, 16], rock: [6, 25], bush: [10, 0], grass: [5, 12], clay: [8, 25], boulder: [10, 40] }; /* seconds gone, then seconds growing (Leon: waiting is boring, so quicker) */
 const LOW = { rock: 0.35, boulder: 0.35, clay: 0.3, grass: 0.15 }; /* how small it shrinks while it grows back (trees fall, bushes lose their berries) */
 const PICKY = { rock: 1, boulder: 1, clay: 1 }; /* needs the pickaxe */
 const KINDS = ['log', 'stone', 'berry', 'hay', 'clay']; /* building things, in counter order */
@@ -2202,7 +2202,11 @@ function areaClear(x, z) {
   if (Math.max(Math.abs(x), Math.abs(z)) < 6 && Math.max(Math.abs(x), Math.abs(z)) > 4.6) return false; /* the start area's shore, where its signs stand */
   return true;
 }
+/* the start area is laid out by hand round the camp, so there is plenty to gather from the first minute (Leon, 2026-11-23) */
+const START_NODES = [['tree', -4.2, -4.0], ['tree', -2.4, -4.3], ['tree', 3.4, -4.2], ['tree', -4.4, 2.2], ['tree', 4.3, 3.3], ['tree', 2.6, 4.4], ['tree', -3.8, 4.3], ['tree', -4.5, -1.6],
+  ['bush', -2.8, 3.3], ['bush', 4.3, -2.6], ['bush', -4.4, 0.3], ['bush', 3.4, 2.4], ['bush', -0.9, 4.4], ['rock', 4.4, -0.9], ['rock', -3.0, -2.6]];
 function areaFill(A, fresh) {
+  if (A.start) { START_NODES.forEach(([k, x, z], q) => makeNode(k, x, z, 50 + q)); areaDecor(A); return; }
   const SP = 2.05, base = AREAS.indexOf(A) * 997; let c = 0;
   for (let gx = A.cx - 5.2; gx <= A.cx + 5.3; gx += SP) for (let gz = A.cz - 5.2; gz <= A.cz + 5.3; gz += SP) {
     const sd = base + c++, x = gx + (hash(sd, 1) - 0.5) * SP * 0.75, z = gz + (hash(sd, 2) - 0.5) * SP * 0.75;
