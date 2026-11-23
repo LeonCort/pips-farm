@@ -90,11 +90,20 @@ function fxLight(dt) {
   FX.k.night = inside ? 0 : clamp(nightAmt * 2.6, 0, 1);
 }
 function smoothstep(a, b, x) { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
-/* where the rays come from: the sun is behind the camera on the left, so the source sits off screen, up and to the left */
+/* where the rays come from: with the sun behind the camera the source sits off screen at the top, to the side of the sun.
+   The sun moves now: when it is ahead of the camera the rays come from where it really is, and when it is ahead but high
+   above the screen they fade out (the source far above smeared a soft bright column onto the sea) */
+const _fv3 = new T.Vector3(); let fxRayK = 1;
 function fxSource() {
   _fv1.copy(camFocus).project(cam); _fv2.copy(sun.position).sub(sun.target.position).normalize().multiplyScalar(2).add(camFocus).project(cam);
   let dx = _fv2.x - _fv1.x; dx = clamp(dx * 3, -1, 1);
-  fxRays.uniforms.uSrc.value.set(0.5 + dx * 0.75, 1.3);
+  const sd = _fv3.copy(sun.position).sub(sun.target.position).normalize(), fw = cam.getWorldDirection(_fv2);
+  const ahead = smoothstep(-0.1, 0.35, sd.x * fw.x + sd.z * fw.z);
+  _fv2.copy(cam.position).addScaledVector(sd, 100).project(cam);
+  const sx = clamp(0.5 + _fv2.x * 0.5, -0.3, 1.3), sy = 0.5 + _fv2.y * 0.5;
+  const ok = _fv2.z < 1 ? 1 - smoothstep(1.15, 1.6, sy) : 0;
+  fxRayK = (1 - ahead) + ahead * ok;
+  fxRays.uniforms.uSrc.value.set((0.5 + dx * 0.75) * (1 - ahead) + sx * ahead, 1.3 * (1 - ahead) + Math.min(1.3, sy) * ahead);
 }
 
 /* ----- sun shafts: soft slanted beams anchored to the ground, picked from a world grid near Pip, one draw call ----- */
@@ -125,7 +134,7 @@ function shPlace() {
   const aC = shGeo.attributes.aC.array, aW = shGeo.attributes.aW.array; let n = 0;
   for (let dz = -5; dz <= 2 && n < SH_N; dz++) for (let dx = -4; dx <= 4 && n < SH_N; dx++) {
     const gx = cx + dx, gz = cz + dz, h = hash(gx * 13.1 + gz * 71.7, 5.3); if (h > 0.36) continue;
-    const x = (gx + hash(gx, gz + 0.5) - 0.5) * SH_CELL, z = (gz + hash(gz, gx + 1.5) - 0.5) * SH_CELL; if (isleD(x, z) > 0.98) continue;
+    const x = (gx + hash(gx, gz + 0.5) - 0.5) * SH_CELL, z = (gz + hash(gz, gx + 1.5) - 0.5) * SH_CELL; if (isleD(x, z) > 0.82) continue; /* well inland: beams by the shore lay soft patches on the sea */
     const wdt = 0.8 + hash(gx, gz + 7.1) * 1.3, len = 7 + hash(gx + 3.3, gz) * 5, seed = hash(gx + 9.9, gz + 2.2);
     for (let j = 0; j < 4; j++) { const o = (n * 4 + j) * 3; aC[o] = x; aC[o + 1] = 0; aC[o + 2] = z; aW[o] = wdt; aW[o + 1] = len; aW[o + 2] = seed; } n++;
   }
@@ -386,19 +395,23 @@ if (ground && ground.material) { const gm = ground.material, ob = gm.onBeforeCom
 function fxWorld(dt) {
   const k = FX.k, out = !inHouse && !inBarn && !(typeof inStore !== 'undefined' && inStore), top = cam.position.y > 22;
   /* shafts */
-  const shOn = fxUse('shafts') && out && !top && k.sun > 0.02; shafts.visible = shOn;
+  /* the beams only read as beams when the sun is behind or beside the camera; with the sun ahead (it moves now) they are
+     seen end-on as soft bright blobs, and by moonlight they are not wanted at all */
+  const shSd = _fv1.copy(sun.position).sub(sun.target.position).setY(0).normalize(), shFw = cam.getWorldDirection(_fv2).setY(0).normalize();
+  const shK = k.sun * smoothstep(0.55, 0.9, k.sun) * (1 - smoothstep(-0.25, 0.3, shSd.dot(shFw)));
+  const shOn = fxUse('shafts') && out && !top && shK > 0.02; shafts.visible = shOn;
   if (shOn) { shPlace(); const u = shMat.uniforms; u.uL.value.copy(sun.position).sub(sun.target.position).normalize(); u.uFocus.value.copy(camFocus); u.uT.value = reduced ? 0 : time;
-    u.uOp.value = k.sun * (0.18 + 0.12 * k.gold); u.uCol.value.copy(sun.color).lerp(_fxc.set('#ffd9a0'), 0.4); }
+    u.uOp.value = shK * (0.18 + 0.12 * k.gold); u.uCol.value.copy(sun.color).lerp(_fxc.set('#ffd9a0'), 0.4); }
   /* motes */
-  const moOn = fxUse('motes') && out && !top && k.sun > 0.02; motes.visible = moOn;
-  if (moOn) { const u = moMat.uniforms; u.uFocus.value.copy(camFocus); u.uT.value = reduced ? 0 : time; u.uOp.value = k.sun * (1.1 + 0.6 * k.gold); u.uScale.value = fxSize.y > 0 ? fxSize.y * 0.5 / Math.tan(cam.fov * Math.PI / 360) : 400;
+  const moOn = fxUse('motes') && out && !top && k.sun > 0.55; /* not by moonlight: lone bright specks at night */ motes.visible = moOn;
+  if (moOn) { const u = moMat.uniforms; u.uFocus.value.copy(camFocus); u.uT.value = reduced ? 0 : time; u.uOp.value = k.sun * smoothstep(0.55, 0.9, k.sun) * (1.1 + 0.6 * k.gold); u.uScale.value = fxSize.y > 0 ? fxSize.y * 0.5 / Math.tan(cam.fov * Math.PI / 360) : 400;
     u.uCol.value.set('#fff3d2').lerp(_fxc.set('#ffc88a'), k.gold); if (typeof WIND !== 'undefined' && !reduced) { u.uWind.value.x += WIND.x * WIND.g * dt * 0.8; u.uWind.value.y += WIND.z * WIND.g * dt * 0.8; } }
   /* cloud shadows: more cover, more shade; none on grey days (everything is in the shade then) or indoors */
   const clK = fxUse('clouds') && out ? k.sun : 0; CLOUDU.uCloudK.value = clK * 0.5;
   if (clK > 0) { const cv = typeof skyCover === 'number' ? skyCover : 0.35; CLOUDU.uCloudThr.value = 0.66 - cv * 0.32; const w = 0.004 + 0.012 * (typeof windAmt === 'number' ? windAmt : 0), ang = typeof wxAng === 'number' ? wxAng : 0.6;
     if (!reduced) { CLOUDU.uCloudOff.value.x -= Math.cos(ang) * w * dt; CLOUDU.uCloudOff.value.y -= Math.sin(ang) * w * dt; } }
   /* glints */
-  const glOn = fxUse('glints') && out && !top && k.sun > 0.05; glints.visible = glOn;
+  const glOn = fxUse('glints') && out && !top && k.sun > 0.3; glints.visible = glOn;
   if (glOn) { const u = glMat.uniforms; u.uT.value = reduced ? 0 : time; u.uOp.value = k.sun * (0.9 + 0.5 * k.gold); u.uScale.value = moMat.uniforms.uScale.value || 400; if (!moOn) u.uScale.value = fxSize.y > 0 ? fxSize.y * 0.5 / Math.tan(cam.fov * Math.PI / 360) : 400; u.uFocus.value.copy(camFocus);
     u.uG.value.set(1, pond && pond.water && pond.water.visible ? 1 : 0, fountain && fountain.water && fountain.water.visible ? 1 : 0); u.uCol.value.set('#fff8e6').lerp(_fxc.set('#ffd29a'), k.gold); }
   /* evening details: from late afternoon to morning */
@@ -437,7 +450,7 @@ function fxRender(dt) {
   if (rays) { fxSource(); fxRays.uniforms.tM.value = fxA.texture; fxPass(fxRays, fxR); const u = fxBlur.uniforms; u.tS.value = fxR.texture; u.uDir.value.set(1.5 / qw, 0); fxPass(fxBlur, fxR2); u.tS.value = fxR2.texture; u.uDir.value.set(0, 1.5 / qh); fxPass(fxBlur, fxR); }
   if (bloom) { const u = fxBlur.uniforms; for (let i = 0; i < 2; i++) { const s = 1 + i * 1.6; u.tS.value = fxA.texture; u.uDir.value.set(s / qw, 0); fxPass(fxBlur, fxB); u.tS.value = fxB.texture; u.uDir.value.set(0, s / qh); fxPass(fxBlur, fxA); } }
   const c = fxComp.uniforms; c.tS.value = fxMain.texture; c.tB.value = fxA.texture; c.tR.value = fxR.texture;
-  c.uBloom.value = bloom ? (0.8 + 0.1 * k.night + 0.25 * k.gold) * 0.6 : 0; c.uRays.value = rays ? k.sun * (2.2 + 0.8 * k.gold) * 0.55 : 0;
+  c.uBloom.value = bloom ? (0.8 + 0.1 * k.night + 0.25 * k.gold) * 0.6 : 0; c.uRays.value = rays ? k.sun * smoothstep(0.4, 0.8, k.sun) * fxRayK * (2.2 + 0.8 * k.gold) * 0.55 : 0;
   c.uRayCol.value.copy(sun.color).lerp(_fxc.set('#fff0d0'), 0.35);
   c.uGrade.value = fxUse('grade') ? 1 : 0; c.uGold.value = fxUse('grade') ? k.gold * 0.55 : 0; c.uAsp.value = fxSize.x / fxSize.y;
   if (!rays) fxSource();

@@ -28,11 +28,14 @@ const SUN_HOME = new T.Vector3(-10, 10, 7.5), SUN_OFF = SUN_HOME.clone();
 const SUN_PATHS = { lr: [[1, 0, 0], [0, 0, 1]], tb: [[0, 0, -1], [-0.35, 0, 0]], bt: [[0, 0, 1], [-0.35, 0, 0]] }; /* [rise direction, midday lean]: top/bottom go nearly straight over, with a slight arc to the left */
 let sunPath = 'bt'; try { const v = localStorage.getItem('pips-sunpath2'); if (SUN_PATHS[v]) sunPath = v; } catch (e) {}
 if (window.__farmTest) window.__sun = () => SUN_OFF.toArray().map((v) => +v.toFixed(2));
-/* the sea's shine: with the sun low in front of the camera the wavy sea made big white glare blobs; its sun highlight is
-   now capped and softened, so it reads as a gentle glitter path */
+/* the sea's shine: a hard cap made flat bright patches (the "blobs"), and at night the moon, which sits above the screen,
+   lit a patch with nothing to explain it. Now the highlight is squeezed smoothly (round, soft edges, never white) and
+   fades almost away at night, so the dark sea only keeps its gentle sheen */
+const SEA_SPEC = { value: 1 };
 if (typeof water !== 'undefined' && water.material && water.material.isMeshStandardMaterial) {
-  water.material.onBeforeCompile = (sh) => { sh.fragmentShader = sh.fragmentShader.replace('reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance', 'min( reflectedLight.directSpecular, vec3( 0.32 ) ) * 0.7 + reflectedLight.indirectSpecular + totalEmissiveRadiance'); };
-  water.material.customProgramCacheKey = () => 'pipsSeaSoft'; water.material.needsUpdate = true;
+  water.material.onBeforeCompile = (sh) => { sh.uniforms.uSeaSpec = SEA_SPEC;
+    sh.fragmentShader = 'uniform float uSeaSpec;\n' + sh.fragmentShader.replace('reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance', 'reflectedLight.directSpecular / ( vec3( 1.0 ) + reflectedLight.directSpecular * 3.0 ) * 0.55 * uSeaSpec + reflectedLight.indirectSpecular + totalEmissiveRadiance'); };
+  water.material.customProgramCacheKey = () => 'pipsSeaSoft2'; water.material.needsUpdate = true;
 }
 function sunArc(f) {
   const day = f < 0.64, p = day ? f / 0.64 : 1 - (f - 0.64) / 0.36, el = (18 + 37 * Math.sin(Math.PI * p)) * Math.PI / 180, d = 16;
@@ -200,6 +203,7 @@ function skyStep(dt) {
   mixHex(a.sun, b.sun, e, sun.color); sun.intensity = a.si + (b.si - a.si) * e;
   if (hemi) { mixHex(a.hs, b.hs, e, hemi.color); mixHex(a.hg, b.hg, e, hemi.groundColor); hemi.intensity = a.hi + (b.hi - a.hi) * e; }
   nightAmt = a.n + (b.n - a.n) * e; isNight = f > 0.68 && f < 0.95;
+  SEA_SPEC.value = 1 - 0.9 * clamp(nightAmt * 1.6, 0, 1);
   lampMat.color.copy(lampOff).lerp(lampOn, clamp(nightAmt * 2.6, 0, 1)); glowMat.opacity = Math.min(0.65, nightAmt * 1.3);
   pipLamp.intensity = nightAmt * 1.1;
   if (tractor) { tractor.g.updateMatrixWorld(); tractorLamp.position.copy(tractor.g.localToWorld(tmpV.set(0, 0.8, 1.6))); tractorLamp.intensity = nightAmt * (mount && mount.kind === 'tractor' ? 1.6 : 0.5); }
