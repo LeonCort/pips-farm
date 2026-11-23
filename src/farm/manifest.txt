@@ -67,6 +67,7 @@ radio.js
 unlockmap.js
 padread.js
 arrive.js
+stars.js
 mobile.js
 sandbox.js
 ../engine/gfx.js
