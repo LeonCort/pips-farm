@@ -67,6 +67,7 @@ unlockmap.js
 padread.js
 arrive.js
 mobile.js
+sandbox.js
 ../engine/gfx.js
 ../engine/clouds.js
 ../engine/rays.js
