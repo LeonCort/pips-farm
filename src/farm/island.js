@@ -57,6 +57,7 @@ function isleSplit() {
     const at = Object.keys(m.geometry.attributes).sort().join(','), blob = typeof blobMat !== 'undefined' && m.material === blobMat; if (at !== 'color,normal,position' && !(blob && at === 'position,uv')) return;
     const A = blob ? ['position', 'uv'] : ['position', 'normal', 'color'], S = A.map((k) => m.geometry.attributes[k]), p = S[0], keep = A.map(() => []), cut = new Map(); let any = false;
     for (let i = 0; i < p.count; i += 3) {
+      if (isNaN(p.getX(i) + p.getY(i) + p.getZ(i) + p.getX(i + 1) + p.getY(i + 1) + p.getZ(i + 1) + p.getX(i + 2) + p.getY(i + 2) + p.getZ(i + 2))) { any = true; continue; } /* a broken triangle: drop it */
       const hit = lotAt((p.getX(i) + p.getX(i + 1) + p.getX(i + 2)) / 3, (p.getY(i) + p.getY(i + 1) + p.getY(i + 2)) / 3, (p.getZ(i) + p.getZ(i + 1) + p.getZ(i + 2)) / 3, blob);
       let D = keep; if (hit) { any = true; const key = hit[0].id + ':' + hit[1]; if (!cut.has(key)) cut.set(key, { l: hit[0], k: hit[1], D: A.map(() => []) }); D = cut.get(key).D; }
       for (let j = i; j < i + 3; j++) S.forEach((s, q) => { for (let e = 0; e < s.itemSize; e++) D[q].push(s.array[j * s.itemSize + e]); });
