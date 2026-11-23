@@ -35,3 +35,6 @@ let tractor = null;
 const fountain = null, pond = null;
 const beds = [], tufts = [], ripples = [];
 const DOCK = { x: 0, edge: 99, z0: 99, z1: 99 }; /* no dock */
+
+/* the island's song: Island Sway instead of the farm's pastoral tune (Leon, 2026-11-23) */
+function radioMood(m) { return m === 'pastoral' ? 'sway' : m; }

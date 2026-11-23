@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261123202018">
+<meta name="app-ver" content="20261123202325">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2088,6 +2088,9 @@ let tractor = null;
 const fountain = null, pond = null;
 const beds = [], tufts = [], ripples = [];
 const DOCK = { x: 0, edge: 99, z0: 99, z1: 99 }; /* no dock */
+
+/* the island's song: Island Sway instead of the farm's pastoral tune (Leon, 2026-11-23) */
+function radioMood(m) { return m === 'pastoral' ? 'sway' : m; }
 /* ---------- Pips Island: gathering, signs and squares that rise out of the sea ----------
    Pip stands by a tree, rock or bush and works it on their own: chunks pop out and hop into the backpack.
    Each sea square next to the land has a sign; standing on its ring pours what Pip carries into it, and the price
@@ -5179,7 +5182,7 @@ function placeMood() {
 }
 /* the farm's house radio (farm/radio.js) can swap the day song, preview a station in the house, or turn music off */
 function musicMood() { const m = placeMood(); return typeof radioMood === 'function' ? radioMood(m) : m; }
-Snd.tracks = HERE === 'farm' ? ['pastoral', 'relaxed', 'coin'] : ['pastoral', 'coin', 'relaxed'];
+Snd.tracks = HERE === 'farm' ? ['pastoral', 'relaxed', 'coin'] : HERE === 'isle' ? ['sway', 'relaxed'] : ['pastoral', 'coin', 'relaxed'];
 if (window.__farmTest) { window.__snd = Snd; window.__pip = pip; }
 let actT = 0, menuT = 0, time = 0, xferT = 0, lastT = 0, saveT = 0, waterT = 0;
 function step(dt) {

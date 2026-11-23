@@ -15,7 +15,7 @@ function placeMood() {
 }
 /* the farm's house radio (farm/radio.js) can swap the day song, preview a station in the house, or turn music off */
 function musicMood() { const m = placeMood(); return typeof radioMood === 'function' ? radioMood(m) : m; }
-Snd.tracks = HERE === 'farm' ? ['pastoral', 'relaxed', 'coin'] : ['pastoral', 'coin', 'relaxed'];
+Snd.tracks = HERE === 'farm' ? ['pastoral', 'relaxed', 'coin'] : HERE === 'isle' ? ['sway', 'relaxed'] : ['pastoral', 'coin', 'relaxed'];
 if (window.__farmTest) { window.__snd = Snd; window.__pip = pip; }
 let actT = 0, menuT = 0, time = 0, xferT = 0, lastT = 0, saveT = 0, waterT = 0;
 function step(dt) {
