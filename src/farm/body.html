@@ -66,5 +66,5 @@ function ask(){return fetch("version.json?t="+Date.now(),{cache:"no-store"}).the
 function set(s,l){b.classList.remove("busy","ok","new","bad");if(s)b.classList.add(s);b.setAttribute("aria-label",l||"Check for updates");}
 ask().then(function(v){if(v!==cur)b.classList.add("has");}).catch(function(){});
 b.addEventListener("click",function(){if(b.classList.contains("busy"))return;set("busy","Checking for updates");
-ask().then(function(v){if(v!==cur){set("new","Updating");setTimeout(function(){location.replace(location.pathname+"?v="+encodeURIComponent(v));},700);}else{b.classList.remove("has");set("ok","Up to date");setTimeout(function(){set("");},2500);}})
+ask().then(function(v){if(v!==cur){set("new","Updating");setTimeout(function(){location.replace(location.pathname+"?"+(/[?&]sandbox=1\b/.test(location.search)?"sandbox=1&":"")+"v="+encodeURIComponent(v));},700);}else{b.classList.remove("has");set("ok","Up to date");setTimeout(function(){set("");},2500);}})
 .catch(function(){set("bad","Could not check, no internet?");setTimeout(function(){set("");},2500);});});})();</script>
