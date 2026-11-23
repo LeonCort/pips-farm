@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261123194958">
+<meta name="app-ver" content="20261123195459">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2043,7 +2043,7 @@ const DOCK = { x: 0, edge: 99, z0: 99, z1: 99 }; /* no dock */
 const FISH = []; /* no fish on this island yet (the engine's icon list asks) */
 const NODE_R = { tree: 0.36, rock: 0.55, bush: 0.45 };
 const YIELD = { tree: ['log', 2], rock: ['stone', 2], bush: ['berry', 3] };
-const HITS = { tree: 3, rock: 4, bush: 1 };
+const HITS = { tree: 6, rock: 8, bush: 3 }; /* Leon: slower, so each one feels like work */
 const REGROW = { tree: [12, 30], rock: [8, 50], bush: [25, 0] }; /* seconds as a stump, then seconds growing */
 const nodes = [], drops = [], signs = [], chests = [];
 let rising = null, hitT = 0, swing = 0, giveT = 0, pickHintT = 0;
@@ -2264,7 +2264,7 @@ function nodeStep(n, dt) {
     if (n.grow >= 1) { n.st = 'ready'; n.hp = HITS[n.kind]; } }
 }
 function nodeHit(n) {
-  n.hp--; n.shake = 0.28; swing = 1;
+  n.hp--; n.shake = 0.28; swing = 1; hpShow(n);
   const sx = n.x + (pip.position.x - n.x) * 0.4, sz = n.z + (pip.position.z - n.z) * 0.4;
   if (n.kind === 'tree') Snd.play('tock', { gain: 0.55, f: 240 + Math.random() * 40 }); else if (n.kind === 'rock') Snd.play('impact', { gain: 0.35 }); else Snd.play('swish', { gain: 0.4 });
   if (n.kind !== 'bush') splash(sx, 0.6, sz, 3);
@@ -2293,12 +2293,12 @@ function isleStep(dt) {
   if (best && best.kind === 'rock' && !state.isle.tools.pick) {
     if (pickHintT <= 0) { pickHintT = 2.5; isleHint(best); }
   } else if (best && canWork(best) && carry.count() + isleIncoming < cap() && hitT <= 0) {
-    hitT = best.kind === 'bush' ? 0.3 : 0.36; pip.rotation.y = Math.atan2(best.x - pip.position.x, best.z - pip.position.z); nodeHit(best);
+    hitT = best.kind === 'bush' ? 0.45 : 0.5; pip.rotation.y = Math.atan2(best.x - pip.position.x, best.z - pip.position.z); nodeHit(best);
   }
   swing = Math.max(0, swing - dt * 4); pb.rotation.x = reduced ? 0 : Math.sin(swing * Math.PI) * 0.35;
   nodes.forEach((n) => nodeStep(n, dt));
   for (let k = drops.length - 1; k >= 0; k--) if (dropStep(drops[k], dt)) drops.splice(k, 1);
-  signs.forEach((s) => signStep(s, dt));
+  signs.forEach((s) => signStep(s, dt)); hpStep(dt);
   storeStep2(dt); invStep();
   for (let k = chests.length - 1; k >= 0; k--) { chestStep(chests[k], dt); if (chests[k].gone) chests.splice(k, 1); }
   if (hintSp.visible) { hintSp.t -= dt; hintSp.material.opacity = Math.min(1, hintSp.t * 2); if (hintSp.t <= 0) hintSp.visible = false; }
@@ -2312,7 +2312,7 @@ function isleHint(n) { hintSp.position.set(n.x, 1.6, n.z); hintSp.visible = true
 function isleGoal() {
   const pp = pip.position, by = (L, f) => { let b = null, bd = 1e9; L.forEach((o) => { const d = Math.hypot(pp.x - o.x, pp.z - o.z); if ((!f || f(o)) && d < bd) { bd = d; b = o; } }); return b; };
   const c = by(chests, (o) => !o.open && o.pop >= 1); if (c) return [c.x, c.z + 0.85];
-  if (rising) return null;
+  if (rising || hpBar.sp.visible) return null; /* no arrow over the thing Pip is busy with */
   const full = carry.count() >= cap(), some = carry.count() > 0;
   /* a sign that what Pip has (backpack and crate together) can fill right now */
   const can = by(signs, (o) => ['log', 'stone', 'berry'].every((t) => signNeed(o, t) <= carry.count(t) + storeN(t)));
@@ -2398,6 +2398,28 @@ function invStep() {
   const v = ['log', 'stone', 'berry'].map((t) => storeN(t) + carry.count(t)), key = v.join(',');
   if (key === invLast) return; invLast = key;
   ['log', 'stone', 'berry'].forEach((t, k) => { const b = INV[t]; if (b.textContent !== String(v[k])) { b.textContent = v[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); } });
+}
+
+/* ---- a health bar over the thing Pip is working on: it drains with each hit ---- */
+const HP_H = { tree: 2.55, rock: 1.25, bush: 1.2 };
+const hpBar = (() => { const c = document.createElement('canvas'); c.width = 160; c.height = 40; const tex = new T.CanvasTexture(c);
+  const sp = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, depthTest: false })); sp.scale.set(1.2, 0.3, 1); sp.renderOrder = 10; sp.visible = false; sc.add(sp);
+  return { c, tex, sp, n: null, t: 0, shown: 1 }; })();
+function hpDraw(f) {
+  const x = hpBar.c.getContext('2d'); x.clearRect(0, 0, 160, 40);
+  x.beginPath(); x.roundRect(4, 6, 152, 28, 14); x.fillStyle = '#22303c'; x.fill();
+  x.beginPath(); x.roundRect(9, 11, 142, 18, 9); x.fillStyle = '#5a4a40'; x.fill();
+  if (f > 0) { x.beginPath(); x.roundRect(9, 11, Math.max(18, 142 * f), 18, 9); x.fillStyle = f > 0.5 ? '#7cc85a' : f > 0.25 ? '#f2c23c' : '#e9684a'; x.fill();
+    x.beginPath(); x.roundRect(13, 13, Math.max(10, 142 * f - 8), 5, 3); x.fillStyle = 'rgba(255,255,255,0.45)'; x.fill(); }
+  hpBar.tex.needsUpdate = true;
+}
+function hpShow(n) { if (hpBar.n !== n) hpBar.shown = 1; hpBar.n = n; hpBar.t = 2.2; hpBar.sp.visible = true; hpBar.goal = Math.max(0, n.hp / HITS[n.kind]); }
+function hpStep(dt) {
+  const b = hpBar; if (!b.sp.visible || !b.n) return;
+  b.t -= dt; b.shown += (b.goal - b.shown) * Math.min(1, dt * 10); hpDraw(b.shown);
+  b.sp.position.set(b.n.x, HP_H[b.n.kind] * (b.n.kind === 'tree' ? b.n.full : 1), b.n.z);
+  b.sp.material.opacity = Math.min(1, b.t * 3);
+  if (b.t <= 0 || (b.n.st !== 'ready' && b.shown < 0.02 && b.t < 1.6)) { b.sp.visible = false; b.n = null; }
 }
 /* ---------- Pip, second pass: a smooth, merged figure ----------
    Same rig as before (pb, limbs[] at the hips and shoulders, eyes[] for the blink, the head group at y 1.3), so the walk,
