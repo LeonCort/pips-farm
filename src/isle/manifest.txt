@@ -41,6 +41,7 @@ timed.js
 ../engine/guest2.js
 people.js
 bakery.js
+village.js
 ../engine/input.js
 ../engine/loop.js
 step.js
