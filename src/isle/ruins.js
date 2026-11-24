@@ -41,7 +41,7 @@ function makeRuin(A, fresh) {
 function ruinOpen(R) {
   if (!R || R.open) return; R.open = true; R.t = 0; state.isle.ruins[R.A.id] = 1; save();
   Snd.play('whoosh', { gain: 0.35 }); Snd.play('sparkle', { gain: 0.5 }, 0.5); Snd.play('success', { gain: 0.45, f: 'G5' }, 0.9);
-  xpGain(15);
+  xpGain(15); peopleRuinOpen(R);
 }
 function ruinStep(dt) {
   ruins.forEach((R) => {

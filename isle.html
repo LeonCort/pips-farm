@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261124200221">
+<meta name="app-ver" content="20261124202835">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2074,6 +2074,9 @@ const DOCK = { x: 0, edge: 99, z0: 99, z1: 99 }; /* no dock */
 
 /* the island's song: Island Sway instead of the farm's pastoral tune (Leon, 2026-11-23) */
 function radioMood(m) { return m === 'pastoral' ? 'sway' : m; }
+
+/* the engine's animal friends (guest2.js) wrap a first guestModel: on the island there is no plain one, only the felted ones */
+function guestModel(kind) { return new T.Group(); }
 /* ---------- Pips Island: gathering, signs and squares that rise out of the sea ----------
    Pip stands by a tree, rock or bush and works it on their own: chunks pop out and hop into the backpack.
    Each sea square next to the land has a sign; standing on its ring pours what Pip carries into it, and the price
@@ -2090,10 +2093,10 @@ const PICKY = { crystal: 1, rock: 1, boulder: 1, clay: 1 }; /* swung at with the
 /* the right tool for each thing (Leon, 2026-11-23): without it Pip still gets it, by hand, just three times slower,
    so a new island can be started at once and the tool found there makes it quick */
 const NEED = { crystal: 'pick', rock: 'pick', boulder: 'pick', clay: 'shovel', grass: 'sickle' };
-const hasTool = (k) => !NEED[k] || !!(state.isle.tools && state.isle.tools[NEED[k]]);
+const hasTool = (k) => (!NEED[k] || !!(state.isle.tools && state.isle.tools[NEED[k]])) && !(TIER_NEED[k] > toolTier()); /* ore also wants the smith's copper pick (people.js) */
 const byHand = (k) => !hasTool(k);
-function hitPow(k) { return (hasTool(k) ? 1 : 1 / 3) * xpPow(); }
-const KINDS = ['log', 'stone', 'berry', 'hay', 'clay']; /* building things, in counter order */
+function hitPow(k) { return (hasTool(k) ? (toolKind(k) ? TIER_POW[toolTier()] : 1) : 1 / 3) * xpPow(); }
+const KINDS = ['log', 'stone', 'berry', 'hay', 'clay', 'ore']; /* building things, in counter order */
 const nodes = [], drops = [], signs = [], chests = [];
 let rising = null, hitT = 0, giveT = 0, pickHintT = 0;
 
@@ -2109,8 +2112,8 @@ function isleIcon(x, t, cx, cy, s) {
   else if (t === 'clay') { x.beginPath(); x.moveTo(-19, 10); x.quadraticCurveTo(-18, -10, 0, -12); x.quadraticCurveTo(18, -10, 19, 10); x.closePath(); blob('#c9774a'); x.beginPath(); x.moveTo(-8, -4); x.quadraticCurveTo(0, -8, 8, -4); x.strokeStyle = '#f0b48c'; x.lineWidth = 2.6; x.stroke(); }
   else if (t === 'gem') { x.beginPath(); x.moveTo(0, -20); x.lineTo(15, -6); x.lineTo(0, 20); x.lineTo(-15, -6); x.closePath(); blob('#7fd3ef'); x.beginPath(); x.moveTo(-15, -6); x.lineTo(15, -6); x.moveTo(0, -20); x.lineTo(-4, 20); x.lineWidth = 1.8; x.strokeStyle = '#3f9cc0'; x.stroke(); }
   else if (t === 'coin') { x.beginPath(); x.arc(0, 0, 17, 0, 7); blob('#f2c23c'); x.beginPath(); x.arc(0, 0, 11, 0, 7); x.lineWidth = 2.2; x.strokeStyle = '#c08a1a'; x.stroke(); x.fillStyle = '#fff2b0'; x.beginPath(); x.arc(-5, -6, 3, 0, 7); x.fill(); }
-  else if (t === 'pick') { x.beginPath(); x.moveTo(-3, -10); x.lineTo(3, 20); x.lineWidth = 6; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.2; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
-    x.beginPath(); x.moveTo(-22, -4); x.quadraticCurveTo(0, -22, 22, -4); x.quadraticCurveTo(0, -12, -22, -4); x.closePath(); blob('#c7ced6'); }
+  else if (t === 'pick' || t === 'pick2' || t === 'pick3') { x.beginPath(); x.moveTo(-3, -10); x.lineTo(3, 20); x.lineWidth = 6; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.2; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
+    x.beginPath(); x.moveTo(-22, -4); x.quadraticCurveTo(0, -22, 22, -4); x.quadraticCurveTo(0, t === 'pick' ? -12 : -3, -22, -4); x.closePath(); blob({ pick2: '#e0904f', pick3: '#7fd3ef' }[t] || '#c7ced6'); if (t === 'pick3') { x.fillStyle = '#e9fbff'; x.beginPath(); x.arc(-8, -11, 2.6, 0, 7); x.fill(); } }
   else if (t === 'bag') { x.beginPath(); x.moveTo(-12, -6); x.quadraticCurveTo(0, -24, 12, -6); x.lineWidth = 4; x.strokeStyle = '#7d5e4e'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink; x.beginPath(); x.moveTo(-18, -6); x.lineTo(18, -6); x.lineTo(14, 16); x.lineTo(-14, 16); x.closePath(); blob('#d9a56b'); x.beginPath(); x.moveTo(-16, 4); x.lineTo(16, 4); x.lineWidth = 2; x.strokeStyle = '#a8743f'; x.stroke(); }
   else if (t === 'bolt') { x.beginPath(); x.moveTo(4, -22); x.lineTo(-14, 4); x.lineTo(-1, 4); x.lineTo(-6, 22); x.lineTo(14, -4); x.lineTo(1, -4); x.closePath(); blob('#f7c948'); x.fillStyle = '#fff2b0'; x.beginPath(); x.moveTo(2, -15); x.lineTo(-7, -1); x.lineTo(-3, -1); x.closePath(); x.fill(); }
   else if (t === 'shovel') { x.beginPath(); x.moveTo(0, -22); x.lineTo(0, 6); x.lineWidth = 7; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.6; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
@@ -2131,6 +2134,7 @@ function isleIcon(x, t, cx, cy, s) {
     x.save(); x.translate(8, -9); x.rotate(-0.7); x.beginPath(); x.roundRect(-15, -7, 30, 14, 3); blob('#8b939c'); x.restore(); }
   else if (t === 'tent') { x.beginPath(); x.moveTo(-22, 16); x.lineTo(0, -20); x.lineTo(22, 16); x.closePath(); blob('#e9684a'); x.beginPath(); x.moveTo(-7, 16); x.lineTo(0, 2); x.lineTo(7, 16); x.closePath(); blob('#7a3a2a');
     x.fillStyle = '#f4d76a'; const mn = new Path2D('M14 -24 A8 8 0 1 0 24 -12 A6 6 0 1 1 14 -24 Z'); x.fill(mn); x.lineWidth = 2; x.stroke(mn); }
+  else if (t === 'ore') peopleIcon(x, t);
   x.restore();
 }
 function paperBox(x, w, h) { x.save(); x.shadowColor = 'rgba(70,40,18,0.35)'; x.shadowBlur = 8; x.shadowOffsetY = 4; x.beginPath(); x.roundRect(6, 6, w - 12, h - 14, 18); x.fillStyle = '#fff6e4'; x.fill(); x.restore(); x.beginPath(); x.roundRect(6, 6, w - 12, h - 14, 18); x.lineWidth = 4; x.strokeStyle = '#6e4426'; x.stroke(); }
@@ -2157,6 +2161,7 @@ function itemGeo(t) {
   else if (t === 'clay') { const a = ico(0.13, 1, 1106); a.scale(1.25, 0.7, 1.05); g = fac(a, (cx, cy, cz, i) => shadeY('#c9774a', cy, -0.1, 0.1, i, 0.4), 1106); }
   else if (t === 'gem') { const a = new T.OctahedronGeometry(0.11, 0); a.scale(1, 1.4, 1); a.translate(0, 0.14, 0); g = fac(a, (cx, cy, cz, i) => new T.Color(i % 2 ? '#7fd3ef' : '#bdeaf8'), 1103); }
   else if (t === 'coin') { const a = new T.CylinderGeometry(0.12, 0.12, 0.05, 14); a.translate(0, 0.03, 0); g = fac(a, (cx, cy) => new T.Color(cy > 0.04 ? '#ffd75a' : '#d9a520'), 1104); }
+  else if (t === 'ore') g = oreItemGeo();
   else { const L = [[-0.05, 0, 0.02], [0.06, 0.01, -0.02], [0.0, 0.07, 0.0], [0.02, -0.01, 0.07]].map(([x, y, z], k) => new T.SphereGeometry(0.06, 8, 6).translate(x, y + 0.06, z)); g = fac(mergeGeos(L), (cx, cy, cz, i) => tone('#d6406a', i, 0.7), 1102); }
   ITEM_GEO[t] = g; return g;
 }
@@ -2211,7 +2216,7 @@ function makeNode(kind, x, z, seed) {
   else if (kind === 'planks') { n.main = new T.Mesh(RUIN_BOARDS, MAT); n.main.castShadow = true; n.full = 1; g.add(n.main); }
   else if (kind === 'tree') { n.main = tree(hash(seed, 2) > 0.7 || (areaAt(x, z) && areaAt(x, z).biome === 'snow') ? 'pine' : 'tree', seed); n.main.scale.setScalar(1.05 + hash(seed, 9) * 0.25); n.full = n.main.scale.x; g.add(n.main);
     n.stump = new T.Mesh(STUMP_GEO, MAT); n.stump.castShadow = true; n.stump.receiveShadow = true; n.stump.visible = false; g.add(n.stump); }
-  else if (kind === 'rock' || kind === 'boulder' || kind === 'clay' || kind === 'grass') { n.main = new T.Mesh(kind === 'rock' ? ROCK_GEO : kind === 'boulder' ? BOULDER_GEO : kind === 'clay' ? CLAY_GEO : GRASS_GEO, MAT); n.main.castShadow = kind !== 'clay'; n.main.receiveShadow = true;
+  else if (kind === 'rock' || kind === 'ore' || kind === 'boulder' || kind === 'clay' || kind === 'grass') { n.main = new T.Mesh(kind === 'ore' ? ORE_GEO : kind === 'rock' ? ROCK_GEO : kind === 'boulder' ? BOULDER_GEO : kind === 'clay' ? CLAY_GEO : GRASS_GEO, MAT); n.main.castShadow = kind !== 'clay'; n.main.receiveShadow = true;
     n.full = kind === 'grass' ? 0.9 + hash(seed, 4) * 0.3 : 0.9 + hash(seed, 4) * 0.25; n.main.scale.setScalar(n.full); g.add(n.main); }
   else { n.main = new T.Mesh(BUSH_GEO, MAT); n.main.castShadow = true; n.main.receiveShadow = true; n.full = 1; g.add(n.main); n.berries = new T.Group(); g.add(n.berries);
     for (let k = 0; k < 7; k++) { const a = k / 7 * 6.28 + hash(seed, k), r = 0.32 + hash(k, seed) * 0.1, b = new T.Mesh(BERRY_GEO, berryMat); b.position.set(Math.cos(a) * r, 0.3 + hash(seed, k + 5) * 0.32, Math.sin(a) * r); n.berries.add(b); } }
@@ -2225,10 +2230,10 @@ const LAYOUT = {
   berry: (x, z, h, n) => (n > 0.3 ? (h > 0.3 ? 'bush' : null) : h > 0.75 ? 'rock' : h > 0.45 ? 'tree' : null),
   meadow: (x, z, h, n) => (n > 1.0 ? (h > 0.35 ? 'tree' : null) : n < -0.9 ? (h > 0.4 ? 'bush' : null) : h > 0.42 ? 'grass' : null),
   orchard: (x, z, h, n) => (n > 0 ? (h > 0.3 ? 'tree' : null) : h > 0.55 ? 'grass' : h > 0.4 ? 'bush' : null),
-  stone: (x, z, h, n) => (n > 0.8 ? (h > 0.45 ? 'boulder' : null) : n < -0.9 ? (h > 0.4 ? 'clay' : null) : h > 0.8 ? 'tree' : h > 0.5 ? 'rock' : null),
+  stone: (x, z, h, n) => (n > 0.8 ? (h > 0.45 ? 'boulder' : null) : n < -0.9 ? (h > 0.4 ? 'clay' : null) : h > 0.83 ? 'ore' : h > 0.76 ? 'tree' : h > 0.5 ? 'rock' : null),
   snow: (x, z, h, n) => (n > 0.5 ? (h > 0.3 ? 'tree' : null) : n < -0.9 ? (h > 0.45 ? 'crystal' : null) : h > 0.7 ? 'rock' : h > 0.55 ? 'boulder' : h > 0.42 ? 'tree' : null),
-  cave: (x, z, h, n) => (n > 0.6 ? (h > 0.4 ? 'crystal' : null) : n < -0.8 ? (h > 0.5 ? 'boulder' : null) : h > 0.62 ? 'rock' : h > 0.5 ? 'crystal' : null),
-  clay: (x, z, h, n) => (n > 0.2 ? (h > 0.35 ? 'clay' : null) : h > 0.75 ? 'boulder' : h > 0.5 ? 'rock' : h > 0.4 ? 'tree' : null)
+  cave: (x, z, h, n) => (n > 0.6 ? (h > 0.4 ? 'crystal' : null) : n < -0.8 ? (h > 0.5 ? 'boulder' : null) : h > 0.86 ? 'ore' : h > 0.62 ? 'rock' : h > 0.5 ? 'crystal' : null),
+  clay: (x, z, h, n) => (n > 0.2 ? (h > 0.35 ? 'clay' : null) : h > 0.9 ? 'ore' : h > 0.75 ? 'boulder' : h > 0.5 ? 'rock' : h > 0.4 ? 'tree' : null)
 };
 /* spots that must stay clear: the camp, each chest, both ends of each bridge, and where signs stand */
 function areaClear(x, z) {
@@ -2243,7 +2248,7 @@ function areaClear(x, z) {
 }
 /* the start area is laid out by hand round the camp, so there is plenty to gather from the first minute (Leon, 2026-11-23) */
 const START_NODES = [['tree', -4.2, -4.0], ['tree', -2.4, -4.3], ['tree', 3.4, -4.2], ['tree', -4.4, 2.2], ['tree', 4.3, 3.3], ['tree', 2.6, 4.4], ['tree', -3.8, 4.3], ['tree', -4.5, -1.6],
-  ['bush', -2.8, 3.3], ['bush', 4.3, -2.6], ['bush', -4.4, 0.3], ['bush', 3.4, 2.4], ['bush', -0.9, 4.4], ['rock', 4.4, -0.9], ['rock', -3.0, -2.6]];
+  ['bush', -2.8, 3.3], ['bush', 4.3, -2.6], ['bush', -4.4, 0.3], ['bush', 3.4, 2.4], ['bush', -0.9, 4.4], ['rock', 4.4, -0.9], ['rock', -4.3, -2.9]]; /* the last rock moved aside for the smith's forge (people.js) */
 function areaFill(A, fresh) {
   if (A.start) { START_NODES.forEach(([k, x, z], q) => makeNode(k, x, z, 50 + q)); areaDecor(A); return; }
   const SP = 2.05, base = AREAS.indexOf(A) * 997; let c = 0;
@@ -2370,6 +2375,7 @@ function signWants() {
     areaSquares(A, (i, j) => DIRS.forEach(([a, b]) => { const ni = i - a, nj = j - b; if (!owned(ni, nj) || used.has(ni + ',' + nj)) return; const d = Math.hypot(ni * GS - A.cx, nj * GS - A.cz); if (d < bd - 0.01) { bd = d; best = [ni, nj, a, b]; } }));
     if (best) { used.add(best[0] + ',' + best[1]); want.set('a:' + A.id, { kind: 'area', A, at: best }); }
   });
+  peopleWants(want);
   return want;
 }
 const areaGhostGeo = (() => { const g = new T.PlaneGeometry(GS * 3 - 0.6, GS * 3 - 0.6, 12, 12); g.rotateX(-Math.PI / 2); return g; })();
@@ -2380,7 +2386,7 @@ function isleSigns() {
     const A = w.A;
     if (w.kind === 'area') { const [ni, nj, a, b] = w.at, x = ni * GS + a * (GS / 2 - 0.85) + (b ? 0.9 : 0), z = nj * GS + b * (GS / 2 - 0.85) + (a ? 0.9 : 0);
       signMake({ key, kind: 'area', A, cost: A.cost, x, z, ghostGeo: areaGhostGeo, ghostTex, gx: A.cx, gz: A.cz }); }
-    else { const B = A.bridge, L = Math.hypot(B.x1 - B.x0, B.z1 - B.z0), ux = (B.x1 - B.x0) / L, uz = (B.z1 - B.z0) / L, q = new T.PlaneGeometry(1.7, L, 2, 8); q.rotateX(-Math.PI / 2);
+    else if (!peopleSignMake(w, key)) { const B = A.bridge, L = Math.hypot(B.x1 - B.x0, B.z1 - B.z0), ux = (B.x1 - B.x0) / L, uz = (B.z1 - B.z0) / L, q = new T.PlaneGeometry(1.7, L, 2, 8); q.rotateX(-Math.PI / 2);
       signMake({ key, kind: 'bridge', A, cost: A.cost, x: B.x0 - ux * 0.6 - uz * 1.5, z: B.z0 - uz * 0.6 + ux * 1.5, ghostGeo: q, ghostTex, gx: (B.x0 + B.x1) / 2, gz: (B.z0 + B.z1) / 2, gy: -0.15, gr: Math.atan2(ux, uz) }); }
   });
   signs.forEach(drawSign);
@@ -2405,7 +2411,7 @@ function signStep(s, dt) {
 }
 function isleBuy(s) {
   delete state.isle.paid[s.key]; [s.g, s.ring, s.ghost].forEach((m) => sc.remove(m)); signs.splice(signs.indexOf(s), 1);
-  if (s.kind === 'area') areaRise(s.A); else bridgeBuild(s.A, false);
+  if (s.kind === 'area') areaRise(s.A); else if (!peopleBuy(s)) bridgeBuild(s.A, false);
   signs.forEach(drawSign); save();
 }
 
@@ -2517,13 +2523,13 @@ function isleStep(dt) {
   storeStep2(dt); invFlyStep(dt); invStep();
   for (let k = chests.length - 1; k >= 0; k--) { chestStep(chests[k], dt); if (chests[k].gone) chests.splice(k, 1); }
   if (hintSp.visible) { hintSp.t -= dt; hintSp.material.opacity = Math.min(1, hintSp.t * 2); if (hintSp.t <= 0) hintSp.visible = false; }
-  const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1); bldStep(dt); xpStep(dt); luckStep(dt); ruinStep(dt); caveStep(dt); springStep(dt); zoneStep(dt); timedStep(dt);
+  const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1); bldStep(dt); xpStep(dt); luckStep(dt); ruinStep(dt); caveStep(dt); springStep(dt); zoneStep(dt); timedStep(dt); peopleStep(dt);
 }
 /* the pets keep inside the box of the land Pip is on: home, or an island once Pip is there */
 function isleBoxStep() { const A = areaAt(pip.position.x, pip.position.z); if (A && HAS[A.id] && !A.cave) { const b = ISLAND.box; b.x0 = A.cx - 5.4; b.x1 = A.cx + 5.4; b.z0 = A.cz - 5.4; b.z1 = A.cz + 5.4; } }
 /* a picture over a rock that needs the pickaxe */
 const hintSp = isleSprite(isleBubble('pick'), 0.8); hintSp.visible = false; sc.add(hintSp);
-function isleHint(n) { hintSp.material.map = isleBubble(NEED[n.kind] || 'pick'); hintSp.position.set(n.x, (HP_H[n.kind] || 1.2) + 0.75, n.z); hintSp.visible = true; hintSp.t = 1.8; Snd.play('blip', { gain: 0.2, f: 420 }); }
+function isleHint(n) { hintSp.material.map = isleBubble(TIER_NEED[n.kind] > toolTier() ? 'pick' + TIER_NEED[n.kind] : NEED[n.kind] || 'pick'); hintSp.position.set(n.x, (HP_H[n.kind] || 1.2) + 0.75, n.z); hintSp.visible = true; hintSp.t = 1.8; Snd.play('blip', { gain: 0.2, f: 420 }); }
 
 /* the guide arrow: to a chest, to a sign once the backpack is full, and to a tree right at the start */
 function isleGoal() {
@@ -2537,6 +2543,7 @@ function isleGoal() {
   if (rising || hpBar.sp.visible) return null; /* no arrow over the thing Pip is busy with */
   const full = carry.count() >= cap(), some = carry.count() > 0;
   /* a sign that what Pip has (backpack and crate together) can fill right now */
+  const pg = peopleGoal(); if (pg) return pg;
   const can = by(signs, (o) => KINDS.every((t) => signNeed(o, t) <= storeN(t)));
   if (can && (full || some || KINDS.some((t) => storeN(t) >= 3))) return [can.x, can.z];
   if (full) return [STORE.x, STORE.z + 0.95];
@@ -2546,11 +2553,11 @@ function isleGoal() {
 function isleInit() {
   if (nodes.length) return;
   if (!state.isle || state.isle.map !== MAP_V) state.isle = fresh().isle; /* a save made for another map starts over */
-  const I = state.isle; I.paid = I.paid || {}; I.chests = I.chests || {}; I.ruins = I.ruins || {}; I.bld = I.bld || { tent: 1, fire: 1 }; I.tools = I.tools || { pick: 0, bag: 0 }; I.areas = I.areas || { h0: 1 };
+  const I = state.isle; I.paid = I.paid || {}; I.chests = I.chests || {}; I.ruins = I.ruins || {}; I.bld = I.bld || { tent: 1, fire: 1 }; I.tools = I.tools || { pick: 0, bag: 0 }; I.areas = I.areas || { h0: 1 }; I.folk = I.folk || {};
   AREAS.forEach((A) => { if (HAS[A.id] && A.bridge) bridgeBuild(A, true); if (HAS[A.id] || drawn(A.i, A.j)) areaFill(A, false); });
   nodes.forEach((n) => { n.pop = 0; n.g.scale.setScalar(1); });
   chests.forEach((c) => { c.pop = 1; c.g.scale.setScalar(1); });
-  I.store = I.store || { log: 0, stone: 0, berry: 0 }; if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit(); xpBuild();
+  I.store = I.store || { log: 0, stone: 0, berry: 0 }; if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit(); xpBuild(); peopleInit();
   isleSigns();
   pip.position.set(0, 0, 0.4); target.copy(pip.position); camFocus.copy(pip.position);
   dog.g.position.set(-1.2, 0, -0.6); petsInit();
@@ -2564,7 +2571,7 @@ function isleTest() {
     own: (ids) => { ids.split(',').forEach((id) => { state.isle.areas[id] = 1; }); save(); },
     tp: (x, z) => { pip.position.set(x, 0, z); target.set(x, 0, z); camFocus.set(x, 0, z); }, building: !!building,
     en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], bld: Object.assign({}, state.isle.bld), cave: inCave, spring: spring ? [spring.x, spring.z, spring.used] : null, springNow: () => { springT = 0; }, flutter: flutter ? flutter.caught : null, dayAt: (f) => { state.clock = Math.floor(state.clock / DAY) * DAY + f * DAY; }, down: stairsDown ? [stairsDown.x, stairsDown.z] : null, upMat: caveA && caveA.mat ? [caveA.mat.x, caveA.mat.z] : null, xp: Object.assign({}, xpS()), gain: (v) => xpGain(v), max: enMax(), up: (k) => bldUp(k), tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
-    walk: (x, z) => +walkSdf(x, z).toFixed(2), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
+    walk: (x, z) => +walkSdf(x, z).toFixed(2), folk: Object.assign({}, state.isle.folk), tier: toolTier(), smith: SM.g ? [+SM.g.position.x.toFixed(2), +SM.g.position.z.toFixed(2), SM.g.visible] : null, anvil: () => anvilOpen(), store: Object.assign({}, state.isle.store), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
 }
 
 /* ---- the storage crate at the camp: a full backpack empties into it, and signs take from it too ---- */
@@ -2639,9 +2646,9 @@ function invFlyStep(dt) {
 function invWig(t) { const it = INV['p' + t]; if (!it) return; it.classList.remove('wig'); void it.offsetWidth; it.classList.add('wig'); }
 function invStep() {
   if (!INV.el) return;
-  const K = KINDS.concat(['gem', 'coin']), v = K.map((t) => storeN(t) + carry.count(t) + invFlies.filter((f) => f.t === t).length * 0), key = v.join(',') + (state.isle.store.hay != null ? 'h' : '') + (state.isle.store.clay != null ? 'c' : '') + invFlies.map((f) => f.t[0]).join('');
+  const K = KINDS.concat(['gem', 'coin']), v = K.map((t) => storeN(t) + carry.count(t) + invFlies.filter((f) => f.t === t).length * 0), key = v.join(',') + (state.isle.store.hay != null ? 'h' : '') + (state.isle.store.clay != null ? 'c' : '') + (state.isle.store.ore != null ? 'o' : '') + invFlies.map((f) => f.t[0]).join('');
   if (key === invLast) return; invLast = key;
-  K.forEach((t, k) => { if (VALUABLE[t]) INV['p' + t].style.display = v[k] ? '' : 'none'; else if (t === 'hay' || t === 'clay') INV['p' + t].style.display = state.isle.store[t] != null || invFlies.some((f) => f.t === t) ? '' : 'none'; const b = INV[t]; if (b.textContent !== String(v[k])) { b.textContent = v[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); } });
+  K.forEach((t, k) => { if (VALUABLE[t]) INV['p' + t].style.display = v[k] ? '' : 'none'; else if (t === 'hay' || t === 'clay' || t === 'ore') INV['p' + t].style.display = state.isle.store[t] != null || invFlies.some((f) => f.t === t) ? '' : 'none'; const b = INV[t]; if (b.textContent !== String(v[k])) { b.textContent = v[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); } });
 }
 
 /* ---- a health bar over the thing Pip is working on: it drains with each hit ---- */
@@ -2669,17 +2676,20 @@ function hpStep(dt) {
 /* ---- Pip's tools and the work animation: a two-handed overhead swing with the axe (trees) or the pickaxe (rocks);
    the hit lands when the tool comes down. Bushes: both hands reach in and pick. ---- */
 const TOOL = (() => {
-  const mk = (kind) => { const g = new T.Group(), L = [];
+  const mk = (kind, g0) => { const g = g0 || new T.Group(), L = [], tc = toolCol;
     let q = new T.CylinderGeometry(0.028, 0.032, 0.56, 7); q.translate(0, -0.6, 0); L.push(fac(q, '#a8774f', 1700));
     q = new T.CylinderGeometry(0.036, 0.036, 0.08, 7); q.translate(0, -0.36, 0); L.push(fac(q, '#6e4426', 1701)); /* grip */
-    if (kind === 'axe') { q = new T.BoxGeometry(0.06, 0.12, 0.13); q.translate(0, -0.84, 0.06); L.push(fac(q, '#8b939c', 1702));
-      q = new T.BoxGeometry(0.05, 0.22, 0.1); q.translate(0, -0.84, 0.16); L.push(fac(q, (cx, cy, cz) => cz > 0.19 ? new T.Color('#eef2f5') : new T.Color('#b9c1c9'), 1703)); }
-    else if (kind === 'shovel') { q = new T.BoxGeometry(0.03, 0.2, 0.16); q.translate(0, -0.96, 0); L.push(fac(q, (cx, cy) => new T.Color(cy < -1.02 ? '#eef2f5' : '#b9c1c9'), 1708)); }
-    else if (kind === 'sickle') { const c = new T.TorusGeometry(0.13, 0.022, 5, 12, Math.PI * 1.2); c.rotateY(Math.PI / 2); c.translate(0, -0.9, 0.1); L.push(fac(c, '#d4dade', 1709)); }
-    else { q = new T.CylinderGeometry(0.035, 0.035, 0.08, 7); q.translate(0, -0.86, 0); L.push(fac(q, '#6e7680', 1704));
-      [1, -1].forEach((k) => { const c = new T.ConeGeometry(0.045, 0.26, 6); c.rotateX(k * Math.PI / 2 + k * 0.25); c.translate(0, -0.85 + 0.03, k * 0.14); L.push(fac(c, '#b9c1c9', 1705 + k)); }); }
+    if (kind === 'axe') { q = new T.BoxGeometry(0.06, 0.12, 0.13); q.translate(0, -0.84, 0.06); L.push(fac(q, () => tc('#8b939c'), 1702));
+      q = new T.BoxGeometry(0.05, 0.22, 0.1); q.translate(0, -0.84, 0.16); L.push(fac(q, (cx, cy, cz) => cz > 0.19 ? tc('#eef2f5') : tc('#b9c1c9'), 1703)); }
+    else if (kind === 'shovel') { q = new T.BoxGeometry(0.03, 0.2, 0.16); q.translate(0, -0.96, 0); L.push(fac(q, (cx, cy) => tc(cy < -1.02 ? '#eef2f5' : '#b9c1c9'), 1708)); }
+    else if (kind === 'sickle') { const c = new T.TorusGeometry(0.13, 0.022, 5, 12, Math.PI * 1.2); c.rotateY(Math.PI / 2); c.translate(0, -0.9, 0.1); L.push(fac(c, () => tc('#d4dade'), 1709)); }
+    else { q = new T.CylinderGeometry(0.035, 0.035, 0.08, 7); q.translate(0, -0.86, 0); L.push(fac(q, () => tc('#6e7680'), 1704));
+      [1, -1].forEach((k) => { const c = new T.ConeGeometry(0.045, 0.26, 6); c.rotateX(k * Math.PI / 2 + k * 0.25); c.translate(0, -0.85 + 0.03, k * 0.14); L.push(fac(c, () => tc('#b9c1c9'), 1705 + k)); }); }
     merged(L, MAT, g); g.scale.setScalar(1.35); g.position.y = 0.12; g.visible = false; return g; };
-  return { axe: mk('axe'), pick: mk('pick'), shovel: mk('shovel'), sickle: mk('sickle') };
+  const o = { axe: mk('axe'), pick: mk('pick'), shovel: mk('shovel'), sickle: mk('sickle') };
+  /* the smith's better tools: the same shapes with copper, then crystal heads */
+  o.re = () => ['axe', 'pick', 'shovel', 'sickle'].forEach((k) => { const g = o[k], v = g.visible; while (g.children.length) g.remove(g.children[0]); mk(k, g); g.visible = v; });
+  return o;
 })();
 let work = null, toolHold = 0;
 function workStart(n) { work = { n, t: 0, hit: false, kind: n.kind }; }
@@ -2824,8 +2834,10 @@ function enSleepStart() {
    costs; the hammer on the card goes green when the counters hold enough. Paid from the counters, like the signs. */
 const BLD = {
   tent: { max: 3, cost: [null, null, { log: 12, berry: 5 }, { log: 20, stone: 10, hay: 6 }], pic: [null, 'tent', 'tent', 'hut'] },
-  fire: { max: 3, cost: [null, null, { log: 6, stone: 4 }, { log: 10, stone: 10, clay: 4 }], pic: [null, 'fire', 'fire', 'fire'] }
+  fire: { max: 3, cost: [null, null, { log: 6, stone: 4 }, { log: 10, stone: 10, clay: 4 }], pic: [null, 'fire', 'fire', 'fire'] },
+  tool: { max: 3, cost: [null, null, { stone: 12, log: 8 }, { ore: 8, log: 10, clay: 4 }], pic: [null, 'pick', 'pick2', 'pick3'] } /* at the smith's anvil (people.js) */
 };
+const bldKeys = () => ['tent', 'fire'].concat(forgeUp() ? ['tool'] : []);
 const bldLv = (k) => (state.isle && state.isle.bld && state.isle.bld[k]) || 1;
 const enMax = () => [0, 100, 130, 160][bldLv('tent')] + xpEn();
 const enRegen = () => [0, 0.2, 0.33, 0.5][bldLv('fire')];
@@ -2908,7 +2920,7 @@ function bldBuild() {
   const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.setAttribute('aria-label', 'Stäng'); x.textContent = '✕'; m.appendChild(x);
   document.body.appendChild(m); BM.menu = m;
   const close = () => { m.hidden = true; Snd.play('tock', { gain: 0.25, f: 380 }); };
-  b.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); bldFill(); m.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); });
+  b.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); BM.keys = null; bldFill(); m.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); });
   x.addEventListener('click', (e) => { e.stopPropagation(); close(); });
   m.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (e.target === m) close(); });
   bldFill();
@@ -2918,15 +2930,16 @@ function bldIco(t) { if (!bldImg[t]) bldImg[t] = bldPic(t, 64).toDataURL(); cons
 /* what an upgrade does, as a picture: a longer energy bar (tent), faster energy (fire) */
 function bldEff(k, lv) {
   const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d');
-  isleIcon(x, 'bolt', 30, 48, 1.1);
+  isleIcon(x, k === 'tool' ? 'perkHit' : 'bolt', 30, 48, 1.1);
   x.lineWidth = 4; x.strokeStyle = PAL.ink;
-  if (k === 'tent') { for (let q = 0; q < 3; q++) { x.beginPath(); x.roundRect(54, 70 - q * 22, 32, 16, 5); x.fillStyle = q < lv ? '#7cc85a' : '#e6d9bd'; x.fill(); x.stroke(); } }
+  if (k === 'tool') { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } if (lv === 2) isleIcon(x, 'ore', 74, 82, 0.55); }
+  else if (k === 'tent') { for (let q = 0; q < 3; q++) { x.beginPath(); x.roundRect(54, 70 - q * 22, 32, 16, 5); x.fillStyle = q < lv ? '#7cc85a' : '#e6d9bd'; x.fill(); x.stroke(); } }
   else { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
   return c;
 }
 function bldFill() {
   const row = BM.row; if (!row) return; row.textContent = '';
-  ['tent', 'fire'].forEach((k) => {
+  (BM.keys || bldKeys()).forEach((k) => {
     const B = BLD[k], lv = bldLv(k), next = Math.min(B.max, lv + 1), c = B.cost[lv + 1];
     const card = document.createElement('div'); card.className = 'bldCard'; BM[k] = card;
     const pic = document.createElement('div'); pic.className = 'pic'; pic.appendChild(bldPic(B.pic[next], 128)); const eff = document.createElement('div'); eff.className = 'eff'; eff.appendChild(bldEff(k, next)); pic.appendChild(eff); card.appendChild(pic);
@@ -2945,14 +2958,15 @@ function bldUp(k) {
   Object.keys(c).forEach((t) => { state.isle.store[t] -= c[t]; });
   state.isle.bld[k] = bldLv(k) + 1; save();
   if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(-1.1, 1.2, 1.0, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
+  else if (k === 'tool') toolUp();
   else { fireShape(bldLv('fire')); bldPop = { g: campFlame.g, t: 0 }; burst(1.4, 0.8, 1.2, 10); }
   enShow = -1; enBarW();
   Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.1);
-  BM.menu.hidden = true; bldBadge(); camFocus.set(k === 'tent' ? -1.1 : 1.4, 0, k === 'tent' ? 1.0 : 1.2);
+  BM.menu.hidden = true; bldBadge(); if (k !== 'tool') camFocus.set(k === 'tent' ? -1.1 : 1.4, 0, k === 'tent' ? 1.0 : 1.2);
 }
 /* the energy bar grows with the tent */
 function enBarW() { const b = ENB.el && ENB.el.querySelector('.bar'); if (b) b.style.width = Math.min(220, 120 * enMax() / 100) + 'px'; }
-function bldBadge() { if (BM.btn) BM.btn.classList.toggle('can', bldCan('tent') || bldCan('fire')); if (BM.menu && !BM.menu.hidden) { const key = ['tent', 'fire'].map((k) => bldLv(k) + (bldCan(k) ? 'y' : 'n')).join(); if (key !== BM.key) { BM.key = key; bldFill(); } } }
+function bldBadge() { if (BM.btn) BM.btn.classList.toggle('can', bldKeys().some(bldCan)); if (BM.menu && !BM.menu.hidden) { const key = (BM.keys || bldKeys()).map((k) => bldLv(k) + (bldCan(k) ? 'y' : 'n')).join(); if (key !== BM.key) { BM.key = key; bldFill(); } } }
 /* ---------- Pip grows (Leon's idea list, 2026-11-23): every thing gathered gives stars (XP); a full star ring is a new
    level, and on each level the child picks one of three pictures: more energy (a longer bar), harder hits (things break
    sooner), or luck (now and then a clover: everything from that one comes twice). ---------- */
@@ -3081,7 +3095,7 @@ function makeRuin(A, fresh) {
 function ruinOpen(R) {
   if (!R || R.open) return; R.open = true; R.t = 0; state.isle.ruins[R.A.id] = 1; save();
   Snd.play('whoosh', { gain: 0.35 }); Snd.play('sparkle', { gain: 0.5 }, 0.5); Snd.play('success', { gain: 0.45, f: 'G5' }, 0.9);
-  xpGain(15);
+  xpGain(15); peopleRuinOpen(R);
 }
 function ruinStep(dt) {
   ruins.forEach((R) => {
@@ -5739,6 +5753,214 @@ function fxBenchFrame(t0) {
 }
 function fxFrame(dt) { const t0 = performance.now(); fxRender(dt); if (FX.bench) fxBenchFrame(t0); }
 if (window.__farmTest) { window.__dyn = DYN; window.__fx = FX; FX.u = fxComp.uniforms; FX.r = fxRays.uniforms; FX.cl = CLOUDU; FX.ren = renderer; FX.EV = EV; FX.AO = AO; FX.GR = GR; FX.awnInfo = () => { const awn = Object.values(FL.awn), out = [], v = new T.Vector3(); sc.traverse((o) => { if (o.isMesh && awn.includes(o.material)) { o.getWorldPosition(v); let ch = []; for (let p = o; p; p = p.parent) ch.push((p.type[0]) + (p.visible ? "" : "!") + (p.frustumCulled ? "" : "f") + (p.layers.mask !== 1 ? "L" : "")); out.push(v.toArray().map((q) => q.toFixed(1)).join(",") + " " + ch.join(">") + " det" + o.matrixWorld.determinant().toFixed(3)); } }); return out; }; }
+/* ---------- market guests, sellers and the shopkeeper, second pass: the same animal friends, rounded, felted and outlined ----------
+   guestModel still returns one group, so queues, sellers' hats and the shopkeeper's apron attach as before. One merged mesh each. */
+const G2 = { list: [] };
+function guestModel2(kind) {
+  const g = new T.Group(), col = { bunny: PAL.paper, bear: PAL.trunk, fox: PAL.accent, frog: PAL.leaf, duck: PAL.ochre }[kind], look = P2_LOOKS[PIP2.v] || P2_LOOKS[2], L = [], X = [], _c = new T.Color();
+  PIP2.skin = null; PIP2.fd = 1;
+  const lite = '#' + p2Mix(col, '#fff6e4', kind === 'bunny' ? 0 : 0.55).getHexString(), dark = '#' + new T.Color(col).multiplyScalar(0.8).getHexString();
+  const put = (geo, paint, x, y, z, o) => { o = o || {}; geo.computeBoundingBox(); const p = geo.attributes.position, y0 = geo.boundingBox.min.y, y1 = geo.boundingBox.max.y, a = new Float32Array(p.count * 3), lo = o.lo == null ? 0.8 : o.lo; _c.set(paint);
+    for (let k = 0; k < p.count; k++) { const s = lo + (1.06 - lo) * (y1 > y0 ? (p.getY(k) - y0) / (y1 - y0) : 1); a[k * 3] = _c.r * s; a[k * 3 + 1] = _c.g * s; a[k * 3 + 2] = _c.b * s; }
+    geo.setAttribute('color', new T.BufferAttribute(a, 3)); geo.userData.felt = o.felt == null ? 1 : o.felt; if (o.rx) geo.rotateX(o.rx); if (o.rz) geo.rotateZ(o.rz); geo.translate(x || 0, y || 0, z || 0); (o.x ? X : L).push(geo); };
+  const eye = (x, y, z, r) => { put(p2Ball(r, 1, 1.12, 0.7, 10, 8), '#22303c', x, y, z, { x: 1, felt: 0, lo: 1 }); put(p2Ball(r * 0.34, 1, 1, 1, 6, 5), '#ffffff', x + r * 0.28, y + r * 0.36, z + r * 0.56, { x: 1, felt: 0, lo: 1 }); };
+  put(p2Ball(0.26, 1, 1.15, 0.9, 18, 12), col, 0, 0.36, 0);
+  put(p2Ball(1, 0.17, 0.2, 0.08, 12, 8), lite, 0, 0.34, 0.172, { x: 1, lo: 0.9 });
+  put(p2Ball(0.225, 1, 1, 1, 18, 14), col, 0, 0.78, 0.02);
+  [-1, 1].forEach((s) => { put(p2Ball(1, 0.085, 0.045, 0.115, 10, 6), dark, s * 0.11, 0.035, 0.07); put(p2Ball(1, 0.06, 0.13, 0.065, 10, 8), col, s * 0.25, 0.42, 0.03, { rz: s * 0.35 }); });
+  if (kind === 'bunny') { [-1, 1].forEach((s) => { put(p2Ball(1, 0.05, 0.18, 0.035, 10, 10), col, s * 0.085, 1.07, 0, { rz: -s * 0.12 }); put(p2Ball(1, 0.026, 0.13, 0.012, 8, 8), '#f5a3a8', s * 0.085, 1.07, 0.03, { rz: -s * 0.12, x: 1, lo: 0.95 }); }); put(p2Ball(0.07, 1, 1, 1, 10, 8), col, 0, 0.26, -0.24); }
+  if (kind === 'bear') [-1, 1].forEach((s) => { put(p2Ball(0.078, 1, 1, 0.6, 10, 8), col, s * 0.155, 0.955, 0); put(p2Ball(0.042, 1, 1, 0.4, 8, 6), lite, s * 0.155, 0.955, 0.035, { x: 1, lo: 0.95 }); });
+  if (kind === 'fox') { [-1, 1].forEach((s) => { put(p2Lathe([[0, 0], [0.072, 0.004], [0.062, 0.03], [0.03, 0.12], [0.004, 0.17]], 8, 8), col, s * 0.115, 0.93, 0, { rz: -s * 0.2 }); }); put(p2Ball(1, 0.07, 0.07, 0.16, 10, 8), col, 0, 0.3, -0.3, { rx: -0.5 }); put(p2Ball(0.055, 1, 1, 1, 8, 6), '#fff6e4', 0, 0.39, -0.42); }
+  if (kind === 'frog') [-1, 1].forEach((s) => put(p2Ball(0.078, 1, 1, 1, 10, 8), col, s * 0.095, 0.955, 0.06));
+  if (kind === 'duck') { put(p2Ball(1, 0.075, 0.032, 0.1, 10, 6), PAL.accent, 0, 0.755, 0.235, { felt: 0.2, lo: 0.9 }); put(p2Ball(0.06, 0.6, 1, 1.2, 8, 6), col, 0, 1.0, -0.02, { rx: -0.4 }); put(p2Ball(0.09, 0.7, 0.7, 1.1, 8, 6), col, 0, 0.42, -0.26, { rx: -0.6 }); }
+  else { put(p2Ball(0.085, 1, 0.78, 0.7, 12, 8), kind === 'fox' ? PAL.paper : kind === 'bunny' ? '#fbe6e2' : kind === 'frog' ? lite : PAL.blush, 0, 0.73, 0.2, { lo: 0.9 });
+    if (kind !== 'frog') put(p2Ball(0.026, 1.25, 0.85, 0.8, 8, 6), kind === 'bunny' ? '#f08a96' : '#2a2220', 0, 0.755, 0.262, { x: 1, felt: 0.1, lo: 1 }); }
+  if (kind === 'frog') { eye(-0.095, 0.975, 0.118, 0.032); eye(0.095, 0.975, 0.118, 0.032); } else { eye(-0.085, 0.845, 0.203, 0.031); eye(0.085, 0.845, 0.203, 0.031); }
+  p2Mesh(g, L, look.line * 0.9, null, X);
+  return g;
+}
+{ const gm0 = guestModel; G2.gm0 = gm0; guestModel = function (kind) { const g = PIP2.v ? guestModel2(kind) : gm0(kind); G2.list.push({ g, kind, own: g.children.slice() }); return g; }; }
+function g2Refresh() { G2.list = G2.list.filter((e) => e.g.parent); G2.list.forEach((e) => { e.own.forEach((c) => { e.g.remove(c); if (c.geometry) c.geometry.dispose(); }); const n = PIP2.v ? guestModel2(e.kind) : G2.gm0(e.kind); e.own = n.children.slice(); e.own.forEach((c) => e.g.add(c)); }); }
+{ const s3 = pip2Set; pip2Set = function (v) { s3(v); g2Refresh(); }; }
+if (window.__farmTest) window.__g2 = { make: (x, z) => { ['bunny', 'bear', 'fox', 'frog', 'duck'].forEach((k, n) => { const m = guestModel(k); m.position.set(x + n * 0.9, 0, z); m.rotation.y = 0.35; sc.add(m); }); } };
+/* ---------- people who rebuild the camp (Leon, 2026-11-24): first, the smith ----------
+   A bear in a leather apron hides in the old cottage on the second rocks island. When Pip knocks the planks off, she
+   steps out and shows a picture of what she needs (stones). Pip brings them from the counters and she moves to the camp,
+   next to a dashed plot. Paying the plot builds her forge and anvil. At the anvil she makes better tools: copper, then
+   crystal. Every tool works faster, and only copper or better gets the iron veins (ore) on the stone islands and in the
+   cave going properly: with the old pick Pip only scratches at them, three times as slow. The crystal tools cost ore.
+   state.isle.folk.smith: 0 in the cottage, 1 found (wants stones), 2 at the camp (forge plot), 3 forge built. */
+const TIER_NEED = { ore: 2 }; /* the tool level a kind needs to go at full speed */
+const TIER_POW = [1, 1, 1.5, 2.2]; /* how hard each tool level hits */
+const TIER_COL = [null, null, '#d9804a', '#62c8ee'];
+const toolTier = () => bldLv('tool');
+const toolKind = (k) => k === 'tree' || k === 'planks' || !!NEED[k]; /* worked with a tool, not picked by hand */
+function toolCol(hex) {
+  let tr = 1; try { tr = toolTier(); } catch (e) {} /* the tools are first made before the game is loaded */
+  const c = new T.Color(hex); if (tr < 2) return c;
+  const l = (c.r + c.g + c.b) / 3; return new T.Color(TIER_COL[tr]).multiplyScalar(0.45 + l * 0.75);
+}
+
+/* ---- ore: iron veins, a dark rock with rusty streaks and a few glints ---- */
+const ORE_GEO = (() => { const g = ico(0.55, 1, 2900, 0.1); g.scale(1.05, 0.78, 0.92); g.translate(0, 0.32, 0);
+  return fac(g, (cx, cy, cz, i) => hash(i, 7) > 0.84 ? tone('#f08a34', i, 0.4) : hash(i, 9) > 0.93 ? new T.Color('#ffd36a') : shadeY('#4f5660', cy, 0, 0.75, i, 0.5), 2900); })();
+Object.assign(NODE_R, { ore: 0.55 }); Object.assign(YIELD, { ore: ['ore', 2] }); Object.assign(HITS, { ore: 10 }); Object.assign(REGROW, { ore: [20, 30] });
+Object.assign(LOW, { ore: 0.35 }); Object.assign(PICKY, { ore: 1 }); Object.assign(NEED, { ore: 'pick' }); Object.assign(TREASURE, { ore: ['gem', 0.12] });
+Object.assign(HP_H, { ore: 1.35 }); Object.assign(EN_COST, { ore: 2 }); Object.assign(XP_FOR, { ore: 6 }); ITEM_H.ore = 0.2;
+function oreItemGeo() { const a = ico(0.13, 1, 2910); a.scale(1.15, 0.85, 1); return fac(a, (cx, cy, cz, i) => i % 4 === 0 ? tone('#d9773a', i, 0.5) : shadeY('#6a7078', cy, -0.12, 0.12, i, 0.5), 2910); }
+function peopleIcon(x, t) {
+  const blob = (f) => { x.fillStyle = f; x.fill(); x.stroke(); };
+  if (t === 'ore') { x.beginPath(); x.moveTo(-18, 9); x.quadraticCurveTo(-21, -7, -6, -13); x.quadraticCurveTo(12, -16, 19, -2); x.quadraticCurveTo(21, 12, 5, 13); x.quadraticCurveTo(-11, 15, -18, 9); x.closePath(); blob('#6a7078');
+    x.fillStyle = '#e08a3c'; [[-7, -3, 4], [6, 4, 3.4], [9, -7, 2.6]].forEach(([a, b, r]) => { x.beginPath(); x.arc(a, b, r, 0, 7); x.fill(); }); x.fillStyle = '#ffe28a'; x.beginPath(); x.arc(-2, 6, 2, 0, 7); x.fill(); }
+}
+
+/* ---- where things stand at the camp: the forge north-west of the tent, the anvil in front of it, the smith behind the anvil ---- */
+const FORGE = { x: -2.9, z: -2.45 }, ANVIL = { x: -1.6, z: -1.95 }, SMITH_AT = { x: -1.6, z: -2.47 }, ANVIL_RING = { x: -1.6, z: -1.2 }; /* far enough behind the tent that the camera sees over it */
+const SMITH_WANT = { stone: 8 }, FORGE_COST = { stone: 12, log: 10 };
+const SM = { g: null, hammer: null, pop: 0, hop: 0, move: null, swing: 0, arr: 0 };
+const folk = () => state.isle.folk || (state.isle.folk = {});
+const forgeUp = () => !!(state.isle && state.isle.folk && state.isle.folk.smith >= 3);
+
+function smithModel() {
+  const g = new T.Group(), body = guestModel2('bear'); body.scale.setScalar(1.3); g.add(body);
+  const L = [];
+  let q = new T.CylinderGeometry(0.2, 0.25, 0.42, 12, 1, true, -1.1, 2.2); q.translate(0, 0.38, 0.03); L.push(fac(q, (cx, cy, cz, i) => shadeY('#7a4a2a', cy, 0.15, 0.6, i, 0.4), 2920)); /* the apron */
+  q = new T.BoxGeometry(0.3, 0.035, 0.03); q.translate(0, 0.58, 0.23); L.push(fac(q, '#5a3a22', 2921));
+  q = new T.BoxGeometry(0.11, 0.08, 0.02); q.translate(0.06, 0.35, 0.27); L.push(fac(q, '#a8774f', 2922)); /* a pocket */
+  const ap = new T.Group(); ap.scale.setScalar(1.3); merged(L, MAT, ap); g.add(ap);
+  /* her hammer, in the right paw: it swings at the anvil once the forge is built */
+  const h = new T.Group(); h.position.set(0.36, 0.56, 0.1); const H = [];
+  q = new T.CylinderGeometry(0.028, 0.03, 0.42, 6); q.translate(0, 0.0, 0); q.rotateX(Math.PI / 2); q.translate(0, 0, 0.18); H.push(fac(q, '#a8774f', 2925));
+  q = new T.BoxGeometry(0.11, 0.11, 0.22); q.rotateY(Math.PI / 2); q.translate(0, 0, 0.4); H.push(fac(q, '#4b535c', 2926));
+  merged(H, MAT, h); h.rotation.x = -0.7; g.add(h); SM.hammer = h;
+  sc.add(g); return g;
+}
+/* where the smith stands now: by the cottage door (a step to the side, so the treasure can roll out), or at the camp */
+function smithSpot() {
+  if (folk().smith === 1) { const R = ruins.find((r) => r.A.id === 'h3'); if (R) { const c = Math.cos(R.rot), s = Math.sin(R.rot), P = [1, -1].map((k) => [R.x + s * 1.75 + c * 0.95 * k, R.z + c * 1.75 - s * 0.95 * k]);
+    const busy = ([x, z]) => nodes.filter((n) => n.kind !== 'planks' && (Math.hypot(n.x - x, n.z - z) < 1.3 || (Math.abs(n.x - x) < 1.2 && n.z > z && n.z - z < 3))).length; return busy(P[0]) <= busy(P[1]) ? P[0] : P[1]; } } /* the side of the door with fewer trees in the way */
+  return [SMITH_AT.x, SMITH_AT.z];
+}
+function smithPlace() { const [x, z] = smithSpot(); SM.g.position.set(x, 0, z); SM.g.rotation.y = 0; }
+
+/* ---- the forge and the anvil ---- */
+let forgeG = null, forgeGlow = null, forgeCoal = null, anvilRing = null;
+const tierSp = isleSprite(isleBubble('pick2'), 0.8); tierSp.visible = false; sc.add(tierSp);
+function forgeBuild(anim) {
+  if (forgeG) return;
+  const g = new T.Group(); g.position.set(FORGE.x, 0, FORGE.z); sc.add(g); const L = [];
+  const stone = (w, h, d, x, y, z, k, base) => { const q = new T.BoxGeometry(w, h, d, Math.max(1, Math.round(w * 3)), Math.max(1, Math.round(h * 3)), Math.max(1, Math.round(d * 3))); jit(q, 0.02, 2930 + k); q.translate(x, y, z);
+    L.push(fac(q, (cx, cy, cz, i) => shadeY(hash(i, k + 2) > 0.82 ? '#a39883' : base || '#bdb3a0', cy, 0, 1.6, i, 0.45), 2930 + k)); };
+  stone(1.35, 0.78, 1.0, 0, 0.39, 0, 0); /* the hearth */
+  stone(1.48, 0.12, 1.1, 0, 0.84, 0, 1, '#958b78');
+  stone(0.5, 1.45, 0.5, -0.36, 1.6, -0.22, 2, '#a99f8c'); /* the chimney */
+  stone(0.62, 0.1, 0.62, -0.36, 2.36, -0.22, 3, '#8a806e');
+  /* the anvil on a log, in front and to the side */
+  const ax = ANVIL.x - FORGE.x, az = ANVIL.z - FORGE.z;
+  let q = new T.CylinderGeometry(0.22, 0.26, 0.4, 10); q.translate(ax, 0.2, az); L.push(fac(q, (cx, cy, cz, i) => cy > 0.38 ? new T.Color('#e7c48f') : tone('#9a6a3e', i, 0.6), 2940));
+  q = new T.BoxGeometry(0.2, 0.12, 0.14); q.translate(ax, 0.46, az); L.push(fac(q, '#3e454d', 2941));
+  q = new T.BoxGeometry(0.46, 0.13, 0.22); q.translate(ax, 0.58, az); L.push(fac(q, (cx, cy) => new T.Color(cy > 0.62 ? '#7d8791' : '#4b535c'), 2942));
+  q = new T.ConeGeometry(0.075, 0.24, 7); q.rotateZ(-Math.PI / 2); q.translate(ax + 0.34, 0.6, az); L.push(fac(q, '#4b535c', 2943));
+  /* a water bucket by the hearth */
+  q = new T.CylinderGeometry(0.17, 0.14, 0.3, 10); q.translate(0.95, 0.15, -0.25); L.push(fac(q, (cx, cy, cz, i) => tone(Math.abs(cy - 0.15) < 0.05 ? '#5a3a22' : '#a8774f', i, 0.5), 2944));
+  merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), MAT, g);
+  /* the mouth of the hearth: dark, with glowing coals; a glow on top too */
+  q = new T.PlaneGeometry(0.62, 0.4); q.translate(0.18, 0.4, 0.505); g.add(new T.Mesh(q, new T.MeshBasicMaterial({ color: '#2a2018' })));
+  forgeCoal = new T.Mesh(new T.PlaneGeometry(0.52, 0.18), new T.MeshBasicMaterial({ color: '#ff8a3a' })); forgeCoal.position.set(0.18, 0.3, 0.51); g.add(forgeCoal);
+  const bed = new T.Mesh(new T.BoxGeometry(0.62, 0.05, 0.5), new T.MeshBasicMaterial({ color: '#ff7a2a' })); bed.position.set(0.25, 0.92, 0.08); g.add(bed);
+  forgeGlow = new T.Sprite(new T.SpriteMaterial({ map: softTex(32, 32), color: '#ffb060', transparent: true, opacity: 0.5, depthWrite: false })); forgeGlow.position.set(0.22, 0.75, 0.7); forgeGlow.scale.set(1.5, 1.2, 1); g.add(forgeGlow);
+  forgeG = g;
+  anvilRing = new T.Mesh(new T.RingGeometry(0.45, 0.6, 28), ringMat); anvilRing.rotation.x = -Math.PI / 2; anvilRing.position.set(ANVIL_RING.x, 0.035, ANVIL_RING.z); sc.add(anvilRing);
+  if (anim) { g.scale.setScalar(0.01); bldPop = { g, t: 0 }; burst(FORGE.x, 1.2, FORGE.z, 12); burst(ANVIL.x, 0.9, ANVIL.z, 6); }
+}
+
+function peopleInit() {
+  const F = folk(); F.smith = F.smith || 0;
+  if (!F.smith && state.isle.ruins.h3) F.smith = 1; /* the cottage was opened before she lived there */
+  if (!SM.g) SM.g = smithModel();
+  SM.g.visible = F.smith >= 1 && (F.smith > 1 || HAS.h3); if (SM.g.visible) smithPlace();
+  if (F.smith >= 3) forgeBuild(false);
+  tierSp.material.map = isleBubble('pick' + Math.min(3, toolTier() + 1));
+  TOOL.re();
+}
+/* the cottage on h3 just opened: she steps out once the treasure has rolled out */
+function peopleRuinOpen(R) { if (R.A.id === 'h3' && !folk().smith) { folk().smith = 1; SM.wait = 2.2; } }
+
+function peopleWants(want) {
+  const F = state.isle.folk; if (!F || !SM.g) return;
+  if (F.smith === 1 && SM.g.visible && !SM.wait && !SM.move) want.set('p:smith', { kind: 'person', who: 'smith' });
+  if (F.smith === 2 && !SM.move) want.set('f:forge', { kind: 'plot' });
+}
+const tinyGeo = new T.PlaneGeometry(0.01, 0.01);
+const plotGhostGeo = (() => { const g = new T.PlaneGeometry(2.9, 1.9, 6, 4); g.rotateX(-Math.PI / 2); return g; })();
+function peopleSignMake(w, key) {
+  if (w.kind === 'person') {
+    const [x, z] = smithSpot(), s = signMake({ key, kind: 'person', A: null, cost: SMITH_WANT, x, z, ghostGeo: tinyGeo, ghostTex, gx: x, gz: z, gy: -5 });
+    s.g.children.forEach((m) => { if (m.isMesh) m.visible = false; }); s.ghost.visible = false; s.ring.scale.setScalar(1.35); return true;
+  }
+  if (w.kind === 'plot') { signMake({ key, kind: 'plot', A: null, cost: FORGE_COST, x: -0.5, z: -1.4, ghostGeo: plotGhostGeo, ghostTex, gx: FORGE.x + 0.45, gz: FORGE.z + 0.2, gy: 0.04 }); return true; }
+  return false;
+}
+function peopleBuy(s) {
+  if (s.kind === 'person') { folk().smith = 2; SM.move = { t: 0, from: [SM.g.position.x, SM.g.position.z] }; Snd.play('success', { gain: 0.5, f: 'E6' }); burst(SM.g.position.x, 1.5, SM.g.position.z, 10); xpGain(10); return true; }
+  if (s.kind === 'plot') { folk().smith = 3; forgeBuild(true); Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.15); xpGain(15); bldBadge(); SM.hop = 1; return true; }
+  return false;
+}
+/* a new tool level: the tools are made again in the new colour, sparks fly off the anvil and she hops */
+function toolUp() {
+  TOOL.re(); SM.hop = 1; burst(ANVIL.x, 0.9, ANVIL.z, 10); splash(ANVIL.x, 0.7, ANVIL.z, 8);
+  tierSp.material.map = isleBubble('pick' + Math.min(3, toolTier() + 1)); hintSp.visible = false;
+  /* the new pick flies up out of the anvil to Pip */
+  const sp = isleSprite(isleBubble('pick' + toolTier()), 0.9); sp.position.set(ANVIL.x, 1.0, ANVIL.z); sc.add(sp); SM.gift = { sp, t: 0 };
+}
+function anvilOpen() { if (!forgeUp() || !BM.menu) return; const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; /* a new star's card first */ BM.keys = ['tool']; bldFill(); BM.menu.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); }
+
+function peopleGoal() {
+  const F = state.isle.folk; if (!F || !SM.g) return null; const pp = pip.position;
+  if (F.smith === 2 && SM.arr > 0 && Math.hypot(pp.x - SMITH_AT.x, pp.z - SMITH_AT.z) > 4) return [ANVIL_RING.x, ANVIL_RING.z]; /* she moved: show where to */
+  if (F.smith === 3 && toolTier() < 3 && bldCan('tool') && Math.hypot(pp.x, pp.z) < 14 && carry.count() < cap()) return [ANVIL_RING.x, ANVIL_RING.z];
+  return null;
+}
+
+let anvilIn = false, hamT = 0;
+function peopleStep(dt) {
+  if (!SM.g) return;
+  const F = folk(), g = SM.g, pp = pip.position;
+  /* she steps out of the cottage */
+  if (SM.wait) { SM.wait -= dt; if (SM.wait <= 0) { SM.wait = 0; smithPlace(); g.visible = true; SM.pop = 0.001; g.scale.setScalar(0.01); Snd.play('success', { gain: 0.45, f: 'A5' }); burst(g.position.x, 1.4, g.position.z, 8); isleSigns(); } }
+  if (SM.pop) { SM.pop = Math.min(1, SM.pop + dt * 2); g.scale.setScalar(SM.pop < 0.7 ? SM.pop / 0.7 * 1.1 : 1.1 - (SM.pop - 0.7) / 0.3 * 0.1); if (SM.pop >= 1) { SM.pop = 0; g.scale.setScalar(1); } }
+  /* moving to the camp: two happy hops, a puff, and she pops up by the camp (where the guide arrow then points) */
+  if (SM.move) { const M = SM.move; M.t += dt;
+    if (M.t < 1.0) { g.position.y = Math.abs(Math.sin(M.t * Math.PI * 2)) * 0.35; }
+    else if (M.t < 1.35) { g.scale.setScalar(Math.max(0.01, 1 - (M.t - 1.0) / 0.35)); if (!M.puff) { M.puff = 1; Snd.play('whoosh', { gain: 0.4 }); burst(g.position.x, 0.8, g.position.z, 6); } }
+    else { SM.move = null; g.position.y = 0; smithPlace(); SM.pop = 0.001; g.scale.setScalar(0.01); SM.arr = 25; Snd.play('pop', { gain: 0.4, f: 640 }); burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); save(); } }
+  SM.arr = Math.max(0, SM.arr - dt);
+  if (!g.visible) return;
+  /* standing about: a little bob, turned to Pip when Pip is close */
+  if (!SM.move) {
+    SM.hop = Math.max(0, SM.hop - dt * 1.6); g.position.y = SM.hop > 0 ? Math.abs(Math.sin(SM.hop * Math.PI * 3)) * 0.3 : 0;
+    const d = Math.hypot(pp.x - g.position.x, pp.z - g.position.z), face = d < 4 && F.smith < 3 ? Math.atan2(pp.x - g.position.x, pp.z - g.position.z) : 0;
+    let df = face - g.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df)); g.rotation.y += df * Math.min(1, dt * 5);
+    g.children[0].scale.y = 1.3 * (1 + (reduced ? 0 : Math.sin(time * 2.2) * 0.02));
+    if (d < 0.5 && d > 1e-4) { pp.x = g.position.x + (pp.x - g.position.x) / d * 0.5; pp.z = g.position.z + (pp.z - g.position.z) / d * 0.5; }
+  }
+  /* at the forge: she taps the anvil, the coals flicker; sparks and a soft ting when Pip is near */
+  if (F.smith >= 3 && forgeG) {
+    SM.swing += dt; const u = (SM.swing % 1.3) / 1.3, a = u < 0.6 ? -0.7 - 1.0 * Math.sin(u / 0.6 * Math.PI / 2) : -1.7 + 1.9 * Math.min(1, (u - 0.6) / 0.12);
+    SM.hammer.rotation.x = reduced ? -0.7 : Math.min(0.2, a);
+    hamT -= dt; if (u > 0.72 && hamT <= 0) { hamT = 1.0; const d = Math.hypot(pp.x - ANVIL.x, pp.z - ANVIL.z); if (d < 7 && !reduced) splash(ANVIL.x, 0.68, ANVIL.z, 3); if (d < 4.5) Snd.play('tock', { gain: 0.12, f: 1500 + Math.random() * 200 }); }
+    const fl = reduced ? 1 : 0.85 + Math.sin(time * 9) * 0.1 + Math.sin(time * 23) * 0.05; forgeCoal.material.color.setRGB(1, 0.5 * fl, 0.2 * fl); forgeGlow.material.opacity = (isNight ? 0.75 : 0.4) * fl;
+    /* Pip walks round the hearth and the anvil */
+    const bx = pp.x - FORGE.x, bz = pp.z - FORGE.z; if (Math.abs(bx) < 1.0 && Math.abs(bz) < 0.8) { if (1.0 - Math.abs(bx) < 0.8 - Math.abs(bz)) pp.x = FORGE.x + Math.sign(bx || 1) * 1.0; else pp.z = FORGE.z + Math.sign(bz || 1) * 0.8; }
+    const ad = Math.hypot(pp.x - ANVIL.x, pp.z - ANVIL.z); if (ad < 0.45 && ad > 1e-4) { pp.x = ANVIL.x + (pp.x - ANVIL.x) / ad * 0.45; pp.z = ANVIL.z + (pp.z - ANVIL.z) / ad * 0.45; }
+    /* the mat in front of the anvil opens her card */
+    const inR = Math.hypot(pp.x - ANVIL_RING.x, pp.z - ANVIL_RING.z) < 0.55; if (!inR) anvilIn = false; else if (!anvilIn && BM.menu && BM.menu.hidden) { anvilOpen(); anvilIn = !BM.menu.hidden; } /* once per visit; waits for a new star's card */
+    anvilRing.material.opacity = 0.55;
+    /* over her head: the next tool she can make */
+    tierSp.visible = toolTier() < 3 && !SM.gift; if (tierSp.visible) { const can = bldCan('tool'); tierSp.position.set(g.position.x, 2.15 + (reduced ? 0 : Math.sin(time * 2) * 0.05), g.position.z); tierSp.scale.setScalar(0.8 * (can && !reduced ? 1 + Math.sin(time * 5) * 0.08 : 1)); tierSp.material.opacity = can ? 1 : 0.7; }
+  }
+  if (SM.gift) { const G = SM.gift; G.t += dt; G.sp.position.y = 1.0 + G.t * 1.6; G.sp.material.opacity = Math.max(0, 1 - Math.max(0, G.t - 0.9) * 2); if (G.t > 1.5) { sc.remove(G.sp); SM.gift = null; } }
+}
 
 /* ---------- camera and input ---------- */
 let aspect = 1;

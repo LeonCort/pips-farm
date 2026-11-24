@@ -4,8 +4,10 @@
    costs; the hammer on the card goes green when the counters hold enough. Paid from the counters, like the signs. */
 const BLD = {
   tent: { max: 3, cost: [null, null, { log: 12, berry: 5 }, { log: 20, stone: 10, hay: 6 }], pic: [null, 'tent', 'tent', 'hut'] },
-  fire: { max: 3, cost: [null, null, { log: 6, stone: 4 }, { log: 10, stone: 10, clay: 4 }], pic: [null, 'fire', 'fire', 'fire'] }
+  fire: { max: 3, cost: [null, null, { log: 6, stone: 4 }, { log: 10, stone: 10, clay: 4 }], pic: [null, 'fire', 'fire', 'fire'] },
+  tool: { max: 3, cost: [null, null, { stone: 12, log: 8 }, { ore: 8, log: 10, clay: 4 }], pic: [null, 'pick', 'pick2', 'pick3'] } /* at the smith's anvil (people.js) */
 };
+const bldKeys = () => ['tent', 'fire'].concat(forgeUp() ? ['tool'] : []);
 const bldLv = (k) => (state.isle && state.isle.bld && state.isle.bld[k]) || 1;
 const enMax = () => [0, 100, 130, 160][bldLv('tent')] + xpEn();
 const enRegen = () => [0, 0.2, 0.33, 0.5][bldLv('fire')];
@@ -88,7 +90,7 @@ function bldBuild() {
   const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.setAttribute('aria-label', 'Stäng'); x.textContent = '✕'; m.appendChild(x);
   document.body.appendChild(m); BM.menu = m;
   const close = () => { m.hidden = true; Snd.play('tock', { gain: 0.25, f: 380 }); };
-  b.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); bldFill(); m.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); });
+  b.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); BM.keys = null; bldFill(); m.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); });
   x.addEventListener('click', (e) => { e.stopPropagation(); close(); });
   m.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (e.target === m) close(); });
   bldFill();
@@ -98,15 +100,16 @@ function bldIco(t) { if (!bldImg[t]) bldImg[t] = bldPic(t, 64).toDataURL(); cons
 /* what an upgrade does, as a picture: a longer energy bar (tent), faster energy (fire) */
 function bldEff(k, lv) {
   const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d');
-  isleIcon(x, 'bolt', 30, 48, 1.1);
+  isleIcon(x, k === 'tool' ? 'perkHit' : 'bolt', 30, 48, 1.1);
   x.lineWidth = 4; x.strokeStyle = PAL.ink;
-  if (k === 'tent') { for (let q = 0; q < 3; q++) { x.beginPath(); x.roundRect(54, 70 - q * 22, 32, 16, 5); x.fillStyle = q < lv ? '#7cc85a' : '#e6d9bd'; x.fill(); x.stroke(); } }
+  if (k === 'tool') { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } if (lv === 2) isleIcon(x, 'ore', 74, 82, 0.55); }
+  else if (k === 'tent') { for (let q = 0; q < 3; q++) { x.beginPath(); x.roundRect(54, 70 - q * 22, 32, 16, 5); x.fillStyle = q < lv ? '#7cc85a' : '#e6d9bd'; x.fill(); x.stroke(); } }
   else { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
   return c;
 }
 function bldFill() {
   const row = BM.row; if (!row) return; row.textContent = '';
-  ['tent', 'fire'].forEach((k) => {
+  (BM.keys || bldKeys()).forEach((k) => {
     const B = BLD[k], lv = bldLv(k), next = Math.min(B.max, lv + 1), c = B.cost[lv + 1];
     const card = document.createElement('div'); card.className = 'bldCard'; BM[k] = card;
     const pic = document.createElement('div'); pic.className = 'pic'; pic.appendChild(bldPic(B.pic[next], 128)); const eff = document.createElement('div'); eff.className = 'eff'; eff.appendChild(bldEff(k, next)); pic.appendChild(eff); card.appendChild(pic);
@@ -125,11 +128,12 @@ function bldUp(k) {
   Object.keys(c).forEach((t) => { state.isle.store[t] -= c[t]; });
   state.isle.bld[k] = bldLv(k) + 1; save();
   if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(-1.1, 1.2, 1.0, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
+  else if (k === 'tool') toolUp();
   else { fireShape(bldLv('fire')); bldPop = { g: campFlame.g, t: 0 }; burst(1.4, 0.8, 1.2, 10); }
   enShow = -1; enBarW();
   Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.1);
-  BM.menu.hidden = true; bldBadge(); camFocus.set(k === 'tent' ? -1.1 : 1.4, 0, k === 'tent' ? 1.0 : 1.2);
+  BM.menu.hidden = true; bldBadge(); if (k !== 'tool') camFocus.set(k === 'tent' ? -1.1 : 1.4, 0, k === 'tent' ? 1.0 : 1.2);
 }
 /* the energy bar grows with the tent */
 function enBarW() { const b = ENB.el && ENB.el.querySelector('.bar'); if (b) b.style.width = Math.min(220, 120 * enMax() / 100) + 'px'; }
-function bldBadge() { if (BM.btn) BM.btn.classList.toggle('can', bldCan('tent') || bldCan('fire')); if (BM.menu && !BM.menu.hidden) { const key = ['tent', 'fire'].map((k) => bldLv(k) + (bldCan(k) ? 'y' : 'n')).join(); if (key !== BM.key) { BM.key = key; bldFill(); } } }
+function bldBadge() { if (BM.btn) BM.btn.classList.toggle('can', bldKeys().some(bldCan)); if (BM.menu && !BM.menu.hidden) { const key = (BM.keys || bldKeys()).map((k) => bldLv(k) + (bldCan(k) ? 'y' : 'n')).join(); if (key !== BM.key) { BM.key = key; bldFill(); } } }

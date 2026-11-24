@@ -1,7 +1,7 @@
 # Pips Island (isle.html): script files glued in this order by tools/build.py. Paths are relative to this folder.
 # The engine files go in the same order as in the farm; zoo files sit where the farm's matching ones do.
 # Not here yet, because they still need the farm's house, fountain or flowers:
-#   polish.js (shadows and the fountain), cozy.js (flowers and bees), guest2.js (guests).
+#   polish.js (shadows and the fountain), cozy.js (flowers and bees). guest2.js is in, for the people Pip finds (people.js).
 ../engine/core.js
 ../engine/game.js
 rules.js
@@ -37,6 +37,8 @@ timed.js
 ../engine/gfx.js
 ../engine/clouds.js
 ../engine/rays.js
+../engine/guest2.js
+people.js
 ../engine/input.js
 ../engine/loop.js
 step.js

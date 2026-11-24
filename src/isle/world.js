@@ -38,3 +38,6 @@ const DOCK = { x: 0, edge: 99, z0: 99, z1: 99 }; /* no dock */
 
 /* the island's song: Island Sway instead of the farm's pastoral tune (Leon, 2026-11-23) */
 function radioMood(m) { return m === 'pastoral' ? 'sway' : m; }
+
+/* the engine's animal friends (guest2.js) wrap a first guestModel: on the island there is no plain one, only the felted ones */
+function guestModel(kind) { return new T.Group(); }
