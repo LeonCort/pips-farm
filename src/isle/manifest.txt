@@ -39,6 +39,7 @@ timed.js
 ../engine/rays.js
 ../engine/guest2.js
 people.js
+bakery.js
 ../engine/input.js
 ../engine/loop.js
 step.js

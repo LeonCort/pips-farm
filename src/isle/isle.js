@@ -56,6 +56,7 @@ function isleIcon(x, t, cx, cy, s) {
   else if (t === 'tent') { x.beginPath(); x.moveTo(-22, 16); x.lineTo(0, -20); x.lineTo(22, 16); x.closePath(); blob('#e9684a'); x.beginPath(); x.moveTo(-7, 16); x.lineTo(0, 2); x.lineTo(7, 16); x.closePath(); blob('#7a3a2a');
     x.fillStyle = '#f4d76a'; const mn = new Path2D('M14 -24 A8 8 0 1 0 24 -12 A6 6 0 1 1 14 -24 Z'); x.fill(mn); x.lineWidth = 2; x.stroke(mn); }
   else if (t === 'ore') peopleIcon(x, t);
+  else if (t === 'pie' || t === 'oven') bakeryIcon(x, t);
   x.restore();
 }
 function paperBox(x, w, h) { x.save(); x.shadowColor = 'rgba(70,40,18,0.35)'; x.shadowBlur = 8; x.shadowOffsetY = 4; x.beginPath(); x.roundRect(6, 6, w - 12, h - 14, 18); x.fillStyle = '#fff6e4'; x.fill(); x.restore(); x.beginPath(); x.roundRect(6, 6, w - 12, h - 14, 18); x.lineWidth = 4; x.strokeStyle = '#6e4426'; x.stroke(); }
@@ -492,7 +493,7 @@ function isleTest() {
     own: (ids) => { ids.split(',').forEach((id) => { state.isle.areas[id] = 1; }); save(); },
     tp: (x, z) => { pip.position.set(x, 0, z); target.set(x, 0, z); camFocus.set(x, 0, z); }, building: !!building,
     en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], bld: Object.assign({}, state.isle.bld), cave: inCave, spring: spring ? [spring.x, spring.z, spring.used] : null, springNow: () => { springT = 0; }, flutter: flutter ? flutter.caught : null, dayAt: (f) => { state.clock = Math.floor(state.clock / DAY) * DAY + f * DAY; }, down: stairsDown ? [stairsDown.x, stairsDown.z] : null, upMat: caveA && caveA.mat ? [caveA.mat.x, caveA.mat.z] : null, xp: Object.assign({}, xpS()), gain: (v) => xpGain(v), max: enMax(), up: (k) => bldUp(k), tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
-    walk: (x, z) => +walkSdf(x, z).toFixed(2), folk: Object.assign({}, state.isle.folk), tier: toolTier(), smith: SM.g ? [+SM.g.position.x.toFixed(2), +SM.g.position.z.toFixed(2), SM.g.visible] : null, anvil: () => anvilOpen(), store: Object.assign({}, state.isle.store), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
+    walk: (x, z) => +walkSdf(x, z).toFixed(2), folk: Object.assign({}, state.isle.folk), tier: toolTier(), smith: SM.g ? [+SM.g.position.x.toFixed(2), +SM.g.position.z.toFixed(2), SM.g.visible] : null, anvil: () => anvilOpen(), baker: BK.g ? [+BK.g.position.x.toFixed(2), +BK.g.position.z.toFixed(2), BK.g.visible] : null, bake: Object.assign({}, state.isle.bake), oven: () => ovenOpen(), store: Object.assign({}, state.isle.store), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
 }
 
 /* ---- the storage crate at the camp: a full backpack empties into it, and signs take from it too ---- */
@@ -542,7 +543,7 @@ function invBuild() {
     + '@keyframes invWig{0%{transform:none}25%{transform:rotate(-9deg) scale(1.16)}55%{transform:rotate(7deg) scale(1.08)}80%{transform:rotate(-3deg) scale(1.03)}100%{transform:none}}'
     + '.invfly{position:fixed;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;pointer-events:none;z-index:6;will-change:transform;filter:drop-shadow(0 3px 0 rgba(34,48,60,.25))}@media (max-width:520px){.inv img{width:30px;height:30px}.inv b{font-size:22px}.inv .it{padding:3px 10px 3px 4px}}';
   document.head.appendChild(st);
-  KINDS.concat(['gem', 'coin']).forEach((t) => { const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), t, 32, 32, 1.25);
+  KINDS.concat(['pie', 'gem', 'coin']).forEach((t) => { const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), t, 32, 32, 1.25);
     const it = document.createElement('div'); it.className = 'it'; INV['p' + t] = it; const img = document.createElement('img'); img.alt = ''; img.src = c.toDataURL(); INV['i' + t] = img.src; INV['m' + t] = img; const b = document.createElement('b'); b.textContent = '0';
     it.appendChild(img); it.appendChild(b); el.appendChild(it); INV[t] = b; });
   document.body.appendChild(el); INV.el = el;
@@ -567,9 +568,9 @@ function invFlyStep(dt) {
 function invWig(t) { const it = INV['p' + t]; if (!it) return; it.classList.remove('wig'); void it.offsetWidth; it.classList.add('wig'); }
 function invStep() {
   if (!INV.el) return;
-  const K = KINDS.concat(['gem', 'coin']), v = K.map((t) => storeN(t) + carry.count(t) + invFlies.filter((f) => f.t === t).length * 0), key = v.join(',') + (state.isle.store.hay != null ? 'h' : '') + (state.isle.store.clay != null ? 'c' : '') + (state.isle.store.ore != null ? 'o' : '') + invFlies.map((f) => f.t[0]).join('');
+  const K = KINDS.concat(['pie', 'gem', 'coin']), v = K.map((t) => storeN(t) + carry.count(t) + invFlies.filter((f) => f.t === t).length * 0), key = v.join(',') + (state.isle.store.hay != null ? 'h' : '') + (state.isle.store.clay != null ? 'c' : '') + (state.isle.store.ore != null ? 'o' : '') + invFlies.map((f) => f.t[0]).join('');
   if (key === invLast) return; invLast = key;
-  K.forEach((t, k) => { if (VALUABLE[t]) INV['p' + t].style.display = v[k] ? '' : 'none'; else if (t === 'hay' || t === 'clay' || t === 'ore') INV['p' + t].style.display = state.isle.store[t] != null || invFlies.some((f) => f.t === t) ? '' : 'none'; const b = INV[t]; if (b.textContent !== String(v[k])) { b.textContent = v[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); } });
+  K.forEach((t, k) => { if (VALUABLE[t] || t === 'pie') INV['p' + t].style.display = v[k] ? '' : 'none'; else if (t === 'hay' || t === 'clay' || t === 'ore') INV['p' + t].style.display = state.isle.store[t] != null || invFlies.some((f) => f.t === t) ? '' : 'none'; const b = INV[t]; if (b.textContent !== String(v[k])) { b.textContent = v[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); } });
 }
 
 /* ---- a health bar over the thing Pip is working on: it drains with each hit ---- */

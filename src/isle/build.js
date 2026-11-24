@@ -7,7 +7,7 @@ const BLD = {
   fire: { max: 3, cost: [null, null, { log: 6, stone: 4 }, { log: 10, stone: 10, clay: 4 }], pic: [null, 'fire', 'fire', 'fire'] },
   tool: { max: 3, cost: [null, null, { stone: 12, log: 8 }, { ore: 8, log: 10, clay: 4 }], pic: [null, 'pick', 'pick2', 'pick3'] } /* at the smith's anvil (people.js) */
 };
-const bldKeys = () => ['tent', 'fire'].concat(forgeUp() ? ['tool'] : []);
+const bldKeys = () => ['tent', 'fire'].concat(forgeUp() ? ['tool'] : [], ovenUp() ? ['oven'] : []);
 const bldLv = (k) => (state.isle && state.isle.bld && state.isle.bld[k]) || 1;
 const enMax = () => [0, 100, 130, 160][bldLv('tent')] + xpEn();
 const enRegen = () => [0, 0.2, 0.33, 0.5][bldLv('fire')];
@@ -100,9 +100,10 @@ function bldIco(t) { if (!bldImg[t]) bldImg[t] = bldPic(t, 64).toDataURL(); cons
 /* what an upgrade does, as a picture: a longer energy bar (tent), faster energy (fire) */
 function bldEff(k, lv) {
   const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d');
-  isleIcon(x, k === 'tool' ? 'perkHit' : 'bolt', 30, 48, 1.1);
+  isleIcon(x, k === 'tool' ? 'perkHit' : k === 'oven' ? 'pie' : 'bolt', 30, 48, k === 'oven' ? 0.95 : 1.1);
   x.lineWidth = 4; x.strokeStyle = PAL.ink;
-  if (k === 'tool') { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } if (lv === 2) isleIcon(x, 'ore', 74, 82, 0.55); }
+  if (k === 'oven') { if (lv >= 3) { isleIcon(x, 'pie', 30, 74, 0.7); } for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < Math.min(lv, 2) ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
+  else if (k === 'tool') { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } if (lv === 2) isleIcon(x, 'ore', 74, 82, 0.55); }
   else if (k === 'tent') { for (let q = 0; q < 3; q++) { x.beginPath(); x.roundRect(54, 70 - q * 22, 32, 16, 5); x.fillStyle = q < lv ? '#7cc85a' : '#e6d9bd'; x.fill(); x.stroke(); } }
   else { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
   return c;
@@ -129,10 +130,11 @@ function bldUp(k) {
   state.isle.bld[k] = bldLv(k) + 1; save();
   if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(-1.1, 1.2, 1.0, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
   else if (k === 'tool') toolUp();
+  else if (k === 'oven') ovenLevelUp();
   else { fireShape(bldLv('fire')); bldPop = { g: campFlame.g, t: 0 }; burst(1.4, 0.8, 1.2, 10); }
   enShow = -1; enBarW();
   Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.1);
-  BM.menu.hidden = true; bldBadge(); if (k !== 'tool') camFocus.set(k === 'tent' ? -1.1 : 1.4, 0, k === 'tent' ? 1.0 : 1.2);
+  BM.menu.hidden = true; bldBadge(); if (k === 'tent' || k === 'fire') camFocus.set(k === 'tent' ? -1.1 : 1.4, 0, k === 'tent' ? 1.0 : 1.2);
 }
 /* the energy bar grows with the tent */
 function enBarW() { const b = ENB.el && ENB.el.querySelector('.bar'); if (b) b.style.width = Math.min(220, 120 * enMax() / 100) + 'px'; }
