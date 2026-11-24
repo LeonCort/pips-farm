@@ -3,9 +3,9 @@
    (benches, then a cooking pot: energy comes back faster). Each card shows the next look, what it does, and what it
    costs; the hammer on the card goes green when the counters hold enough. Paid from the counters, like the signs. */
 const BLD = {
-  tent: { max: 3, cost: [null, null, { log: 12, berry: 5 }, { log: 20, stone: 10, hay: 6 }], pic: [null, 'tent', 'tent', 'hut'] },
-  fire: { max: 3, cost: [null, null, { log: 6, stone: 4 }, { log: 10, stone: 10, clay: 4 }], pic: [null, 'fire', 'fire', 'fire'] },
-  tool: { max: 3, cost: [null, null, { stone: 12, log: 8 }, { ore: 8, log: 10, clay: 4 }], pic: [null, 'pick', 'pick2', 'pick3'] } /* at the smith's anvil (people.js) */
+  tent: { max: 3, cost: [null, null, { log: 12, berry: 5 }, { log: 20, stone: 10, berry: 10 }], pic: [null, 'tent', 'tent', 'hut'] },
+  fire: { max: 3, cost: [null, null, { log: 6, stone: 4 }, { log: 12, stone: 12, crystal: 2 }], pic: [null, 'fire', 'fire', 'fire'] },
+  tool: { max: 3, cost: [null, null, { stone: 14, log: 10, coin: 10 }, { crystal: 8, stone: 20, coin: 25 }], pic: [null, 'pick', 'pick2', 'pick3'] } /* at the smith's anvil (people.js) */
 };
 const bldKeys = () => ['tent', 'fire'].concat(forgeUp() ? ['tool'] : [], ovenUp() ? ['oven'] : []);
 const bldLv = (k) => (state.isle && state.isle.bld && state.isle.bld[k]) || 1;
@@ -103,7 +103,7 @@ function bldEff(k, lv) {
   isleIcon(x, k === 'tool' ? 'perkHit' : k === 'oven' ? 'pie' : 'bolt', 30, 48, k === 'oven' ? 0.95 : 1.1);
   x.lineWidth = 4; x.strokeStyle = PAL.ink;
   if (k === 'oven') { if (lv >= 3) { isleIcon(x, 'pie', 30, 74, 0.7); } for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < Math.min(lv, 2) ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
-  else if (k === 'tool') { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } if (lv === 2) isleIcon(x, 'ore', 74, 82, 0.55); }
+  else if (k === 'tool') { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } isleIcon(x, lv >= 3 ? 'axe3' : 'axe2', 78, 80, 0.5); }
   else if (k === 'tent') { for (let q = 0; q < 3; q++) { x.beginPath(); x.roundRect(54, 70 - q * 22, 32, 16, 5); x.fillStyle = q < lv ? '#7cc85a' : '#e6d9bd'; x.fill(); x.stroke(); } }
   else { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
   return c;

@@ -1,19 +1,20 @@
 /* ---------- the second person: the baker (Leon, 2026-11-24: "continue with the next villager and upgrade") ----------
    A duck in a chef's hat hides in the old cottage on the orchard island. Open the door and she wants berries; bring them
    and she moves to the camp, next to a dashed plot east of the campfire. Paying the plot builds her clay oven.
-   The oven bakes on its own, and takes its time: each pie uses 3 berries and 2 hay from the counters and needs 45 seconds
-   (a bubble over the oven fills up like a clock). Pies go to their own counter. When Pip runs low on energy, Pip eats a pie
+   The oven bakes on its own, and takes its time: each pie uses 4 berries from the counters and needs 45 seconds
+   (a bubble over the oven fills up like a clock). Pies wait on the oven (up to five; no counter of their own). When Pip runs low on energy, Pip eats a pie
    on the spot (+60) instead of having to walk to the tent. Oven upgrades at her card: faster baking, then two pies at once
-   (the second one costs ore, from the smith's iron veins).
+   (paid with coins and crystals).
    state.isle.folk.baker: 0 in the cottage, 1 found (wants berries), 2 at the camp (oven plot), 3 oven built. state.isle.bake: progress. */
 const OVEN = { x: 3.3, z: -0.05 }, BAKER_AT = { x: 4.2, z: 0.25 }, OVEN_RING = { x: 3.3, z: 1.05 };
-const BAKER_WANT = { berry: 10 }, OVEN_COST = { clay: 8, stone: 10, log: 8 };
-const PIE_NEED = { berry: 3, hay: 2 }, PIE_EN = 60, OVEN_IN = new T.Vector3(OVEN.x, 0.6, OVEN.z + 0.3);
+const BAKER_WANT = { berry: 10 }, OVEN_COST = { stone: 12, log: 10 };
+const PIE_NEED = { berry: 4 }, PIE_MAX = 5, PIE_EN = 60, OVEN_IN = new T.Vector3(OVEN.x, 0.6, OVEN.z + 0.3);
 const bakeTime = () => [0, 45, 28, 28][bldLv('oven')], bakeBatch = () => [0, 1, 1, 2][bldLv('oven')];
-BLD.oven = { max: 3, cost: [null, null, { clay: 10, stone: 10, log: 10 }, { ore: 6, clay: 12, log: 12 }], pic: [null, 'oven', 'oven', 'oven'] };
+BLD.oven = { max: 3, cost: [null, null, { stone: 12, log: 12, coin: 8 }, { crystal: 6, log: 15, coin: 15 }], pic: [null, 'oven', 'oven', 'oven'] };
 const ovenUp = () => !!(state.isle && state.isle.folk && state.isle.folk.baker >= 3);
 const BK = { g: null, pop: 0, hop: 0, move: null, arr: 0, wait: 0 };
-const bake = () => state.isle.bake || (state.isle.bake = { t: 0, on: 0 });
+const bake = () => state.isle.bake || (state.isle.bake = { t: 0, on: 0, pies: 0 });
+const pies = () => bake().pies || 0;
 
 function bakeryIcon(x, t) {
   const blob = (f) => { x.fillStyle = f; x.fill(); x.stroke(); };
@@ -54,7 +55,7 @@ function pieDraw(f, ok) { /* a pie in a bubble, with a ring that fills while it 
   x.beginPath(); x.arc(64, 60, 50, 0, 7); x.fillStyle = '#fff6e4'; x.fill(); x.lineWidth = 5; x.strokeStyle = '#6e4426'; x.stroke();
   if (f > 0) { x.beginPath(); x.arc(64, 60, 50, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); x.lineWidth = 9; x.strokeStyle = '#74a857'; x.stroke(); }
   x.globalAlpha = ok ? 1 : 0.4; isleIcon(x, 'pie', 64, 62, 1.6); x.globalAlpha = 1;
-  if (!ok) { isleIcon(x, 'berry', 34, 98, 0.55); isleIcon(x, 'hay', 94, 98, 0.55); }
+  if (!ok) isleIcon(x, 'berry', 64, 100, 0.6);
   pieTex.needsUpdate = true;
 }
 function ovenBuild(anim) {
@@ -117,8 +118,8 @@ function bakerGoal() {
 /* Pip eats a pie when the energy runs low (and is not asleep) */
 const eatSp = isleSprite(isleBubble('pie'), 0.85); eatSp.visible = false; sc.add(eatSp);
 function pieEat() {
-  const I = state.isle; if (!I.store.pie || enSleep || I.en >= enMax() * 0.12) return false;
-  I.store.pie--; I.en = Math.min(enMax(), I.en + PIE_EN); enShow = -1; invWig('pie');
+  const I = state.isle; if (!pies() || enSleep || I.en >= enMax() * 0.12) return false;
+  bake().pies--; I.en = Math.min(enMax(), I.en + PIE_EN); enShow = -1;
   eatSp.visible = true; eatSp.t = 1.6; Snd.play('success', { gain: 0.4, f: 'A5' }); burst(pip.position.x, 1.6, pip.position.z, 5); return true;
 }
 
@@ -141,21 +142,21 @@ function bakerStep(dt) {
     const d = Math.hypot(pp.x - g.position.x, pp.z - g.position.z), face = d < 4 ? Math.atan2(pp.x - g.position.x, pp.z - g.position.z) : (F.baker >= 3 ? -0.9 : 0);
     let df = face - g.rotation.y; df = Math.atan2(Math.sin(df), Math.cos(df)); g.rotation.y += df * Math.min(1, dt * 5);
     g.children[0].scale.y = 1.3 * (1 + (reduced ? 0 : Math.sin(time * 2.4 + 1) * 0.02));
-    BK.pie.visible = F.baker === 1 || (F.baker >= 3 && (state.isle.store.pie || 0) > 0);
+    BK.pie.visible = F.baker === 1 || (F.baker >= 3 && pies() > 0);
     if (d < 0.5 && d > 1e-4) { pp.x = g.position.x + (pp.x - g.position.x) / d * 0.5; pp.z = g.position.z + (pp.z - g.position.z) / d * 0.5; }
   }
   if (F.baker >= 3 && ovenG) {
     const B = bake(), I = state.isle;
     /* start a pie when the counters hold its berries and hay: they fly from the crate into the oven */
-    if (!B.on && Object.keys(PIE_NEED).every((t) => storeN(t) >= PIE_NEED[t])) {
+    if (!B.on && pies() < PIE_MAX && Object.keys(PIE_NEED).every((t) => storeN(t) >= PIE_NEED[t])) {
       Object.keys(PIE_NEED).forEach((t) => { I.store[t] -= PIE_NEED[t]; invWig(t); if (Math.hypot(pp.x - OVEN.x, pp.z - OVEN.z) < 9) for (let k = 0; k < PIE_NEED[t]; k++) { const m = itemModel(t); m.position.set(STORE.x, 0.7, STORE.z); sc.add(m); fly(m, () => OVEN_IN, () => sc.remove(m), 0.5 + k * 0.1); } });
       B.on = 1; B.t = 0; save();
     }
-    if (B.on) { B.t += dt; if (B.t >= bakeTime()) { B.on = 0; B.t = 0; I.store.pie = (I.store.pie || 0) + bakeBatch(); invWig('pie'); BK.hop = 0.6; if (Math.hypot(pp.x - OVEN.x, pp.z - OVEN.z) < 9) { Snd.play('success', { gain: 0.35, f: 'G5' }); burst(OVEN.x, 1.0, OVEN.z + 0.4, 5); } save(); } }
-    const f = B.on ? B.t / bakeTime() : 0, ok = B.on || Object.keys(PIE_NEED).every((t) => storeN(t) >= PIE_NEED[t]), key = Math.round(f * 24) + (ok ? 'y' : 'n');
+    if (B.on) { B.t += dt; if (B.t >= bakeTime()) { B.on = 0; B.t = 0; B.pies = Math.min(PIE_MAX, pies() + bakeBatch()); BK.hop = 0.6; if (Math.hypot(pp.x - OVEN.x, pp.z - OVEN.z) < 9) { Snd.play('success', { gain: 0.35, f: 'G5' }); burst(OVEN.x, 1.0, OVEN.z + 0.4, 5); } save(); } }
+    const f = B.on ? B.t / bakeTime() : pies() >= PIE_MAX ? 1 : 0, ok = B.on || pies() >= PIE_MAX || Object.keys(PIE_NEED).every((t) => storeN(t) >= PIE_NEED[t]), key = Math.round(f * 24) + (ok ? 'y' : 'n');
     if (key !== pieSp.key) { pieSp.key = key; pieDraw(f, ok); }
     pieSp.visible = true; pieSp.position.set(OVEN.x, 1.75 + (reduced ? 0 : Math.sin(time * 2 + 1) * 0.05), OVEN.z - 0.1);
-    ovenPies.forEach((m, k) => { m.visible = k < (I.store.pie || 0); });
+    ovenPies.forEach((m, k) => { m.visible = k < pies(); });
     const fl = reduced ? 1 : 0.8 + Math.sin(time * 8) * 0.12 + Math.sin(time * 19) * 0.06, hot = B.on ? 1 : 0.45; ovenFire.material.color.setRGB(1, 0.55 * fl * hot + 0.2, 0.2 * fl); ovenGlow.material.opacity = (isNight ? 0.7 : 0.35) * fl * hot;
     /* Pip walks round the oven */
     const bx = pp.x - OVEN.x, bz = pp.z - OVEN.z; if (Math.abs(bx) < 0.85 && Math.abs(bz) < 0.85) { if (0.85 - Math.abs(bx) < 0.85 - Math.abs(bz)) pp.x = OVEN.x + Math.sign(bx || 1) * 0.85; else pp.z = OVEN.z + Math.sign(bz || 1) * 0.85; }

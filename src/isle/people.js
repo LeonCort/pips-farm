@@ -2,26 +2,17 @@
    A bear in a leather apron hides in the old cottage on the second rocks island. When Pip knocks the planks off, she
    steps out and shows a picture of what she needs (stones). Pip brings them from the counters and she moves to the camp,
    next to a dashed plot. Paying the plot builds her forge and anvil. At the anvil she makes better tools: copper, then
-   crystal. Every tool works faster, and only copper or better gets the iron veins (ore) on the stone islands and in the
-   cave going properly: with the old pick Pip only scratches at them, three times as slow. The crystal tools cost ore.
+   crystal (paid with coins). Each level opens the next tier of trees, rocks and crystals (tiers.js): the orchard oaks,
+   the stone islands and the cave need copper, the winter island crystal. A weaker tool just bounces off.
    state.isle.folk.smith: 0 in the cottage, 1 found (wants stones), 2 at the camp (forge plot), 3 forge built. */
-const TIER_NEED = { ore: 2 }; /* the tool level a kind needs to go at full speed */
-const TIER_POW = [1, 1, 1.5, 2.2]; /* how hard each tool level hits */
+const TIER_NEED = {}; /* (old: ore) */
 const TIER_COL = [null, null, '#d9804a', '#62c8ee'];
-const toolTier = () => bldLv('tool');
-const toolKind = (k) => k === 'tree' || k === 'planks' || !!NEED[k]; /* worked with a tool, not picked by hand */
 function toolCol(hex) {
   let tr = 1; try { tr = toolTier(); } catch (e) {} /* the tools are first made before the game is loaded */
   const c = new T.Color(hex); if (tr < 2) return c;
   const l = (c.r + c.g + c.b) / 3; return new T.Color(TIER_COL[tr]).multiplyScalar(0.45 + l * 0.75);
 }
 
-/* ---- ore: iron veins, a dark rock with rusty streaks and a few glints ---- */
-const ORE_GEO = (() => { const g = ico(0.55, 1, 2900, 0.1); g.scale(1.05, 0.78, 0.92); g.translate(0, 0.32, 0);
-  return fac(g, (cx, cy, cz, i) => hash(i, 7) > 0.84 ? tone('#f08a34', i, 0.4) : hash(i, 9) > 0.93 ? new T.Color('#ffd36a') : shadeY('#4f5660', cy, 0, 0.75, i, 0.5), 2900); })();
-Object.assign(NODE_R, { ore: 0.55 }); Object.assign(YIELD, { ore: ['ore', 2] }); Object.assign(HITS, { ore: 10 }); Object.assign(REGROW, { ore: [20, 30] });
-Object.assign(LOW, { ore: 0.35 }); Object.assign(PICKY, { ore: 1 }); Object.assign(NEED, { ore: 'pick' }); Object.assign(TREASURE, { ore: ['gem', 0.12] });
-Object.assign(HP_H, { ore: 1.35 }); Object.assign(EN_COST, { ore: 2 }); Object.assign(XP_FOR, { ore: 6 }); ITEM_H.ore = 0.2;
 function oreItemGeo() { const a = ico(0.13, 1, 2910); a.scale(1.15, 0.85, 1); return fac(a, (cx, cy, cz, i) => i % 4 === 0 ? tone('#d9773a', i, 0.5) : shadeY('#6a7078', cy, -0.12, 0.12, i, 0.5), 2910); }
 function peopleIcon(x, t) {
   const blob = (f) => { x.fillStyle = f; x.fill(); x.stroke(); };

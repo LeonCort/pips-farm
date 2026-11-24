@@ -9,7 +9,7 @@ const SHROOM_GEO = (() => {
     const cap = new T.SphereGeometry(0.13 * s, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2); cap.scale(1, 0.75, 1); cap.translate(x, 0.25 * s, z); L.push(fac(cap, (cx, cy, cz, i) => new T.Color(i % 5 === 0 ? '#e9fbff' : '#7fd8f5'), 2710 + k)); });
   return merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), MAT, new T.Group()).geometry;
 })();
-NODE_R.shroom = 0.25; YIELD.shroom = ['coin', 2]; HITS.shroom = 1; REGROW.shroom = [1e9, 0]; LOW.shroom = 0.02; TREASURE.shroom = ['gem', 0.2]; HP_H.shroom = 0.75; XP_FOR.shroom = 4;
+NODE_R.shroom = 0.25; YIELD.shroom = ['coin', 2]; HITS.shroom = 1; REGROW.shroom = [1e9, 0]; LOW.shroom = 0.02; TREASURE.shroom = ['crystal', 0.2]; HP_H.shroom = 0.75; XP_FOR.shroom = 4;
 let nightWas = null, flutter = null, flutterDay = -1;
 function timedSpot(r0, r1) {
   for (let k = 0; k < 60; k++) {
@@ -49,7 +49,7 @@ function flutterStep(F, dt) {
     const a = F.t * 0.7; F.g.position.set(F.x + Math.cos(a) * 1.2 + Math.sin(F.t * 2.3) * 0.3, 1.0 + Math.sin(F.t * 3.1) * 0.25, F.z + Math.sin(a * 1.3) * 0.9); F.g.rotation.y = -a;
     if (Math.hypot(pip.position.x - F.g.position.x, pip.position.z - F.g.position.z) < 0.75) {
       F.caught = true; F.ct = F.t; Snd.play('success', { gain: 0.5, f: 'G6' }); Snd.play('sparkle', { gain: 0.5 }, 0.1); burst(F.g.position.x, 1.2, F.g.position.z, 8); xpGain(6);
-      const m = itemModel('gem'); m.position.set(F.g.position.x, 1.0, F.g.position.z); sc.add(m); drops.push({ m, t: 'gem', vx: 0.6, vz: 0.6, vy: 3.5, land: 0, wait: 0.2 });
+      const m = itemModel('crystal'); m.position.set(F.g.position.x, 1.0, F.g.position.z); sc.add(m); drops.push({ m, t: 'crystal', vx: 0.6, vz: 0.6, vy: 3.5, land: 0, wait: 0.2 });
     }
     if (F.t > F.life) F.caught = true, F.ct = F.t;
   } else { F.g.position.y += dt * 2.2; F.g.position.x += dt * 1.2; if (F.t - F.ct > 2) { sc.remove(F.g); flutter = null; } }

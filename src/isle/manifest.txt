@@ -16,6 +16,7 @@ rules.js
 ../engine/base.js
 world.js
 isle.js
+tiers.js
 build.js
 xp.js
 ruins.js

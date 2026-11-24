@@ -7,7 +7,7 @@ const RUIN_BOARDS = (() => {
   return merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), MAT, new T.Group()).geometry;
 })();
 const ruins = [];
-const RUIN_LOOT = [['coin', 'coin', 'coin', 'gem'], ['coin', 'coin', 'gem', 'gem'], ['coin', 'coin', 'coin', 'gem', 'gem', 'gem']];
+const RUIN_LOOT = [['coin', 'coin', 'coin', 'coin', 'crystal'], ['coin', 'coin', 'coin', 'crystal', 'crystal'], ['coin', 'coin', 'coin', 'coin', 'crystal', 'crystal', 'crystal']];
 function makeRuin(A, fresh) {
   const [ox, oz, turn] = A.ruin, x = A.cx + ox, z = A.cz + oz, idx = AREAS.indexOf(A);
   const rot = turn; /* the door faces the camera (south, +z), so the child sees the planks and the light coming out */
