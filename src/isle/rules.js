@@ -27,7 +27,7 @@ const AREAS = [
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 24, clay: 10, log: 16 }, ruin: [0.8, -0.8, 0.3] },
   { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 26, clay: 14, hay: 12 } },
   /* the winter island, east of the orchard, over a bridge */
-  { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 30, hay: 18, stone: 16 }, bridge: { from: 'm2', x0: 18.6, z0: -16, x1: 21.4, z1: -16 } },
+  { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 30, hay: 18, stone: 16 }, bridge: { from: 'm2', x0: 17.4, z0: -16, x1: 22.6, z1: -16 } },
   { id: 'w1', i: 6, j: -9, biome: 'snow', cost: { log: 26, stone: 20, clay: 8 } },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
   { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 }
