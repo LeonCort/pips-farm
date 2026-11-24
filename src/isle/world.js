@@ -23,7 +23,7 @@ function storeStep() {} /* the engine hangs its own per-frame work on this one (
 function buyCam() { return false; }
 function routeStop() {}
 /* the pet is always outside with Pip on the island (engine/dog.js asks) */
-function petPlace() { return { home: false, away: false, goal: null, door: () => [pip.position.x - 1, pip.position.z - 0.8] }; }
+function petPlace() { return { home: false, away: false, goal: dogGoal(), door: () => [pip.position.x - 1, pip.position.z - 0.8] }; }
 function guideGoal() { return isleGoal(); }
 function barnGoal() { return null; }
 const tutArrowIn = () => false;

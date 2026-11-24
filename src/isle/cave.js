@@ -88,7 +88,7 @@ function caveStep(dt) {
   if (inCave && caveA) { pip.position.x = clamp(pip.position.x, caveA.cx - 4.9, caveA.cx + 4.9); pip.position.z = clamp(pip.position.z, caveA.cz - 4.9, caveA.cz + 4.2); }
   [stairsDown, caveA && caveA.mat].forEach((M) => {
     if (!M) return; const d = Math.hypot(pip.position.x - M.x, pip.position.z - M.z), still = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) < 0.3;
-    const on = d < M.R && still && !enSleep && (M.dir === 'down' ? !inCave : inCave);
+    const on = d < M.R && still && !enSleep && (M.dir === 'down' ? !inCave && gearDark() : inCave); /* down needs the torch (gear.js) */
     M.w = on ? Math.min(1, M.w + dt / 0.6) : Math.max(0, M.w - dt * 3); M.fg.setDrawRange(0, 6 * Math.round(40 * M.w));
     if (M.w >= 1) { M.w = 0; M.fg.setDrawRange(0, 0); caveGo(M.dir === 'down'); }
   });

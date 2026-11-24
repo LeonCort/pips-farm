@@ -7,7 +7,7 @@ const BLD = {
   fire: { max: 3, cost: [null, null, { log: 6, stone: 4 }, { log: 12, stone: 12, crystal: 2 }], pic: [null, 'fire', 'fire', 'fire'] },
   tool: { max: 3, cost: [null, null, { stone: 14, log: 10, coin: 10 }, { crystal: 8, stone: 20, coin: 25 }], pic: [null, 'pick', 'pick2', 'pick3'] } /* at the smith's anvil (people.js) */
 };
-const bldKeys = () => ['tent', 'fire'].concat(forgeUp() ? ['tool'] : [], ovenUp() ? ['oven'] : []);
+const bldKeys = () => ['tent', 'fire', 'dog'].concat(forgeUp() ? ['tool'] : [], ovenUp() ? ['oven'] : [], gearKeys());
 const bldLv = (k) => (state.isle && state.isle.bld && state.isle.bld[k]) || 1;
 const enMax = () => [0, 100, 130, 160][bldLv('tent')] + xpEn();
 const enRegen = () => [0, 0.2, 0.33, 0.5][bldLv('fire')];
@@ -72,7 +72,7 @@ function bldBuild() {
   st.textContent = '.bldBtn{position:fixed;top:calc(max(10px,env(safe-area-inset-top,0px)) + 92px);right:max(22px,env(safe-area-inset-right,0px));width:64px;height:64px;border-radius:50%;border:3px solid var(--ink);background:var(--paper);box-shadow:0 5px 0 rgba(34,48,60,.3);padding:6px;z-index:5}'
     + '.bldBtn canvas{width:100%;height:100%;display:block}.bldBtn:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(34,48,60,.3)}.bldBtn i{position:absolute;top:-4px;right:-4px;width:22px;height:22px;border-radius:50%;background:#74a857;border:3px solid var(--ink);display:none}'
     + '.bldBtn.can i{display:block}.bldBtn.can{animation:ready 1.4s ease-in-out infinite}'
-    + '.bldMenu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(34,48,60,.35);z-index:20;padding:16px}.bldMenu[hidden]{display:none}'
+    + '.bldMenu{position:fixed;inset:0;display:flex;align-items:center;justify-content:safe center;overflow:auto;background:rgba(34,48,60,.35);z-index:20;padding:16px}.bldMenu[hidden]{display:none}'
     + '.bldMenu .row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;max-width:100%}'
     + '.bldCard{background:var(--paper);border:4px solid #6e4426;border-radius:24px;box-shadow:0 6px 0 rgba(34,48,60,.3);padding:12px 14px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;width:220px}'
     + '.bldCard .pic{display:flex;align-items:center;gap:6px}.bldCard .pic canvas{width:110px;height:110px}.bldCard .eff canvas{width:56px;height:56px}'
@@ -100,6 +100,8 @@ function bldIco(t) { if (!bldImg[t]) bldImg[t] = bldPic(t, 64).toDataURL(); cons
 /* what an upgrade does, as a picture: a longer energy bar (tent), faster energy (fire) */
 function bldEff(k, lv) {
   const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d');
+  if (k === 'dog') { dogEff(x, lv); return c; }
+  if (GEAR[k]) { gearEff(x, k); return c; }
   isleIcon(x, k === 'tool' ? 'perkHit' : k === 'oven' ? 'pie' : 'bolt', 30, 48, k === 'oven' ? 0.95 : 1.1);
   x.lineWidth = 4; x.strokeStyle = PAL.ink;
   if (k === 'oven') { if (lv >= 3) { isleIcon(x, 'pie', 30, 74, 0.7); } for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < Math.min(lv, 2) ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
@@ -131,6 +133,8 @@ function bldUp(k) {
   if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(-1.1, 1.2, 1.0, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
   else if (k === 'tool') toolUp();
   else if (k === 'oven') ovenLevelUp();
+  else if (k === 'dog') dogUp();
+  else if (GEAR[k]) gearGot(k);
   else { fireShape(bldLv('fire')); bldPop = { g: campFlame.g, t: 0 }; burst(1.4, 0.8, 1.2, 10); }
   enShow = -1; enBarW();
   Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.1);

@@ -42,6 +42,8 @@ timed.js
 people.js
 bakery.js
 village.js
+isledog.js
+gear.js
 ../engine/input.js
 ../engine/loop.js
 step.js

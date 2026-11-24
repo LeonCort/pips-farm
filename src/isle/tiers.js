@@ -19,8 +19,8 @@ function nodeTier(kind, x, z) {
 }
 const nodeHits = (n) => HITS[n.kind] * HIT_MUL[n.tier || 1];
 const tierYield = (n) => Math.max(1, Math.round(YIELD[n.kind][1] * TIER_MUL[n.tier || 1]));
-function gated(n) { return toolKind(n.kind) && ((NEED[n.kind] && !hasTool(n.kind)) || toolTier() < (n.tier || 1)); }
-function gateIcon(n) { if (NEED[n.kind] && !hasTool(n.kind)) return 'pick'; const t = n.tier || 1; return (NEED[n.kind] ? 'pick' : 'axe') + (t > 1 ? t : ''); }
+function gated(n) { return gearGate(n) || toolKind(n.kind) && ((NEED[n.kind] && !hasTool(n.kind)) || toolTier() < (n.tier || 1)); }
+function gateIcon(n) { if (gearGate(n)) return 'torch'; if (NEED[n.kind] && !hasTool(n.kind)) return 'pick'; const t = n.tier || 1; return (NEED[n.kind] ? 'pick' : 'axe') + (t > 1 ? t : ''); }
 function tierPow(n) { return toolKind(n.kind) ? 1 + 1.5 * Math.max(0, toolTier() - (n.tier || 1)) : 1; }
 const dropReach = () => (toolTier() >= 2 ? 4.5 : 2.2);
 /* a tier-2 or tier-3 thing looks bigger: an old oak, a tall winter pine, a big crystal */
@@ -37,7 +37,7 @@ function wideHit(n) {
 function tierBounce(n) { n.shake = 0.14; Snd.play('tock', { gain: 0.35, f: 150 }); isleHint(n); }
 /* growing back: once Pip has slept */
 const sleepRegrow = (n) => (HAND[n.kind] && n.kind !== 'bush' ? REGROW[n.kind][0] : 1e9);
-function tierWake() { nodes.forEach((n) => { if (n.st === 'gone' && n.t > 1e8) n.t = 0.3 + Math.random() * 2.5; }); }
+function tierWake() { dogWake(); nodes.forEach((n) => { if (n.st === 'gone' && n.t > 1e8) n.t = 0.3 + Math.random() * 2.5; }); }
 /* old saves: gems are crystals now; hay, clay, ore and pies are gone */
 function tierMigrate(I) {
   const S = I.store; if (S.gem) S.crystal = (S.crystal || 0) + S.gem;

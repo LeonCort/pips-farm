@@ -85,8 +85,8 @@ const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 0, walk: 1.5, ring: {
 const KENNEL = { x: -1.6, z: -1.5 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
   isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0, sickle: 0, shovel: 0 }, chests: {}, ruins: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
-const speed = () => 3.2 + 0.45 * state.lv.speed;
-const cap = () => (state.isle && state.isle.tools.bag ? 10 : 6);
+const speed = () => (3.2 + 0.45 * state.lv.speed) * gearSlow(); /* deep snow without boots (gear.js) */
+const cap = () => (state.isle && state.isle.tools.bag ? 10 : 6) + (state.isle ? dogBags() : 0); /* + the dog's saddlebags (isledog.js) */
 const UPS = [{ id: 'speed', base: 10, g: 1.8, max: 8 }, { id: 'bag', base: 15, g: 1.8, max: 8 }];
 const upCost = (u) => Math.round(u.base * Math.pow(u.g, state.lv[u.id]));
 const ITEM_H = { log: 0.17, stone: 0.15, berry: 0.13, hay: 0.16, clay: 0.14 }; /* height of each thing Pip carries in the basket */

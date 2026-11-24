@@ -206,7 +206,7 @@ function rainStep(dt, out) {
     if (dPos[i * 3 + 1] < 0.03 || d.t <= 0) { if (d.fall && dPos[i * 3 + 1] < 0.05) { rainRing(dPos[i * 3], dPos[i * 3 + 2], false); RINGS[(ringI + RN - 1) % RN].r *= 0.8; } dPos[i * 3 + 1] = -99; } }
   dropPts.visible = anyD && out; if (anyD) dropGeo2.attributes.position.needsUpdate = true;
   /* the rain gear goes on with the rain (outside) and comes off when it stops or Pip goes in */
-  const gear = rainOn && rainAmt > 0.12 && !inHouse && !(typeof ED !== 'undefined' && ED.on) && !dressing && season !== 'winter';
+  const gear = rainOn && rainAmt > 0.12 && !inHouse && !(typeof ED !== 'undefined' && ED.on) && !dressing && season !== 'winter' && (typeof gearRain !== 'function' || gearRain()); /* the island: only once Pip owns the coat */
   if (gear !== RGEAR.on) { rainGearShow(gear); if (gear && out && !sleep) { Snd.play('pop', { gain: 0.3, f: 520 }); splash(pip.position.x, 1.2, pip.position.z, 5); } }
 }
 /* after the lamps are set for the time of day: a dark rainy day lights the street lamps, their pools and the windows */

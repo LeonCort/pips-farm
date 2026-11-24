@@ -58,6 +58,8 @@ function isleIcon(x, t, cx, cy, s) {
   else if (t === 'ore') peopleIcon(x, t);
   else if (t === 'pie' || t === 'oven') bakeryIcon(x, t);
   else if (t === 'axe' || t === 'axe2' || t === 'axe3') tiersIcon(x, t);
+  else if (t === 'dog' || t === 'fetch' || t === 'dig' || t === 'paw') dogIcon(x, t);
+  else if (['torch', 'coat', 'boots', 'web', 'bees', 'dark', 'rain', 'snowDeep'].indexOf(t) >= 0) gearIcon(x, t);
   x.restore();
 }
 function paperBox(x, w, h) { x.save(); x.shadowColor = 'rgba(70,40,18,0.35)'; x.shadowBlur = 8; x.shadowOffsetY = 4; x.beginPath(); x.roundRect(6, 6, w - 12, h - 14, 18); x.fillStyle = '#fff6e4'; x.fill(); x.restore(); x.beginPath(); x.roundRect(6, 6, w - 12, h - 14, 18); x.lineWidth = 4; x.strokeStyle = '#6e4426'; x.stroke(); }
@@ -325,6 +327,7 @@ function signStep(s, dt) {
   if (signSmallKey(s) !== s.smKey) drawSmall(s);
   s.ghost.material.opacity = 0.55 + (reduced ? 0 : Math.sin(time * 2.4 + s.seed) * 0.25);
   if (rising || building || giveT > 0 || Math.hypot(pip.position.x - s.x, pip.position.z - s.z) > 0.85) return;
+  if (gearSignShut(s)) return; /* a spider web over the bridge (gear.js) */
   const t = KINDS.find((q) => storeN(q) > 0 && signNeed(s, q) > 0); if (!t) return;
   /* from the counter: the piece appears over Pip's head and flies on to the sign */
   state.isle.store[t]--; invWig(t); const m = itemModel(t); m.position.set(pip.position.x, 1.9, pip.position.z); sc.add(m);
@@ -476,11 +479,11 @@ function isleGoal() {
 function isleInit() {
   if (nodes.length) return;
   if (!state.isle || state.isle.map !== MAP_V) state.isle = fresh().isle; /* a save made for another map starts over */
-  const I = state.isle; I.paid = I.paid || {}; I.chests = I.chests || {}; I.ruins = I.ruins || {}; I.bld = I.bld || { tent: 1, fire: 1 }; I.tools = I.tools || { pick: 0, bag: 0 }; I.areas = I.areas || { h0: 1 }; I.folk = I.folk || {};
+  const I = state.isle; I.paid = I.paid || {}; I.chests = I.chests || {}; I.ruins = I.ruins || {}; I.bld = I.bld || { tent: 1, fire: 1 }; I.tools = I.tools || { pick: 0, bag: 0 }; I.areas = I.areas || { h0: 1 }; I.folk = I.folk || {}; I.dug = I.dug || {};
   AREAS.forEach((A) => { if (HAS[A.id] && A.bridge) bridgeBuild(A, true); if (HAS[A.id] || drawn(A.i, A.j)) areaFill(A, false); });
   nodes.forEach((n) => { n.pop = 0; n.g.scale.setScalar(1); });
   chests.forEach((c) => { c.pop = 1; c.g.scale.setScalar(1); });
-  I.store = I.store || { log: 0, stone: 0, berry: 0 }; tierMigrate(I); if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit(); xpBuild(); peopleInit();
+  I.store = I.store || { log: 0, stone: 0, berry: 0 }; tierMigrate(I); if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit(); xpBuild(); peopleInit(); gearInit();
   isleSigns();
   pip.position.set(0, 0, 0.4); target.copy(pip.position); camFocus.copy(pip.position);
   dog.g.position.set(-1.2, 0, -0.6); petsInit();
@@ -494,7 +497,7 @@ function isleTest() {
     own: (ids) => { ids.split(',').forEach((id) => { state.isle.areas[id] = 1; }); save(); },
     tp: (x, z) => { pip.position.set(x, 0, z); target.set(x, 0, z); camFocus.set(x, 0, z); }, building: !!building,
     en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], bld: Object.assign({}, state.isle.bld), cave: inCave, spring: spring ? [spring.x, spring.z, spring.used] : null, springNow: () => { springT = 0; }, flutter: flutter ? flutter.caught : null, dayAt: (f) => { state.clock = Math.floor(state.clock / DAY) * DAY + f * DAY; }, down: stairsDown ? [stairsDown.x, stairsDown.z] : null, upMat: caveA && caveA.mat ? [caveA.mat.x, caveA.mat.z] : null, xp: Object.assign({}, xpS()), gain: (v) => xpGain(v), max: enMax(), up: (k) => bldUp(k), tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
-    walk: (x, z) => +walkSdf(x, z).toFixed(2), folk: Object.assign({}, state.isle.folk), tier: toolTier(), smith: SM.g ? [+SM.g.position.x.toFixed(2), +SM.g.position.z.toFixed(2), SM.g.visible] : null, anvil: () => anvilOpen(), baker: BK.g ? [+BK.g.position.x.toFixed(2), +BK.g.position.z.toFixed(2), BK.g.visible] : null, bake: Object.assign({}, state.isle.bake), oven: () => ovenOpen(), village: VG.key, store: Object.assign({}, state.isle.store), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
+    walk: (x, z) => +walkSdf(x, z).toFixed(2), folk: Object.assign({}, state.isle.folk), tier: toolTier(), smith: SM.g ? [+SM.g.position.x.toFixed(2), +SM.g.position.z.toFixed(2), SM.g.visible] : null, anvil: () => anvilOpen(), baker: BK.g ? [+BK.g.position.x.toFixed(2), +BK.g.position.z.toFixed(2), BK.g.visible] : null, bake: Object.assign({}, state.isle.bake), oven: () => ovenOpen(), village: VG.key, dog: () => dogTest(), gear: () => gearTest(), run: (src) => eval(src), dogLv: (n) => { state.isle.bld.dog = n; dogBagSync(); }, store: Object.assign({}, state.isle.store), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
 }
 
 /* ---- the storage crate at the camp: a full backpack empties into it, and signs take from it too ---- */
@@ -673,7 +676,7 @@ Object.assign(CURVE_DEF, { strength: 0.011, side: 0.1, pitch: 47, dist: 15.5, ah
    so a child is never stuck. ---------- */
 const EN_COST = { crystal: 2, planks: 1, bush: 1, grass: 1, tree: 1, rock: 2, clay: 2, boulder: 2 }; /* the most energy and how fast it comes back: from the tent's and the campfire's level (build.js) */
 let enSleep = null, enShow = -1, enNapT = 0;
-const enCost = (k) => (byHand(k) ? 1 : EN_COST[k] || 1); /* light scratching by hand: cheaper per go, but it takes three times as many */
+const enCost = (k) => (byHand(k) ? 1 : EN_COST[k] || 1) * gearEnMul(); /* light scratching by hand: cheaper per go, but it takes three times as many */
 const enHas = (k) => state.isle.en >= enCost(k);
 function enUse(k) { state.isle.en = Math.max(0, state.isle.en - enCost(k)); }
 /* tired: not enough for the cheapest thing nearby (or under a tenth left) */

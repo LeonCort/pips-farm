@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261124213247">
+<meta name="app-ver" content="dev">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1224,8 +1224,8 @@ const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 0, walk: 1.5, ring: {
 const KENNEL = { x: -1.6, z: -1.5 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
   isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0, sickle: 0, shovel: 0 }, chests: {}, ruins: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
-const speed = () => 3.2 + 0.45 * state.lv.speed;
-const cap = () => (state.isle && state.isle.tools.bag ? 10 : 6);
+const speed = () => (3.2 + 0.45 * state.lv.speed) * gearSlow(); /* deep snow without boots (gear.js) */
+const cap = () => (state.isle && state.isle.tools.bag ? 10 : 6) + (state.isle ? dogBags() : 0); /* + the dog's saddlebags (isledog.js) */
 const UPS = [{ id: 'speed', base: 10, g: 1.8, max: 8 }, { id: 'bag', base: 15, g: 1.8, max: 8 }];
 const upCost = (u) => Math.round(u.base * Math.pow(u.g, state.lv[u.id]));
 const ITEM_H = { log: 0.17, stone: 0.15, berry: 0.13, hay: 0.16, clay: 0.14 }; /* height of each thing Pip carries in the basket */
@@ -2059,7 +2059,7 @@ function storeStep() {} /* the engine hangs its own per-frame work on this one (
 function buyCam() { return false; }
 function routeStop() {}
 /* the pet is always outside with Pip on the island (engine/dog.js asks) */
-function petPlace() { return { home: false, away: false, goal: null, door: () => [pip.position.x - 1, pip.position.z - 0.8] }; }
+function petPlace() { return { home: false, away: false, goal: dogGoal(), door: () => [pip.position.x - 1, pip.position.z - 0.8] }; }
 function guideGoal() { return isleGoal(); }
 function barnGoal() { return null; }
 const tutArrowIn = () => false;
@@ -2137,6 +2137,8 @@ function isleIcon(x, t, cx, cy, s) {
   else if (t === 'ore') peopleIcon(x, t);
   else if (t === 'pie' || t === 'oven') bakeryIcon(x, t);
   else if (t === 'axe' || t === 'axe2' || t === 'axe3') tiersIcon(x, t);
+  else if (t === 'dog' || t === 'fetch' || t === 'dig' || t === 'paw') dogIcon(x, t);
+  else if (['torch', 'coat', 'boots', 'web', 'bees', 'dark', 'rain', 'snowDeep'].indexOf(t) >= 0) gearIcon(x, t);
   x.restore();
 }
 function paperBox(x, w, h) { x.save(); x.shadowColor = 'rgba(70,40,18,0.35)'; x.shadowBlur = 8; x.shadowOffsetY = 4; x.beginPath(); x.roundRect(6, 6, w - 12, h - 14, 18); x.fillStyle = '#fff6e4'; x.fill(); x.restore(); x.beginPath(); x.roundRect(6, 6, w - 12, h - 14, 18); x.lineWidth = 4; x.strokeStyle = '#6e4426'; x.stroke(); }
@@ -2404,6 +2406,7 @@ function signStep(s, dt) {
   if (signSmallKey(s) !== s.smKey) drawSmall(s);
   s.ghost.material.opacity = 0.55 + (reduced ? 0 : Math.sin(time * 2.4 + s.seed) * 0.25);
   if (rising || building || giveT > 0 || Math.hypot(pip.position.x - s.x, pip.position.z - s.z) > 0.85) return;
+  if (gearSignShut(s)) return; /* a spider web over the bridge (gear.js) */
   const t = KINDS.find((q) => storeN(q) > 0 && signNeed(s, q) > 0); if (!t) return;
   /* from the counter: the piece appears over Pip's head and flies on to the sign */
   state.isle.store[t]--; invWig(t); const m = itemModel(t); m.position.set(pip.position.x, 1.9, pip.position.z); sc.add(m);
@@ -2555,11 +2558,11 @@ function isleGoal() {
 function isleInit() {
   if (nodes.length) return;
   if (!state.isle || state.isle.map !== MAP_V) state.isle = fresh().isle; /* a save made for another map starts over */
-  const I = state.isle; I.paid = I.paid || {}; I.chests = I.chests || {}; I.ruins = I.ruins || {}; I.bld = I.bld || { tent: 1, fire: 1 }; I.tools = I.tools || { pick: 0, bag: 0 }; I.areas = I.areas || { h0: 1 }; I.folk = I.folk || {};
+  const I = state.isle; I.paid = I.paid || {}; I.chests = I.chests || {}; I.ruins = I.ruins || {}; I.bld = I.bld || { tent: 1, fire: 1 }; I.tools = I.tools || { pick: 0, bag: 0 }; I.areas = I.areas || { h0: 1 }; I.folk = I.folk || {}; I.dug = I.dug || {};
   AREAS.forEach((A) => { if (HAS[A.id] && A.bridge) bridgeBuild(A, true); if (HAS[A.id] || drawn(A.i, A.j)) areaFill(A, false); });
   nodes.forEach((n) => { n.pop = 0; n.g.scale.setScalar(1); });
   chests.forEach((c) => { c.pop = 1; c.g.scale.setScalar(1); });
-  I.store = I.store || { log: 0, stone: 0, berry: 0 }; tierMigrate(I); if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit(); xpBuild(); peopleInit();
+  I.store = I.store || { log: 0, stone: 0, berry: 0 }; tierMigrate(I); if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit(); xpBuild(); peopleInit(); gearInit();
   isleSigns();
   pip.position.set(0, 0, 0.4); target.copy(pip.position); camFocus.copy(pip.position);
   dog.g.position.set(-1.2, 0, -0.6); petsInit();
@@ -2573,7 +2576,7 @@ function isleTest() {
     own: (ids) => { ids.split(',').forEach((id) => { state.isle.areas[id] = 1; }); save(); },
     tp: (x, z) => { pip.position.set(x, 0, z); target.set(x, 0, z); camFocus.set(x, 0, z); }, building: !!building,
     en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], bld: Object.assign({}, state.isle.bld), cave: inCave, spring: spring ? [spring.x, spring.z, spring.used] : null, springNow: () => { springT = 0; }, flutter: flutter ? flutter.caught : null, dayAt: (f) => { state.clock = Math.floor(state.clock / DAY) * DAY + f * DAY; }, down: stairsDown ? [stairsDown.x, stairsDown.z] : null, upMat: caveA && caveA.mat ? [caveA.mat.x, caveA.mat.z] : null, xp: Object.assign({}, xpS()), gain: (v) => xpGain(v), max: enMax(), up: (k) => bldUp(k), tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
-    walk: (x, z) => +walkSdf(x, z).toFixed(2), folk: Object.assign({}, state.isle.folk), tier: toolTier(), smith: SM.g ? [+SM.g.position.x.toFixed(2), +SM.g.position.z.toFixed(2), SM.g.visible] : null, anvil: () => anvilOpen(), baker: BK.g ? [+BK.g.position.x.toFixed(2), +BK.g.position.z.toFixed(2), BK.g.visible] : null, bake: Object.assign({}, state.isle.bake), oven: () => ovenOpen(), village: VG.key, store: Object.assign({}, state.isle.store), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
+    walk: (x, z) => +walkSdf(x, z).toFixed(2), folk: Object.assign({}, state.isle.folk), tier: toolTier(), smith: SM.g ? [+SM.g.position.x.toFixed(2), +SM.g.position.z.toFixed(2), SM.g.visible] : null, anvil: () => anvilOpen(), baker: BK.g ? [+BK.g.position.x.toFixed(2), +BK.g.position.z.toFixed(2), BK.g.visible] : null, bake: Object.assign({}, state.isle.bake), oven: () => ovenOpen(), village: VG.key, dog: () => dogTest(), gear: () => gearTest(), run: (src) => eval(src), dogLv: (n) => { state.isle.bld.dog = n; dogBagSync(); }, store: Object.assign({}, state.isle.store), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
 }
 
 /* ---- the storage crate at the camp: a full backpack empties into it, and signs take from it too ---- */
@@ -2752,7 +2755,7 @@ Object.assign(CURVE_DEF, { strength: 0.011, side: 0.1, pitch: 47, dist: 15.5, ah
    so a child is never stuck. ---------- */
 const EN_COST = { crystal: 2, planks: 1, bush: 1, grass: 1, tree: 1, rock: 2, clay: 2, boulder: 2 }; /* the most energy and how fast it comes back: from the tent's and the campfire's level (build.js) */
 let enSleep = null, enShow = -1, enNapT = 0;
-const enCost = (k) => (byHand(k) ? 1 : EN_COST[k] || 1); /* light scratching by hand: cheaper per go, but it takes three times as many */
+const enCost = (k) => (byHand(k) ? 1 : EN_COST[k] || 1) * gearEnMul(); /* light scratching by hand: cheaper per go, but it takes three times as many */
 const enHas = (k) => state.isle.en >= enCost(k);
 function enUse(k) { state.isle.en = Math.max(0, state.isle.en - enCost(k)); }
 /* tired: not enough for the cheapest thing nearby (or under a tenth left) */
@@ -2851,8 +2854,8 @@ function nodeTier(kind, x, z) {
 }
 const nodeHits = (n) => HITS[n.kind] * HIT_MUL[n.tier || 1];
 const tierYield = (n) => Math.max(1, Math.round(YIELD[n.kind][1] * TIER_MUL[n.tier || 1]));
-function gated(n) { return toolKind(n.kind) && ((NEED[n.kind] && !hasTool(n.kind)) || toolTier() < (n.tier || 1)); }
-function gateIcon(n) { if (NEED[n.kind] && !hasTool(n.kind)) return 'pick'; const t = n.tier || 1; return (NEED[n.kind] ? 'pick' : 'axe') + (t > 1 ? t : ''); }
+function gated(n) { return gearGate(n) || toolKind(n.kind) && ((NEED[n.kind] && !hasTool(n.kind)) || toolTier() < (n.tier || 1)); }
+function gateIcon(n) { if (gearGate(n)) return 'torch'; if (NEED[n.kind] && !hasTool(n.kind)) return 'pick'; const t = n.tier || 1; return (NEED[n.kind] ? 'pick' : 'axe') + (t > 1 ? t : ''); }
 function tierPow(n) { return toolKind(n.kind) ? 1 + 1.5 * Math.max(0, toolTier() - (n.tier || 1)) : 1; }
 const dropReach = () => (toolTier() >= 2 ? 4.5 : 2.2);
 /* a tier-2 or tier-3 thing looks bigger: an old oak, a tall winter pine, a big crystal */
@@ -2869,7 +2872,7 @@ function wideHit(n) {
 function tierBounce(n) { n.shake = 0.14; Snd.play('tock', { gain: 0.35, f: 150 }); isleHint(n); }
 /* growing back: once Pip has slept */
 const sleepRegrow = (n) => (HAND[n.kind] && n.kind !== 'bush' ? REGROW[n.kind][0] : 1e9);
-function tierWake() { nodes.forEach((n) => { if (n.st === 'gone' && n.t > 1e8) n.t = 0.3 + Math.random() * 2.5; }); }
+function tierWake() { dogWake(); nodes.forEach((n) => { if (n.st === 'gone' && n.t > 1e8) n.t = 0.3 + Math.random() * 2.5; }); }
 /* old saves: gems are crystals now; hay, clay, ore and pies are gone */
 function tierMigrate(I) {
   const S = I.store; if (S.gem) S.crystal = (S.crystal || 0) + S.gem;
@@ -2893,7 +2896,7 @@ const BLD = {
   fire: { max: 3, cost: [null, null, { log: 6, stone: 4 }, { log: 12, stone: 12, crystal: 2 }], pic: [null, 'fire', 'fire', 'fire'] },
   tool: { max: 3, cost: [null, null, { stone: 14, log: 10, coin: 10 }, { crystal: 8, stone: 20, coin: 25 }], pic: [null, 'pick', 'pick2', 'pick3'] } /* at the smith's anvil (people.js) */
 };
-const bldKeys = () => ['tent', 'fire'].concat(forgeUp() ? ['tool'] : [], ovenUp() ? ['oven'] : []);
+const bldKeys = () => ['tent', 'fire', 'dog'].concat(forgeUp() ? ['tool'] : [], ovenUp() ? ['oven'] : [], gearKeys());
 const bldLv = (k) => (state.isle && state.isle.bld && state.isle.bld[k]) || 1;
 const enMax = () => [0, 100, 130, 160][bldLv('tent')] + xpEn();
 const enRegen = () => [0, 0.2, 0.33, 0.5][bldLv('fire')];
@@ -2958,7 +2961,7 @@ function bldBuild() {
   st.textContent = '.bldBtn{position:fixed;top:calc(max(10px,env(safe-area-inset-top,0px)) + 92px);right:max(22px,env(safe-area-inset-right,0px));width:64px;height:64px;border-radius:50%;border:3px solid var(--ink);background:var(--paper);box-shadow:0 5px 0 rgba(34,48,60,.3);padding:6px;z-index:5}'
     + '.bldBtn canvas{width:100%;height:100%;display:block}.bldBtn:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(34,48,60,.3)}.bldBtn i{position:absolute;top:-4px;right:-4px;width:22px;height:22px;border-radius:50%;background:#74a857;border:3px solid var(--ink);display:none}'
     + '.bldBtn.can i{display:block}.bldBtn.can{animation:ready 1.4s ease-in-out infinite}'
-    + '.bldMenu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(34,48,60,.35);z-index:20;padding:16px}.bldMenu[hidden]{display:none}'
+    + '.bldMenu{position:fixed;inset:0;display:flex;align-items:center;justify-content:safe center;overflow:auto;background:rgba(34,48,60,.35);z-index:20;padding:16px}.bldMenu[hidden]{display:none}'
     + '.bldMenu .row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;max-width:100%}'
     + '.bldCard{background:var(--paper);border:4px solid #6e4426;border-radius:24px;box-shadow:0 6px 0 rgba(34,48,60,.3);padding:12px 14px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;width:220px}'
     + '.bldCard .pic{display:flex;align-items:center;gap:6px}.bldCard .pic canvas{width:110px;height:110px}.bldCard .eff canvas{width:56px;height:56px}'
@@ -2986,6 +2989,8 @@ function bldIco(t) { if (!bldImg[t]) bldImg[t] = bldPic(t, 64).toDataURL(); cons
 /* what an upgrade does, as a picture: a longer energy bar (tent), faster energy (fire) */
 function bldEff(k, lv) {
   const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d');
+  if (k === 'dog') { dogEff(x, lv); return c; }
+  if (GEAR[k]) { gearEff(x, k); return c; }
   isleIcon(x, k === 'tool' ? 'perkHit' : k === 'oven' ? 'pie' : 'bolt', 30, 48, k === 'oven' ? 0.95 : 1.1);
   x.lineWidth = 4; x.strokeStyle = PAL.ink;
   if (k === 'oven') { if (lv >= 3) { isleIcon(x, 'pie', 30, 74, 0.7); } for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < Math.min(lv, 2) ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
@@ -3017,6 +3022,8 @@ function bldUp(k) {
   if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(-1.1, 1.2, 1.0, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
   else if (k === 'tool') toolUp();
   else if (k === 'oven') ovenLevelUp();
+  else if (k === 'dog') dogUp();
+  else if (GEAR[k]) gearGot(k);
   else { fireShape(bldLv('fire')); bldPop = { g: campFlame.g, t: 0 }; burst(1.4, 0.8, 1.2, 10); }
   enShow = -1; enBarW();
   Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.1);
@@ -3266,7 +3273,7 @@ function caveStep(dt) {
   if (inCave && caveA) { pip.position.x = clamp(pip.position.x, caveA.cx - 4.9, caveA.cx + 4.9); pip.position.z = clamp(pip.position.z, caveA.cz - 4.9, caveA.cz + 4.2); }
   [stairsDown, caveA && caveA.mat].forEach((M) => {
     if (!M) return; const d = Math.hypot(pip.position.x - M.x, pip.position.z - M.z), still = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) < 0.3;
-    const on = d < M.R && still && !enSleep && (M.dir === 'down' ? !inCave : inCave);
+    const on = d < M.R && still && !enSleep && (M.dir === 'down' ? !inCave && gearDark() : inCave); /* down needs the torch (gear.js) */
     M.w = on ? Math.min(1, M.w + dt / 0.6) : Math.max(0, M.w - dt * 3); M.fg.setDrawRange(0, 6 * Math.round(40 * M.w));
     if (M.w >= 1) { M.w = 0; M.fg.setDrawRange(0, 0); caveGo(M.dir === 'down'); }
   });
@@ -4460,7 +4467,7 @@ function rainStep(dt, out) {
     if (dPos[i * 3 + 1] < 0.03 || d.t <= 0) { if (d.fall && dPos[i * 3 + 1] < 0.05) { rainRing(dPos[i * 3], dPos[i * 3 + 2], false); RINGS[(ringI + RN - 1) % RN].r *= 0.8; } dPos[i * 3 + 1] = -99; } }
   dropPts.visible = anyD && out; if (anyD) dropGeo2.attributes.position.needsUpdate = true;
   /* the rain gear goes on with the rain (outside) and comes off when it stops or Pip goes in */
-  const gear = rainOn && rainAmt > 0.12 && !inHouse && !(typeof ED !== 'undefined' && ED.on) && !dressing && season !== 'winter';
+  const gear = rainOn && rainAmt > 0.12 && !inHouse && !(typeof ED !== 'undefined' && ED.on) && !dressing && season !== 'winter' && (typeof gearRain !== 'function' || gearRain()); /* the island: only once Pip owns the coat */
   if (gear !== RGEAR.on) { rainGearShow(gear); if (gear && out && !sleep) { Snd.play('pop', { gain: 0.3, f: 520 }); splash(pip.position.x, 1.2, pip.position.z, 5); } }
 }
 /* after the lamps are set for the time of day: a dark rainy day lights the street lamps, their pools and the windows */
@@ -5977,7 +5984,7 @@ function peopleGoal() {
 
 let anvilIn = false, hamT = 0;
 function peopleStep(dt) {
-  bakerStep(dt); villageStep(dt);
+  bakerStep(dt); villageStep(dt); dogStepIsle(dt); gearStep(dt);
   if (!SM.g) return;
   const F = folk(), g = SM.g, pp = pip.position;
   /* she steps out of the cottage */
@@ -6303,6 +6310,348 @@ function villageStep(dt) {
   /* Pip walks round the board's posts */
   const dx = pip.position.x - BOARD.x, dz = pip.position.z - BOARD.z; if (Math.abs(dx) < 1.15 && Math.abs(dz) < 0.3) pip.position.z = BOARD.z + Math.sign(dz || 1) * 0.3;
 }
+/* ---------- the dog helps (Leon's vision for Pips Island, 2026-11-24) ----------
+   The dog house card in the build menu teaches the dog new tricks, one per level, paid with materials and coins:
+     2  fetch: things left lying on the ground run back to Pip in the dog's mouth
+     3  sniff: every island area hides one buried treasure; the dog smells it, barks, digs, and coins (and sometimes a
+        crystal) pop out. A new one is buried each time Pip sleeps.
+     4  saddlebags: two little bags on the dog's back, so Pip can carry 6 more coins (cap() in rules.js)
+   No faster travel (Leon said to skip that). The dog engine (engine/dog.js) asks petPlace() for a goal; dogGoal() gives it. */
+BLD.dog = { max: 4, cost: [null, null, { log: 10, berry: 8, coin: 5 }, { stone: 14, berry: 12, coin: 12 }, { log: 18, stone: 14, crystal: 4, coin: 20 }], pic: [null, 'dog', 'dog', 'dog', 'dog'] };
+const dogLv = () => bldLv('dog');
+const dogBags = () => (dogLv() >= 4 ? 6 : 0);
+const DG = { mode: null, d: null, t: 0, cool: 3, spot: null, bub: null, holes: [], dirt: [] };
+const DIG = {}; /* area id -> { x, z } of today's buried treasure */
+
+function dogIcon(x, t) {
+  const blob = (f) => { x.fillStyle = f; x.fill(); x.stroke(); };
+  if (t === 'dog') {
+    [-1, 1].forEach((s) => { x.beginPath(); x.ellipse(s * 15, 2, 7, 13, s * 0.3, 0, 7); blob('#b9783c'); });
+    x.beginPath(); x.arc(0, -2, 16, 0, 7); blob('#dba65c');
+    x.beginPath(); x.ellipse(0, 7, 9, 7, 0, 0, 7); blob('#f3d39c');
+    x.fillStyle = PAL.ink; x.beginPath(); x.ellipse(0, 3, 4, 3, 0, 0, 7); x.fill(); [-6, 6].forEach((a) => { x.beginPath(); x.arc(a, -7, 2.6, 0, 7); x.fill(); });
+    x.beginPath(); x.moveTo(-12, 16); x.quadraticCurveTo(0, 22, 12, 16); x.lineWidth = 5; x.strokeStyle = '#d8423a'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
+    x.beginPath(); x.arc(0, 21, 3, 0, 7); blob('#f2c14a');
+  } else if (t === 'fetch') { /* a log on the ground and an arrow curving back */
+    isleIcon(x, 'log', -4, 10, 0.7);
+    x.beginPath(); x.moveTo(14, 4); x.quadraticCurveTo(16, -18, -10, -16); x.lineWidth = 5; x.strokeStyle = '#f2a13c'; x.stroke();
+    x.beginPath(); x.moveTo(-4, -23); x.lineTo(-13, -16); x.lineTo(-4, -9); x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
+  } else if (t === 'dig') { /* a dug hole with a coin and a sparkle */
+    x.beginPath(); x.ellipse(0, 12, 20, 8, 0, 0, 7); blob('#8a5a34'); x.beginPath(); x.ellipse(0, 12, 12, 4, 0, 0, 7); x.fillStyle = '#4f3220'; x.fill();
+    isleIcon(x, 'coin', -2, -6, 0.7);
+    x.fillStyle = '#fff2b0'; x.beginPath(); for (let q = 0; q < 8; q++) { const r = q % 2 ? 2 : 7, a = q / 8 * 6.283; x.lineTo(14 + Math.cos(a) * r, -16 + Math.sin(a) * r); } x.closePath(); x.fill();
+  } else if (t === 'paw') {
+    x.fillStyle = '#6e4426'; x.beginPath(); x.ellipse(0, 6, 10, 8, 0, 0, 7); x.fill();
+    [[-11, -6], [-4, -12], [4, -12], [11, -6]].forEach(([a, b]) => { x.beginPath(); x.ellipse(a, b, 4, 5, 0, 0, 7); x.fill(); });
+  }
+}
+
+/* ---- the saddlebags on the dog's back ---- */
+let dogBagG = null;
+function dogBagSync() {
+  if (!dogBagG) {
+    dogBagG = new T.Group(); const L = [];
+    [-1, 1].forEach((s) => { const q = new T.BoxGeometry(0.1, 0.17, 0.22); q.translate(s * 0.2, 0.36, -0.06); L.push(fac(q, '#b5562f', 1501)); const f = new T.BoxGeometry(0.11, 0.06, 0.23); f.translate(s * 0.2, 0.44, -0.06); L.push(fac(f, '#8a3f22', 1502)); });
+    const st = new T.BoxGeometry(0.42, 0.03, 0.06); st.translate(0, 0.585, -0.06); L.push(fac(st, '#8a3f22', 1503));
+    merged(L, MAT, dogBagG);
+  }
+  const want = dogLv() >= 4 && state.pet !== 'none';
+  if (want && dogBagG.parent !== (dog.body || dog.g)) (dog.body || dog.g).add(dogBagG);
+  dogBagG.visible = want;
+}
+
+/* ---- buried treasure: one in each area Pip owns, new after each sleep ---- */
+function digPlace(A) {
+  for (let k = 0; k < 40; k++) {
+    const x = A.cx + (Math.random() - 0.5) * 9, z = A.cz + (Math.random() - 0.5) * 9;
+    if (walkSdf(x, z) > -0.9) continue;
+    if (nodes.some((n) => Math.hypot(n.x - x, n.z - z) < 1.0) || signs.some((s) => s.x != null && Math.hypot(s.x - x, s.z - z) < 1.4)) continue;
+    if (A.id === 'h0' && (Math.hypot(x, z) < 3.8 || [BOARD, FORGE, OVEN, KENNEL].some((o) => Math.hypot(o.x - x, o.z - z) < 1.8))) continue; /* not in the camp */
+    return { x, z };
+  }
+  return null;
+}
+function digInit() { const I = state.isle; I.dug = I.dug || {}; }
+function digSpot(A) {
+  if (!A || A.cave || state.isle.dug[A.id]) return null;
+  if (!DIG[A.id]) DIG[A.id] = digPlace(A) || { none: 1 };
+  return DIG[A.id].none ? null : DIG[A.id];
+}
+/* sleeping fills the holes and buries new treasure */
+function dogWake() { state.isle.dug = {}; Object.keys(DIG).forEach((k) => { delete DIG[k]; }); DG.holes.forEach((h) => sc.remove(h)); DG.holes.length = 0; }
+function digLoot(A) {
+  const t = BIOME_TIER[A.biome] || 1, out = [];
+  for (let k = 0; k < 1 + t * 2; k++) out.push('coin');
+  if (t >= 3 || Math.random() < (t >= 2 ? 0.6 : 0.3)) out.push('crystal');
+  return out;
+}
+
+/* ---- what the dog wants to do ---- */
+const dogFree = () => state.pet !== 'none' && !isNight && !enSleep;
+function dogGoal() {
+  if (!DG.mode || !dogFree()) return null;
+  const pp = pip.position, sp = Math.max(3.2, speed() * 1.2);
+  if (DG.mode === 'fetch') return [DG.d.m.position.x, DG.d.m.position.z, sp];
+  if (DG.mode === 'back') { const a = pip.rotation.y; return [pp.x + Math.sin(a) * 0.7, pp.z + Math.cos(a) * 0.7, sp]; }
+  if (DG.mode === 'sniff' || DG.mode === 'dig') return [DG.spot.x, DG.spot.z + 0.45, 2.4];
+  return null;
+}
+function dogMouth() { return dog.head || dog.g; }
+function dogDrop() { /* put back what is in its mouth, where the dog stands */
+  const D = DG.d; if (!D) return; const m = D.m; m.parent.remove(m); sc.add(m); m.scale.setScalar(1);
+  m.position.set(dog.g.position.x, 0.06, dog.g.position.z); D.land = 1; D.wait = 0; drops.push(D); DG.d = null;
+}
+function dogFind() {
+  const pp = pip.position, dp = dog.g.position, full = carry.count() + isleIncoming >= cap(); let best = null, bd = 1e9;
+  drops.forEach((d) => {
+    if (d.land !== 1 || d.wait > -1.2) return; if (VALUABLE[d.t] && full) return;
+    const dx = d.m.position.x - pp.x, dz = d.m.position.z - pp.z, dist = Math.hypot(dx, dz); if (dist < dropReach() + 0.4 || dist > 16) return;
+    const dd = Math.hypot(d.m.position.x - dp.x, d.m.position.z - dp.z); if (dd < bd) { bd = dd; best = d; }
+  });
+  return best;
+}
+function dogStepIsle(dt) {
+  if (!dog || !dog.g) return;
+  dogBagSync();
+  const lv = dogLv(), dp = dog.g.position, pp = pip.position;
+  if (DG.bub) { DG.bub.t -= dt; DG.bub.position.set(dp.x, 1.45 + Math.sin(time * 4) * 0.04, dp.z); if (DG.bub.t <= 0) { sc.remove(DG.bub); DG.bub = null; } }
+  dirtStep(dt);
+  if (!dogFree()) { if (DG.mode === 'back') dogDrop(); DG.mode = null; DG.d = null; return; }
+  DG.cool -= dt;
+  if (!DG.mode && DG.cool <= 0) {
+    const d = lv >= 2 ? dogFind() : null;
+    if (d) { DG.mode = 'fetch'; DG.d = d; bark(0.4); }
+    else if (lv >= 3) { const A = areaAt(pp.x, pp.z), s = digSpot(A); if (s && Math.hypot(s.x - dp.x, s.z - dp.z) < 8 && Math.hypot(s.x - pp.x, s.z - pp.z) < 9) { DG.mode = 'sniff'; DG.spot = s; DG.area = A; DG.t = 0; } }
+    if (!DG.mode) DG.cool = 0.5;
+  }
+  if (DG.mode === 'fetch') {
+    const D = DG.d; if (drops.indexOf(D) < 0) { DG.mode = null; DG.d = null; return; } /* Pip got it first */
+    if (Math.hypot(D.m.position.x - dp.x, D.m.position.z - dp.z) < 0.45) {
+      drops.splice(drops.indexOf(D), 1); sc.remove(D.m); const mo = dogMouth(); mo.add(D.m);
+      if (mo === dog.head) D.m.position.set(0, -0.1, 0.24); else D.m.position.set(0, 0.55, 0.42);
+      D.m.rotation.set(0, Math.PI / 2, 0); D.m.scale.setScalar(0.75); DG.mode = 'back'; Snd.play('pop', { gain: 0.35, f: 620 });
+    }
+  } else if (DG.mode === 'back') {
+    if (Math.hypot(pp.x - dp.x, pp.z - dp.z) < 1.1) {
+      const D = DG.d, m = D.m; m.updateMatrixWorld(); const w = m.getWorldPosition(new T.Vector3()); m.parent.remove(m); m.scale.setScalar(1);
+      if (!VALUABLE[D.t]) invFly(D.t, w);
+      else { sc.add(m); m.position.set(pp.x, 0.06, pp.z); m.rotation.set(0, 0, 0); D.land = 1; D.wait = 0; drops.push(D); }
+      DG.d = null; DG.mode = null; DG.cool = 0.4; dog.hop = 1; Snd.play('blip', { gain: 0.3, f: 700 });
+    }
+  } else if (DG.mode === 'sniff') {
+    const s = DG.spot, at = Math.hypot(s.x - dp.x, s.z + 0.45 - dp.z) < 0.15;
+    if (at) {
+      DG.t += dt; dog.g.rotation.y = Math.PI; if (dog.head) { dog.head.rotation.x = 0.55; dog.head.rotation.y = Math.sin(time * 9) * 0.35; }
+      if (DG.t > 1.3) { DG.mode = 'dig'; DG.t = 0; bark(0.55); dogBubble('paw'); }
+    }
+  } else if (DG.mode === 'dig') {
+    DG.t += dt; dog.g.rotation.y = Math.PI;
+    if (dog.legs && !reduced) { dog.legs[0].rotation.x = -0.9 + Math.sin(time * 26) * 0.6; dog.legs[1].rotation.x = -0.9 + Math.sin(time * 26 + Math.PI) * 0.6; }
+    if (dog.head) dog.head.rotation.x = 0.5;
+    if (Math.floor(DG.t * 10) !== Math.floor((DG.t - dt) * 10)) dirtPuff(DG.spot.x, DG.spot.z);
+    if (DG.t > 1.8) digDone();
+  }
+}
+function digDone() {
+  const s = DG.spot, A = DG.area; state.isle.dug[A.id] = 1; save();
+  DG.mode = null; DG.spot = null; DG.cool = 2;
+  const h = new T.Mesh(new T.CircleGeometry(0.32, 14), new T.MeshLambertMaterial({ color: '#5a3a22' })); h.rotation.x = -Math.PI / 2; h.position.set(s.x, 0.025, s.z); h.scale.y = 0.75; sc.add(h); DG.holes.push(h);
+  digLoot(A).forEach((t, k) => { const m = itemModel(t), a = Math.random() * 6.28; m.position.set(s.x, 0.4, s.z); sc.add(m); drops.push({ m, t, vx: Math.cos(a) * 1.3, vz: Math.sin(a) * 1.3, vy: 3.8 + k * 0.25 + Math.random(), land: 0, wait: 0.3 }); });
+  Snd.play('sparkle', { gain: 0.5 }); Snd.play('success', { gain: 0.4, f: 'E5' }, 0.15); burst(s.x, 0.9, s.z, 5); dog.hop = 1; xpGain(4);
+}
+function dogBubble(t) { if (DG.bub) sc.remove(DG.bub); DG.bub = isleSprite(isleBubble(t), 0.7); DG.bub.t = 2.2; sc.add(DG.bub); }
+/* little clods of earth thrown up behind the dog */
+const dirtGeo = new T.IcosahedronGeometry(0.05, 0), dirtMat = new T.MeshLambertMaterial({ color: '#7a5030' });
+function dirtPuff(x, z) {
+  for (let k = 0; k < 3; k++) { const m = new T.Mesh(dirtGeo, dirtMat); m.position.set(x + (Math.random() - 0.5) * 0.2, 0.1, z + 0.1); m.userData.v = new T.Vector3((Math.random() - 0.5) * 1.6, 2 + Math.random() * 1.5, 1 + Math.random() * 1.2); sc.add(m); DG.dirt.push(m); }
+  Snd.play('tock', { gain: 0.12, f: 180 + Math.random() * 60 });
+}
+function dirtStep(dt) {
+  for (let k = DG.dirt.length - 1; k >= 0; k--) { const m = DG.dirt[k], v = m.userData.v; v.y -= 12 * dt; m.position.addScaledVector(v, dt); if (m.position.y < 0.02) { sc.remove(m); DG.dirt.splice(k, 1); } }
+}
+/* the dog card's effect picture: what the next trick is */
+function dogEff(x, lv) {
+  if (lv <= 2) isleIcon(x, 'fetch', 48, 48, 1.4);
+  else if (lv === 3) isleIcon(x, 'dig', 48, 50, 1.4);
+  else { isleIcon(x, 'bag', 36, 48, 1.1); x.font = '700 26px Fredoka, sans-serif'; x.lineWidth = 5; x.strokeStyle = PAL.ink; x.fillStyle = '#7cc85a'; x.strokeText('+6', 58, 60); x.fillText('+6', 58, 60); }
+}
+function dogUp() { dogBagSync(); const p = dog.g.position; burst(p.x, 1.0, p.z, 8); dog.hop = 1; bark(0.6); camFocus.set(p.x, 0, p.z); DG.cool = 1; }
+const dogTest = () => ({ lv: dogLv(), mode: DG.mode, cap: cap(), dug: Object.assign({}, state.isle.dug), spots: Object.keys(DIG).length, holes: DG.holes.length, pos: [+dog.g.position.x.toFixed(2), +dog.g.position.z.toFixed(2)], bags: !!(dogBagG && dogBagG.visible) });
+/* ---------- gear against the islands' obstacles (Leon's vision for Pips Island, 2026-11-24) ----------
+   No fighting: each obstacle has a piece of gear that gets Pip past it, bought in the build menu once Pip has met it.
+     torch:      the cave stairs are pitch dark; spider webs cover the bridges to the stone island and the winter island;
+                 angry bees guard the orchard cottage door. With the torch the dark is lit, webs burn away, the smoke calms the bees.
+     raincoat:   rain makes every job cost twice the energy. With the coat on (the yellow slicker) rain costs nothing extra.
+     snow boots: deep snow on the winter island slows Pip right down. Boots walk normally.
+   When Pip meets an obstacle, a bubble shows the gear it needs, and from then on that gear has a card in the build menu. */
+const GEAR = {
+  torch: { cost: { log: 8, berry: 4, coin: 6 }, eff: ['web', 'bees', 'dark'] },
+  coat: { cost: { berry: 14, log: 6, coin: 12 }, eff: ['rain'] },
+  boots: { cost: { log: 16, stone: 10, coin: 18 }, eff: ['snowDeep'] }
+};
+Object.keys(GEAR).forEach((k) => { BLD[k] = { max: 2, cost: [null, null, GEAR[k].cost], pic: [null, k, k] }; });
+const gearHas = (k) => bldLv(k) >= 2;
+const gearKeys = () => Object.keys(GEAR).filter((k) => gearHas(k) || (state.isle.seen && state.isle.seen[k]));
+const GE = { bub: null, cool: {}, webs: [], bees: null, light: null, flame: null, smoke: [] };
+const WEB_AT = ['s0', 'w0']; /* the bridges that start webbed */
+const BEES_AT = 'm2'; /* the cottage the bees guard */
+
+function gearIcon(x, t) {
+  const blob = (f) => { x.fillStyle = f; x.fill(); x.stroke(); };
+  if (t === 'torch') {
+    x.beginPath(); x.moveTo(-6, 22); x.lineTo(4, -2); x.lineWidth = 8; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 4.5; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
+    x.beginPath(); x.roundRect(-1, -6, 12, 8, 2); blob('#7d5e4e');
+    x.beginPath(); x.moveTo(6, -28); x.quadraticCurveTo(20, -12, 12, -4); x.lineTo(0, -4); x.quadraticCurveTo(-6, -14, 6, -28); x.closePath(); blob('#f2a13c');
+    x.beginPath(); x.moveTo(6, -18); x.quadraticCurveTo(12, -10, 9, -6); x.lineTo(3, -6); x.quadraticCurveTo(1, -12, 6, -18); x.fillStyle = '#ffe07a'; x.fill();
+  } else if (t === 'coat') {
+    x.beginPath(); x.moveTo(-10, -18); x.lineTo(10, -18); x.lineTo(22, -8); x.lineTo(17, 0); x.lineTo(12, -4); x.lineTo(14, 20); x.lineTo(-14, 20); x.lineTo(-12, -4); x.lineTo(-17, 0); x.lineTo(-22, -8); x.closePath(); blob('#f5c22e');
+    x.beginPath(); x.moveTo(0, -16); x.lineTo(0, 20); x.lineWidth = 2.4; x.strokeStyle = '#c08a1a'; x.stroke(); x.fillStyle = '#3a2a1e'; [-8, 0, 8].forEach((y) => { x.beginPath(); x.arc(3.5, y, 1.8, 0, 7); x.fill(); });
+  } else if (t === 'boots') {
+    [[-11, 0], [9, 3]].forEach(([a, b]) => { x.beginPath(); x.moveTo(a - 6, b - 18); x.lineTo(a + 4, b - 18); x.lineTo(a + 4, b + 4); x.lineTo(a + 13, b + 8); x.quadraticCurveTo(a + 15, b + 15, a + 8, b + 15); x.lineTo(a - 6, b + 15); x.closePath(); blob('#5b88b8');
+      x.beginPath(); x.roundRect(a - 8, b - 22, 14, 7, 3); blob('#f4f8fb'); });
+  } else if (t === 'web') {
+    x.lineWidth = 2.2; x.strokeStyle = '#6e7c88'; x.beginPath(); for (let q = 0; q < 8; q++) { const a = q / 8 * 6.283; x.moveTo(0, 0); x.lineTo(Math.cos(a) * 22, Math.sin(a) * 22); } x.stroke();
+    [7, 14, 21].forEach((r) => { x.beginPath(); for (let q = 0; q <= 8; q++) { const a = q / 8 * 6.283; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.stroke(); });
+    x.lineWidth = 3; x.strokeStyle = PAL.ink; x.beginPath(); x.arc(6, 4, 5, 0, 7); blob('#3a3340');
+  } else if (t === 'bees') {
+    [[-10, 4], [8, -8], [10, 12]].forEach(([a, b]) => { x.beginPath(); x.ellipse(a, b, 8, 6, 0, 0, 7); blob('#f2c23c'); x.beginPath(); x.moveTo(a - 2, b - 6); x.lineTo(a - 2, b + 6); x.moveTo(a + 3, b - 5); x.lineTo(a + 3, b + 5); x.stroke();
+      x.beginPath(); x.ellipse(a - 1, b - 9, 4, 3, 0.4, 0, 7); x.fillStyle = 'rgba(255,255,255,.85)'; x.fill(); x.stroke(); });
+  } else if (t === 'dark') {
+    x.beginPath(); x.roundRect(-20, -20, 40, 40, 10); blob('#2c2438'); x.fillStyle = '#f4d76a'; const mn = new Path2D('M-2 -12 A10 10 0 1 0 10 4 A8 8 0 1 1 -2 -12 Z'); x.fill(mn);
+  } else if (t === 'rain') {
+    x.beginPath(); x.arc(-8, -4, 9, 0, 7); x.arc(4, -9, 11, 0, 7); x.arc(14, -2, 8, 0, 7); blob('#a9b9c9'); x.strokeStyle = '#3f8fd0'; x.lineWidth = 3.5; [-10, 0, 10].forEach((a) => { x.beginPath(); x.moveTo(a, 10); x.lineTo(a - 3, 18); x.stroke(); });
+  } else if (t === 'snowDeep') {
+    x.beginPath(); x.moveTo(-22, 16); x.quadraticCurveTo(-12, 2, 0, 10); x.quadraticCurveTo(12, 0, 22, 14); x.lineTo(22, 20); x.lineTo(-22, 20); x.closePath(); blob('#f4f8fb');
+    x.strokeStyle = '#7fb3dc'; x.lineWidth = 2.6; x.beginPath(); for (let q = 0; q < 3; q++) { const a = q / 3 * Math.PI; x.moveTo(Math.cos(a) * -10, -12 + Math.sin(a) * -10); x.lineTo(Math.cos(a) * 10, -12 + Math.sin(a) * 10); } x.stroke();
+  }
+}
+/* the card's effect picture: the obstacles this gear beats */
+function gearEff(x, k) {
+  const e = GEAR[k].eff;
+  if (e.length === 1) isleIcon(x, e[0], 48, 48, 1.4);
+  else { isleIcon(x, e[0], 32, 30, 1.0); isleIcon(x, e[1], 70, 42, 0.85); isleIcon(x, e[2], 36, 74, 0.75); }
+}
+
+/* a bubble over Pip with the gear the obstacle needs */
+function gearHint(k, x, z) {
+  const I = state.isle; I.seen = I.seen || {}; if (!I.seen[k]) { I.seen[k] = 1; save(); bldBadge(); }
+  if ((GE.cool[k] || 0) > 0) return; GE.cool[k] = 5;
+  if (GE.bub) sc.remove(GE.bub); GE.bub = isleSprite(isleBubble(k), 0.85); GE.bub.t = 2.4; GE.bub.at = x == null ? null : [x, z]; sc.add(GE.bub);
+  Snd.play('blip', { gain: 0.25, f: 420 });
+}
+
+/* ---- spider webs over the bridges ---- */
+let webTex = null;
+function webModel() {
+  if (!webTex) { /* a big round web drawn on a canvas, thick enough to read from far up */
+    const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'), R = 118, sp = (r, q) => r * (0.92 + 0.08 * Math.sin(q * 2.3 + r));
+    x.translate(128, 128); x.lineCap = 'round';
+    [[9, 'rgba(60,70,84,.55)'], [4.5, '#f6f8fb']].forEach(([w, col]) => { x.lineWidth = w; x.strokeStyle = col; x.beginPath();
+      for (let q = 0; q < 10; q++) { const a = q / 10 * 6.283 + 0.1; x.moveTo(0, 0); x.lineTo(Math.cos(a) * R, Math.sin(a) * R); }
+      [30, 55, 80, 105].forEach((r) => { for (let q = 0; q <= 10; q++) { const a = q / 10 * 6.283 + 0.1; if (q) x.lineTo(Math.cos(a) * sp(r, q), Math.sin(a) * sp(r, q)); else x.moveTo(Math.cos(a) * sp(r, q), Math.sin(a) * sp(r, q)); } });
+      x.stroke(); });
+    x.beginPath(); x.moveTo(30, -60); x.lineTo(30, -12); x.lineWidth = 2.5; x.strokeStyle = '#f6f8fb'; x.stroke();
+    x.beginPath(); x.arc(30, 0, 13, 0, 7); x.fillStyle = '#3a3340'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#1f1a24'; x.stroke();
+    x.fillStyle = '#fff'; [-5, 5].forEach((d) => { x.beginPath(); x.arc(30 + d, -3, 3.5, 0, 7); x.fill(); }); x.fillStyle = '#1f1a24'; [-5, 5].forEach((d) => { x.beginPath(); x.arc(30 + d, -2, 1.7, 0, 7); x.fill(); });
+    webTex = new T.CanvasTexture(c);
+  }
+  const o = new T.Group(), sp = new T.Sprite(new T.SpriteMaterial({ map: webTex, transparent: true, depthWrite: false })); sp.scale.set(2.0, 2.0, 1); sp.position.y = 1.0; o.add(sp); o.userData.spider = sp;
+  [-1, 1].forEach((s) => { const p = new T.Mesh(new T.CylinderGeometry(0.04, 0.05, 1.9, 6), MAT_POST); p.position.set(s * 0.92, 0.95, 0); o.add(p); });
+  return o;
+}
+const MAT_POST = new T.MeshLambertMaterial({ color: '#8a6a4a' });
+function webSync() {
+  const I = state.isle;
+  WEB_AT.forEach((id) => {
+    const A = AREA_BY[id], on = !HAS[id] && !I.webs[id], W = GE.webs.find((w) => w.id === id);
+    if (on && !W) { const B = A.bridge, L = Math.hypot(B.x1 - B.x0, B.z1 - B.z0), ux = (B.x1 - B.x0) / L, uz = (B.z1 - B.z0) / L, g = webModel();
+      const x = B.x0 + ux * 0.55, z = B.z0 + uz * 0.55; g.position.set(x, 0, z); g.rotation.y = Math.atan2(ux, uz); sc.add(g); GE.webs.push({ id, g, x, z, burn: 0 }); }
+    else if (!on && W && !W.burn) { sc.remove(W.g); GE.webs.splice(GE.webs.indexOf(W), 1); }
+  });
+}
+/* a bridge sign stays shut while its web is up (isle.js signStep asks) */
+function gearSignShut(s) {
+  if (s.kind !== 'bridge') return false; const W = GE.webs.find((w) => w.id === s.A.id); if (!W) return false;
+  if (gearHas('torch')) { webBurn(W); return true; }
+  gearHint('torch'); return true;
+}
+function webBurn(W) {
+  if (W.burn) return; W.burn = 0.001; state.isle.webs[W.id] = 1; save();
+  Snd.play('whoosh', { gain: 0.4, f: 500 }); Snd.play('sparkle', { gain: 0.35 }, 0.3);
+  for (let k = 0; k < 10; k++) smokePuff(W.x + (Math.random() - 0.5) * 1.4, 0.3 + Math.random() * 1.4, W.z + (Math.random() - 0.5) * 0.4, '#f2a13c');
+}
+
+/* ---- the bees at the orchard cottage ---- */
+const beeGeo = new T.SphereGeometry(0.1, 8, 6), beeMat = new T.MeshLambertMaterial({ color: '#f2c23c' }), beeWing = new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.7 });
+function beesMake(R) {
+  const g = new T.Group(); sc.add(g); const list = [];
+  for (let k = 0; k < 10; k++) { const b = new T.Mesh(beeGeo, beeMat); b.scale.set(1, 0.85, 1.3); const w = new T.Mesh(new T.CircleGeometry(0.08, 8), beeWing); w.position.set(0, 0.05, 0); w.rotation.x = -1.2; b.add(w);
+    const st = new T.Mesh(new T.TorusGeometry(0.085, 0.024, 4, 10), new T.MeshLambertMaterial({ color: '#2c2438' })); st.scale.set(1, 1, 1); b.add(st); g.add(b); list.push({ m: b, a: k / 10 * 6.283, r: 0.35 + (k % 3) * 0.18, h: 0.7 + (k % 4) * 0.22, sp: 2.5 + (k % 3) }); }
+  /* a hive hanging by the door */
+  const hv = new T.Mesh(new T.SphereGeometry(0.22, 10, 8), new T.MeshLambertMaterial({ color: '#e0a83c' })); hv.scale.set(1, 1.3, 1); const c = Math.cos(R.rot), s = Math.sin(R.rot);
+  hv.position.set(R.x + s * 1.0 + c * 0.75, 1.25, R.z + c * 1.0 - s * 0.75); sc.add(hv);
+  GE.bees = { R, g, list, hv, calm: 0, x: R.x + s * 1.35, z: R.z + c * 1.35 };
+}
+function beesOn() { const B = GE.bees; return !!B && !B.calm; }
+/* the planks on the bee cottage cannot be knocked off while the bees buzz (tiers.js gated asks) */
+const gearGate = (n) => !!(n.ruin && GE.bees && GE.bees.R === n.ruin && beesOn());
+function beesStep(dt) {
+  const I = state.isle;
+  if (!GE.bees) { const R = ruins.find((r) => r.A.id === BEES_AT); if (R && !R.open && !I.calm[BEES_AT]) beesMake(R); return; }
+  const B = GE.bees, pp = pip.position, d = Math.hypot(pp.x - B.x, pp.z - B.z);
+  if (!B.calm) {
+    if (d < 2.6 && gearHas('torch')) { B.calm = 0.001; I.calm[BEES_AT] = 1; save(); Snd.play('sparkle', { gain: 0.35 }); for (let k = 0; k < 8; k++) smokePuff(B.x + (Math.random() - 0.5), 0.6 + Math.random(), B.z + (Math.random() - 0.5), '#d8d8d8'); }
+    else if (d < 2.2) { gearHint('torch'); if (d < 1.5 && d > 1e-3) { pp.x = B.x + (pp.x - B.x) / d * 1.5; pp.z = B.z + (pp.z - B.z) / d * 1.5; target.copy(pp); } }
+    if (d < 6 && !reduced && Math.random() < dt * 2) Snd.play('tock', { gain: 0.05, f: 900 + Math.random() * 200 });
+  } else B.calm = Math.min(1, B.calm + dt * 0.5);
+  B.list.forEach((b, k) => {
+    b.a += dt * b.sp * (B.calm ? 0.4 : 1);
+    const hx = B.hv.position.x, hz = B.hv.position.z, ox = B.x + Math.cos(b.a) * b.r * (B.calm ? 0.4 : 1.6), oz = B.z + Math.sin(b.a) * b.r * (B.calm ? 0.4 : 1.2), u = B.calm;
+    b.m.position.set(ox + (hx - ox) * u + (u ? Math.cos(b.a) * 0.3 : 0), b.h + Math.sin(time * 7 + k) * 0.08 + (1.25 - b.h) * u, oz + (hz - oz) * u + (u ? Math.sin(b.a) * 0.3 : 0));
+    b.m.rotation.y = -b.a; b.m.children[0].rotation.z = Math.sin(time * 60 + k) * 0.6;
+  });
+}
+
+/* ---- smoke and fire puffs ---- */
+const puffGeo = new T.SphereGeometry(0.12, 8, 6);
+function smokePuff(x, y, z, col) { const m = new T.Mesh(puffGeo, new T.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8, depthWrite: false })); m.position.set(x, y, z); sc.add(m); GE.smoke.push({ m, t: 0, v: 0.6 + Math.random() * 0.6 }); }
+function smokeStep(dt) { for (let k = GE.smoke.length - 1; k >= 0; k--) { const s = GE.smoke[k]; s.t += dt; s.m.position.y += s.v * dt; s.m.scale.setScalar(1 + s.t * 2.5); s.m.material.opacity = Math.max(0, 0.8 - s.t * 0.8); if (s.t > 1) { sc.remove(s.m); GE.smoke.splice(k, 1); } } }
+
+/* ---- darkness: the cave stairs (cave.js asks before Pip goes down) ---- */
+function gearDark() { if (gearHas('torch')) return true; gearHint('torch'); return false; }
+function torchLight() {
+  if (GE.light) return; GE.light = new T.PointLight('#ffb35a', 0, 7, 1.6); GE.light.position.set(0.3, 1.6, 0.2); pip.add(GE.light);
+  GE.flame = isleSprite(isleBubble('torch'), 0.01); GE.flame.visible = false;
+}
+
+/* ---- rain and snow ---- */
+const gearWet = () => raining() && !inCave && !gearHas('coat');
+const gearEnMul = () => (gearWet() ? 2 : 1); /* rain without a coat: every job costs twice (isle.js enUse) */
+const gearRain = () => gearHas('coat'); /* the yellow slicker only shows once Pip owns the coat (rain.js) */
+const gearSnow = () => !inCave && zoneSeason === 'winter' && !gearHas('boots') && (() => { const A = areaAt(pip.position.x, pip.position.z); return !!A && A.biome === 'snow'; })();
+const gearSlow = () => (state.isle && GE.ready && gearSnow() ? 0.5 : 1); /* deep snow: half speed without boots (rules.js speed) */
+function gearInit() { const I = state.isle; I.seen = I.seen || {}; I.webs = I.webs || {}; I.calm = I.calm || {}; GE.ready = 1; webSync(); torchLight(); }
+function gearStep(dt) {
+  Object.keys(GE.cool).forEach((k) => { GE.cool[k] -= dt; });
+  if (GE.bub) { GE.bub.t -= dt; const p = pip.position; GE.bub.position.set(p.x, 2.35 + Math.sin(time * 4) * 0.05, p.z); GE.bub.material.opacity = Math.min(1, GE.bub.t * 3); if (GE.bub.t <= 0) { sc.remove(GE.bub); GE.bub = null; } }
+  webSync();
+  GE.webs.forEach((W) => {
+    if (W.burn) { W.burn += dt; W.g.scale.setScalar(Math.max(0.01, 1 - W.burn * 1.4)); if (W.burn > 0.75) { sc.remove(W.g); GE.webs.splice(GE.webs.indexOf(W), 1); } return; }
+    W.g.userData.spider.position.y = 1.0 + Math.sin(time * 1.5) * 0.04;
+    const d = Math.hypot(pip.position.x - W.x, pip.position.z - W.z); if (d < 2.3 && gearHas('torch')) webBurn(W); else if (d < 1.6) gearHint('torch');
+  });
+  beesStep(dt); smokeStep(dt);
+  if (GE.light) GE.light.intensity = inCave && gearHas('torch') ? 1.6 + (reduced ? 0 : Math.sin(time * 13) * 0.15) : 0;
+  /* the hints for rain and snow, while Pip is out in it */
+  const moving = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) > 0.3;
+  if (gearWet() && (work || moving) && !enSleep) gearHint('coat');
+  if (gearSnow() && moving) { gearHint('boots'); if (!reduced && Math.random() < dt * 6) smokePuff(pip.position.x + (Math.random() - 0.5) * 0.4, 0.1, pip.position.z + (Math.random() - 0.5) * 0.4, '#ffffff'); }
+}
+function gearGot(k) {
+  const p = pip.position; burst(p.x, 1.6, p.z, 8); GE.cool[k] = 0;
+  if (GE.bub) { sc.remove(GE.bub); GE.bub = null; }
+}
+const gearTest = () => ({ torch: gearHas('torch'), coat: gearHas('coat'), boots: gearHas('boots'), seen: Object.assign({}, state.isle.seen), webs: GE.webs.map((w) => w.id), bees: GE.bees ? (GE.bees.calm ? 'calm' : 'angry') : null, slow: gearSlow(), en: gearEnMul(), keys: bldKeys() });
 
 /* ---------- camera and input ---------- */
 let aspect = 1;
