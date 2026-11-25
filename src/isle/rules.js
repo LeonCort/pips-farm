@@ -108,6 +108,13 @@ const BOARD = { x: 3.3, z: -4.75 };
 const HOUSES = { mason: { x: 11, z: 4.9 }, knitter: { x: 14, z: 4.9 }, miner: { x: 17, z: 4.9 } };
 const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2.6 }, windmill: { x: 2.6, z: -30, sx: -1.7, sz: 1.5, mx: -2.2, mz: 2.2 },
   lighthouse: { x: -31.4, z: -2.2, sx: 1.8, sz: 1.3, mx: 2.4, mz: -1.0 }, tower: { x: 30.6, z: -34, sx: -1.7, sz: 1.5, mx: -2.0, mz: -1.2 } };
+/* the island villages (hamlets.js): once an island's monument stands, a few houses and neighbours move in beside it.
+   Each house is [x, z, turn]; the crate is where the village stacks what it gathers. Nothing grows on these plots. */
+const HAMLET_AT = {
+  windmill: { h: [[-3.4, -31.6, 0.25], [-4.0, -28.2, 0.35], [-0.9, -32.6, 0.1]], crate: [-1.7, -29.7] },
+  lighthouse: { h: [[-25.0, -7.6, -0.25], [-24.4, -4.2, -0.35], [-28.3, -8.0, -0.05]], crate: [-26.6, -5.5] },
+  tower: { h: [[24.3, -35.6, 0.25], [32.0, -30.4, -0.3], [28.2, -28.2, 0.0]], crate: [29.4, -30.9] }
+};
 const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to the farm leaves (ferry.js) */
 const TRAVEL_HOME = { x: 2.7, z: 2.6 }, CAVE_FRIEND = { x: 8.8, z: 29.2 };
 const SPOT_AT = { tent: [-4.5, -1.5], fire: [-1.75, 0.75], dog: [-0.75, -2.7], gear: [12.9, -0.6] }; /* gear is made at the smithy in h1, off the crowded start square */ /* the upgrade rings in the camp (spots.js) */

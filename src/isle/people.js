@@ -103,7 +103,7 @@ function peopleInit() {
   SM.g.visible = F.smith >= 1 && (F.smith > 1 || HAS.h3); if (SM.g.visible) smithPlace();
   if (F.smith >= 3) forgeBuild(false);
   tierSp.material.map = isleBubble('pick' + Math.min(3, toolTier() + 1));
-  TOOL.re(); bakerInit(); loopInit(); villageSync(false);
+  TOOL.re(); bakerInit(); loopInit(); hamSync(false); villageSync(false);
 }
 /* the cottage on h3 just opened: she steps out once the treasure has rolled out */
 function peopleRuinOpen(R) { bakerRuinOpen(R); loopRuinOpen(R); if (R.A.id === 'h3' && !folk().smith) { folk().smith = 1; SM.wait = 2.2; } }
@@ -152,7 +152,7 @@ function peopleGoal() {
 
 let anvilIn = false, hamT = 0;
 function peopleStep(dt) {
-  bakerStep(dt); loopStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
+  bakerStep(dt); loopStep(dt); hamStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
   if (!SM.g) return;
   const F = folk(), g = SM.g, pp = pip.position;
   /* she steps out of the cottage */

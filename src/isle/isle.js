@@ -240,7 +240,7 @@ function areaDecor(A) {
   if (b === 'cave') caveDecor(A, L, base);
   if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; m.receiveShadow = true; }
 }
-const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL, FERRY].some((o) => Math.hypot(o.x - x, o.z - z) < r) || loopNear(x, z, r) || spotNear(x, z, r); /* the camp's buildings, the friends' houses, the monuments */
+const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL, FERRY].some((o) => Math.hypot(o.x - x, o.z - z) < r) || loopNear(x, z, r) || spotNear(x, z, r) || hamNear(x, z, r); /* the camp's buildings, the friends' houses, the monuments */
 const walkSdfArea = (A, x, z) => Math.abs(x - A.cx) > 5.55 || Math.abs(z - A.cz) > 5.55; /* keep the dressing off the cliff edge */
 /* the camp in the start area: a campfire and a little tent */
 const campFlame = (() => {

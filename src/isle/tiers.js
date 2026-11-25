@@ -52,7 +52,7 @@ function sleepGrow() {
     if (n.kind === 'tree' && n.stump) n.stump.visible = false;
     if (n.kind === 'bush' && n.berries) { n.berries.visible = true; n.berries.children.forEach((b) => b.scale.setScalar(0.02)); } });
 }
-function tierWake() { dogWake(); villageWake(); nodes.forEach((n) => { if (n.kind !== 'planks' && (n.st === 'gone' || n.st === 'grow' || n.st === 'fall')) nodeGrown(n); }); }
+function tierWake() { dogWake(); villageWake(); hamWake(); nodes.forEach((n) => { if (n.kind !== 'planks' && (n.st === 'gone' || n.st === 'grow' || n.st === 'fall')) nodeGrown(n); }); }
 /* old saves: gems are crystals now; hay, clay, ore and pies are gone */
 function tierMigrate(I) {
   const S = I.store; if (S.gem) S.crystal = (S.crystal || 0) + S.gem;
