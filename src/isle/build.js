@@ -18,16 +18,25 @@ let bldPop = null;
 function tentShape(lv) {
   const t = campFlame.t; while (t.children.length) t.remove(t.children[0]);
   let q;
-  if (lv <= 1) {
-    q = new T.ConeGeometry(0.85, 1.15, 4); q.rotateY(Math.PI / 4); q.translate(0, 0.575, 0); part(fac(q, (cx, cy, cz, i) => shadeY('#e9684a', cy, 0, 1.2, i, 0.4), 1320), t);
-    q = new T.PlaneGeometry(0.42, 0.62); q.translate(0, 0.31, 0.62); part(fac(q, '#7a3a2a', 1321), t, 0, 0, 0, true);
-  } else if (lv === 2) {
-    /* a bigger striped tent with a flag on top */
-    q = new T.ConeGeometry(1.05, 1.45, 8); q.rotateY(Math.PI / 8); q.translate(0, 0.725, 0);
-    part(fac(q, (cx, cy, cz, i) => shadeY(Math.floor((Math.atan2(cz, cx) + 3.15) / 0.785) % 2 ? '#e9684a' : '#fff0d8', cy, 0, 1.5, i, 0.4), 1322), t);
-    q = new T.PlaneGeometry(0.5, 0.72); q.translate(0, 0.36, 0.9); part(fac(q, '#7a3a2a', 1323), t, 0, 0, 0, true);
-    q = new T.CylinderGeometry(0.025, 0.025, 0.5, 5); q.translate(0, 1.6, 0); part(fac(q, PAL.trunk, 1324), t);
-    q = new T.BufferGeometry(); q.setAttribute('position', new T.Float32BufferAttribute([0, 1.82, 0, 0.36, 1.74, 0, 0, 1.64, 0], 3)); q.computeVertexNormals(); const fm = new T.Mesh(q, new T.MeshBasicMaterial({ color: '#f2c23c', side: T.DoubleSide })); t.add(fm); t.userData.flag = fm;
+  if (lv <= 2) {
+    /* a ridge tent like the one on the farm: striped canvas, tied-back flaps, guy ropes and pegs; level 2 is bigger, with a flag and a lantern */
+    const big = lv === 2, r = big ? 1.18 : 0.98, sy = 0.8, len = big ? 1.7 : 1.4, top = r * sy * 1.5, zf = len / 2;
+    q = new T.CylinderGeometry(r, r, len, 3, 6); q.rotateX(-Math.PI / 2); q.scale(1, sy, 1); q.translate(0, r / 2 * sy, 0);
+    part(fac(q, (cx, cy, cz, i) => tone(Math.floor((cz + len / 2) / (len / (big ? 6 : 4))) % 2 ? '#f6cf62' : '#ee7a5a', i, 0.3), 1320), t);
+    q = new T.CylinderGeometry(r * 0.42, r * 0.42, 0.02, 3); q.rotateX(-Math.PI / 2); q.scale(1, 0.95, 1); q.translate(0, r * 0.2, 0); part(fac(q, '#4a3326', 1321), t, 0, 0, zf + 0.01, true);
+    [-1, 1].forEach((s) => { const f = new T.CylinderGeometry(0.055, 0.055, r * 0.52, 8); part(fac(f, '#fff2c2', 1322), t, s * r * 0.36, r * 0.29, zf + 0.04, true).rotation.z = s * 0.55; });
+    [-1, 1].forEach((s) => part(fac(new T.CylinderGeometry(0.035, 0.035, 0.26, 6).rotateX(Math.PI / 2), '#6b4630', 1323), t, 0, top, s * (zf + 0.1)));
+    [-1, 1].forEach((s) => [-zf * 0.6, zf * 0.6].forEach((z) => { const a = new T.Vector3(s * r * 0.6, top * 0.42, z), b = new T.Vector3(s * (r + 0.32), 0.03, z), L = a.distanceTo(b), g = new T.CylinderGeometry(0.011, 0.011, L, 4); g.rotateZ(Math.atan2(b.x - a.x, a.y - b.y));
+      part(fac(g, '#fff6e4', 1324), t, (a.x + b.x) / 2, (a.y + b.y) / 2, z, true); part(fac(new T.CylinderGeometry(0.028, 0.018, 0.15, 5), '#6b4630', 1325), t, b.x, 0.06, z, true); }));
+    /* a rolled blanket and a little mat at the door */
+    q = new T.CylinderGeometry(0.09, 0.09, 0.42, 10); q.rotateZ(Math.PI / 2); part(fac(q, (cx, cy, cz, i) => shadeY(Math.floor((cx + 1) / 0.07) % 2 ? '#5b88b8' : '#f4f8fb', cy, -0.1, 0.1, i, 0.3), 1326), t, -r * 0.62, 0.09, zf + 0.22);
+    if (big) {
+      q = new T.CylinderGeometry(0.022, 0.022, 0.55, 5); part(fac(q, PAL.trunk, 1327), t, 0, top + 0.27, zf + 0.08);
+      q = new T.BufferGeometry(); q.setAttribute('position', new T.Float32BufferAttribute([0, 0.09, 0, 0.36, 0.01, 0, 0, -0.09, 0], 3)); q.computeVertexNormals(); const fm = new T.Mesh(q, new T.MeshBasicMaterial({ color: '#74a857', side: T.DoubleSide })); fm.position.set(0, top + 0.45, zf + 0.08); t.add(fm); t.userData.flag = fm;
+      part(fac(new T.CylinderGeometry(0.026, 0.026, 0.9, 6), '#6b4630', 1328), t, r * 0.72, 0.45, zf + 0.3);
+      const lm = new T.Mesh(new T.BoxGeometry(0.14, 0.18, 0.14), new T.MeshBasicMaterial({ color: '#ffe07a' })); lm.position.set(r * 0.72, 0.96, zf + 0.3); t.add(lm);
+      part(fac(new T.ConeGeometry(0.12, 0.09, 4).rotateY(Math.PI / 4), '#3a3f48', 1329), t, r * 0.72, 1.1, zf + 0.3, true);
+    } else t.userData.flag = null;
   } else {
     /* a little wooden hut: plank walls, a red roof, a lit window and a chimney */
     q = new T.BoxGeometry(1.6, 0.95, 1.3); q.translate(0, 0.475, 0); part(fac(q, (cx, cy, cz, i) => shadeY(Math.floor((cy + 0.02) / 0.19) % 2 ? '#c99158' : '#b9824c', cy, 0, 1, i, 0.4), 1325), t);
@@ -83,6 +92,16 @@ function bldBuild() {
     + '.bldCard .go.can{background:#74a857;opacity:1;animation:ready 1.4s ease-in-out infinite}.bldCard .go:active{transform:translateY(3px)}.bldCard .done{font-size:44px;line-height:64px}'
     + '.bldMenu{flex-direction:column;gap:16px}.bldMenu .x{width:64px;height:64px;border-radius:50%;border:3px solid var(--ink);background:var(--paper);font:700 34px Fredoka,sans-serif}'
     + '.bldCard.shake{animation:invWig .32s ease-out}@media (prefers-reduced-motion: reduce){.bldBtn.can,.bldCard .go.can{animation:none}}';
+  /* the farm's parchment-and-wood look for everything on screen */
+  const WOOD = 'linear-gradient(165deg,#c4935f,#7a4c2a 50%,#a8723f) border-box', PARCH = 'linear-gradient(#fdf3dc,#f0dcb2) padding-box', SH = '0 5px 0 rgba(70,40,18,.4),0 9px 14px rgba(70,40,18,.22),inset 0 -4px 8px rgba(160,110,50,.22)';
+  st.textContent += '.inv .it,.enb,.bldBtn,.bldMenu .x{border:4px solid transparent!important;background:' + PARCH + ',' + WOOD + '!important;box-shadow:' + SH + '!important;color:#3a2414;position:relative}'
+    + '.bldBtn,.bldMenu .x{position:fixed}.bldMenu .x{position:relative}'
+    + '.inv .it::after,.enb::after{content:"";position:absolute;inset:2px;border-radius:999px;border:2px dashed rgba(150,105,60,.5);pointer-events:none}'
+    + '.inv b{text-shadow:0 1px 0 rgba(255,255,255,.7)}.enb{position:fixed}.enb .bar{border-color:#4a2e1a;background:#5a4030}'
+    + '.bldCard{border:6px solid transparent;background:linear-gradient(#fdf3dc,#f3e2bf) padding-box,linear-gradient(165deg,#c4935f,#6e4426 55%,#a8723f) border-box;box-shadow:0 7px 0 rgba(70,40,18,.4),0 14px 22px rgba(70,40,18,.3);color:#3a2414;position:relative}'
+    + '.bldCard::after{content:"";position:absolute;inset:4px;border-radius:16px;border:2px dashed rgba(150,105,60,.45);pointer-events:none}'
+    + '.bldCard .cost span{border-color:#6e4426;background:#fffaf0}.bldCard .dots b{border-color:#6e4426}.bldCard .go{border-color:#4a2e1a;position:relative;z-index:1}.bldCard .go.can{background:linear-gradient(#8cc46a,#5f9a48);box-shadow:0 4px 0 #3f6a30}'
+    + '.bldMenu{background:rgba(58,36,20,.45)}';
   document.head.appendChild(st);
   const b = document.createElement('button'); b.type = 'button'; b.className = 'bldBtn'; b.setAttribute('aria-label', 'Bygg'); b.appendChild(bldPic('hammer', 96)); b.appendChild(document.createElement('i')); document.body.appendChild(b); BM.btn = b;
   const m = document.createElement('div'); m.className = 'bldMenu'; m.hidden = true; m.setAttribute('role', 'dialog'); m.setAttribute('aria-label', 'Bygg');

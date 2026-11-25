@@ -124,13 +124,21 @@ function isleRiseStep(dt) {
 }
 
 /* ---- trees, rocks and bushes ---- */
-const ROCK_GEO = (() => { const g = ico(0.55, 1, 1200, 0.09); g.scale(1.05, 0.72, 0.9); g.translate(0, 0.3, 0); return fac(g, (cx, cy, cz, i) => shadeY('#9da7b1', cy, 0, 0.7, i, 0.6), 1200); })();
+/* a rock is a few smooth lumps grown together, lighter on top, darker and mossy at the foot, with small stones round it (the farm's look) */
+function rockLumps(parts, seed, top, cols, moss) {
+  const L = parts.map(([r, x, y, z, sx, sy, sz], k) => { const g = ico(r, 2, seed + k * 7, r * 0.07); g.scale(sx, sy, sz); g.rotateY(hash(seed, k) * 6.28); g.translate(x, y, z); return g; });
+  return fac(mergeGeos(L.map((g) => (g.index ? g.toNonIndexed() : g))), (cx, cy, cz, i) => {
+    const n = hash(Math.round(cx * 7), Math.round(cz * 7), seed), c = shadeY(cols[n > 0.6 ? 1 : 0], cy, -0.05, top, i, 0.35);
+    if (moss && cy > top * 0.74 && hash(Math.round(cx * 3), Math.round(cz * 3), seed + 3) > 0.5) return tone(moss, i, 0.4);
+    if (cy < 0.1) c.multiplyScalar(0.8); return c; }, seed);
+}
+const ROCK_GEO = rockLumps([[0.5, 0, 0.26, 0, 1.1, 0.72, 0.92], [0.3, 0.38, 0.17, 0.16, 1, 0.75, 1], [0.24, -0.4, 0.13, 0.2, 1.1, 0.7, 1], [0.1, 0.5, 0.05, 0.5, 1.2, 0.6, 1], [0.08, -0.55, 0.04, -0.3, 1.2, 0.6, 1]], 1200, 0.68, ['#aab3bc', '#98a2ac'], null);
 const STUMP_GEO = (() => { const g = new T.CylinderGeometry(0.17, 0.21, 0.24, 9); g.translate(0, 0.12, 0); return fac(g, (cx, cy) => cy > 0.2 ? new T.Color('#e7c48f') : tone(PAL.trunk, cx * 40, 0.5), 1201); })();
 const BUSH_GEO = (() => { const g = fluff(0.42, 1210, 6, 0.8); g.translate(0, 0.36, 0); return fac(g, (cx, cy, cz, i) => leafY('#4f9c48', cy, 0, 0.8, i), 1210); })();
 const GRASS_GEO = (() => { const L = []; for (let k = 0; k < 18; k++) { const a = k / 18 * 6.28 + hash(k, 1400) * 0.5, h = 0.55 + hash(k, 1401) * 0.5, q = new T.ConeGeometry(0.075, h, 4); q.translate(0, h / 2, 0); q.rotateZ(0.18 + hash(k, 1402) * 0.25); q.rotateY(a); q.translate(Math.cos(a) * 0.1, 0, -Math.sin(a) * 0.1); L.push(q); }
   return fac(mergeGeos(L), (cx, cy, cz, i) => cy > 0.7 ? tone('#f0dc7a', i, 0.4) : leafY('#b9cf58', cy, 0, 0.9, i, 0.5), 1405); })();
 const CLAY_GEO = (() => { const g = ico(0.5, 1, 1410, 0.06); g.scale(1.0, 0.62, 0.9); g.translate(0, 0.16, 0); return fac(g, (cx, cy, cz, i) => cy > 0.42 ? tone('#c47a52', i, 0.5) : shadeY('#9c5534', cy, -0.1, 0.45, i, 0.6), 1410); })();
-const BOULDER_GEO = (() => { const g = ico(0.95, 1, 1420, 0.14); g.scale(1.05, 0.8, 0.95); g.translate(0, 0.55, 0); return fac(g, (cx, cy, cz, i) => cy > 1.0 && hash(i, 3) > 0.35 ? tone('#7f9e5a', i, 0.5) : shadeY('#8e979f', cy, 0, 1.3, i, 0.6), 1420); })();
+const BOULDER_GEO = rockLumps([[0.85, 0, 0.5, 0, 1.08, 0.82, 0.95], [0.55, 0.62, 0.34, 0.2, 1, 0.8, 1], [0.48, -0.6, 0.3, -0.1, 1, 0.82, 1.05], [0.34, 0.1, 0.2, 0.7, 1.2, 0.7, 1], [0.14, 0.95, 0.07, 0.6, 1.2, 0.6, 1], [0.12, -0.95, 0.06, 0.5, 1.2, 0.6, 1]], 1420, 1.2, ['#959ea7', '#858f99'], '#7f9e5a');
 const BERRY_GEO = new T.SphereGeometry(0.075, 8, 6);
 const berryMat = new T.MeshStandardMaterial({ color: '#d6406a', roughness: 0.4 });
 function makeNode(kind, x, z, seed) {
@@ -192,14 +200,39 @@ function areaFill(A, fresh) {
 /* little things that make each biome look like itself (one mesh per area, nothing to gather): flowers on grass, pebbles on stone */
 function areaDecor(A) {
   const L = [], b = A.biome, base = AREAS.indexOf(A) * 131;
-  if (b === 'meadow' || b === 'orchard' || b === 'berry') { const COLS = ['#ffffff', '#f6d24a', '#f29ab8', '#b89cf0'];
-    for (let k = 0; k < (b === 'berry' ? 40 : 110); k++) { const x = A.cx + (hash(k, 61 + base) - 0.5) * 11, z = A.cz + (hash(k, 62 + base) - 0.5) * 11; if (nodes.some((n) => Math.abs(n.x - x) < 0.5 && Math.abs(n.z - z) < 0.5)) continue;
-      const q = ico(0.07, 0, 1900 + k); q.translate(x, 0.1, z); L.push(fac(q, COLS[k % 4], 1900 + k)); const st = new T.CylinderGeometry(0.012, 0.012, 0.1, 3); st.translate(x, 0.05, z); L.push(fac(st, '#5d8a3a', 1950)); } }
-  else if (b === 'stone' || b === 'clay' || b === 'rocks') {
-    for (let k = 0; k < (b === 'rocks' ? 40 : 90); k++) { const x = A.cx + (hash(k, 81 + base) - 0.5) * 11.4, z = A.cz + (hash(k, 82 + base) - 0.5) * 11.4; const r = 0.05 + hash(k, 83) * 0.09, q = ico(r, 0, 2000 + k); q.scale(1.2, 0.6, 1); q.translate(x, r * 0.3, z); L.push(fac(q, tone(b === 'clay' ? '#b98a6a' : '#a9b2bb', k, 0.7), 2000 + k)); } }
+  const spot = (k, n, w) => { const x = A.cx + (hash(k, n + base) - 0.5) * w, z = A.cz + (hash(k, n + 1 + base) - 0.5) * w; if (walkSdfArea(A, x, z)) return null; if (nodes.some((q) => Math.abs(q.x - x) < 0.55 && Math.abs(q.z - z) < 0.55)) return null; if (b === 'home' && Math.hypot(x, z) < 3.2) return null; return [x, z]; };
+  const green = b === 'home' || b === 'meadow' || b === 'orchard' || b === 'berry';
+  if (green) {
+    /* flowers with petals, in little groups */
+    const COLS = ['#ffffff', '#f6d24a', '#f29ab8', '#b89cf0', '#ff8a5c'], nF = { home: 26, berry: 40, meadow: 90, orchard: 70 }[b];
+    for (let k = 0; k < nF; k++) { const p = spot(k, 61, 11); if (!p) continue; const col = COLS[Math.floor(hash(k, 66 + base) * 5)];
+      for (let j = 0; j < 1 + Math.floor(hash(k, 67) * 3); j++) { const x = p[0] + (hash(k, j + 3) - 0.5) * 0.45, z = p[1] + (hash(k, j + 9) - 0.5) * 0.45, h = 0.11 + hash(k, j) * 0.09;
+        const st = new T.CylinderGeometry(0.011, 0.014, h, 3); st.translate(x, h / 2, z); L.push(fac(st, '#5d8a3a', 1950));
+        const pe = ico(0.075, 1, 1900 + k); pe.scale(1, 0.32, 1); pe.rotateX(0.35); pe.translate(x, h, z); L.push(fac(pe, col, 1900 + k));
+        const ce = ico(0.03, 0, 1901 + k); ce.translate(x, h + 0.025, z + 0.012); L.push(fac(ce, col === '#f6d24a' ? '#e58a2c' : '#f6d24a', 1902)); } }
+    /* tufts of longer grass */
+    const nT = { home: 46, berry: 60, meadow: 80, orchard: 60 }[b], gcol = b === 'meadow' ? '#9bcf52' : b === 'orchard' ? '#a9c85a' : '#6fae4c';
+    for (let k = 0; k < nT; k++) { const p = spot(k, 71, 11.3); if (!p) continue;
+      for (let j = 0; j < 4; j++) { const h = 0.16 + hash(k, j + 20) * 0.14, q = new T.ConeGeometry(0.035, h, 3); q.translate(0, h / 2, 0); q.rotateZ((hash(k, j + 30) - 0.5) * 0.9); q.rotateY(j * 1.6); q.translate(p[0] + (j - 1.5) * 0.04, 0, p[1] + (hash(k, j + 40) - 0.5) * 0.08); L.push(fac(q, (cx, cy, cz, i) => shadeY(gcol, cy, 0, 0.3, i, 0.3), 2100 + k)); } }
+    /* a few clover-dark patches of low leaves */
+    for (let k = 0; k < 14; k++) { const p = spot(k, 75, 11); if (!p) continue; for (let j = 0; j < 5; j++) { const q = ico(0.09, 0, 2200 + k + j); q.scale(1, 0.25, 1); q.translate(p[0] + (hash(k, j + 50) - 0.5) * 0.5, 0.03, p[1] + (hash(k, j + 60) - 0.5) * 0.5); L.push(fac(q, tone('#4f9a48', j, 0.5), 2200 + k)); } }
+  }
+  if (b === 'stone' || b === 'clay' || b === 'rocks' || b === 'home') {
+    const nP = { rocks: 40, home: 10, stone: 90, clay: 90 }[b];
+    for (let k = 0; k < nP; k++) { const p = spot(k, 81, 11.4); if (!p) continue; const r = 0.06 + hash(k, 83) * 0.1, q = ico(r, 1, 2000 + k, r * 0.08); q.scale(1.25, 0.6, 1); q.rotateY(hash(k, 84) * 6); q.translate(p[0], r * 0.3, p[1]); L.push(fac(q, (cx, cy, cz, i) => shadeY(b === 'clay' ? '#b98a6a' : '#a9b2bb', cy, 0, 0.12, i + k, 0.5), 2000 + k)); }
+    if (b === 'stone' || b === 'clay') for (let k = 0; k < 30; k++) { const p = spot(k, 91, 11); if (!p) continue; /* dry autumn tufts and fallen leaves */
+      for (let j = 0; j < 3; j++) { const h = 0.14 + hash(k, j + 20) * 0.1, q = new T.ConeGeometry(0.03, h, 3); q.translate(0, h / 2, 0); q.rotateZ((hash(k, j + 30) - 0.5) * 1.0); q.rotateY(j * 2.1); q.translate(p[0], 0, p[1]); L.push(fac(q, '#c9a24e', 2300 + k)); }
+      const lf = ico(0.07, 0, 2350 + k); lf.scale(1.2, 0.12, 0.8); lf.translate(p[0] + 0.3, 0.02, p[1] + 0.2); L.push(fac(lf, ['#d9742c', '#e0a030', '#b5562f'][k % 3], 2350 + k)); }
+  }
+  if (b === 'snow') {
+    /* soft drifts of snow, and a few icy stones */
+    for (let k = 0; k < 34; k++) { const p = spot(k, 95, 11); if (!p) continue; const r = 0.3 + hash(k, 96) * 0.45, q = ico(r, 2, 2400 + k, 0.01); q.scale(1.3, 0.28, 1); q.translate(p[0], 0.0, p[1]); L.push(fac(q, (cx, cy, cz, i) => tone(cy > 0.06 ? '#e4eefc' : '#c4d6ee', i, 0.06), 2400 + k)); }
+    for (let k = 0; k < 24; k++) { const p = spot(k, 98, 11.4); if (!p) continue; const r = 0.07 + hash(k, 99) * 0.08, q = ico(r, 1, 2450 + k); q.scale(1.2, 0.6, 1); q.translate(p[0], r * 0.3, p[1]); L.push(fac(q, '#b9c7d6', 2450 + k)); }
+  }
   if (b === 'cave') caveDecor(A, L, base);
-  if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; }
+  if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; m.receiveShadow = true; }
 }
+const walkSdfArea = (A, x, z) => Math.abs(x - A.cx) > 5.55 || Math.abs(z - A.cz) > 5.55; /* keep the dressing off the cliff edge */
 /* the camp in the start area: a campfire and a little tent */
 const campFlame = (() => {
   const g = new T.Group(); g.position.set(1.4, 0, 1.2); sc.add(g); const L = [];

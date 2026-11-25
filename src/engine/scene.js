@@ -75,6 +75,7 @@ const WET_SAND = new T.Color('#b79a70');
 /* the coast: grass softens into sand over a ragged band, and the sand darkens where the waves wet it */
 function groundCol(x, y, z, key, grass, beach, warm) {
   if (y < -0.6) return tone(PAL.bed, key, 0.4);
+  if (ISL.beachAt) beach = ISL.beachAt(x, z) || beach; /* a game may give parts of its coast their own sand (the island game's snow and stone islands) */
   if (y < -0.05) { const c = tone(beach || PAL.sand, key, 0.4); return c.lerp(WET_SAND, 0.5 * clamp((-y - 0.08) / 0.3, 0, 1)); }
   const c = grassAt(x, z, grass || PAL.grass, key, warm); if (ISL.tint) ISL.tint(x, z, c); /* a game may tint parts of its land (the island game's islands) */
   const d = isleD(x, z) + 0.012 * Math.sin(x * 1.7 + z * 0.9) + 0.008 * Math.sin(x * 4.1 - z * 3.3), q = clamp((d - 0.925) / 0.05, 0, 1);
