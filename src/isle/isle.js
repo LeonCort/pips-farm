@@ -33,8 +33,8 @@ function isleIcon(x, t, cx, cy, s) {
   else if (t === 'clay') { x.beginPath(); x.moveTo(-19, 10); x.quadraticCurveTo(-18, -10, 0, -12); x.quadraticCurveTo(18, -10, 19, 10); x.closePath(); blob('#c9774a'); x.beginPath(); x.moveTo(-8, -4); x.quadraticCurveTo(0, -8, 8, -4); x.strokeStyle = '#f0b48c'; x.lineWidth = 2.6; x.stroke(); }
   else if (t === 'gem' || t === 'crystal') { x.beginPath(); x.moveTo(0, -20); x.lineTo(15, -6); x.lineTo(0, 20); x.lineTo(-15, -6); x.closePath(); blob('#7fd3ef'); x.beginPath(); x.moveTo(-15, -6); x.lineTo(15, -6); x.moveTo(0, -20); x.lineTo(-4, 20); x.lineWidth = 1.8; x.strokeStyle = '#3f9cc0'; x.stroke(); }
   else if (t === 'coin') { x.beginPath(); x.arc(0, 0, 17, 0, 7); blob('#f2c23c'); x.beginPath(); x.arc(0, 0, 11, 0, 7); x.lineWidth = 2.2; x.strokeStyle = '#c08a1a'; x.stroke(); x.fillStyle = '#fff2b0'; x.beginPath(); x.arc(-5, -6, 3, 0, 7); x.fill(); }
-  else if (t === 'pick' || t === 'pick2' || t === 'pick3') { x.beginPath(); x.moveTo(-3, -10); x.lineTo(3, 20); x.lineWidth = 6; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.2; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
-    x.beginPath(); x.moveTo(-22, -4); x.quadraticCurveTo(0, -22, 22, -4); x.quadraticCurveTo(0, t === 'pick' ? -12 : -3, -22, -4); x.closePath(); blob({ pick2: '#e0904f', pick3: '#7fd3ef' }[t] || '#c7ced6'); if (t === 'pick3') { x.fillStyle = '#e9fbff'; x.beginPath(); x.arc(-8, -11, 2.6, 0, 7); x.fill(); } }
+  else if (t === 'pick' || t === 'pick2' || t === 'pick3' || t === 'pick4') { x.beginPath(); x.moveTo(-3, -10); x.lineTo(3, 20); x.lineWidth = 6; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.2; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
+    x.beginPath(); x.moveTo(-22, -4); x.quadraticCurveTo(0, -22, 22, -4); x.quadraticCurveTo(0, t === 'pick' ? -12 : -3, -22, -4); x.closePath(); blob({ pick2: '#e0904f', pick3: '#7f93aa', pick4: '#7fd3ef' }[t] || '#c7ced6'); if (t === 'pick4') { x.fillStyle = '#e9fbff'; x.beginPath(); x.arc(-8, -11, 2.6, 0, 7); x.fill(); } }
   else if (t === 'bag') { x.beginPath(); x.moveTo(-12, -6); x.quadraticCurveTo(0, -24, 12, -6); x.lineWidth = 4; x.strokeStyle = '#7d5e4e'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink; x.beginPath(); x.moveTo(-18, -6); x.lineTo(18, -6); x.lineTo(14, 16); x.lineTo(-14, 16); x.closePath(); blob('#d9a56b'); x.beginPath(); x.moveTo(-16, 4); x.lineTo(16, 4); x.lineWidth = 2; x.strokeStyle = '#a8743f'; x.stroke(); }
   else if (t === 'bolt') { x.beginPath(); x.moveTo(4, -22); x.lineTo(-14, 4); x.lineTo(-1, 4); x.lineTo(-6, 22); x.lineTo(14, -4); x.lineTo(1, -4); x.closePath(); blob('#f7c948'); x.fillStyle = '#fff2b0'; x.beginPath(); x.moveTo(2, -15); x.lineTo(-7, -1); x.lineTo(-3, -1); x.closePath(); x.fill(); }
   else if (t === 'shovel') { x.beginPath(); x.moveTo(0, -22); x.lineTo(0, 6); x.lineWidth = 7; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.6; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
@@ -56,8 +56,9 @@ function isleIcon(x, t, cx, cy, s) {
   else if (t === 'tent') { x.beginPath(); x.moveTo(-22, 16); x.lineTo(0, -20); x.lineTo(22, 16); x.closePath(); blob('#e9684a'); x.beginPath(); x.moveTo(-7, 16); x.lineTo(0, 2); x.lineTo(7, 16); x.closePath(); blob('#7a3a2a');
     x.fillStyle = '#f4d76a'; const mn = new Path2D('M14 -24 A8 8 0 1 0 24 -12 A6 6 0 1 1 14 -24 Z'); x.fill(mn); x.lineWidth = 2; x.stroke(mn); }
   else if (t === 'ore') peopleIcon(x, t);
+  else if (FINDS.indexOf(t) >= 0) findIcon(x, t);
   else if (t === 'pie' || t === 'oven') bakeryIcon(x, t);
-  else if (t === 'axe' || t === 'axe2' || t === 'axe3') tiersIcon(x, t);
+  else if (/^axe/.test(t)) tiersIcon(x, t);
   else if (t === 'dog' || t === 'fetch' || t === 'dig' || t === 'paw') dogIcon(x, t);
   else if (['torch', 'coat', 'boots', 'web', 'bees', 'dark', 'rain', 'snowDeep'].indexOf(t) >= 0) gearIcon(x, t);
   else loopIcon(x, t);
@@ -150,7 +151,8 @@ const berryMat = new T.MeshStandardMaterial({ color: '#d6406a', roughness: 0.4 }
 function makeNode(kind, x, z, seed) {
   const g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = hash(seed, 3) * 6.28; sc.add(g);
   const n = { kind, x, z, g, st: 'ready', hp: HITS[kind], t: 0, grow: 1, shake: 0, fall: 0, pop: 0, seed };
-  if (kind === 'shroom') { n.main = new T.Mesh(SHROOM_GEO, shroomMat); n.full = 1; g.add(n.main); }
+  if (FIND_NODE[kind]) findNode(n, g);
+  else if (kind === 'shroom') { n.main = new T.Mesh(SHROOM_GEO, shroomMat); n.full = 1; g.add(n.main); }
   else if (kind === 'crystal') { n.main = new T.Mesh(CRYSTAL_GEO, crystalMat); n.full = 0.9 + hash(seed, 4) * 0.3; n.main.scale.setScalar(n.full); g.add(n.main); }
   else if (kind === 'planks') { n.main = new T.Mesh(RUIN_BOARDS, MAT); n.main.castShadow = true; n.full = 1; g.add(n.main); }
   else if (kind === 'tree') { n.main = propTree(hash(seed, 2) > 0.7 || (areaAt(x, z) && areaAt(x, z).biome === 'snow') ? 'pine' : 'tree', seed, SHOW_T.tier || nodeTier('tree', x, z)); n.main.scale.setScalar(1.05 + hash(seed, 9) * 0.25); n.full = n.main.scale.x; g.add(n.main);
@@ -180,7 +182,9 @@ function areaClear(x, z) {
   if (roadKind(x, z) || roadKind(x + 0.9, z) || roadKind(x - 0.9, z) || roadKind(x, z + 0.9) || roadKind(x, z - 0.9) || campNear(x, z, 1.5) || Math.hypot(x - FORGE.x + 0.4, z - FORGE.z) < 2.6 || Math.hypot(x - OVEN.x + 0.3, z - OVEN.z) < 2.5 || Math.hypot(x - WELL.x, z - WELL.z) < 2.4) return false; /* the settlement's streets and plots */
   for (const a of AREAS) { if (a.chest && Math.hypot(x - a.cx, z - a.cz) < 1.4) return false;
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
-    if (a.cave && Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4) return false;
+    if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
+    if (findKeep(a, x, z)) return false;
+    if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
   if (Math.max(Math.abs(x), Math.abs(z)) < 6 && Math.max(Math.abs(x), Math.abs(z)) > 4.6) return false; /* the start area's shore, where its signs stand */
@@ -199,10 +203,12 @@ function areaFill(A, fresh) {
     const n = Math.sin(x * 0.45 + base * 0.13) + Math.cos(z * 0.41 - base * 0.07), k = LAYOUT[A.biome](x, z, hash(sd, 3), n); if (!k) continue;
     const nd = makeNode(k, x, z, sd); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); }
   }
+  findFill(A, fresh);
   if (A.chest && !state.isle.chests[A.id]) makeChest(A.cx, A.cz - 0.4, A.chest, A.id);
   if (A.ruin) makeRuin(A, fresh);
   if (A.stairs) stairsBuild(A, fresh);
   if (A.cave) caveBuild(A);
+  if (A.lift) liftTopBuild(A, fresh);
   areaDecor(A);
 }
 /* little things that make each biome look like itself (one mesh per area, nothing to gather): flowers on grass, pebbles on stone */
@@ -240,7 +246,7 @@ function areaDecor(A) {
   if (b === 'cave') caveDecor(A, L, base);
   if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; m.receiveShadow = true; }
 }
-const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL, FERRY].some((o) => Math.hypot(o.x - x, o.z - z) < r) || loopNear(x, z, r) || spotNear(x, z, r); /* the camp's buildings, the friends' houses, the monuments */
+const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL, FERRY].some((o) => Math.hypot(o.x - x, o.z - z) < r) || loopNear(x, z, r) || spotNear(x, z, r) || hamNear(x, z, r); /* the camp's buildings, the friends' houses, the monuments */
 const walkSdfArea = (A, x, z) => Math.abs(x - A.cx) > 5.55 || Math.abs(z - A.cz) > 5.55; /* keep the dressing off the cliff edge */
 /* the camp in the start area: a campfire and a little tent */
 const campFlame = (() => {
@@ -346,6 +352,7 @@ function signWants() {
   AREAS.forEach((A) => {
     if (HAS[A.id] || (rising && rising.area === A.id) || (building && building.A === A)) return;
     if (A.bridge) { if (HAS[A.bridge.from]) want.set('b:' + A.id, { kind: 'bridge', A }); return; }
+    if (A.lift) { if (mineS().g2) want.set('l:' + A.id, { kind: 'lift', A }); return; } /* the lift at the end of the mine (cave.js) */
     /* the owned square touching this area that is nearest its middle: the sign stands there, by the shared edge */
     let best = null, bd = 1e9;
     areaSquares(A, (i, j) => DIRS.forEach(([a, b]) => { const ni = i - a, nj = j - b; if (!owned(ni, nj) || used.has(ni + ',' + nj)) return; const d = Math.hypot(ni * GS - A.cx, nj * GS - A.cz); if (d < bd - 0.01) { bd = d; best = [ni, nj, a, b]; } }));
@@ -362,6 +369,8 @@ function isleSigns() {
     const A = w.A;
     if (w.kind === 'area') { const [ni, nj, a, b] = w.at, x = ni * GS + a * (GS / 2 - 0.85) + (b ? 0.9 : 0), z = nj * GS + b * (GS / 2 - 0.85) + (a ? 0.9 : 0);
       signMake({ key, kind: 'area', A, cost: A.cost, x, z, ghostGeo: areaGhostGeo, ghostTex, gx: A.cx, gz: A.cz }); }
+    else if (w.kind === 'lift') { const q = new T.PlaneGeometry(1.5, 1.5, 2, 2); q.rotateX(-Math.PI / 2);
+      signMake({ key, kind: 'lift', A, cost: A.cost, x: LIFT.low.x + 1.45, z: LIFT.low.z - 1.0, ghostGeo: q, ghostTex: ghostRound, gx: LIFT.low.x, gz: LIFT.low.z, gy: 0.05 }); }
     else if (!peopleSignMake(w, key)) { const B = A.bridge, L = Math.hypot(B.x1 - B.x0, B.z1 - B.z0), ux = (B.x1 - B.x0) / L, uz = (B.z1 - B.z0) / L, q = new T.PlaneGeometry(1.7, L, 2, 8); q.rotateX(-Math.PI / 2);
       signMake({ key, kind: 'bridge', A, cost: A.cost, x: B.x0 - ux * 0.6 - uz * 1.5, z: B.z0 - uz * 0.6 + ux * 1.5, ghostGeo: q, ghostTex, gx: (B.x0 + B.x1) / 2, gz: (B.z0 + B.z1) / 2, gy: -0.15, gr: Math.atan2(ux, uz) }); }
   });
@@ -392,7 +401,7 @@ function signStep(s, dt) {
 }
 function isleBuy(s) {
   delete state.isle.paid[s.key]; [s.g, s.ring, s.ghost].forEach((m) => sc.remove(m)); signs.splice(signs.indexOf(s), 1);
-  if (s.kind === 'area') areaRise(s.A); else if (!peopleBuy(s)) bridgeBuild(s.A, false);
+  if (s.kind === 'area') areaRise(s.A); else if (s.kind === 'lift') { loopBuy(s); liftOwn(s.A); } else if (!peopleBuy(s)) bridgeBuild(s.A, false);
   signs.forEach(drawSign); save();
 }
 
@@ -448,6 +457,7 @@ function bridgeStep(dt) {
 
 /* ---- drops: chunks that pop out and wait to be picked up ---- */
 function dropOut(n) {
+  if (FIND_NODE[n.kind]) return findGot(n);
   const [t, k] = YIELD[n.kind];
   const kk = tierYield(n), lucky = xpLucky(n), out = Array(lucky ? kk * 2 : kk).fill(t), tr = TREASURE[n.kind]; xpGain(XP_FOR[n.kind] || 2); if (Math.random() < tr[1]) out.push(tr[0]);
   out.forEach((t) => { const m = itemModel(t), a = Math.random() * 6.28; m.position.set(n.x, 0.6, n.z); sc.add(m); drops.push({ m, t, vx: Math.cos(a) * 1.4, vz: Math.sin(a) * 1.4, vy: 3.2 + Math.random(), land: 0, wait: 0.15 });
@@ -487,12 +497,13 @@ function nodeStep(n, dt) {
     if (n.grow >= 1) { n.st = 'ready'; n.sleepG = 0; n.hp = nodeHits(n); } }
 }
 function nodeHit(n, side) {
-  n.hp -= hitPow(n); if (!side && toolTier() >= 3 && toolKind(n.kind)) wideHit(n); n.shake = byHand(n.kind) ? 0.12 : 0.28; hpShow(n);
+  n.hp -= hitPow(n); if (!side && toolTier() >= 3 && toolKind(n.kind)) wideHit(n, toolTier() >= 4 ? 3 : 1); n.shake = byHand(n.kind) ? 0.12 : 0.28; hpShow(n);
   const sx = n.x + (pip.position.x - n.x) * 0.4, sz = n.z + (pip.position.z - n.z) * 0.4;
   if (n.kind === 'tree' || n.kind === 'planks') Snd.play('tock', { gain: 0.55, f: 240 + Math.random() * 40 }); else if (PICKY[n.kind]) Snd.play(n.kind === 'clay' ? 'stamp' : 'impact', { gain: 0.35 }); else Snd.play('swish', { gain: 0.4 });
   if (n.kind !== 'bush' && n.kind !== 'grass') splash(sx, 0.6, sz, 3);
   if (n.hp > 0.01) return;
   dropOut(n); n.t = sleepRegrow(n);
+  if (n.gate) { mineGateOpen(n); return; }
   if (n.kind === 'planks') { n.st = 'gone'; n.main.visible = false; Snd.play('thud', { gain: 0.5 }); ruinOpen(n.ruin); return; }
   if (n.kind === 'tree') { n.st = 'fall'; n.fall = 0; n.stump.visible = true; Snd.play('thud', { gain: 0.5 }); }
   else if (LOW[n.kind]) { n.st = 'gone'; n.main.scale.setScalar(n.full * LOW[n.kind]); Snd.play(n.kind === 'grass' ? 'swish' : 'stamp', { gain: 0.4 }); }

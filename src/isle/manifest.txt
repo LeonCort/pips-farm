@@ -46,6 +46,8 @@ isledog.js
 gear.js
 look.js
 loop.js
+hamlets.js
+finds.js
 props.js
 map.js
 spots.js

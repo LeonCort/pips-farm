@@ -9,7 +9,7 @@ const SHOW_YARD = { m0: 1, m1: 1 };
 const SHOW_T = { tier: 0 }; /* the asset yard asks for a tree or rock of a given tier */
 const SAVE_KEY = SHOW ? 'pip-isle-show' : 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip looks) is shared with the farm */
 const HERE = 'isle';
-const MAP_V = 'areas-1'; /* the map's version: a save made for another map starts over */
+const MAP_V = 'areas-2'; /* the map's version: a save made for another map starts over */
 const GS = 4; /* one square, in world units; an area is 3 by 3 squares (12 by 12) */
 const GI0 = -9, GWN = 19; /* squares from -9 to 9 along x (i) and along z (j) */
 const gIdx = (i, j) => (i - GI0) * GWN + (j - GI0);
@@ -22,19 +22,26 @@ const AREAS = [
   { id: 'h1', i: 2, j: -1, biome: 'rocks', cost: { log: 8, berry: 3 }, chest: 'pick' },
   { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 10, stone: 4, berry: 4 } },
   { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag', ruin: [2.3, 1.0, -0.25], stairs: [-2.6, 2.2] },
-  { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
-  { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 } },
+  { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, finds: [['hive', -3.6, -2.0], ['hive', 3.7, -3.5], ['hive', -2.9, 3.3]], bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
+  { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', 2.5, -3.2], ['hive', -3.0, 2.6]] },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, berry: 12, stone: 10 }, ruin: [0.4, 0, 0.2] },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14 } },
-  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, bridge: { from: 'm1', x0: -17.4, z0: -16, x1: -22.6, z1: -16 } },
-  { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3] },
-  { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 } },
+  /* the stone island has no bridge: the only way there is the mine's tunnel under the sea, and the lift at its end (cave.js) */
+  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.4, 0], finds: [['iron', -3.6, -3.0], ['iron', -3.0, 3.5], ['iron', 0.4, -4.1]] },
+  { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3], finds: [['iron', 3.4, 3.2]] },
+  { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 }, finds: [['iron', -3.2, -2.2]] },
   /* the winter island, east of the orchard, over a bridge */
   { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 34, berry: 16, stone: 20 }, bridge: { from: 'm2', x0: 17.4, z0: -16, x1: 22.6, z1: -16 } },
   { id: 'w1', i: 6, j: -9, biome: 'snow', cost: { log: 40, stone: 30, crystal: 8 }, ruin: [-2.5, 1.5, 0] },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
-  { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 }
+  { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 },
+  /* the mine runs on west under the sea: a gallery behind rubble, then the lift room behind a rockfall */
+  { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1, finds: [['copper', -3.5, -3.4], ['copper', -1.0, -4.0], ['copper', 2.6, -3.3], ['copper', 3.4, 3.3], ['copper', -3.2, 3.5]] },
+  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, finds: [['glow', 2.6, -3.6], ['glow', -0.8, -4.1], ['glow', 3.5, 3.4]] }
 ];
+/* the special finds (finds.js): what each find node gives, how many, and the tool level it needs */
+const FINDS = ['honey', 'copper', 'iron', 'glow'];
+const FIND_NODE = { hive: { t: 'honey', n: 1, tier: 1 }, copper: { t: 'copper', n: 2, tier: 1 }, iron: { t: 'iron', n: 2, tier: 2 }, glow: { t: 'glow', n: 1, tier: 3 } };
 const AREA_BY = {}; AREAS.forEach((a) => { AREA_BY[a.id] = a; a.cx = (a.i + 1) * GS; a.cz = (a.j + 1) * GS; });
 /* what each biome looks like: a tint over the grass */
 const BIOME_BEACH = { snow: '#c9dcf2', stone: '#a9a79c', clay: '#b9906e', cave: '#5d5249' }; /* the rim and the cliff under each island */
@@ -47,7 +54,7 @@ const HAS = {}; /* areas owned */
 try { if (/[?&]new=1/.test(location.search)) localStorage.removeItem(SAVE_KEY); } catch (e) {}
 function areaSquares(a, f) { for (let i = a.i; i < a.i + 3; i++) for (let j = a.j; j < a.j + 3; j++) f(i, j); }
 function areaMark(a) { HAS[a.id] = 1; areaSquares(a, (i, j) => { WALK[gIdx(i, j)] = 1; LAND[gIdx(i, j)] = 1; }); }
-AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.cave) LAND[gIdx(i, j)] = 1; }); });
+AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.cave || a.lift) LAND[gIdx(i, j)] = 1; }); });
 if (SHOW) try { const s = fresh(), I = s.isle; AREAS.forEach((a) => { if (!a.cave) I.areas[a.id] = 1; }); I.ruins = { h3: 1, s1: 1, w1: 1 }; I.folk = { smith: 3, baker: 3, mason: 3, knitter: 3, miner: 3 };
   I.mon = { harbor: 1, windmill: 1, lighthouse: 1, tower: 1 }; I.keys = { rope: 2, map: 2, icepick: 2 }; I.done = 1; I.bld = { tent: 1, fire: 1, tool: 3, dog: 2, torch: 1, coat: 1, boots: 1 }; I.tools.pick = 1; I.seen = { torch: 1, coat: 1, boots: 1 };
   localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {}
@@ -108,6 +115,13 @@ const BOARD = { x: 3.3, z: -4.75 };
 const HOUSES = { mason: { x: 11, z: 4.9 }, knitter: { x: 14, z: 4.9 }, miner: { x: 17, z: 4.9 } };
 const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2.6 }, windmill: { x: 2.6, z: -30, sx: -1.7, sz: 1.5, mx: -2.2, mz: 2.2 },
   lighthouse: { x: -31.4, z: -2.2, sx: 1.8, sz: 1.3, mx: 2.4, mz: -1.0 }, tower: { x: 30.6, z: -34, sx: -1.7, sz: 1.5, mx: -2.0, mz: -1.2 } };
+/* the island villages (hamlets.js): once an island's monument stands, a few houses and neighbours move in beside it.
+   Each house is [x, z, turn]; the crate is where the village stacks what it gathers. Nothing grows on these plots. */
+const HAMLET_AT = {
+  windmill: { h: [[-3.4, -31.6, 0.25], [-4.0, -28.2, 0.35], [-0.9, -32.6, 0.1]], crate: [-1.7, -29.7] },
+  lighthouse: { h: [[-25.0, -7.6, -0.25], [-24.4, -4.2, -0.35], [-28.3, -8.0, -0.05]], crate: [-26.6, -5.5] },
+  tower: { h: [[24.3, -35.6, 0.25], [32.0, -30.4, -0.3], [28.2, -28.2, 0.0]], crate: [29.4, -30.9] }
+};
 const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to the farm leaves (ferry.js) */
 const TRAVEL_HOME = { x: 2.7, z: 2.6 }, CAVE_FRIEND = { x: 8.8, z: 29.2 };
 const SPOT_AT = { tent: [-4.5, -1.5], fire: [-1.75, 0.75], dog: [-0.75, -2.7], gear: [12.9, -0.6] }; /* gear is made at the smithy in h1, off the crowded start square */ /* the upgrade rings in the camp (spots.js) */

@@ -6,7 +6,7 @@
      snow boots: deep snow on the winter island slows Pip right down. Boots walk normally.
    When Pip meets an obstacle, a bubble shows the gear it needs, and from then on that gear has a card in the build menu. */
 const GEAR = {
-  torch: { cost: { log: 8, berry: 4, coin: 6 }, eff: ['web', 'bees', 'dark'] },
+  torch: { cost: { honey: 3, log: 8, coin: 6 }, eff: ['web', 'bees', 'dark'] },
   coat: { cost: { berry: 14, log: 6, coin: 12 }, eff: ['rain'] },
   boots: { cost: { log: 16, stone: 10, coin: 18 }, eff: ['snowDeep'] }
 };
@@ -14,7 +14,7 @@ Object.keys(GEAR).forEach((k) => { BLD[k] = { max: 2, cost: [null, null, GEAR[k]
 const gearHas = (k) => bldLv(k) >= 2;
 const gearKeys = () => Object.keys(GEAR).filter((k) => gearHas(k) || (state.isle.seen && state.isle.seen[k]));
 const GE = { bub: null, cool: {}, webs: [], bees: null, light: null, flame: null, smoke: [] };
-const WEB_AT = ['s0', 'w0']; /* the bridges that start webbed */
+const WEB_AT = ['w0']; /* the bridges that start webbed */
 const BEES_AT = 'm2'; /* the cottage the bees guard */
 
 function gearIcon(x, t) {

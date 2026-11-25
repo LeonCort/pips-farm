@@ -14,7 +14,7 @@
    state.isle.folk.<id>: 0 not found, 1 found (wants their request), 2 moved home (house plot), 3 house built.
    state.isle.mon.<id>: 1 built. state.isle.keys.<k>: 1 held, 2 used. state.isle.done: 1 after the party. */
 const LP = { folk: {}, mon: {}, mats: [], lockSp: {}, keyEl: null, trv: null, fade: null, hop: null, fw: [], partyT: 0, armed: {} };
-const LOOP_KEY = { m0: 'rope', s0: 'map', w0: 'icepick' }; /* the bridge that needs it */
+const LOOP_KEY = { m0: 'rope', s0: 'map', w0: 'icepick' }; /* the bridge that needs it (s0: the mine's lift) */
 const LOOP_FOLK = {
   mason: { kind: 'fox', ruin: 's1', want: { stone: 20, log: 10 }, house: { log: 22, stone: 16 }, key: 'icepick', roof: ['#6f7f94', '#62728a', '#7d8ca0', '#58677c'], badge: 'chisel' },
   knitter: { kind: 'bunny', ruin: 'w1', want: { berry: 16, crystal: 3 }, house: { log: 26, stone: 16 }, roof: ['#c9708a', '#b8617b', '#d68299', '#a85570'], badge: 'yarn' },
@@ -26,7 +26,7 @@ const LOOP_MON = {
   lighthouse: { isle: 'stone', need: () => HAS.s2 && (folk().mason || 0) >= 2, area: 's2', cost: { stone: 50, log: 20, crystal: 6 } },
   tower: { isle: 'winter', need: () => HAS.w1 && (folk().knitter || 0) >= 2, area: 'w1', cost: { crystal: 15, stone: 30, log: 30 } }
 };
-const ISLE_OF = (id) => (!id ? null : id === 'cave' ? 'cave' : { h: 'home', m: 'meadow', s: 'stone', w: 'winter' }[id[0]]);
+const ISLE_OF = (id) => (!id ? null : /^cave/.test(id) ? 'cave' : { h: 'home', m: 'meadow', s: 'stone', w: 'winter' }[id[0]]);
 const ISLE_PIC = { home: 'camp', meadow: 'windmill', stone: 'lighthouse', winter: 'tower' };
 const ISLE_MON = { meadow: 'windmill', stone: 'lighthouse', winter: 'tower', home: 'harbor' };
 const lkeys = () => state.isle.keys || (state.isle.keys = {});
@@ -235,7 +235,7 @@ function keyHud() {
 }
 /* the bridge sign waits for its key: the bubble shows what is missing */
 function loopSignShut(s) {
-  if (s.kind !== 'bridge' || !LOOP_KEY[s.A.id]) return false; const k = LOOP_KEY[s.A.id];
+  if ((s.kind !== 'bridge' && s.kind !== 'lift') || !LOOP_KEY[s.A.id]) return false; const k = LOOP_KEY[s.A.id];
   if (lkeys()[k]) return false;
   gearHint(k); return true;
 }
@@ -262,7 +262,7 @@ function loopSignMake(w, key) {
 function loopBuy(s) {
   const id = s.who;
   if (s.pic) sc.remove(s.pic);
-  if (s.kind === 'bridge') { const k = LOOP_KEY[s.A.id]; if (k && lkeys()[k] === 1) { lkeys()[k] = 2; keyHud(); } return false; }
+  if (s.kind === 'bridge' || s.kind === 'lift') { const k = LOOP_KEY[s.A.id]; if (k && lkeys()[k] === 1) { lkeys()[k] = 2; keyHud(); } return false; }
   if (LOOP_FOLK[id] && s.kind === 'person') { folk()[id] = 2; LP.folk[id].move = { t: 0 }; Snd.play('success', { gain: 0.5, f: 'E6' }); burst(LP.folk[id].g.position.x, 1.5, LP.folk[id].g.position.z, 10); xpGain(10); return true; }
   if (LOOP_FOLK[id] && s.kind === 'plot') { folk()[id] = 3; loopHouse(id, true); LP.folk[id].hop = 1; Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.15); xpGain(20);
     if (LOOP_FOLK[id].key) keyGive(LOOP_FOLK[id].key, HOUSES[id].x, HOUSES[id].z + 1.4); villageSync(true); return true; }
@@ -353,7 +353,7 @@ function loopStep(dt) {
   /* monument signs carry a picture of what they build */
   signs.forEach((s) => { if (s.pic) s.pic.position.y = 2.0 + (reduced ? 0 : Math.sin(time * 2 + s.seed) * 0.08); });
   /* the key that a bridge needs, floating over its sign while missing */
-  signs.forEach((s) => { if (s.kind !== 'bridge') return; const k = LOOP_KEY[s.A.id], need = k && !lkeys()[k]; let sp = LP.lockSp[s.key];
+  signs.forEach((s) => { if (s.kind !== 'bridge' && s.kind !== 'lift') return; const k = LOOP_KEY[s.A.id], need = k && !lkeys()[k]; let sp = LP.lockSp[s.key];
     if (need && !sp) { sp = LP.lockSp[s.key] = isleSprite(loopLockBubble(k), 0.95); sc.add(sp); }
     if (sp) { sp.visible = need; sp.position.set(s.x, 3.25 + (reduced ? 0 : Math.sin(time * 2 + s.seed) * 0.06), s.z); s.sm.visible = s.sm.visible && !need; } });
   Object.keys(LP.lockSp).forEach((k) => { if (!signs.some((s) => s.key === k)) { sc.remove(LP.lockSp[k]); delete LP.lockSp[k]; } });

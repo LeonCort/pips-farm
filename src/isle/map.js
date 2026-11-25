@@ -41,7 +41,7 @@ function mapDraw() {
   /* what grows there */
   AREAS.forEach((A) => { if (A.cave) return; const [px, pz] = mapXY(A.cx - 4.1, A.cz - 4.2); x.globalAlpha = HAS[A.id] ? 1 : 0.55; isleIcon(x, MAP_RES[A.biome], px, pz, 0.8); x.globalAlpha = 1; });
   /* the cave hill */
-  { const A = AREA_BY.cave, [px, pz] = mapXY(A.cx, A.cz); x.beginPath(); x.ellipse(px, pz, 5.6 * S, 5.2 * S, 0, 0, 7); x.fillStyle = '#8a8074'; x.fill(); x.lineWidth = 3; x.strokeStyle = 'rgba(58,36,20,.5)'; x.stroke();
+  { const A = AREA_BY.cave, [px, pz] = mapXY(A.cx, A.cz), [wx] = mapXY(AREA_BY.cave3.cx, A.cz); x.beginPath(); x.roundRect(wx - 5.6 * S, pz - 5.2 * S, px - wx + 11.2 * S, 10.4 * S, 5.2 * S); x.fillStyle = '#8a8074'; x.fill(); x.lineWidth = 3; x.strokeStyle = 'rgba(58,36,20,.5)'; x.stroke();
     x.beginPath(); x.ellipse(px - 8, pz - 10, 3.6 * S, 3.2 * S, 0, 0, 7); x.fillStyle = '#9c9184'; x.fill(); isleIcon(x, 'crystal', px - 3.2 * S, pz - 2.6 * S, 0.8); }
   /* bridges */
   AREAS.forEach((A) => { const B = A.bridge; if (!B) return; const [ax, az] = mapXY(B.x0, B.z0), [bx, bz] = mapXY(B.x1, B.z1);

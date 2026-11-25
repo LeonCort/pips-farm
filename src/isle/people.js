@@ -6,7 +6,7 @@
    the stone islands and the cave need copper, the winter island crystal. A weaker tool just bounces off.
    state.isle.folk.smith: 0 in the cottage, 1 found (wants stones), 2 at the camp (forge plot), 3 forge built. */
 const TIER_NEED = {}; /* (old: ore) */
-const TIER_COL = [null, null, '#d9804a', '#62c8ee'];
+const TIER_COL = [null, null, '#d9804a', '#8496ab', '#62c8ee']; /* copper, iron, star crystal */
 function toolCol(hex) {
   let tr = 1; try { tr = toolTier(); } catch (e) {} /* the tools are first made before the game is loaded */
   const c = new T.Color(hex); if (tr < 2) return c;
@@ -102,8 +102,8 @@ function peopleInit() {
   if (!SM.g) SM.g = smithModel();
   SM.g.visible = F.smith >= 1 && (F.smith > 1 || HAS.h3); if (SM.g.visible) smithPlace();
   if (F.smith >= 3) forgeBuild(false);
-  tierSp.material.map = isleBubble('pick' + Math.min(3, toolTier() + 1));
-  TOOL.re(); bakerInit(); loopInit(); villageSync(false);
+  tierSp.material.map = isleBubble('pick' + Math.min(4, toolTier() + 1));
+  TOOL.re(); bakerInit(); loopInit(); hamSync(false); villageSync(false);
 }
 /* the cottage on h3 just opened: she steps out once the treasure has rolled out */
 function peopleRuinOpen(R) { bakerRuinOpen(R); loopRuinOpen(R); if (R.A.id === 'h3' && !folk().smith) { folk().smith = 1; SM.wait = 2.2; } }
@@ -136,7 +136,7 @@ function peopleBuy(s) {
 /* a new tool level: the tools are made again in the new colour, sparks fly off the anvil and she hops */
 function toolUp() {
   TOOL.re(); SM.hop = 1; burst(ANVIL.x, 0.9, ANVIL.z, 10); splash(ANVIL.x, 0.7, ANVIL.z, 8);
-  tierSp.material.map = isleBubble('pick' + Math.min(3, toolTier() + 1)); hintSp.visible = false;
+  tierSp.material.map = isleBubble('pick' + Math.min(4, toolTier() + 1)); hintSp.visible = false;
   /* the new pick flies up out of the anvil to Pip */
   const sp = isleSprite(isleBubble('pick' + toolTier()), 0.9); sp.position.set(ANVIL.x, 1.0, ANVIL.z); sc.add(sp); SM.gift = { sp, t: 0 };
 }
@@ -152,7 +152,7 @@ function peopleGoal() {
 
 let anvilIn = false, hamT = 0;
 function peopleStep(dt) {
-  bakerStep(dt); loopStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
+  bakerStep(dt); loopStep(dt); hamStep(dt); findStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
   if (!SM.g) return;
   const F = folk(), g = SM.g, pp = pip.position;
   /* she steps out of the cottage */
@@ -187,7 +187,7 @@ function peopleStep(dt) {
     const inR = Math.hypot(pp.x - ANVIL_RING.x, pp.z - ANVIL_RING.z) < 0.55; if (!inR) anvilIn = false; else if (!anvilIn && BM.menu && BM.menu.hidden) { anvilOpen(); anvilIn = !BM.menu.hidden; } /* once per visit; waits for a new star's card */
     anvilRing.material.opacity = 0.55;
     /* over her head: the next tool she can make */
-    tierSp.visible = toolTier() < 3 && !SM.gift; if (tierSp.visible) { const can = bldCan('tool'); tierSp.position.set(g.position.x, 2.15 + (reduced ? 0 : Math.sin(time * 2) * 0.05), g.position.z); tierSp.scale.setScalar(0.8 * (can && !reduced ? 1 + Math.sin(time * 5) * 0.08 : 1)); tierSp.material.opacity = can ? 1 : 0.7; }
+    tierSp.visible = toolTier() < 4 && !SM.gift; if (tierSp.visible) { const can = bldCan('tool'); tierSp.position.set(g.position.x, 2.15 + (reduced ? 0 : Math.sin(time * 2) * 0.05), g.position.z); tierSp.scale.setScalar(0.8 * (can && !reduced ? 1 + Math.sin(time * 5) * 0.08 : 1)); tierSp.material.opacity = can ? 1 : 0.7; }
   }
   if (SM.gift) { const G = SM.gift; G.t += dt; G.sp.position.y = 1.0 + G.t * 1.6; G.sp.material.opacity = Math.max(0, 1 - Math.max(0, G.t - 0.9) * 2); if (G.t > 1.5) { sc.remove(G.sp); SM.gift = null; } }
 }
