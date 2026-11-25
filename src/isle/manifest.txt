@@ -48,6 +48,7 @@ look.js
 loop.js
 props.js
 map.js
+spots.js
 ferry.js
 show.js
 snowfx.js

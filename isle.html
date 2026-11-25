@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261125191121">
+<meta name="app-ver" content="20261125191458">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1249,6 +1249,7 @@ const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2
   lighthouse: { x: -31.4, z: -2.2, sx: 1.8, sz: 1.3, mx: 2.4, mz: -1.0 }, tower: { x: 30.6, z: -34, sx: -1.7, sz: 1.5, mx: -2.0, mz: -1.2 } };
 const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to the farm leaves (ferry.js) */
 const TRAVEL_HOME = { x: 2.7, z: 2.6 }, CAVE_FRIEND = { x: 8.8, z: 29.2 };
+const SPOT_AT = { tent: [-4.5, -1.5], fire: [-1.75, 0.75], dog: [-0.75, -2.7], gear: [3.6, 3.6] }; /* the upgrade rings in the camp (spots.js) */
 const KENNEL = { x: -1.3, z: -3.7 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
   isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0, sickle: 0, shovel: 0 }, chests: {}, ruins: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
@@ -2352,7 +2353,7 @@ function areaDecor(A) {
   if (b === 'cave') caveDecor(A, L, base);
   if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; m.receiveShadow = true; }
 }
-const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL, FERRY].some((o) => Math.hypot(o.x - x, o.z - z) < r) || loopNear(x, z, r); /* the camp's buildings, the friends' houses, the monuments */
+const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL, FERRY].some((o) => Math.hypot(o.x - x, o.z - z) < r) || loopNear(x, z, r) || spotNear(x, z, r); /* the camp's buildings, the friends' houses, the monuments */
 const walkSdfArea = (A, x, z) => Math.abs(x - A.cx) > 5.55 || Math.abs(z - A.cz) > 5.55; /* keep the dressing off the cliff edge */
 /* the camp in the start area: a campfire and a little tent */
 const campFlame = (() => {
@@ -2625,7 +2626,7 @@ function isleStep(dt) {
   storeStep2(dt); invFlyStep(dt); invStep();
   for (let k = chests.length - 1; k >= 0; k--) { chestStep(chests[k], dt); if (chests[k].gone) chests.splice(k, 1); }
   if (hintSp.visible) { hintSp.t -= dt; hintSp.material.opacity = Math.min(1, hintSp.t * 2); if (hintSp.t <= 0) hintSp.visible = false; }
-  const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1); bldStep(dt); xpStep(dt); luckStep(dt); ruinStep(dt); caveStep(dt); springStep(dt); zoneStep(dt); timedStep(dt); peopleStep(dt); snxStep(dt);
+  const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1); bldStep(dt); xpStep(dt); luckStep(dt); ruinStep(dt); caveStep(dt); springStep(dt); zoneStep(dt); timedStep(dt); peopleStep(dt); snxStep(dt); spotStep(dt);
 }
 /* the pets keep inside the box of the land Pip is on: home, or an island once Pip is there */
 function isleBoxStep() { const A = areaAt(pip.position.x, pip.position.z); if (A && HAS[A.id] && !A.cave) { const b = ISLAND.box; b.x0 = A.cx - 5.4; b.x1 = A.cx + 5.4; b.z0 = A.cz - 5.4; b.z1 = A.cz + 5.4; } }
@@ -2659,7 +2660,7 @@ function isleInit() {
   AREAS.forEach((A) => { if (HAS[A.id] && A.bridge) bridgeBuild(A, true); if (HAS[A.id] || drawn(A.i, A.j)) areaFill(A, false); });
   nodes.forEach((n) => { n.pop = 0; n.g.scale.setScalar(1); });
   chests.forEach((c) => { c.pop = 1; c.g.scale.setScalar(1); });
-  I.store = I.store || { log: 0, stone: 0, berry: 0 }; tierMigrate(I); if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit(); xpBuild(); peopleInit(); gearInit(); mapInit();
+  I.store = I.store || { log: 0, stone: 0, berry: 0 }; tierMigrate(I); if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit(); xpBuild(); peopleInit(); gearInit(); mapInit(); spotInit();
   isleSigns();
   pip.position.set(0, 0, 0.4); target.copy(pip.position); camFocus.copy(pip.position);
   dog.g.position.set(-1.2, 0, -0.6); petsInit();
@@ -7869,6 +7870,45 @@ function mapInit() {
   b.addEventListener('click', (e) => { e.stopPropagation(); mapOpen(); });
   m.addEventListener('click', (e) => { e.stopPropagation(); mapShut(); });
   ['pointerdown', 'pointerup', 'touchstart'].forEach((ev) => m.addEventListener(ev, (e) => e.stopPropagation()));
+}
+/* ---------- upgrade spots (Leon, 2026-11-25: "place the things you can buy throughout the settlement") ----------
+   Everything in the hammer menu also has its own place in the camp, so a child can see what can be made better and where:
+   a rope ring by the tent, one by the campfire, one by the kennel, and one for the gear (torch, coat, boots) once Pip has
+   met something that needs it. Over each ring floats a bubble with the picture of the next level; when the counters hold
+   enough it bounces and wears a green hammer. Standing in the ring opens that card alone. A spot goes away when there
+   is nothing left to buy there. (The smith's anvil and the baker's oven already work this way.) */
+const SPT = { list: [], t: 0, tex: {} };
+function spotNear(x, z, r) { return Object.keys(SPOT_AT).some((k) => Math.hypot(SPOT_AT[k][0] - x, SPOT_AT[k][1] - z) < r * 0.6); }
+function spotKeys(id) { return id === 'gear' ? Object.keys(GEAR).filter((k) => !gearHas(k) && state.isle.seen && state.isle.seen[k]) : (bldLv(id) < BLD[id].max ? [id] : []); }
+function spotTex(pic, can) {
+  const key = pic + (can ? '!' : ''); if (SPT.tex[key]) return SPT.tex[key];
+  const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+  x.beginPath(); x.arc(64, 60, 50, 0, 7); x.fillStyle = can ? '#f3ffe6' : '#fff6e4'; x.fill(); x.lineWidth = can ? 7 : 5; x.strokeStyle = can ? '#4f8a3a' : '#6e4426'; x.stroke();
+  x.beginPath(); x.moveTo(52, 106); x.lineTo(64, 122); x.lineTo(76, 106); x.fillStyle = can ? '#f3ffe6' : '#fff6e4'; x.fill();
+  isleIcon(x, pic, 64, 60, 1.6);
+  x.beginPath(); x.arc(100, 96, 22, 0, 7); x.fillStyle = can ? '#74c05a' : '#d8cdb5'; x.fill(); x.lineWidth = 4; x.strokeStyle = can ? '#3f6a30' : '#8a7a62'; x.stroke(); isleIcon(x, 'hammer', 100, 96, 0.62);
+  return (SPT.tex[key] = new T.CanvasTexture(c));
+}
+function spotInit() {
+  if (SPT.list.length || SHOW) return;
+  Object.keys(SPOT_AT).forEach((id) => { const [x, z] = SPOT_AT[id], ring = ropeRing(0.42, 0.56); ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.035, z); sc.add(ring);
+    const sp = isleSprite(null, 0.9); sp.position.set(x, 1.5, z); sc.add(sp); lookFoot(x, z, 0.7, 0.7);
+    SPT.list.push({ id, x, z, ring, sp, keys: [], k: null, can: false, in: false, still: 0 }); });
+  spotSync();
+}
+function spotSync() {
+  SPT.list.forEach((S) => { S.keys = spotKeys(S.id); const on = S.keys.length > 0; S.ring.visible = S.sp.visible = on; if (!on) return;
+    S.k = S.keys.find(bldCan) || S.keys[0]; S.can = bldCan(S.k); const tex = spotTex(BLD[S.k].pic[bldLv(S.k) + 1], S.can); if (S.sp.material.map !== tex) { S.sp.material.map = tex; S.sp.material.needsUpdate = true; } });
+}
+function spotStep(dt) {
+  if (!SPT.list.length) return; SPT.t -= dt; if (SPT.t <= 0) { SPT.t = 0.5; spotSync(); }
+  const pp = pip.position, still = Math.hypot(target.x - pp.x, target.z - pp.z) < 0.2;
+  SPT.list.forEach((S, i) => { if (!S.sp.visible) { S.in = false; return; }
+    const hop = S.can && !reduced ? Math.abs(Math.sin(time * 3.2 + i)) * 0.16 : (reduced ? 0 : Math.sin(time * 2 + i) * 0.04); S.sp.position.y = 1.5 + hop; S.sp.scale.setScalar(S.can ? 1.0 : 0.82);
+    const inR = Math.hypot(pp.x - S.x, pp.z - S.z) < 0.5; if (!inR) { S.in = false; S.still = 0; return; }
+    S.still = still ? S.still + dt : 0; if (S.in || S.still < 0.25 || enSleep || rising || !BM.menu || !BM.menu.hidden) return;
+    const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; /* a new star's card first */
+    BM.keys = S.keys.slice(); bldFill(); BM.menu.hidden = false; S.in = true; Snd.play('pop', { gain: 0.3, f: 520 }); });
 }
 /* ---------- the boat to Pips farm (Leon, 2026-11-25: "a connected game mode") ----------
    A little dock on the west shore of the camp. The round pad is out ON the dock planks (Leon: on land it went off while
