@@ -1,9 +1,11 @@
-/* ---------- the boat between the farm and the shop ---------- */
+/* ---------- the boat between the farm and Pips Island (Leon, 2026-11-25: one connected game; it used to go to the old shop) ---------- */
 /* a dock at the south end of the path; stand on it and the boat sails to the other island */
-const HERE = typeof DIET !== 'undefined' ? 'farm' : 'shop', THERE_PAGE = HERE === 'farm' ? 'butik.html' : 'bondgard.html';
-const canSail0 = /github\.io$/.test(location.hostname) || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+const HERE = typeof DIET !== 'undefined' ? 'farm' : 'shop', THERE_PAGE = HERE === 'farm' ? 'isle.html' : 'bondgard.html';
+/* sail only when the other page is really there (a single test page has none: then the boat takes a round trip) */
+let canSail0 = false;
+try { fetch(THERE_PAGE, { method: 'HEAD' }).then((r) => (r.ok || r.status !== 405 ? r : fetch(THERE_PAGE))).then((r) => { canSail0 = r.ok; }).catch(() => {}); } catch (e) {}
 /* the sandbox stays home: the boat sails round and comes back, so the real farm is never opened by mistake */
-const canSail = canSail0 && !(typeof SANDBOX !== 'undefined' && SANDBOX);
+const sailOk = () => canSail0 && !(typeof SANDBOX !== 'undefined' && SANDBOX);
 const DOCK = (() => { const X = 0; let z = 0; while (hAt(X, z) > -0.02 && z < 30) z += 0.1; return { x: X, edge: z, z0: z - 0.9, z1: z + 2.6, boat: z + 3.75 }; })();
 const dockG = new T.Group(); sc.add(dockG);
 {
@@ -29,7 +31,13 @@ const dockSign = (() => {
   x.fillStyle = PAL.paper; x.strokeStyle = PAL.ink; x.lineWidth = 6; x.beginPath(); x.arc(80, 72, 62, 0, 7); x.fill(); x.stroke();
   x.beginPath(); x.moveTo(64, 130); x.lineTo(80, 152); x.lineTo(96, 130); x.fill(); x.stroke();
   x.lineWidth = 4; x.lineJoin = 'round';
-  if (THERE_PAGE === 'butik.html') { /* the shop: a striped awning over a counter */
+  if (THERE_PAGE === 'isle.html') { /* Pips Island: a tent and a campfire on a round green island in the sea */
+    x.fillStyle = '#5aa7d6'; x.beginPath(); x.ellipse(80, 100, 48, 12, 0, 0, 7); x.fill(); x.stroke();
+    x.fillStyle = '#8fbf5a'; x.beginPath(); x.ellipse(80, 96, 38, 10, 0, 0, 7); x.fill(); x.stroke();
+    x.fillStyle = PAL.accent; x.beginPath(); x.moveTo(52, 94); x.lineTo(70, 52); x.lineTo(88, 94); x.closePath(); x.fill(); x.stroke();
+    x.fillStyle = PAL.ink; x.beginPath(); x.moveTo(64, 94); x.lineTo(70, 76); x.lineTo(76, 94); x.closePath(); x.fill();
+    x.fillStyle = '#ffb23c'; x.beginPath(); x.moveTo(94, 94); x.quadraticCurveTo(98, 74, 103, 82); x.quadraticCurveTo(108, 70, 110, 94); x.closePath(); x.fill(); x.stroke();
+  } else if (THERE_PAGE === 'butik.html') { /* the shop: a striped awning over a counter */
     x.fillStyle = '#7d5e4e'; x.fillRect(46, 74, 68, 34); x.strokeRect(46, 74, 68, 34);
     for (let k = 0; k < 5; k++) { x.fillStyle = k % 2 ? PAL.paper : PAL.accent; x.beginPath(); x.moveTo(40 + k * 16, 48); x.lineTo(56 + k * 16, 48); x.lineTo(56 + k * 16, 70); x.quadraticCurveTo(48 + k * 16, 78, 40 + k * 16, 70); x.closePath(); x.fill(); x.stroke(); }
     x.fillStyle = PAL.snow; [62, 80, 98].forEach((q) => { x.beginPath(); x.ellipse(q, 70, 6, 8, 0, 0, 7); x.fill(); x.stroke(); });
@@ -66,8 +74,8 @@ function boatStep(dt) {
     if (q >= 1) { trip.st = 'sail'; trip.t = 0; trip.v = 0; }
   } else if (trip.st === 'sail') {
     trip.v = Math.min(4, trip.v + dt * 2.5); boat.position.z += trip.v * dt; pip.position.copy(seat()); pip.rotation.y = 0;
-    if (trip.t > 1.2 && !trip.faded) { trip.faded = true; if (canSail) fadeEl.style.opacity = '1'; }
-    if (trip.t > 2.0 && !trip.gone) { trip.gone = true; if (canSail) { try { save(); } catch (e) {} location.href = THERE_PAGE + '?from=boat'; } else { trip.st = 'return'; trip.t = 0; } }
+    if (trip.t > 1.2 && !trip.faded) { trip.faded = true; if (sailOk()) fadeEl.style.opacity = '1'; }
+    if (trip.t > 2.0 && !trip.gone) { trip.gone = true; if (sailOk()) { try { save(); } catch (e) {} location.href = THERE_PAGE + (THERE_PAGE === 'isle.html' ? '?from=farm' : '?from=boat'); } else { trip.st = 'return'; trip.t = 0; } }
   } else if (trip.st === 'return' || trip.st === 'arrive') {
     /* sail back in to the dock (without a second island, the boat just takes a round trip) */
     const dz = boat.position.z - DOCK.boat; boat.position.z -= Math.max(1.6, Math.min(4.5, dz * 1.6)) * dt; if (boat.position.z < DOCK.boat) boat.position.z = DOCK.boat; pip.position.copy(seat()); pip.rotation.y = Math.PI;
@@ -295,3 +303,4 @@ function houseStep(dt) {
   if (Math.hypot(pip.position.x - wardRing.x, pip.position.z - wardRing.z) > 0.9) wardLatch = false;
 }
 
+if (window.__farmTest) window.__boat = { dock: () => ({ x: DOCK.x, z: DOCK.z0 + 0.2 }), tp: (x, z) => { pip.position.set(x, 0, z); target.set(x, 0, z); }, trip: () => (trip ? trip.st : null), ok: () => sailOk() };
