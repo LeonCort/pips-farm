@@ -325,10 +325,10 @@ function drawSmall(s) {
   const x = s.cv2.getContext('2d'); x.clearRect(0, 0, W, H); paperBox(x, W, H + 6);
   x.font = '800 36px "Baloo 2", system-ui, sans-serif'; x.textBaseline = 'middle'; x.lineJoin = 'round';
   rows.forEach((t, r) => { const left = cost[t] - paidN(s, t), cx = 14 + r * CW; isleIcon(x, t, cx + 26, 34, 0.82);
-    x.fillStyle = storeN(t) >= left ? '#3f8a3a' : PAL.ink; x.fillText(String(left), cx + 52, 36); });
+    x.fillStyle = haveN(t) >= left ? '#3f8a3a' : PAL.ink; x.fillText(String(left), cx + 52, 36); });
   s.tex2.needsUpdate = true; s.smKey = signSmallKey(s); const h = 0.42; s.sm.scale.set(h * W / H, h, 1);
 }
-const signSmallKey = (s) => costKinds(s).map((t) => (signCost(s)[t] - paidN(s, t)) + (storeN(t) >= signCost(s)[t] - paidN(s, t) ? 'y' : 'n')).join(',');
+const signSmallKey = (s) => costKinds(s).map((t) => (signCost(s)[t] - paidN(s, t)) + (haveN(t) >= signCost(s)[t] - paidN(s, t) ? 'y' : 'n')).join(',');
 /* the ghost of what a sign will make: a dashed square, a dashed bridge, or a dashed round piece of island */
 const ghostRound = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
   x.fillStyle = 'rgba(236,211,160,0.35)'; x.beginPath(); x.arc(64, 64, 56, 0, 7); x.fill(); x.setLineDash([12, 9]); x.lineWidth = 5; x.strokeStyle = 'rgba(255,246,228,0.95)'; x.stroke();
@@ -382,9 +382,9 @@ function signStep(s, dt) {
   s.ghost.material.opacity = 0.55 + (reduced ? 0 : Math.sin(time * 2.4 + s.seed) * 0.25);
   if (rising || building || giveT > 0 || Math.hypot(pip.position.x - s.x, pip.position.z - s.z) > 0.85) return;
   if (gearSignShut(s)) return; /* a spider web over the bridge (gear.js) */
-  const t = KINDS.find((q) => storeN(q) > 0 && signNeed(s, q) > 0); if (!t) return;
+  const t = KINDS.concat(['coin']).find((q) => haveN(q) > 0 && signNeed(s, q) > 0); if (!t) return;
   /* from the counter: the piece appears over Pip's head and flies on to the sign */
-  state.isle.store[t]--; invWig(t); const m = itemModel(t); m.position.set(pip.position.x, 1.9, pip.position.z); sc.add(m);
+  invWig(t); const m = spendN(t, 1)[0] || itemModel(t); if (!m.parent || m.parent === pip) { m.position.set(pip.position.x, 1.9, pip.position.z); } sc.add(m);
   giveT = 0.08; s.fly[t] = (s.fly[t] || 0) + 1; s.payT = 1.2;
   fly(m, () => s.g.localToWorld(tmpV.set(0, 1.9, 0)), () => { sc.remove(m); s.fly[t]--; signPaid(s)[t] = paidN(s, t) + 1; s.bump = 1; drawSign(s); Snd.play('tock', { gain: 0.4, f: 500 + (paidN(s, t) % 12) * 40 });
     if (signFull(s) && !rising && !building && signs.includes(s)) isleBuy(s); }, 0.3);
@@ -533,8 +533,8 @@ function isleGoal() {
   const full = carry.count() >= cap(), some = carry.count() > 0;
   /* a sign that what Pip has (backpack and crate together) can fill right now */
   const pg = peopleGoal(); if (pg) return pg;
-  const can = by(signs, (o) => KINDS.every((t) => signNeed(o, t) <= storeN(t)));
-  if (can && (full || some || KINDS.some((t) => storeN(t) >= 3))) return [can.x, can.z];
+  const can = by(signs, (o) => KINDS.concat(['coin']).every((t) => signNeed(o, t) <= haveN(t)));
+  if (can && (full || some || KINDS.some((t) => haveN(t) >= 3))) return [can.x, can.z];
   if (full) return [STORE.x, STORE.z + 0.95];
   if (Object.keys(state.isle.areas).length === 1 && !some && !drops.length) { const n = by(nodes, (o) => o.kind === 'tree' && o.st === 'ready'); if (n) return [n.x, n.z + 0.7]; }
   return null;
@@ -566,6 +566,10 @@ function isleTest() {
 /* ---- the storage crate at the camp: a full backpack empties into it, and signs take from it too ---- */
 const STORE = { x: 3.0, z: -2.7 };
 const storeN = (t) => (state.isle && state.isle.store ? state.isle.store[t] || 0 : 0);
+/* what Pip can pay with: the crate AND the backpack (Leon 2026-11-25: coins in the bag must count, no trip to the crate first) */
+const haveN = (t) => storeN(t) + carry.count(t);
+/* pay n of a kind: from the backpack first, then the crate; returns the meshes taken off Pip's back (the caller may fly them) */
+function spendN(t, n) { const out = []; for (let k = 0; k < n; k++) { const m = carry.take(t); if (m) out.push(m); else state.isle.store[t] = storeN(t) - 1; } invDirty = true; return out; }
 const storeG = (() => {
   const g = new T.Group(); g.position.set(STORE.x, 0, STORE.z); sc.add(g); const L = [];
   /* a sturdy plank crate: uneven boards with gaps, corner posts with caps, iron straps, rope handles, and two sacks leaning on it */

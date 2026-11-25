@@ -170,12 +170,12 @@ function bakerStep(dt) {
   if (F.baker >= 3 && ovenG) {
     const B = bake(), I = state.isle;
     /* start a pie when the counters hold its berries and hay: they fly from the crate into the oven */
-    if (!B.on && pies() < PIE_MAX && Object.keys(PIE_NEED).every((t) => storeN(t) >= PIE_NEED[t])) {
-      Object.keys(PIE_NEED).forEach((t) => { I.store[t] -= PIE_NEED[t]; invWig(t); if (Math.hypot(pp.x - OVEN.x, pp.z - OVEN.z) < 9) for (let k = 0; k < PIE_NEED[t]; k++) { const m = itemModel(t); m.position.set(STORE.x, 0.7, STORE.z); sc.add(m); fly(m, () => OVEN_IN, () => sc.remove(m), 0.5 + k * 0.1); } });
+    if (!B.on && pies() < PIE_MAX && Object.keys(PIE_NEED).every((t) => haveN(t) >= PIE_NEED[t])) {
+      Object.keys(PIE_NEED).forEach((t) => { spendN(t, PIE_NEED[t]).forEach((m) => sc.remove(m)); invWig(t); if (Math.hypot(pp.x - OVEN.x, pp.z - OVEN.z) < 9) for (let k = 0; k < PIE_NEED[t]; k++) { const m = itemModel(t); m.position.set(STORE.x, 0.7, STORE.z); sc.add(m); fly(m, () => OVEN_IN, () => sc.remove(m), 0.5 + k * 0.1); } });
       B.on = 1; B.t = 0; save();
     }
     if (B.on) { B.t += dt; if (B.t >= bakeTime()) { B.on = 0; B.t = 0; B.pies = Math.min(PIE_MAX, pies() + bakeBatch()); BK.hop = 0.6; if (Math.hypot(pp.x - OVEN.x, pp.z - OVEN.z) < 9) { Snd.play('success', { gain: 0.35, f: 'G5' }); burst(OVEN.x, 1.0, OVEN.z + 0.4, 5); } save(); } }
-    const f = B.on ? B.t / bakeTime() : pies() >= PIE_MAX ? 1 : 0, ok = B.on || pies() >= PIE_MAX || Object.keys(PIE_NEED).every((t) => storeN(t) >= PIE_NEED[t]), key = Math.round(f * 24) + (ok ? 'y' : 'n');
+    const f = B.on ? B.t / bakeTime() : pies() >= PIE_MAX ? 1 : 0, ok = B.on || pies() >= PIE_MAX || Object.keys(PIE_NEED).every((t) => haveN(t) >= PIE_NEED[t]), key = Math.round(f * 24) + (ok ? 'y' : 'n');
     if (key !== pieSp.key) { pieSp.key = key; pieDraw(f, ok); }
     pieSp.visible = true; pieSp.position.set(OVEN.x, 1.75 + (reduced ? 0 : Math.sin(time * 2 + 1) * 0.05), OVEN.z - 0.1);
     ovenPies.forEach((m, k) => { m.visible = k < pies(); });

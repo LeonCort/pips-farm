@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261125161207">
+<meta name="app-ver" content="20261125161739">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2419,10 +2419,10 @@ function drawSmall(s) {
   const x = s.cv2.getContext('2d'); x.clearRect(0, 0, W, H); paperBox(x, W, H + 6);
   x.font = '800 36px "Baloo 2", system-ui, sans-serif'; x.textBaseline = 'middle'; x.lineJoin = 'round';
   rows.forEach((t, r) => { const left = cost[t] - paidN(s, t), cx = 14 + r * CW; isleIcon(x, t, cx + 26, 34, 0.82);
-    x.fillStyle = storeN(t) >= left ? '#3f8a3a' : PAL.ink; x.fillText(String(left), cx + 52, 36); });
+    x.fillStyle = haveN(t) >= left ? '#3f8a3a' : PAL.ink; x.fillText(String(left), cx + 52, 36); });
   s.tex2.needsUpdate = true; s.smKey = signSmallKey(s); const h = 0.42; s.sm.scale.set(h * W / H, h, 1);
 }
-const signSmallKey = (s) => costKinds(s).map((t) => (signCost(s)[t] - paidN(s, t)) + (storeN(t) >= signCost(s)[t] - paidN(s, t) ? 'y' : 'n')).join(',');
+const signSmallKey = (s) => costKinds(s).map((t) => (signCost(s)[t] - paidN(s, t)) + (haveN(t) >= signCost(s)[t] - paidN(s, t) ? 'y' : 'n')).join(',');
 /* the ghost of what a sign will make: a dashed square, a dashed bridge, or a dashed round piece of island */
 const ghostRound = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
   x.fillStyle = 'rgba(236,211,160,0.35)'; x.beginPath(); x.arc(64, 64, 56, 0, 7); x.fill(); x.setLineDash([12, 9]); x.lineWidth = 5; x.strokeStyle = 'rgba(255,246,228,0.95)'; x.stroke();
@@ -2476,9 +2476,9 @@ function signStep(s, dt) {
   s.ghost.material.opacity = 0.55 + (reduced ? 0 : Math.sin(time * 2.4 + s.seed) * 0.25);
   if (rising || building || giveT > 0 || Math.hypot(pip.position.x - s.x, pip.position.z - s.z) > 0.85) return;
   if (gearSignShut(s)) return; /* a spider web over the bridge (gear.js) */
-  const t = KINDS.find((q) => storeN(q) > 0 && signNeed(s, q) > 0); if (!t) return;
+  const t = KINDS.concat(['coin']).find((q) => haveN(q) > 0 && signNeed(s, q) > 0); if (!t) return;
   /* from the counter: the piece appears over Pip's head and flies on to the sign */
-  state.isle.store[t]--; invWig(t); const m = itemModel(t); m.position.set(pip.position.x, 1.9, pip.position.z); sc.add(m);
+  invWig(t); const m = spendN(t, 1)[0] || itemModel(t); if (!m.parent || m.parent === pip) { m.position.set(pip.position.x, 1.9, pip.position.z); } sc.add(m);
   giveT = 0.08; s.fly[t] = (s.fly[t] || 0) + 1; s.payT = 1.2;
   fly(m, () => s.g.localToWorld(tmpV.set(0, 1.9, 0)), () => { sc.remove(m); s.fly[t]--; signPaid(s)[t] = paidN(s, t) + 1; s.bump = 1; drawSign(s); Snd.play('tock', { gain: 0.4, f: 500 + (paidN(s, t) % 12) * 40 });
     if (signFull(s) && !rising && !building && signs.includes(s)) isleBuy(s); }, 0.3);
@@ -2627,8 +2627,8 @@ function isleGoal() {
   const full = carry.count() >= cap(), some = carry.count() > 0;
   /* a sign that what Pip has (backpack and crate together) can fill right now */
   const pg = peopleGoal(); if (pg) return pg;
-  const can = by(signs, (o) => KINDS.every((t) => signNeed(o, t) <= storeN(t)));
-  if (can && (full || some || KINDS.some((t) => storeN(t) >= 3))) return [can.x, can.z];
+  const can = by(signs, (o) => KINDS.concat(['coin']).every((t) => signNeed(o, t) <= haveN(t)));
+  if (can && (full || some || KINDS.some((t) => haveN(t) >= 3))) return [can.x, can.z];
   if (full) return [STORE.x, STORE.z + 0.95];
   if (Object.keys(state.isle.areas).length === 1 && !some && !drops.length) { const n = by(nodes, (o) => o.kind === 'tree' && o.st === 'ready'); if (n) return [n.x, n.z + 0.7]; }
   return null;
@@ -2660,6 +2660,10 @@ function isleTest() {
 /* ---- the storage crate at the camp: a full backpack empties into it, and signs take from it too ---- */
 const STORE = { x: 3.0, z: -2.7 };
 const storeN = (t) => (state.isle && state.isle.store ? state.isle.store[t] || 0 : 0);
+/* what Pip can pay with: the crate AND the backpack (Leon 2026-11-25: coins in the bag must count, no trip to the crate first) */
+const haveN = (t) => storeN(t) + carry.count(t);
+/* pay n of a kind: from the backpack first, then the crate; returns the meshes taken off Pip's back (the caller may fly them) */
+function spendN(t, n) { const out = []; for (let k = 0; k < n; k++) { const m = carry.take(t); if (m) out.push(m); else state.isle.store[t] = storeN(t) - 1; } invDirty = true; return out; }
 const storeG = (() => {
   const g = new T.Group(); g.position.set(STORE.x, 0, STORE.z); sc.add(g); const L = [];
   /* a sturdy plank crate: uneven boards with gaps, corner posts with caps, iron straps, rope handles, and two sacks leaning on it */
@@ -2987,7 +2991,7 @@ const bldKeys = () => ['tent', 'fire', 'dog'].concat(forgeUp() ? ['tool'] : [], 
 const bldLv = (k) => (state.isle && state.isle.bld && state.isle.bld[k]) || 1;
 const enMax = () => [0, 100, 130, 160][bldLv('tent')] + xpEn();
 const enRegen = () => [0, 0.2, 0.33, 0.5][bldLv('fire')];
-const bldCan = (k) => { const c = BLD[k].cost[bldLv(k) + 1]; return !!c && Object.keys(c).every((t) => storeN(t) >= c[t]); };
+const bldCan = (k) => { const c = BLD[k].cost[bldLv(k) + 1]; return !!c && Object.keys(c).every((t) => haveN(t) >= c[t]); };
 let bldPop = null;
 
 /* ---- how the tent and the campfire look at each level ---- */
@@ -3133,7 +3137,7 @@ function bldFill() {
     const pic = document.createElement('div'); pic.className = 'pic'; pic.appendChild(bldPic(B.pic[next], 128)); const eff = document.createElement('div'); eff.className = 'eff'; eff.appendChild(bldEff(k, next)); pic.appendChild(eff); card.appendChild(pic);
     const dots = document.createElement('div'); dots.className = 'dots'; for (let q = 1; q <= B.max; q++) { const d = document.createElement('b'); if (q <= lv) d.className = 'on'; dots.appendChild(d); } card.appendChild(dots);
     if (c) {
-      const cost = document.createElement('div'); cost.className = 'cost'; Object.keys(c).forEach((t) => { const s = document.createElement('span'); if (storeN(t) >= c[t]) s.className = 'ok'; s.appendChild(bldIco(t)); s.appendChild(document.createTextNode(String(c[t]))); cost.appendChild(s); }); card.appendChild(cost);
+      const cost = document.createElement('div'); cost.className = 'cost'; Object.keys(c).forEach((t) => { const s = document.createElement('span'); if (haveN(t) >= c[t]) s.className = 'ok'; s.appendChild(bldIco(t)); s.appendChild(document.createTextNode(String(c[t]))); cost.appendChild(s); }); card.appendChild(cost);
       const go = document.createElement('button'); go.type = 'button'; go.className = 'go' + (bldCan(k) ? ' can' : ''); go.setAttribute('aria-label', 'Bygg'); go.appendChild(bldPic('hammer', 96));
       go.addEventListener('click', (e) => { e.stopPropagation(); bldUp(k); }); card.appendChild(go);
     } else { const d = document.createElement('div'); d.className = 'done'; d.textContent = '⭐'; card.appendChild(d); }
@@ -3143,7 +3147,7 @@ function bldFill() {
 function bldUp(k) {
   const c = BLD[k].cost[bldLv(k) + 1]; if (!c) return;
   if (!bldCan(k)) { const card = BM[k]; card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); Snd.play('blip', { gain: 0.2, f: 260 }); return; }
-  Object.keys(c).forEach((t) => { state.isle.store[t] -= c[t]; });
+  Object.keys(c).forEach((t) => { spendN(t, c[t]).forEach((m) => { fly(m, () => pip.localToWorld(tmpV.set(0, 2.2, 0)), () => sc.remove(m), 0.3); }); });
   state.isle.bld[k] = bldLv(k) + 1; save();
   if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(TENT.x, 1.2, TENT.z, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
   else if (k === 'tool') toolUp();
@@ -6338,12 +6342,12 @@ function bakerStep(dt) {
   if (F.baker >= 3 && ovenG) {
     const B = bake(), I = state.isle;
     /* start a pie when the counters hold its berries and hay: they fly from the crate into the oven */
-    if (!B.on && pies() < PIE_MAX && Object.keys(PIE_NEED).every((t) => storeN(t) >= PIE_NEED[t])) {
-      Object.keys(PIE_NEED).forEach((t) => { I.store[t] -= PIE_NEED[t]; invWig(t); if (Math.hypot(pp.x - OVEN.x, pp.z - OVEN.z) < 9) for (let k = 0; k < PIE_NEED[t]; k++) { const m = itemModel(t); m.position.set(STORE.x, 0.7, STORE.z); sc.add(m); fly(m, () => OVEN_IN, () => sc.remove(m), 0.5 + k * 0.1); } });
+    if (!B.on && pies() < PIE_MAX && Object.keys(PIE_NEED).every((t) => haveN(t) >= PIE_NEED[t])) {
+      Object.keys(PIE_NEED).forEach((t) => { spendN(t, PIE_NEED[t]).forEach((m) => sc.remove(m)); invWig(t); if (Math.hypot(pp.x - OVEN.x, pp.z - OVEN.z) < 9) for (let k = 0; k < PIE_NEED[t]; k++) { const m = itemModel(t); m.position.set(STORE.x, 0.7, STORE.z); sc.add(m); fly(m, () => OVEN_IN, () => sc.remove(m), 0.5 + k * 0.1); } });
       B.on = 1; B.t = 0; save();
     }
     if (B.on) { B.t += dt; if (B.t >= bakeTime()) { B.on = 0; B.t = 0; B.pies = Math.min(PIE_MAX, pies() + bakeBatch()); BK.hop = 0.6; if (Math.hypot(pp.x - OVEN.x, pp.z - OVEN.z) < 9) { Snd.play('success', { gain: 0.35, f: 'G5' }); burst(OVEN.x, 1.0, OVEN.z + 0.4, 5); } save(); } }
-    const f = B.on ? B.t / bakeTime() : pies() >= PIE_MAX ? 1 : 0, ok = B.on || pies() >= PIE_MAX || Object.keys(PIE_NEED).every((t) => storeN(t) >= PIE_NEED[t]), key = Math.round(f * 24) + (ok ? 'y' : 'n');
+    const f = B.on ? B.t / bakeTime() : pies() >= PIE_MAX ? 1 : 0, ok = B.on || pies() >= PIE_MAX || Object.keys(PIE_NEED).every((t) => haveN(t) >= PIE_NEED[t]), key = Math.round(f * 24) + (ok ? 'y' : 'n');
     if (key !== pieSp.key) { pieSp.key = key; pieDraw(f, ok); }
     pieSp.visible = true; pieSp.position.set(OVEN.x, 1.75 + (reduced ? 0 : Math.sin(time * 2 + 1) * 0.05), OVEN.z - 0.1);
     ovenPies.forEach((m, k) => { m.visible = k < pies(); });
