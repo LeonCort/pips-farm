@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261125170418">
+<meta name="app-ver" content="20261125171559">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1143,7 +1143,9 @@ let mount = null;
    Some areas grow the island Pip is on (a sign at the edge); some are across a strip of sea, another island, which Pip
    can see from the start and reaches by building a bridge. Each area has its own biome: what grows there and its colour.
    The engine draws the ground from ISLAND.d (how far a point is from the coast) and keeps Pip on land with ISLAND.clamp. */
-const SAVE_KEY = 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip looks) is shared with the farm */
+const SHOW = /[?&]show=1\b/.test(location.search); /* the asset yard (show.js): its own save, everything built, an empty lawn on the meadow */
+const SHOW_YARD = { m0: 1, m1: 1 };
+const SAVE_KEY = SHOW ? 'pip-isle-show' : 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip looks) is shared with the farm */
 const HERE = 'isle';
 const MAP_V = 'areas-1'; /* the map's version: a save made for another map starts over */
 const GS = 4; /* one square, in world units; an area is 3 by 3 squares (12 by 12) */
@@ -1184,6 +1186,9 @@ try { if (/[?&]new=1/.test(location.search)) localStorage.removeItem(SAVE_KEY); 
 function areaSquares(a, f) { for (let i = a.i; i < a.i + 3; i++) for (let j = a.j; j < a.j + 3; j++) f(i, j); }
 function areaMark(a) { HAS[a.id] = 1; areaSquares(a, (i, j) => { WALK[gIdx(i, j)] = 1; LAND[gIdx(i, j)] = 1; }); }
 AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.cave) LAND[gIdx(i, j)] = 1; }); });
+if (SHOW) try { const s = fresh(), I = s.isle; AREAS.forEach((a) => { if (!a.cave) I.areas[a.id] = 1; }); I.ruins = { h3: 1, s1: 1, w1: 1 }; I.folk = { smith: 3, baker: 3, mason: 3, knitter: 3, miner: 3 };
+  I.mon = { harbor: 1, windmill: 1, lighthouse: 1, tower: 1 }; I.keys = { rope: 2, map: 2, icepick: 2 }; I.done = 1; I.bld = { tent: 1, fire: 1, tool: 3, dog: 2, torch: 1, coat: 1, boots: 1 }; I.tools.pick = 1; I.seen = { torch: 1, coat: 1, boots: 1 };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {}
 (function () {
   let I = null; try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && s.v === 1 && s.isle && s.isle.map === MAP_V) I = s.isle; } catch (e) {}
   AREAS.forEach((a) => { if (a.start || a.cave || (I && I.areas && I.areas[a.id])) areaMark(a); });
@@ -1205,6 +1210,7 @@ const drawSdf = (x, z) => gSdfOf(drawn, x, z);
 /* where Pip may walk: owned areas, and the bridges built to them */
 function walkSdf(x, z) {
   let d = gSdf(x, z);
+  d = Math.min(d, segD(x, z, FERRY.x, FERRY.z, FERRY.x - 3.0, FERRY.z) - 0.55); /* the farm boat's dock: its pad is out on the planks (ferry.js) */
   for (const a of AREAS) if (a.bridge && HAS[a.id]) { const b = a.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
   return d;
 }
@@ -1240,7 +1246,7 @@ const BOARD = { x: 3.3, z: -4.75 };
 const HOUSES = { mason: { x: 11, z: 4.9 }, knitter: { x: 14, z: 4.9 }, miner: { x: 17, z: 4.9 } };
 const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2.6 }, windmill: { x: 2.6, z: -30, sx: -1.7, sz: 1.5, mx: -2.2, mz: 2.2 },
   lighthouse: { x: -31.4, z: -2.2, sx: 1.8, sz: 1.3, mx: 2.4, mz: -1.0 }, tower: { x: 30.6, z: -34, sx: -1.7, sz: 1.5, mx: -2.0, mz: -1.2 } };
-const FERRY = { x: -5.15, z: 1.7 }; /* the dock where the boat to the farm leaves (ferry.js) */
+const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to the farm leaves (ferry.js) */
 const TRAVEL_HOME = { x: 2.7, z: 2.6 }, CAVE_FRIEND = { x: 8.8, z: 29.2 };
 const KENNEL = { x: -1.3, z: -3.7 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
@@ -2288,9 +2294,10 @@ function areaClear(x, z) {
   return true;
 }
 /* the start area is laid out by hand round the camp, so there is plenty to gather from the first minute (Leon, 2026-11-23) */
-const START_NODES = [['tree', -4.9, -4.9], ['tree', 4.9, -4.9], ['tree', -4.9, 4.9], ['tree', 4.9, 4.9], ['tree', 5.0, -1.5], ['tree', -5.0, 1.2], ['tree', 2.1, 5.1], ['tree', -1.7, -5.2],
+const START_NODES = [['tree', -4.9, -4.9], ['tree', 4.9, -4.9], ['tree', -3.7, 5.1], ['tree', 4.9, 4.9], ['tree', 5.0, -1.5], ['tree', -5.0, 0.3], ['tree', 2.1, 5.1], ['tree', -1.7, -5.2],
   ['bush', 5.1, -3.3], ['bush', 5.2, 2.0], ['bush', -5.1, -1.2], ['bush', -1.5, 4.9], ['bush', -5.2, 3.7], ['rock', 3.3, 5.1], ['rock', -3.2, -5.1]]; /* round the rim: the middle is the settlement */
 function areaFill(A, fresh) {
+  if (SHOW && SHOW_YARD[A.id]) return; /* the asset yard keeps these two areas as an empty lawn */
   if (A.start) { START_NODES.forEach(([k, x, z], q) => makeNode(k, x, z, 50 + q)); areaDecor(A); return; }
   const SP = 2.05, base = AREAS.indexOf(A) * 997; let c = 0;
   for (let gx = A.cx - 5.2; gx <= A.cx + 5.3; gx += SP) for (let gz = A.cz - 5.2; gz <= A.cz + 5.3; gz += SP) {
@@ -6148,7 +6155,7 @@ function peopleGoal() {
 
 let anvilIn = false, hamT = 0;
 function peopleStep(dt) {
-  bakerStep(dt); loopStep(dt); ferryStep(dt); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
+  bakerStep(dt); loopStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
   if (!SM.g) return;
   const F = folk(), g = SM.g, pp = pip.position;
   /* she steps out of the cottage */
@@ -7419,7 +7426,8 @@ function loopStep(dt) {
   keyHud();
 }
 /* ---------- the boat to Pips farm (Leon, 2026-11-25: "a connected game mode") ----------
-   A little dock on the west shore of the camp. Stand on the round pad and it fills; Pip hops into the boat, it sails
+   A little dock on the west shore of the camp. The round pad is out ON the dock planks (Leon: on land it went off while
+   chopping the tree beside it). Stand on it and it fills; Pip hops into the boat, it sails
    off west, the screen fades to the sea and the farm opens (bondgard.html?from=isle). Coming from the farm
    (isle.html?from=farm) the boat sails in and Pip hops out onto the pad. The farm has the same boat back (boat-house.js).
    If the farm page is not there (a single test page), the boat just sails a round trip. */
@@ -7447,8 +7455,8 @@ const ferryBoat = new T.Group();
   q = new T.BoxGeometry(0.24, 0.15, 0.02); q.translate(0.37, 0.9, 0); B.push(fac(q, () => new T.Color('#f2c23c'), 5034));
   merged(B, MAT, ferryBoat); ferryBoat.position.set(FERRY_DOCK.boat, -0.08, z); sc.add(ferryBoat);
 }
-const ferryRing = ropeRing(0.45, 0.6); ferryRing.rotation.x = -Math.PI / 2; ferryRing.position.set(FERRY.x, 0.035, FERRY.z); sc.add(ferryRing);
-const ferryFill = new T.Mesh(new T.CircleGeometry(0.42, 32), new T.MeshBasicMaterial({ color: '#f4b23a', transparent: true, opacity: 0.85 })); ferryFill.rotation.x = -Math.PI / 2; ferryFill.position.set(FERRY.x, 0.045, FERRY.z); ferryFill.scale.setScalar(0.001); sc.add(ferryFill);
+const ferryRing = ropeRing(0.45, 0.6); ferryRing.rotation.x = -Math.PI / 2; ferryRing.position.set(FERRY.x + FERRY.pad, 0.175, FERRY.z); sc.add(ferryRing);
+const ferryFill = new T.Mesh(new T.CircleGeometry(0.42, 32), new T.MeshBasicMaterial({ color: '#f4b23a', transparent: true, opacity: 0.85 })); ferryFill.rotation.x = -Math.PI / 2; ferryFill.position.set(FERRY.x + FERRY.pad, 0.185, FERRY.z); ferryFill.scale.setScalar(0.001); sc.add(ferryFill);
 const ferryFade = (() => { const d = document.createElement('div'); d.setAttribute('aria-hidden', 'true'); d.style.cssText = 'position:fixed;inset:0;background:#2e8f9c;opacity:0;pointer-events:none;transition:opacity 0.6s ease;z-index:50'; document.body.appendChild(d); return d; })();
 const ferrySeat = () => tmpV.set(ferryBoat.position.x - 0.25, ferryBoat.position.y + 0.32, ferryBoat.position.z);
 /* is the farm page there to sail to? (a single test page has no farm: then the boat comes straight back) */
@@ -7467,7 +7475,7 @@ function ferryStep(dt) {
   ferryFill.scale.setScalar(Math.max(0.001, FB.wait)); if (FB.sign) FB.sign.position.y = 1.75 + (reduced ? 0 : Math.sin(time * 2) * 0.05);
   const pp = pip.position, T0 = FB.trip;
   if (!T0) {
-    const on = Math.hypot(pp.x - FERRY.x, pp.z - FERRY.z) < 0.5 && !enSleep && !inCave && !rising && Math.hypot(target.x - pp.x, target.z - pp.z) < 0.15;
+    const on = Math.hypot(pp.x - FERRY.x - FERRY.pad, pp.z - FERRY.z) < 0.45 && !enSleep && !inCave && !rising && Math.hypot(target.x - pp.x, target.z - pp.z) < 0.15;
     FB.wait = on ? Math.min(1, FB.wait + dt / 0.9) : Math.max(0, FB.wait - dt * 3);
     if (FB.wait >= 1) { FB.wait = 0; FB.trip = { st: 'board', t: 0, from: pp.clone() }; work = null; Snd.play('powerup', { gain: 0.4 }); }
     return;
@@ -7479,10 +7487,95 @@ function ferryStep(dt) {
     if (T0.t > 2.0 && !T0.gone) { T0.gone = true; if (ferryOk) { try { save(); } catch (e) {} location.href = FB.page + '?from=boat'; } else { T0.st = 'arrive'; T0.t = 0; } } }
   else if (T0.st === 'arrive') { const dx = FERRY_DOCK.boat - ferryBoat.position.x; ferryBoat.position.x += Math.max(1.6, Math.min(4.5, dx * 1.6)) * dt; if (ferryBoat.position.x > FERRY_DOCK.boat) ferryBoat.position.x = FERRY_DOCK.boat; pp.copy(ferrySeat()); pip.rotation.y = Math.PI / 2;
     if (ferryBoat.position.x >= FERRY_DOCK.boat - 0.01) FB.trip = { st: 'land', t: 0, from: pp.clone() }; }
-  else if (T0.st === 'land') { const q = Math.min(1, T0.t / 0.7); pp.lerpVectors(T0.from, tmpV.set(FERRY.x + 0.7, 0, FERRY.z), q); pp.y += Math.sin(q * Math.PI) * 0.6; pip.rotation.y = Math.PI / 2;
+  else if (T0.st === 'land') { const q = Math.min(1, T0.t / 0.7); pp.lerpVectors(T0.from, tmpV.set(FERRY.x + FERRY.pad + 1.3, 0, FERRY.z), q); pp.y += Math.sin(q * Math.PI) * 0.6; pip.rotation.y = Math.PI / 2;
     if (q >= 1) { pp.y = 0; target.copy(pp); FB.trip = null; Snd.play('pop', { gain: 0.4, f: 520 }); } }
 }
 const ferryBusy = () => !!FB.trip;
+/* ---------- the asset yard (Leon, 2026-11-25): isle.html?show=1 ----------
+   A test page, not part of the game: every island asset stands in rows on an empty lawn (the first two meadow areas),
+   each upgrade level side by side, with a name tag and its triangle count. A list on the right jumps Pip to any of them,
+   and to the big things that stay in their real place (monuments, bridges, docks). It has its own save (pip-isle-show),
+   so the real game is never touched. */
+const SH = { built: 0, items: [], here: [] };
+function showTris(o) { let n = 0; o.traverse((m) => { if (!m.isMesh || !m.geometry || !m.visible) return; const g = m.geometry; n += (g.index ? g.index.count : g.attributes.position ? g.attributes.position.count : 0) / 3; }); return Math.round(n); }
+function showTag(name, tris, x, y, z) {
+  const c = document.createElement('canvas'); c.width = 384; c.height = 112; const q = c.getContext('2d');
+  q.fillStyle = 'rgba(255,246,228,0.94)'; q.strokeStyle = '#6e4426'; q.lineWidth = 5; q.beginPath(); q.roundRect(4, 4, 376, 104, 20); q.fill(); q.stroke();
+  q.fillStyle = '#3a2a1e'; q.textAlign = 'center'; q.textBaseline = 'middle'; q.font = '700 40px Fredoka, system-ui, sans-serif'; q.fillText(name, 192, 40, 356);
+  q.fillStyle = tris < 300 ? '#c0392b' : tris < 1200 ? '#b9770e' : '#2e7d32'; q.font = '600 30px Fredoka, system-ui, sans-serif'; q.fillText(tris.toLocaleString('en') + ' triangles', 192, 82, 356);
+  const sp = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(c), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.44, 1); sp.position.set(x, y, z); sc.add(sp); return sp;
+}
+/* put an object on the lawn at a slot and list it */
+function showPut(group, name, x, z, o) {
+  o = o || {}; const g = o.keep ? group : group; if (!o.keep) { g.position.set(x, o.y || 0, z); if (o.ry != null) g.rotation.y = o.ry; } if (!g.parent) sc.add(g); g.visible = true; g.scale.setScalar(o.s || 1);
+  g.updateMatrixWorld(true); const b = new T.Box3().setFromObject(g), tris = o.tris != null ? o.tris : showTris(g), h = Math.max(0.7, Math.min(4.2, b.max.y));
+  showTag(name, tris, x, h + 0.55, z); SH.items.push({ name, x, z: z + (o.front || 1.7), tris, grp: o.grp || 'Yard' }); return g;
+}
+function showBuild() {
+  const I = state.isle, X0 = -16.4, DX = 3.05, sx = (k) => X0 + k * DX; let z, k;
+  /* row 1: the camp's own things, every level */
+  z = -20.2; k = 0;
+  [1, 2, 3].forEach((lv) => { tentShape(lv); showPut(campFlame.t.clone(true), lv === 3 ? 'Hut (tent 3)' : 'Tent ' + lv, sx(k++), z, { ry: 0, grp: 'Camp' }); }); tentShape(bldLv('tent'));
+  [1, 2, 3].forEach((lv) => { fireShape(lv); showPut(campFlame.g.clone(true), 'Campfire ' + lv, sx(k++), z + 0.3, { grp: 'Camp', front: 1.9 }); }); fireShape(bldLv('fire'));
+  const ken = sc.children.find((c) => c.isGroup && Math.abs(c.position.x - KENNEL.x) < 0.01 && Math.abs(c.position.z - KENNEL.z) < 0.01);
+  if (ken) showPut(ken.clone(true), 'Doghouse', sx(k++), z, { grp: 'Camp' });
+  showPut(storeG.g.clone(true), 'Storage crate', sx(k++), z, { grp: 'Camp' });
+  /* row 2: buildings */
+  z = -17.0; k = 0;
+  if (forgeG) showPut(forgeG.clone(true), 'Forge', sx(k++), z, { grp: 'Buildings' });
+  if (ovenG) showPut(ovenG.clone(true), 'Bakery oven', sx(k++), z, { grp: 'Buildings' });
+  ['mason', 'knitter', 'miner'].forEach((id) => { const P = LP.folk[id]; if (P && P.house) showPut(P.house.clone(true), id[0].toUpperCase() + id.slice(1) + ' house', sx(k++), z, { grp: 'Buildings' }); });
+  [['m2', 'Old cottage (shut)'], ['h3', 'Old cottage (open)']].forEach(([id, nm]) => { const R = ruins.find((r) => r.A.id === id); if (R) { const c = R.g.clone(true); if (R.planks && !R.open) { const pl = R.planks.main.clone(); pl.position.set(0, 0, 0.98); c.add(pl); } showPut(c, nm, sx(k++), z, { ry: 0, grp: 'Buildings' }); } });
+  showPut(boardG.clone(true), 'Friends board', sx(k++), z + 0.3, { ry: 0, grp: 'Buildings' });
+  /* row 3: village pieces, built one by one from the same code the village uses */
+  z = -14.2; k = 0;
+  const piece = (name, f) => { const g = new T.Group(), L = [], x = sx(k++); f(L, g, x); if (L.length) merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), MAT, g); sc.add(g); g.updateMatrixWorld(true); const b = new T.Box3().setFromObject(g); showTag(name, showTris(g), x, Math.min(4, b.max.y) + 0.55, z); SH.items.push({ name, x, z: z + 1.5, tris: showTris(g), grp: 'Village pieces' }); };
+  piece('Well', (L, g, x) => wellMake(x, z, L, 3260));
+  piece('Lantern', (L, g, x) => lanternMake(x, z, L).forEach((m) => g.add(m)));
+  piece('Crystal lamp', (L, g, x) => crystLamp(x, z, L, g, 3970));
+  piece('Signpost', (L, g, x) => signpost(x, z, L, 3200, 0.4));
+  piece('Bench', (L, g, x) => benchMake(x, z, 0, L, 3370));
+  piece('Flower box', (L, g, x) => flowerBox(x, z, 0, L, 3250));
+  piece('Stone planter', (L, g, x) => stonePlanter(x, z, L, 3800));
+  piece('Fence', (L, g, x) => fenceRun(x - 0.9, z, x + 0.9, z, L, 3460));
+  /* row 4: what grows, and things found */
+  z = -12.3; k = 0;
+  const node = (kind, name, seed) => { const xx = sx(k++), n = makeNode(kind, xx, z, seed); n.g.updateMatrixWorld(true); const b = new T.Box3().setFromObject(n.g); showTag(name, showTris(n.g), xx, Math.min(4, b.max.y) + 0.55, z); SH.items.push({ name, x: xx, z: z + 1.6, tris: showTris(n.g), grp: 'Nature' }); };
+  let sT = 1, sP = 1; while (hash(sT, 2) > 0.7) sT++; while (hash(sP, 2) <= 0.7) sP++;
+  node('tree', 'Tree', sT); node('tree', 'Pine', sP); node('bush', 'Berry bush', 7); node('rock', 'Rock', 8); node('boulder', 'Boulder', 9); node('crystal', 'Crystal', 10);
+  { const c = makeChest(sx(k), z, 'pick', 9999); chests.splice(chests.indexOf(c), 1); sc.remove(c.ring); c.g.scale.setScalar(1); showPut(c.g, 'Chest', sx(k++), z, { grp: 'Nature', front: 1.4 }); }
+  showPut(ferryBoat.clone(true), 'Boat', sx(k++), z, { y: 0.3, grp: 'Nature', front: 1.4 });
+  /* row 5: everyone, and what Pip carries */
+  z = -22.4; k = 0; const who = (g, name) => { g.rotation.y = 0; showPut(g, name, X0 + k++ * 1.9, z, { grp: 'Friends', front: 1.3 }); };
+  who(smithModel(), 'Smith'); who(bakerModel(), 'Baker'); ['mason', 'knitter', 'miner'].forEach((id) => who(loopFolkModel(id), id[0].toUpperCase() + id.slice(1)));
+  if (typeof dog !== 'undefined' && dog && dog.g) who(dog.g.clone(true), 'Dog');
+  ['log', 'stone', 'berry', 'crystal', 'coin'].forEach((t) => { const m = itemModel(t); showPut(m, t[0].toUpperCase() + t.slice(1), X0 + k++ * 1.9, z, { y: 0.25, s: 1.6, grp: 'Items', front: 1.1 }); });
+  /* the big things stay where they belong */
+  Object.keys(LP.mon).forEach((id) => { const S = LOOP_SITES[id]; SH.here.push({ name: { harbor: 'Harbour', windmill: 'Windmill', lighthouse: 'Lighthouse', tower: 'Star tower' }[id], x: S.x + S.sx, z: S.z + S.sz + 1.2, tris: showTris(LP.mon[id].g), grp: 'In their real place' }); });
+  SH.here.push({ name: 'Camp', x: 0.8, z: 1.4, tris: 0, grp: 'In their real place' }, { name: 'Smithy street', x: 13.5, z: 1.4, tris: 0, grp: 'In their real place' }, { name: 'Village green', x: 7.5, z: 10, tris: 0, grp: 'In their real place' },
+    { name: 'Bakery street', x: 0.6, z: 16.2, tris: 0, grp: 'In their real place' }, { name: 'Friends street', x: 13.5, z: 8.6, tris: 0, grp: 'In their real place' }, { name: 'Farm boat dock', x: FERRY.x + 1, z: FERRY.z + 0.8, tris: 0, grp: 'In their real place' },
+    { name: 'Bridge to the meadow', x: 0.9, z: -5.2, tris: 0, grp: 'In their real place' }, { name: 'Stone island', x: -27, z: -14, tris: 0, grp: 'In their real place' }, { name: 'Winter island', x: 27, z: -18, tris: 0, grp: 'In their real place' });
+  showPanel(); showGo({ x: -6, z: -9.2 });
+}
+function showGo(it) { pip.position.set(it.x, 0, it.z); target.set(it.x, 0, it.z); camFocus.set(it.x, 0, it.z); work = null; pip.rotation.y = Math.PI; }
+function showPanel() {
+  const st = document.createElement('style');
+  st.textContent = '.shw{position:fixed;top:84px;right:10px;bottom:10px;width:230px;z-index:40;display:flex;flex-direction:column;font:500 14px Fredoka,system-ui,sans-serif;color:#3a2a1e}'
+    + '.shw.shut{bottom:auto}.shw.shut .shwL{display:none}.shwH{background:#8a5a32;color:#fff6e4;border-radius:14px 14px 0 0;padding:8px 12px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between}.shw.shut .shwH{border-radius:14px}'
+    + '.shwL{overflow:auto;background:rgba(255,246,228,.95);border:3px solid #8a5a32;border-top:0;border-radius:0 0 14px 14px;padding:4px 6px 8px;-webkit-overflow-scrolling:touch}'
+    + '.shwG{font-weight:700;margin:8px 4px 2px;color:#8a5a32}.shwB{display:flex;justify-content:space-between;gap:6px;width:100%;border:0;background:none;padding:5px 6px;border-radius:8px;font:inherit;color:inherit;text-align:left;cursor:pointer}.shwB:hover,.shwB:active{background:#f0dcb2}'
+    + '.shwB i{font-style:normal;font-size:12px}.shwB .lo{color:#c0392b}.shwB .mid{color:#b9770e}.shwB .hi{color:#2e7d32}';
+  document.head.appendChild(st);
+  const d = document.createElement('div'); d.className = 'shw'; const h = document.createElement('div'); h.className = 'shwH'; h.innerHTML = '<span>Asset yard</span><span>▾</span>'; h.addEventListener('click', () => d.classList.toggle('shut')); d.appendChild(h);
+  const l = document.createElement('div'); l.className = 'shwL'; d.appendChild(l); let grp = null;
+  SH.items.concat(SH.here).forEach((it) => { if (it.grp !== grp) { grp = it.grp; const g = document.createElement('div'); g.className = 'shwG'; g.textContent = grp; l.appendChild(g); }
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'shwB'; const n = document.createElement('span'); n.textContent = it.name; b.appendChild(n);
+    if (it.tris) { const t = document.createElement('i'); t.textContent = it.tris.toLocaleString('en'); t.className = it.tris < 300 ? 'lo' : it.tris < 1200 ? 'mid' : 'hi'; b.appendChild(t); }
+    b.addEventListener('click', (e) => { e.stopPropagation(); showGo(it); }); l.appendChild(b); });
+  ['pointerdown', 'touchstart', 'mousedown', 'wheel'].forEach((ev) => d.addEventListener(ev, (e) => e.stopPropagation()));
+  document.body.appendChild(d);
+}
+function showStep() { if (!SHOW || SH.built) return; SH.built = 1; try { showBuild(); } catch (e) { console.error('asset yard: ' + e.message); throw e; } state.isle.en = enMax(); }
 
 /* ---------- camera and input ---------- */
 let aspect = 1;
@@ -7592,7 +7685,8 @@ function step(dt) {
   boatStep(dt); houseStep(dt);
   const near = (x, z, r) => Math.hypot(pip.position.x - x, pip.position.z - z) < r;
 /* ---------- the boat to Pips farm (Leon, 2026-11-25: "a connected game mode") ----------
-   A little dock on the west shore of the camp. Stand on the round pad and it fills; Pip hops into the boat, it sails
+   A little dock on the west shore of the camp. The round pad is out ON the dock planks (Leon: on land it went off while
+   chopping the tree beside it). Stand on it and it fills; Pip hops into the boat, it sails
    off west, the screen fades to the sea and the farm opens (bondgard.html?from=isle). Coming from the farm
    (isle.html?from=farm) the boat sails in and Pip hops out onto the pad. The farm has the same boat back (boat-house.js).
    If the farm page is not there (a single test page), the boat just sails a round trip. */
@@ -7620,8 +7714,8 @@ const ferryBoat = new T.Group();
   q = new T.BoxGeometry(0.24, 0.15, 0.02); q.translate(0.37, 0.9, 0); B.push(fac(q, () => new T.Color('#f2c23c'), 5034));
   merged(B, MAT, ferryBoat); ferryBoat.position.set(FERRY_DOCK.boat, -0.08, z); sc.add(ferryBoat);
 }
-const ferryRing = ropeRing(0.45, 0.6); ferryRing.rotation.x = -Math.PI / 2; ferryRing.position.set(FERRY.x, 0.035, FERRY.z); sc.add(ferryRing);
-const ferryFill = new T.Mesh(new T.CircleGeometry(0.42, 32), new T.MeshBasicMaterial({ color: '#f4b23a', transparent: true, opacity: 0.85 })); ferryFill.rotation.x = -Math.PI / 2; ferryFill.position.set(FERRY.x, 0.045, FERRY.z); ferryFill.scale.setScalar(0.001); sc.add(ferryFill);
+const ferryRing = ropeRing(0.45, 0.6); ferryRing.rotation.x = -Math.PI / 2; ferryRing.position.set(FERRY.x + FERRY.pad, 0.175, FERRY.z); sc.add(ferryRing);
+const ferryFill = new T.Mesh(new T.CircleGeometry(0.42, 32), new T.MeshBasicMaterial({ color: '#f4b23a', transparent: true, opacity: 0.85 })); ferryFill.rotation.x = -Math.PI / 2; ferryFill.position.set(FERRY.x + FERRY.pad, 0.185, FERRY.z); ferryFill.scale.setScalar(0.001); sc.add(ferryFill);
 const ferryFade = (() => { const d = document.createElement('div'); d.setAttribute('aria-hidden', 'true'); d.style.cssText = 'position:fixed;inset:0;background:#2e8f9c;opacity:0;pointer-events:none;transition:opacity 0.6s ease;z-index:50'; document.body.appendChild(d); return d; })();
 const ferrySeat = () => tmpV.set(ferryBoat.position.x - 0.25, ferryBoat.position.y + 0.32, ferryBoat.position.z);
 /* is the farm page there to sail to? (a single test page has no farm: then the boat comes straight back) */
@@ -7640,7 +7734,7 @@ function ferryStep(dt) {
   ferryFill.scale.setScalar(Math.max(0.001, FB.wait)); if (FB.sign) FB.sign.position.y = 1.75 + (reduced ? 0 : Math.sin(time * 2) * 0.05);
   const pp = pip.position, T0 = FB.trip;
   if (!T0) {
-    const on = Math.hypot(pp.x - FERRY.x, pp.z - FERRY.z) < 0.5 && !enSleep && !inCave && !rising && Math.hypot(target.x - pp.x, target.z - pp.z) < 0.15;
+    const on = Math.hypot(pp.x - FERRY.x - FERRY.pad, pp.z - FERRY.z) < 0.45 && !enSleep && !inCave && !rising && Math.hypot(target.x - pp.x, target.z - pp.z) < 0.15;
     FB.wait = on ? Math.min(1, FB.wait + dt / 0.9) : Math.max(0, FB.wait - dt * 3);
     if (FB.wait >= 1) { FB.wait = 0; FB.trip = { st: 'board', t: 0, from: pp.clone() }; work = null; Snd.play('powerup', { gain: 0.4 }); }
     return;
@@ -7652,10 +7746,95 @@ function ferryStep(dt) {
     if (T0.t > 2.0 && !T0.gone) { T0.gone = true; if (ferryOk) { try { save(); } catch (e) {} location.href = FB.page + '?from=boat'; } else { T0.st = 'arrive'; T0.t = 0; } } }
   else if (T0.st === 'arrive') { const dx = FERRY_DOCK.boat - ferryBoat.position.x; ferryBoat.position.x += Math.max(1.6, Math.min(4.5, dx * 1.6)) * dt; if (ferryBoat.position.x > FERRY_DOCK.boat) ferryBoat.position.x = FERRY_DOCK.boat; pp.copy(ferrySeat()); pip.rotation.y = Math.PI / 2;
     if (ferryBoat.position.x >= FERRY_DOCK.boat - 0.01) FB.trip = { st: 'land', t: 0, from: pp.clone() }; }
-  else if (T0.st === 'land') { const q = Math.min(1, T0.t / 0.7); pp.lerpVectors(T0.from, tmpV.set(FERRY.x + 0.7, 0, FERRY.z), q); pp.y += Math.sin(q * Math.PI) * 0.6; pip.rotation.y = Math.PI / 2;
+  else if (T0.st === 'land') { const q = Math.min(1, T0.t / 0.7); pp.lerpVectors(T0.from, tmpV.set(FERRY.x + FERRY.pad + 1.3, 0, FERRY.z), q); pp.y += Math.sin(q * Math.PI) * 0.6; pip.rotation.y = Math.PI / 2;
     if (q >= 1) { pp.y = 0; target.copy(pp); FB.trip = null; Snd.play('pop', { gain: 0.4, f: 520 }); } }
 }
 const ferryBusy = () => !!FB.trip;
+/* ---------- the asset yard (Leon, 2026-11-25): isle.html?show=1 ----------
+   A test page, not part of the game: every island asset stands in rows on an empty lawn (the first two meadow areas),
+   each upgrade level side by side, with a name tag and its triangle count. A list on the right jumps Pip to any of them,
+   and to the big things that stay in their real place (monuments, bridges, docks). It has its own save (pip-isle-show),
+   so the real game is never touched. */
+const SH = { built: 0, items: [], here: [] };
+function showTris(o) { let n = 0; o.traverse((m) => { if (!m.isMesh || !m.geometry || !m.visible) return; const g = m.geometry; n += (g.index ? g.index.count : g.attributes.position ? g.attributes.position.count : 0) / 3; }); return Math.round(n); }
+function showTag(name, tris, x, y, z) {
+  const c = document.createElement('canvas'); c.width = 384; c.height = 112; const q = c.getContext('2d');
+  q.fillStyle = 'rgba(255,246,228,0.94)'; q.strokeStyle = '#6e4426'; q.lineWidth = 5; q.beginPath(); q.roundRect(4, 4, 376, 104, 20); q.fill(); q.stroke();
+  q.fillStyle = '#3a2a1e'; q.textAlign = 'center'; q.textBaseline = 'middle'; q.font = '700 40px Fredoka, system-ui, sans-serif'; q.fillText(name, 192, 40, 356);
+  q.fillStyle = tris < 300 ? '#c0392b' : tris < 1200 ? '#b9770e' : '#2e7d32'; q.font = '600 30px Fredoka, system-ui, sans-serif'; q.fillText(tris.toLocaleString('en') + ' triangles', 192, 82, 356);
+  const sp = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(c), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.44, 1); sp.position.set(x, y, z); sc.add(sp); return sp;
+}
+/* put an object on the lawn at a slot and list it */
+function showPut(group, name, x, z, o) {
+  o = o || {}; const g = o.keep ? group : group; if (!o.keep) { g.position.set(x, o.y || 0, z); if (o.ry != null) g.rotation.y = o.ry; } if (!g.parent) sc.add(g); g.visible = true; g.scale.setScalar(o.s || 1);
+  g.updateMatrixWorld(true); const b = new T.Box3().setFromObject(g), tris = o.tris != null ? o.tris : showTris(g), h = Math.max(0.7, Math.min(4.2, b.max.y));
+  showTag(name, tris, x, h + 0.55, z); SH.items.push({ name, x, z: z + (o.front || 1.7), tris, grp: o.grp || 'Yard' }); return g;
+}
+function showBuild() {
+  const I = state.isle, X0 = -16.4, DX = 3.05, sx = (k) => X0 + k * DX; let z, k;
+  /* row 1: the camp's own things, every level */
+  z = -20.2; k = 0;
+  [1, 2, 3].forEach((lv) => { tentShape(lv); showPut(campFlame.t.clone(true), lv === 3 ? 'Hut (tent 3)' : 'Tent ' + lv, sx(k++), z, { ry: 0, grp: 'Camp' }); }); tentShape(bldLv('tent'));
+  [1, 2, 3].forEach((lv) => { fireShape(lv); showPut(campFlame.g.clone(true), 'Campfire ' + lv, sx(k++), z + 0.3, { grp: 'Camp', front: 1.9 }); }); fireShape(bldLv('fire'));
+  const ken = sc.children.find((c) => c.isGroup && Math.abs(c.position.x - KENNEL.x) < 0.01 && Math.abs(c.position.z - KENNEL.z) < 0.01);
+  if (ken) showPut(ken.clone(true), 'Doghouse', sx(k++), z, { grp: 'Camp' });
+  showPut(storeG.g.clone(true), 'Storage crate', sx(k++), z, { grp: 'Camp' });
+  /* row 2: buildings */
+  z = -17.0; k = 0;
+  if (forgeG) showPut(forgeG.clone(true), 'Forge', sx(k++), z, { grp: 'Buildings' });
+  if (ovenG) showPut(ovenG.clone(true), 'Bakery oven', sx(k++), z, { grp: 'Buildings' });
+  ['mason', 'knitter', 'miner'].forEach((id) => { const P = LP.folk[id]; if (P && P.house) showPut(P.house.clone(true), id[0].toUpperCase() + id.slice(1) + ' house', sx(k++), z, { grp: 'Buildings' }); });
+  [['m2', 'Old cottage (shut)'], ['h3', 'Old cottage (open)']].forEach(([id, nm]) => { const R = ruins.find((r) => r.A.id === id); if (R) { const c = R.g.clone(true); if (R.planks && !R.open) { const pl = R.planks.main.clone(); pl.position.set(0, 0, 0.98); c.add(pl); } showPut(c, nm, sx(k++), z, { ry: 0, grp: 'Buildings' }); } });
+  showPut(boardG.clone(true), 'Friends board', sx(k++), z + 0.3, { ry: 0, grp: 'Buildings' });
+  /* row 3: village pieces, built one by one from the same code the village uses */
+  z = -14.2; k = 0;
+  const piece = (name, f) => { const g = new T.Group(), L = [], x = sx(k++); f(L, g, x); if (L.length) merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), MAT, g); sc.add(g); g.updateMatrixWorld(true); const b = new T.Box3().setFromObject(g); showTag(name, showTris(g), x, Math.min(4, b.max.y) + 0.55, z); SH.items.push({ name, x, z: z + 1.5, tris: showTris(g), grp: 'Village pieces' }); };
+  piece('Well', (L, g, x) => wellMake(x, z, L, 3260));
+  piece('Lantern', (L, g, x) => lanternMake(x, z, L).forEach((m) => g.add(m)));
+  piece('Crystal lamp', (L, g, x) => crystLamp(x, z, L, g, 3970));
+  piece('Signpost', (L, g, x) => signpost(x, z, L, 3200, 0.4));
+  piece('Bench', (L, g, x) => benchMake(x, z, 0, L, 3370));
+  piece('Flower box', (L, g, x) => flowerBox(x, z, 0, L, 3250));
+  piece('Stone planter', (L, g, x) => stonePlanter(x, z, L, 3800));
+  piece('Fence', (L, g, x) => fenceRun(x - 0.9, z, x + 0.9, z, L, 3460));
+  /* row 4: what grows, and things found */
+  z = -12.3; k = 0;
+  const node = (kind, name, seed) => { const xx = sx(k++), n = makeNode(kind, xx, z, seed); n.g.updateMatrixWorld(true); const b = new T.Box3().setFromObject(n.g); showTag(name, showTris(n.g), xx, Math.min(4, b.max.y) + 0.55, z); SH.items.push({ name, x: xx, z: z + 1.6, tris: showTris(n.g), grp: 'Nature' }); };
+  let sT = 1, sP = 1; while (hash(sT, 2) > 0.7) sT++; while (hash(sP, 2) <= 0.7) sP++;
+  node('tree', 'Tree', sT); node('tree', 'Pine', sP); node('bush', 'Berry bush', 7); node('rock', 'Rock', 8); node('boulder', 'Boulder', 9); node('crystal', 'Crystal', 10);
+  { const c = makeChest(sx(k), z, 'pick', 9999); chests.splice(chests.indexOf(c), 1); sc.remove(c.ring); c.g.scale.setScalar(1); showPut(c.g, 'Chest', sx(k++), z, { grp: 'Nature', front: 1.4 }); }
+  showPut(ferryBoat.clone(true), 'Boat', sx(k++), z, { y: 0.3, grp: 'Nature', front: 1.4 });
+  /* row 5: everyone, and what Pip carries */
+  z = -22.4; k = 0; const who = (g, name) => { g.rotation.y = 0; showPut(g, name, X0 + k++ * 1.9, z, { grp: 'Friends', front: 1.3 }); };
+  who(smithModel(), 'Smith'); who(bakerModel(), 'Baker'); ['mason', 'knitter', 'miner'].forEach((id) => who(loopFolkModel(id), id[0].toUpperCase() + id.slice(1)));
+  if (typeof dog !== 'undefined' && dog && dog.g) who(dog.g.clone(true), 'Dog');
+  ['log', 'stone', 'berry', 'crystal', 'coin'].forEach((t) => { const m = itemModel(t); showPut(m, t[0].toUpperCase() + t.slice(1), X0 + k++ * 1.9, z, { y: 0.25, s: 1.6, grp: 'Items', front: 1.1 }); });
+  /* the big things stay where they belong */
+  Object.keys(LP.mon).forEach((id) => { const S = LOOP_SITES[id]; SH.here.push({ name: { harbor: 'Harbour', windmill: 'Windmill', lighthouse: 'Lighthouse', tower: 'Star tower' }[id], x: S.x + S.sx, z: S.z + S.sz + 1.2, tris: showTris(LP.mon[id].g), grp: 'In their real place' }); });
+  SH.here.push({ name: 'Camp', x: 0.8, z: 1.4, tris: 0, grp: 'In their real place' }, { name: 'Smithy street', x: 13.5, z: 1.4, tris: 0, grp: 'In their real place' }, { name: 'Village green', x: 7.5, z: 10, tris: 0, grp: 'In their real place' },
+    { name: 'Bakery street', x: 0.6, z: 16.2, tris: 0, grp: 'In their real place' }, { name: 'Friends street', x: 13.5, z: 8.6, tris: 0, grp: 'In their real place' }, { name: 'Farm boat dock', x: FERRY.x + 1, z: FERRY.z + 0.8, tris: 0, grp: 'In their real place' },
+    { name: 'Bridge to the meadow', x: 0.9, z: -5.2, tris: 0, grp: 'In their real place' }, { name: 'Stone island', x: -27, z: -14, tris: 0, grp: 'In their real place' }, { name: 'Winter island', x: 27, z: -18, tris: 0, grp: 'In their real place' });
+  showPanel(); showGo({ x: -6, z: -9.2 });
+}
+function showGo(it) { pip.position.set(it.x, 0, it.z); target.set(it.x, 0, it.z); camFocus.set(it.x, 0, it.z); work = null; pip.rotation.y = Math.PI; }
+function showPanel() {
+  const st = document.createElement('style');
+  st.textContent = '.shw{position:fixed;top:84px;right:10px;bottom:10px;width:230px;z-index:40;display:flex;flex-direction:column;font:500 14px Fredoka,system-ui,sans-serif;color:#3a2a1e}'
+    + '.shw.shut{bottom:auto}.shw.shut .shwL{display:none}.shwH{background:#8a5a32;color:#fff6e4;border-radius:14px 14px 0 0;padding:8px 12px;font-weight:700;cursor:pointer;display:flex;justify-content:space-between}.shw.shut .shwH{border-radius:14px}'
+    + '.shwL{overflow:auto;background:rgba(255,246,228,.95);border:3px solid #8a5a32;border-top:0;border-radius:0 0 14px 14px;padding:4px 6px 8px;-webkit-overflow-scrolling:touch}'
+    + '.shwG{font-weight:700;margin:8px 4px 2px;color:#8a5a32}.shwB{display:flex;justify-content:space-between;gap:6px;width:100%;border:0;background:none;padding:5px 6px;border-radius:8px;font:inherit;color:inherit;text-align:left;cursor:pointer}.shwB:hover,.shwB:active{background:#f0dcb2}'
+    + '.shwB i{font-style:normal;font-size:12px}.shwB .lo{color:#c0392b}.shwB .mid{color:#b9770e}.shwB .hi{color:#2e7d32}';
+  document.head.appendChild(st);
+  const d = document.createElement('div'); d.className = 'shw'; const h = document.createElement('div'); h.className = 'shwH'; h.innerHTML = '<span>Asset yard</span><span>▾</span>'; h.addEventListener('click', () => d.classList.toggle('shut')); d.appendChild(h);
+  const l = document.createElement('div'); l.className = 'shwL'; d.appendChild(l); let grp = null;
+  SH.items.concat(SH.here).forEach((it) => { if (it.grp !== grp) { grp = it.grp; const g = document.createElement('div'); g.className = 'shwG'; g.textContent = grp; l.appendChild(g); }
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'shwB'; const n = document.createElement('span'); n.textContent = it.name; b.appendChild(n);
+    if (it.tris) { const t = document.createElement('i'); t.textContent = it.tris.toLocaleString('en'); t.className = it.tris < 300 ? 'lo' : it.tris < 1200 ? 'mid' : 'hi'; b.appendChild(t); }
+    b.addEventListener('click', (e) => { e.stopPropagation(); showGo(it); }); l.appendChild(b); });
+  ['pointerdown', 'touchstart', 'mousedown', 'wheel'].forEach((ev) => d.addEventListener(ev, (e) => e.stopPropagation()));
+  document.body.appendChild(d);
+}
+function showStep() { if (!SHOW || SH.built) return; SH.built = 1; try { showBuild(); } catch (e) { console.error('asset yard: ' + e.message); throw e; } state.isle.en = enMax(); }
   /* ---------- the island's part of each frame (inside step(), between the engine's loop.js and loop-end.js) ---------- */
   skyStep(dt); dogStep(dt); weatherStep(dt); rainLate(); petsStep(dt); storeStep(dt);
   isleStep(dt);
