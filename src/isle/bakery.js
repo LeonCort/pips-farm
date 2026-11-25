@@ -61,21 +61,41 @@ function pieDraw(f, ok) { /* a pie in a bubble, with a ring that fills while it 
 function ovenBuild(anim) {
   if (ovenG) return;
   const g = new T.Group(); g.position.set(OVEN.x, 0, OVEN.z); sc.add(g); const L = [];
-  let q = new T.BoxGeometry(1.25, 0.5, 1.25, 4, 2, 4); jit(q, 0.02, 2970); q.translate(0, 0.25, 0); L.push(fac(q, (cx, cy, cz, i) => shadeY(hash(i, 3) > 0.8 ? '#a39883' : '#bdb3a0', cy, 0, 0.9, i, 0.45), 2970)); /* stone base */
-  q = new T.SphereGeometry(0.55, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2); q.scale(1, 0.9, 1); q.translate(0, 0.5, -0.18); L.push(fac(q, (cx, cy, cz, i) => shadeY(hash(i, 5) > 0.85 ? '#b8703f' : '#d08a5a', cy, 0.5, 1.1, i, 0.4), 2971)); /* clay dome */
-  q = new T.CylinderGeometry(0.08, 0.09, 0.4, 8); q.translate(0.22, 1.05, -0.35); L.push(fac(q, '#8a806e', 2972)); /* little chimney */
-  q = new T.BoxGeometry(0.5, 0.08, 0.3); q.translate(-0.95, 0.6, 0.15); L.push(fac(q, (cx, cy, cz, i) => tone('#a8774f', i, 0.5), 2973)); /* a side shelf with a peel leaning on it */
-  [[-1.15, 0.0], [-0.75, 0.0], [-1.15, 0.3], [-0.75, 0.3]].forEach(([x, z], k) => { const l = new T.BoxGeometry(0.05, 0.6, 0.05); l.translate(x, 0.3, z); L.push(fac(l, '#8a6a4e', 2974 + k)); });
-  q = new T.CylinderGeometry(0.02, 0.02, 0.9, 5); q.rotateZ(0.35); q.translate(-0.55, 0.45, 0.42); L.push(fac(q, '#c99158', 2978));
-  q = new T.BoxGeometry(0.22, 0.02, 0.22); q.rotateZ(0.35); q.translate(-0.72, 0.03, 0.42); L.push(fac(q, '#c99158', 2979));
-  merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), MAT, g);
+  let q;
+  kitStone(L, 1.3, 0.5, 1.3, 0, 0, 0, 2970, { hole: [-0.3, 0.3, 0, 0.3], th: 0.15, ch: 0.167 }); /* stone base with a wood store */
+  q = new T.BoxGeometry(1.42, 0.07, 1.42); q.translate(0, 0.535, 0); L.push(fac(q, (cx, cy, cz, i) => tone('#958b78', i, 0.4), 3600));
+  for (let k = 0; k < 5; k++) { const lx = -0.2 + (k % 3) * 0.2 - (k > 2 ? -0.1 : 0), ly = 0.08 + (k > 2 ? 0.15 : 0); q = new T.CylinderGeometry(0.08, 0.08, 0.3, 8); q.rotateX(Math.PI / 2); q.translate(lx, ly, 0.42); L.push(fac(q, () => tone('#96683f', k, 0.6), 3610 + k));
+    q = new T.CylinderGeometry(0.06, 0.06, 0.012, 8); q.rotateX(Math.PI / 2); q.translate(lx, ly, 0.575); L.push(fac(q, () => tone('#e7c48f', k, 0.4), 3620 + k)); }
+  /* the dome: real bricks in rings over a clay core, an arch of bricks round the mouth */
+  const DR = 0.56, dy = 0.57, dz = -0.15, BR = ['#c9764a', '#b8653c', '#d48a5a', '#a85a36'];
+  q = new T.SphereGeometry(DR - 0.045, 18, 9, 0, Math.PI * 2, 0, Math.PI / 2); q.translate(0, dy, dz); L.push(fac(q, () => new T.Color('#7a4c32'), 3630));
+  for (let r = 0; r < 6; r++) { const ph = 0.11 + r * 0.25, rr = DR * Math.cos(ph), n = Math.max(5, Math.round(6.283 * rr / 0.2));
+    for (let k = 0; k < n; k++) { const an = (k + (r % 2) * 0.5) / n * 6.283, w0 = Math.atan2(Math.sin(an), Math.cos(an)); if (r < 2 && Math.abs(w0) < 0.5) continue;
+      const sd = 3640 + r * 40 + k, col = tone(BR[Math.floor(hash(sd, 5) * 4)], sd, 0.7).multiplyScalar(r < 3 && Math.abs(w0) < 0.9 ? 0.72 : 1); /* sooty round the mouth */
+      const b = new T.BoxGeometry(6.283 * rr / n - 0.022, 0.118, 0.085); b.rotateX(-ph); b.translate(0, DR * Math.sin(ph) - 0.04, DR * Math.cos(ph) - 0.04); b.rotateY(an); b.translate(0, dy, dz); L.push(fac(b, () => col, sd)); } }
+  q = ico(0.13, 1, 3890); q.scale(1, 0.5, 1); q.translate(0, dy + DR - 0.07, dz); L.push(fac(q, () => new T.Color('#b8653c'), 3890));
+  for (let k = 0; k < 7; k++) { const an = (k + 0.5) / 7 * Math.PI, b = new T.BoxGeometry(0.105, 0.085, 0.16); b.rotateZ(an - Math.PI / 2); b.translate(Math.cos(an) * 0.27, dy + Math.sin(an) * 0.27, 0.37); L.push(fac(b, () => tone(BR[k % 4], k, 0.6).multiplyScalar(0.9), 3900 + k)); }
+  kitStone(L, 0.27, 0.5, 0.27, 0.2, 0.98, -0.45, 3910, { ch: 0.085, bl: 0.135, th: 0.07, cols: BR, core: '#5a3a28' }); /* brick chimney */
+  q = new T.BoxGeometry(0.34, 0.05, 0.34); q.translate(0.2, 1.5, -0.45); L.push(fac(q, () => new T.Color('#8a806e'), 3960));
+  /* a side table under a striped awning, the peel leaning on it, flour sacks and firewood */
+  [0, 1, 2].forEach((k) => { q = new T.BoxGeometry(0.56, 0.05, 0.125); q.translate(-0.97, 0.6, 0.02 + k * 0.13); L.push(fac(q, () => tone(k % 2 ? '#b9824c' : '#a8774f', k, 0.5), 2973 + k)); });
+  [[-1.2, -0.02], [-0.74, -0.02], [-1.2, 0.3], [-0.74, 0.3]].forEach(([x, z], k) => { const l = new T.BoxGeometry(0.055, 0.58, 0.055); l.translate(x, 0.29, z); L.push(fac(l, () => new T.Color('#8a6a4e'), 2976 + k)); });
+  [[-1.45, -0.25, 1.18], [-1.45, 0.6, 1.18], [-0.7, -0.25, 1.5], [-0.7, 0.6, 1.5]].forEach(([x, z, h], k) => { q = new T.CylinderGeometry(0.028, 0.034, h, 6); q.translate(x, h / 2, z); L.push(fac(q, (cx, cy) => shadeY('#8a5f3c', cy, 0, 1.6, k, 0.4), 3970 + k)); });
+  for (let k = 0; k < 7; k++) { q = new T.BoxGeometry(0.92, 0.022, 0.134); q.rotateZ(0.4); q.translate(-1.075, 1.36, -0.3 + k * 0.137 + 0.067); L.push(fac(q, () => tone(k % 2 ? '#f6ead0' : '#d9573f', k, 0.4), 3980 + k));
+    const fr = new T.BoxGeometry(0.022, 0.1, 0.134); fr.translate(-1.5, 1.14, -0.3 + k * 0.137 + 0.067); L.push(fac(fr, () => tone(k % 2 ? '#f6ead0' : '#d9573f', k, 0.4), 3990 + k)); }
+  q = new T.CylinderGeometry(0.02, 0.02, 0.9, 5); q.rotateZ(0.35); q.translate(-0.55, 0.45, 0.48); L.push(fac(q, () => new T.Color('#c99158'), 2978));
+  q = new T.BoxGeometry(0.22, 0.02, 0.22); q.rotateZ(0.35); q.translate(-0.72, 0.03, 0.48); L.push(fac(q, () => new T.Color('#c99158'), 2979));
+  [[-1.05, 0.72, 0.17], [-1.27, 0.66, 0.14]].forEach(([x, z, r], k) => { q = ico(r, 1, 4000 + k, 0.01); q.scale(1, 1.15, 0.85); q.translate(x, r * 1.0, z); L.push(fac(q, (cx, cy, cz, i) => shadeY('#e8dcc0', cy, 0, 0.4, i, 0.3), 4000 + k)); });
+  for (let k = 0; k < 5; k++) { const row = k < 3 ? 0 : 1; q = new T.CylinderGeometry(0.075, 0.075, 0.42, 8); q.rotateZ(Math.PI / 2); q.translate(0.98, 0.075 + row * 0.13, -0.5 + (k - row * 3) * 0.155 + row * 0.08); L.push(fac(q, () => tone(k % 2 ? '#a8774f' : '#96683f', k + 3, 0.6), 4010 + k)); }
+  merged(L, MAT, g);
   /* the mouth: dark, with fire */
-  const mouth = new T.Mesh(new T.CircleGeometry(0.2, 14, 0, Math.PI), new T.MeshBasicMaterial({ color: '#2a1a12' })); mouth.position.set(0, 0.5, 0.36); g.add(mouth);
-  const mm = new T.Mesh(new T.PlaneGeometry(0.4, 0.04), new T.MeshBasicMaterial({ color: '#2a1a12' })); mm.position.set(0, 0.5, 0.36); g.add(mm);
-  ovenFire = new T.Mesh(new T.CircleGeometry(0.13, 12, 0, Math.PI), new T.MeshBasicMaterial({ color: '#ff8a3a' })); ovenFire.position.set(0, 0.5, 0.365); g.add(ovenFire);
+  const mouth = new T.Mesh(new T.CircleGeometry(0.225, 16, 0, Math.PI), new T.MeshBasicMaterial({ color: '#1f1410' })); mouth.position.set(0, dy, 0.385); g.add(mouth);
+  ovenFire = new T.Mesh(new T.CircleGeometry(0.15, 12, 0, Math.PI), new T.MeshBasicMaterial({ color: '#ff8a3a' })); ovenFire.position.set(0, dy, 0.39); g.add(ovenFire);
+  kitFlame(g, -0.05, dy, 0.4, 0.55); kitFlame(g, 0.07, dy, 0.4, 0.4);
+  lookFoot(OVEN.x, OVEN.z, 0.85); lookFoot(OVEN.x - 1.05, OVEN.z + 0.2, 0.55);
   ovenGlow = new T.Sprite(new T.SpriteMaterial({ map: softTex(32, 32), color: '#ffb060', transparent: true, opacity: 0.4, depthWrite: false })); ovenGlow.position.set(0, 0.6, 0.6); ovenGlow.scale.set(1.1, 0.9, 1); g.add(ovenGlow);
   /* finished pies wait on the front of the base and on the shelf (up to five shown) */
-  [[-0.32, 0.51, 0.42], [0.32, 0.51, 0.42], [-1.08, 0.64, 0.15], [-0.84, 0.64, 0.15], [0.0, 0.51, 0.47]].forEach(([x, y, z]) => { const m = new T.Mesh(PIE_GEO, MAT); m.position.set(x, y, z); m.visible = false; g.add(m); ovenPies.push(m); });
+  [[-0.4, 0.58, 0.5], [0.4, 0.58, 0.5], [-1.1, 0.635, 0.15], [-0.84, 0.635, 0.15], [0.0, 0.58, 0.58]].forEach(([x, y, z]) => { const m = new T.Mesh(PIE_GEO, MAT); m.position.set(x, y, z); m.visible = false; g.add(m); ovenPies.push(m); });
   ovenG = g;
   ovenRing = ropeRing(0.45, 0.6); ovenRing.rotation.x = -Math.PI / 2; ovenRing.position.set(OVEN_RING.x, 0.035, OVEN_RING.z); sc.add(ovenRing);
   if (anim) { g.scale.setScalar(0.01); bldPop = { g, t: 0 }; burst(OVEN.x, 1.2, OVEN.z, 12); }
@@ -159,7 +179,7 @@ function bakerStep(dt) {
     ovenPies.forEach((m, k) => { m.visible = k < pies(); });
     const fl = reduced ? 1 : 0.8 + Math.sin(time * 8) * 0.12 + Math.sin(time * 19) * 0.06, hot = B.on ? 1 : 0.45; ovenFire.material.color.setRGB(1, 0.55 * fl * hot + 0.2, 0.2 * fl); ovenGlow.material.opacity = (isNight ? 0.7 : 0.35) * fl * hot;
     /* Pip walks round the oven */
-    const bx = pp.x - OVEN.x, bz = pp.z - OVEN.z; if (Math.abs(bx) < 0.85 && Math.abs(bz) < 0.85) { if (0.85 - Math.abs(bx) < 0.85 - Math.abs(bz)) pp.x = OVEN.x + Math.sign(bx || 1) * 0.85; else pp.z = OVEN.z + Math.sign(bz || 1) * 0.85; }
+    const ox = OVEN.x - 0.35, bx = pp.x - ox, bz = pp.z - OVEN.z; if (Math.abs(bx) < 1.2 && Math.abs(bz) < 0.85) { if (1.2 - Math.abs(bx) < 0.85 - Math.abs(bz)) pp.x = ox + Math.sign(bx || 1) * 1.2; else pp.z = OVEN.z + Math.sign(bz || 1) * 0.85; }
     const inR = Math.hypot(pp.x - OVEN_RING.x, pp.z - OVEN_RING.z) < 0.55; if (!inR) ovenIn = false; else if (!ovenIn && BM.menu && BM.menu.hidden) { ovenOpen(); ovenIn = !BM.menu.hidden; }
   }
 }

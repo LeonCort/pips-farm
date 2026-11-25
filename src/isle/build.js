@@ -38,12 +38,32 @@ function tentShape(lv) {
       part(fac(new T.ConeGeometry(0.12, 0.09, 4).rotateY(Math.PI / 4), '#3a3f48', 1329), t, r * 0.72, 1.1, zf + 0.3, true);
     } else t.userData.flag = null;
   } else {
-    /* a little wooden hut: plank walls, a red roof, a lit window and a chimney */
-    q = new T.BoxGeometry(1.6, 0.95, 1.3); q.translate(0, 0.475, 0); part(fac(q, (cx, cy, cz, i) => shadeY(Math.floor((cy + 0.02) / 0.19) % 2 ? '#c99158' : '#b9824c', cy, 0, 1, i, 0.4), 1325), t);
-    q = new T.CylinderGeometry(1.08, 1.08, 1.6, 3, 1); q.rotateX(-Math.PI / 2); q.translate(0, 1.48, 0); part(fac(q, (cx, cy, cz, i) => shadeY('#b5562f', cy, 0.9, 2.5, i, 0.35), 1326), t);
-    q = new T.PlaneGeometry(0.44, 0.7); q.translate(0, 0.35, 0.66); part(fac(q, '#7a3a2a', 1327), t, 0, 0, 0, true);
-    q = new T.PlaneGeometry(0.3, 0.28); q.translate(0.5, 0.58, 0.66); const w = new T.Mesh(q, new T.MeshBasicMaterial({ color: '#ffe07a' })); t.add(w);
-    q = new T.BoxGeometry(0.22, 0.5, 0.22); q.translate(-0.45, 1.75, -0.25); part(fac(q, '#8b939c', 1328), t);
+    /* a wooden hut: stone footing, board walls, a shingle roof, a door, a lit window with shutters, a stone chimney */
+    const L = [], W = 1.9, D = 1.4, H = 0.95, y0 = 0.15, zf = D / 2;
+    kitStone(L, W + 0.14, y0, D + 0.14, 0, 0, 0, 1340, { ch: 0.15, bl: 0.3 });
+    kitPlanks(L, W, H, D, y0, 1350);
+    kitRoof(L, W + 0.42, D + 0.56, y0 + H - 0.05, 0.86, 1360);
+    kitStone(L, 0.36, 1.0, 0.36, 0.55, 1.3, -0.32, 1500, { ch: 0.14, bl: 0.18, th: 0.08, cols: ['#a99f8c', '#9a917f', '#b5ab98'] });
+    q = new T.BoxGeometry(0.46, 0.07, 0.46); q.translate(0.55, 2.33, -0.32); L.push(fac(q, () => new T.Color('#8a806e'), 1540));
+    /* the door */
+    [-1, 0, 1].forEach((k) => { q = new T.BoxGeometry(0.14, 0.68, 0.04); q.translate(-0.42 + k * 0.146, y0 + 0.36, zf + 0.035); L.push(fac(q, (cx, cy) => shadeY('#8a4a32', cy, 0, 1.2, k, 0.5), 1550 + k)); });
+    [[-0.67, 0.37, 0.07, 0.78], [-0.17, 0.37, 0.07, 0.78], [-0.42, 0.76, 0.57, 0.07]].forEach(([x, y, w, h], k) => { q = new T.BoxGeometry(w, h, 0.07); q.translate(x, y0 + y, zf + 0.04); L.push(fac(q, () => tone('#6e4426', k, 0.5), 1555 + k)); });
+    [0.18, 0.56].forEach((y, k) => { q = new T.BoxGeometry(0.44, 0.045, 0.02); q.translate(-0.42, y0 + y, zf + 0.062); L.push(fac(q, () => new T.Color('#4a4f57'), 1560 + k)); });
+    q = ico(0.028, 1, 1563); q.translate(-0.28, y0 + 0.36, zf + 0.075); L.push(fac(q, () => new T.Color('#f2c23c'), 1563));
+    q = ico(0.3, 1, 1564, 0.02); q.scale(1, 0.12, 0.7); q.translate(-0.42, 0.03, zf + 0.42); L.push(fac(q, () => new T.Color('#b3b9bf'), 1564)); /* a doorstep stone */
+    /* the window: frame, cross, shutters, a flower box */
+    [[0.5, 0.78, 0.5, 0.05], [0.5, 0.4, 0.5, 0.05], [0.27, 0.59, 0.05, 0.43], [0.73, 0.59, 0.05, 0.43], [0.5, 0.59, 0.03, 0.36], [0.5, 0.59, 0.42, 0.03]].forEach(([x, y, w, h], k) => { q = new T.BoxGeometry(w, h, 0.05); q.translate(x, y0 + y, zf + 0.04); L.push(fac(q, () => tone('#f4ecd8', k, 0.3), 1570 + k)); });
+    [-1, 1].forEach((s) => [0, 1].forEach((k) => { q = new T.BoxGeometry(0.085, 0.4, 0.03); q.translate(0.5 + s * (0.3 + k * 0.09), y0 + 0.59, zf + 0.035); L.push(fac(q, () => tone('#5d8a5a', s + k, 0.6), 1580 + s + k * 3)); }));
+    q = new T.BoxGeometry(0.56, 0.1, 0.13); q.translate(0.5, y0 + 0.3, zf + 0.09); L.push(fac(q, () => new T.Color('#8a5f3c'), 1590));
+    for (let k = 0; k < 6; k++) { q = ico(0.045, 0, 1591 + k); q.translate(0.28 + k * 0.088, y0 + 0.39 + hash(k, 2) * 0.03, zf + 0.1); L.push(fac(q, () => new T.Color(['#ffffff', '#f6d24a', '#f29ab8', '#e9684a'][k % 4]), 1591 + k));
+      q = ico(0.05, 0, 1600 + k); q.translate(0.26 + k * 0.094, y0 + 0.35, zf + 0.09); L.push(fac(q, () => new T.Color('#5d8a3a'), 1600 + k)); }
+    /* a lantern on a bracket by the door */
+    q = new T.BoxGeometry(0.03, 0.03, 0.2); q.translate(-0.82, y0 + 0.82, zf + 0.1); L.push(fac(q, () => new T.Color('#3e454d'), 1610));
+    q = new T.ConeGeometry(0.07, 0.06, 4); q.rotateY(Math.PI / 4); q.translate(-0.82, y0 + 0.79, zf + 0.18); L.push(fac(q, () => new T.Color('#3e454d'), 1611));
+    merged(L, MAT, t);
+    const w = new T.Mesh(new T.PlaneGeometry(0.42, 0.34), new T.MeshBasicMaterial({ color: '#ffe07a' })); w.position.set(0.5, y0 + 0.59, zf + 0.03); t.add(w);
+    const lm = new T.Mesh(new T.BoxGeometry(0.07, 0.1, 0.07), new T.MeshBasicMaterial({ color: '#ffe6a8' })); lm.position.set(-0.82, y0 + 0.71, zf + 0.18); t.add(lm);
+    t.userData.flag = null;
   }
 }
 const fireX = new T.Group(); campFlame.g.add(fireX);
@@ -67,7 +87,7 @@ function bldStep(dt) {
   const fl = campFlame.t.userData.flag; if (fl && !reduced) fl.rotation.y = Math.sin(time * 3) * 0.25;
   const s = campFlame.f.userData.s || 1; campFlame.f.scale.x = campFlame.f.scale.z = s;
   /* Pip walks round the tent, not through it */
-  if (!enSleep) { const r = [0, 0.7, 0.92, 0.95][bldLv('tent')], dx = pip.position.x - TENT.x, dz = pip.position.z - TENT.z, d = Math.hypot(dx, dz); if (d < r && d > 1e-4) { pip.position.x = TENT.x + dx / d * r; pip.position.z = TENT.z + dz / d * r; } }
+  if (!enSleep) { const r = [0, 0.7, 0.92, 1.05][bldLv('tent')], dx = pip.position.x - TENT.x, dz = pip.position.z - TENT.z, d = Math.hypot(dx, dz); if (d < r && d > 1e-4) { pip.position.x = TENT.x + dx / d * r; pip.position.z = TENT.z + dz / d * r; } }
   bldT -= dt; if (bldT <= 0) { bldT = 0.5; bldBadge(); }
 }
 let bldT = 0;

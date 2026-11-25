@@ -90,9 +90,9 @@ const VILLAGE = {
   /* the first friend: lanterns at the plaza's corners, a well, a second signpost down the south road */
   base: { ok: () => villageLv() >= 1, make: (g, L) => {
     [[1.75, -1.75], [-1.75, 1.75]].forEach(([x, z]) => lanternMake(x, z, L).forEach((m) => g.add(m)));
-    signpost(-0.85, 2.6, L, 3230, 2.2); wellMake(WELL.x, WELL.z, L, 3260); flowerBox(STORE.x - 1.25, STORE.z - 0.1, 1.2, L, 3250); }, at: [0.4, -1.5] },
+    signpost(-0.85, 2.6, L, 3230, 2.2); wellMake(WELL.x, WELL.z, L, 3260); lookFoot(WELL.x, WELL.z, 0.6); flowerBox(STORE.x - 1.25, STORE.z - 0.1, 1.2, L, 3250); }, at: [0.4, -1.5] },
   smith: { ok: () => housed('smith'), make: (g, L) => {
-    lanternMake(ANVIL_RING.x + 1.1, ANVIL_RING.z + 0.5, L).forEach((m) => g.add(m)); flowerBox(FORGE.x + 0.1, FORGE.z + 1.0, 0.1, L, 3450); fenceRun(FORGE.x - 1.0, FORGE.z - 1.0, FORGE.x + 1.7, FORGE.z - 1.0, L, 3460); }, at: [FORGE.x, FORGE.z] },
+    lanternMake(ANVIL_RING.x + 1.1, ANVIL_RING.z + 0.5, L).forEach((m) => g.add(m)); flowerBox(FORGE.x - 1.35, FORGE.z + 1.0, 0.1, L, 3450); fenceRun(FORGE.x - 1.9, FORGE.z - 1.0, FORGE.x + 1.7, FORGE.z - 1.0, L, 3460); }, at: [FORGE.x, FORGE.z] },
   baker: { ok: () => housed('baker'), make: (g, L) => {
     lanternMake(OVEN_RING.x - 1.2, OVEN_RING.z + 0.4, L).forEach((m) => g.add(m)); flowerBox(OVEN.x + 1.5, OVEN.z - 0.9, -0.3, L, 3550); fenceRun(OVEN.x - 1.0, OVEN.z - 1.1, OVEN.x + 1.6, OVEN.z - 1.1, L, 3560); }, at: [OVEN.x, OVEN.z] },
   /* two friends: bunting across the plaza, more lanterns down the roads, flower beds */
@@ -109,7 +109,7 @@ function wellMake(x, z, L, seed) {
   let q = new T.CylinderGeometry(0.4, 0.4, 0.04, 12); q.translate(x, 0.3, z); L.push(fac(q, '#3f7f9c', seed + 40)); /* water */
   [-1, 1].forEach((s, k) => { q = new T.BoxGeometry(0.09, 1.25, 0.09); q.translate(x + s * 0.5, 0.95, z); L.push(fac(q, (cx, cy, cz, i) => shadeY('#8a6a4a', cy, 0.3, 1.6, i, 0.4), seed + 41 + k)); });
   q = new T.CylinderGeometry(0.045, 0.045, 1.1, 6); q.rotateZ(Math.PI / 2); q.translate(x, 1.3, z); L.push(fac(q, '#6e4c30', seed + 44));
-  [-1, 1].forEach((s) => { for (let r = 0; r < 4; r++) { q = new T.BoxGeometry(1.3, 0.035, 0.2); q.rotateX(s * 0.72); q.translate(x, 1.86 - r * 0.115, z + s * (0.08 + r * 0.13)); L.push(fac(q, (cx, cy, cz, i) => tone(r % 2 ? '#9c4a2b' : '#ad5632', i, 0.6), seed + 50 + r + (s > 0 ? 4 : 0))); } });
+  kitRoof(L, 1.3, 0.95, 1.52, 0.42, seed + 50, { x, z });
   q = new T.CylinderGeometry(0.008, 0.008, 0.55, 3); q.translate(x + 0.1, 1.02, z); L.push(fac(q, '#e8dcc0', seed + 60));
   q = new T.CylinderGeometry(0.11, 0.085, 0.17, 8); q.translate(x + 0.1, 0.68, z); L.push(fac(q, (cx, cy, cz, i) => tone('#a8774f', i, 0.5), seed + 61));
 }

@@ -55,26 +55,41 @@ const tierSp = isleSprite(isleBubble('pick2'), 0.8); tierSp.visible = false; sc.
 function forgeBuild(anim) {
   if (forgeG) return;
   const g = new T.Group(); g.position.set(FORGE.x, 0, FORGE.z); sc.add(g); const L = [];
-  const stone = (w, h, d, x, y, z, k, base) => { const q = new T.BoxGeometry(w, h, d, Math.max(1, Math.round(w * 3)), Math.max(1, Math.round(h * 3)), Math.max(1, Math.round(d * 3))); jit(q, 0.02, 2930 + k); q.translate(x, y, z);
-    L.push(fac(q, (cx, cy, cz, i) => shadeY(hash(i, k + 2) > 0.82 ? '#a39883' : base || '#bdb3a0', cy, 0, 1.6, i, 0.45), 2930 + k)); };
-  stone(1.35, 0.78, 1.0, 0, 0.39, 0, 0); /* the hearth */
-  stone(1.48, 0.12, 1.1, 0, 0.84, 0, 1, '#958b78');
-  stone(0.5, 1.45, 0.5, -0.36, 1.6, -0.22, 2, '#a99f8c'); /* the chimney */
-  stone(0.62, 0.1, 0.62, -0.36, 2.36, -0.22, 3, '#8a806e');
+  kitStone(L, 1.4, 0.8, 1.05, 0, 0, 0, 2930, { hole: [-0.3, 0.3, 0, 0.4], th: 0.16 }); /* the hearth, with its mouth */
+  kitStone(L, 1.54, 0.1, 1.17, 0, 0.8, 0, 3300, { ch: 0.1, bl: 0.42, cols: ['#958b78', '#8a806e', '#a0957f'] });
+  let q = new T.BoxGeometry(0.86, 0.13, 0.2); q.translate(0, 0.47, 0.5); L.push(fac(q, (cx, cy) => shadeY('#8f8674', cy, 0, 1.4, 5, 0.4), 3310)); /* the lintel */
+  kitStone(L, 0.58, 1.5, 0.58, -0.38, 0.9, -0.22, 3320, { ch: 0.19, bl: 0.29, cols: ['#a99f8c', '#9a917f', '#b5ab98', '#8f8674'] }); /* the chimney */
+  kitStone(L, 0.7, 0.1, 0.7, -0.38, 2.4, -0.22, 3400, { ch: 0.1, bl: 0.35, cols: ['#8a806e', '#7d7464'] });
+  q = new T.BoxGeometry(0.4, 0.06, 0.4); q.translate(-0.38, 2.5, -0.22); L.push(fac(q, () => new T.Color('#2e2a26'), 3410));
+  for (let k = 0; k < 9; k++) { const c = ico(0.07 + hash(k, 4) * 0.03, 0, 3420 + k); c.scale(1, 0.6, 1); c.translate(0.3 + Math.cos(k * 0.7) * 0.3, 0.92, 0.05 + Math.sin(k * 0.7) * 0.25); L.push(fac(c, () => tone('#6f675a', k, 0.6), 3420 + k)); } /* a ring of stones round the coal bed */
+  /* a tool shed on the side: posts, a shingle roof, split logs, a hammer and tongs on the rail */
+  [[-0.92, -0.5, 1.66], [-0.92, 0.42, 1.66], [-1.8, -0.5, 1.32], [-1.8, 0.42, 1.32]].forEach(([x, z, h], k) => { q = new T.BoxGeometry(0.09, h, 0.09); q.translate(x, h / 2, z); L.push(fac(q, (cx, cy) => shadeY('#8a5f3c', cy, 0, 1.9, k, 0.4), 3430 + k)); });
+  kitRoof(L, 1.2, 1.15, 1.3, 0.4, 3440, { one: true, x: -1.36, z: -0.04, ry: -Math.PI / 2, cols: ['#7d6a56', '#6f5d4b', '#8a7660', '#655443'] });
+  for (let k = 0; k < 9; k++) { const row = k < 4 ? 0 : k < 7 ? 1 : 2, i = k - [0, 4, 7][row], lx = -1.68 + i * 0.19 + row * 0.095, ly = 0.09 + row * 0.16;
+    q = new T.CylinderGeometry(0.088, 0.088, 0.62, 8); q.rotateX(Math.PI / 2); q.translate(lx, ly, -0.12); L.push(fac(q, () => tone(k % 2 ? '#a8774f' : '#96683f', k, 0.6), 3460 + k));
+    q = new T.CylinderGeometry(0.068, 0.068, 0.012, 8); q.rotateX(Math.PI / 2); q.translate(lx, ly, 0.195); L.push(fac(q, () => tone('#e7c48f', k, 0.4), 3470 + k)); }
+  q = new T.BoxGeometry(0.92, 0.06, 0.06); q.translate(-1.36, 1.12, 0.42); L.push(fac(q, () => new T.Color('#7a5436'), 3480));
+  q = new T.CylinderGeometry(0.02, 0.02, 0.42, 5); q.translate(-1.5, 0.88, 0.47); L.push(fac(q, () => new T.Color('#c99158'), 3481)); q = new T.BoxGeometry(0.2, 0.1, 0.1); q.translate(-1.5, 0.68, 0.47); L.push(fac(q, () => new T.Color('#4b535c'), 3482));
+  [-0.03, 0.03].forEach((dx, k) => { q = new T.BoxGeometry(0.02, 0.5, 0.02); q.rotateZ(dx * 2.5); q.translate(-1.2 + dx, 0.85, 0.47); L.push(fac(q, () => new T.Color('#3e454d'), 3483 + k)); });
   /* the anvil on a log, in front and to the side */
   const ax = ANVIL.x - FORGE.x, az = ANVIL.z - FORGE.z;
-  let q = new T.CylinderGeometry(0.22, 0.26, 0.4, 10); q.translate(ax, 0.2, az); L.push(fac(q, (cx, cy, cz, i) => cy > 0.38 ? new T.Color('#e7c48f') : tone('#9a6a3e', i, 0.6), 2940));
-  q = new T.BoxGeometry(0.2, 0.12, 0.14); q.translate(ax, 0.46, az); L.push(fac(q, '#3e454d', 2941));
-  q = new T.BoxGeometry(0.46, 0.13, 0.22); q.translate(ax, 0.58, az); L.push(fac(q, (cx, cy) => new T.Color(cy > 0.62 ? '#7d8791' : '#4b535c'), 2942));
-  q = new T.ConeGeometry(0.075, 0.24, 7); q.rotateZ(-Math.PI / 2); q.translate(ax + 0.34, 0.6, az); L.push(fac(q, '#4b535c', 2943));
-  /* a water bucket by the hearth */
-  q = new T.CylinderGeometry(0.17, 0.14, 0.3, 10); q.translate(0.95, 0.15, -0.25); L.push(fac(q, (cx, cy, cz, i) => tone(Math.abs(cy - 0.15) < 0.05 ? '#5a3a22' : '#a8774f', i, 0.5), 2944));
-  merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), MAT, g);
-  /* the mouth of the hearth: dark, with glowing coals; a glow on top too */
-  q = new T.PlaneGeometry(0.62, 0.4); q.translate(0.18, 0.4, 0.505); g.add(new T.Mesh(q, new T.MeshBasicMaterial({ color: '#2a2018' })));
-  forgeCoal = new T.Mesh(new T.PlaneGeometry(0.52, 0.18), new T.MeshBasicMaterial({ color: '#ff8a3a' })); forgeCoal.position.set(0.18, 0.3, 0.51); g.add(forgeCoal);
-  const bed = new T.Mesh(new T.BoxGeometry(0.62, 0.05, 0.5), new T.MeshBasicMaterial({ color: '#ff7a2a' })); bed.position.set(0.25, 0.92, 0.08); g.add(bed);
-  forgeGlow = new T.Sprite(new T.SpriteMaterial({ map: softTex(32, 32), color: '#ffb060', transparent: true, opacity: 0.5, depthWrite: false })); forgeGlow.position.set(0.22, 0.75, 0.7); forgeGlow.scale.set(1.5, 1.2, 1); g.add(forgeGlow);
+  q = new T.CylinderGeometry(0.22, 0.26, 0.4, 12); q.translate(ax, 0.2, az); L.push(fac(q, (cx, cy, cz, i) => cy > 0.38 ? new T.Color('#e7c48f') : shadeY(Math.floor((Math.atan2(cz - az, cx - ax) + 3.15) / 0.5) % 2 ? '#9a6a3e' : '#8a5c34', cy, 0, 0.5, i, 0.3), 2940));
+  q = new T.BoxGeometry(0.26, 0.05, 0.2); q.translate(ax, 0.425, az); L.push(fac(q, () => new T.Color('#353b42'), 2945));
+  q = new T.BoxGeometry(0.16, 0.12, 0.13); q.translate(ax, 0.5, az); L.push(fac(q, () => new T.Color('#3e454d'), 2941));
+  q = new T.BoxGeometry(0.48, 0.13, 0.22); q.translate(ax, 0.62, az); L.push(fac(q, (cx, cy) => new T.Color(cy > 0.66 ? '#8c96a0' : '#4b535c'), 2942));
+  q = new T.ConeGeometry(0.075, 0.26, 8); q.rotateZ(-Math.PI / 2); q.translate(ax + 0.36, 0.64, az); L.push(fac(q, () => new T.Color('#4b535c'), 2943));
+  /* a quench bucket by the hearth */
+  q = new T.CylinderGeometry(0.19, 0.15, 0.32, 12); q.translate(1.0, 0.16, -0.25); L.push(fac(q, (cx, cy, cz, i) => Math.abs(cy - 0.08) < 0.03 || Math.abs(cy - 0.25) < 0.03 ? new T.Color('#4a4f57') : shadeY(Math.floor((Math.atan2(cz + 0.25, cx - 1.0) + 3.15) / 0.52) % 2 ? '#a8774f' : '#96683f', cy, 0, 0.4, i, 0.3), 2944));
+  q = new T.CylinderGeometry(0.16, 0.16, 0.01, 12); q.translate(1.0, 0.3, -0.25); L.push(fac(q, () => new T.Color('#4f8fae'), 2946));
+  merged(L, MAT, g);
+  /* the mouth of the hearth: dark, deep, with glowing coals; a coal bed with a flame on top */
+  q = new T.PlaneGeometry(0.72, 0.42); q.translate(0, 0.2, 0.33); g.add(new T.Mesh(q, new T.MeshBasicMaterial({ color: '#1f1712' })));
+  { const C = []; for (let k = 0; k < 8; k++) { const c = ico(0.05 + hash(k, 8) * 0.03, 0, 3500 + k); c.translate(-0.24 + k * 0.07, 0.05 + hash(k, 2) * 0.03, 0.38 + hash(k, 5) * 0.08); C.push(c); }
+    for (let k = 0; k < 10; k++) { const c = ico(0.045 + hash(k, 9) * 0.03, 0, 3520 + k); c.translate(0.3 + Math.cos(k * 2.4) * 0.17 * hash(k, 1), 0.94, 0.05 + Math.sin(k * 2.4) * 0.15 * hash(k, 3)); C.push(c); }
+    forgeCoal = new T.Mesh(mergeGeos(C), new T.MeshBasicMaterial({ color: '#ff8a3a' })); g.add(forgeCoal); }
+  kitFlame(g, 0.3, 0.95, 0.05, 1.1); kitFlame(g, -0.05, 0.05, 0.4, 0.7);
+  forgeGlow = new T.Sprite(new T.SpriteMaterial({ map: softTex(32, 32), color: '#ffb060', transparent: true, opacity: 0.5, depthWrite: false })); forgeGlow.position.set(0.1, 0.75, 0.7); forgeGlow.scale.set(1.5, 1.2, 1); g.add(forgeGlow);
+  lookFoot(FORGE.x, FORGE.z, 0.85, 0.7); lookFoot(FORGE.x - 1.36, FORGE.z - 0.04, 0.6); lookFoot(ANVIL.x, ANVIL.z, 0.35);
   forgeG = g;
   anvilRing = ropeRing(0.45, 0.6); anvilRing.rotation.x = -Math.PI / 2; anvilRing.position.set(ANVIL_RING.x, 0.035, ANVIL_RING.z); sc.add(anvilRing);
   if (anim) { g.scale.setScalar(0.01); bldPop = { g, t: 0 }; burst(FORGE.x, 1.2, FORGE.z, 12); burst(ANVIL.x, 0.9, ANVIL.z, 6); }
@@ -162,7 +177,7 @@ function peopleStep(dt) {
     hamT -= dt; if (u > 0.72 && hamT <= 0) { hamT = 1.0; const d = Math.hypot(pp.x - ANVIL.x, pp.z - ANVIL.z); if (d < 7 && !reduced) splash(ANVIL.x, 0.68, ANVIL.z, 3); if (d < 4.5) Snd.play('tock', { gain: 0.12, f: 1500 + Math.random() * 200 }); }
     const fl = reduced ? 1 : 0.85 + Math.sin(time * 9) * 0.1 + Math.sin(time * 23) * 0.05; forgeCoal.material.color.setRGB(1, 0.5 * fl, 0.2 * fl); forgeGlow.material.opacity = (isNight ? 0.75 : 0.4) * fl;
     /* Pip walks round the hearth and the anvil */
-    const bx = pp.x - FORGE.x, bz = pp.z - FORGE.z; if (Math.abs(bx) < 1.0 && Math.abs(bz) < 0.8) { if (1.0 - Math.abs(bx) < 0.8 - Math.abs(bz)) pp.x = FORGE.x + Math.sign(bx || 1) * 1.0; else pp.z = FORGE.z + Math.sign(bz || 1) * 0.8; }
+    const fx = FORGE.x - 0.45, bx = pp.x - fx, bz = pp.z - FORGE.z; if (Math.abs(bx) < 1.5 && Math.abs(bz) < 0.8) { if (1.5 - Math.abs(bx) < 0.8 - Math.abs(bz)) pp.x = fx + Math.sign(bx || 1) * 1.5; else pp.z = FORGE.z + Math.sign(bz || 1) * 0.8; }
     const ad = Math.hypot(pp.x - ANVIL.x, pp.z - ANVIL.z); if (ad < 0.45 && ad > 1e-4) { pp.x = ANVIL.x + (pp.x - ANVIL.x) / ad * 0.45; pp.z = ANVIL.z + (pp.z - ANVIL.z) / ad * 0.45; }
     /* the mat in front of the anvil opens her card */
     const inR = Math.hypot(pp.x - ANVIL_RING.x, pp.z - ANVIL_RING.z) < 0.55; if (!inR) anvilIn = false; else if (!anvilIn && BM.menu && BM.menu.hidden) { anvilOpen(); anvilIn = !BM.menu.hidden; } /* once per visit; waits for a new star's card */
