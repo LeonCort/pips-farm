@@ -50,8 +50,6 @@ ferry.js
 show.js
 ../engine/input.js
 ../engine/loop.js
-ferry.js
-show.js
 step.js
 ../engine/loop-end.js
 start.js
