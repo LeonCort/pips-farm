@@ -45,6 +45,7 @@ village.js
 isledog.js
 gear.js
 look.js
+loop.js
 ../engine/input.js
 ../engine/loop.js
 step.js

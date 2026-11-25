@@ -9,7 +9,9 @@
 const VILLAGERS = [
   { id: 'smith', head: '#8a5a3a', ear: 'bear', badge: 'hammer' },
   { id: 'baker', head: '#e8b04a', ear: 'duck', badge: 'pie' },
-  { id: '?3' }, { id: '?4' }, { id: '?5' } /* still out on the islands */
+  { id: 'mason', head: '#e07a3a', ear: 'fox', badge: 'chisel' },
+  { id: 'knitter', head: '#f4ece2', ear: 'bunny', badge: 'yarn' },
+  { id: 'miner', head: '#7fbf4a', ear: 'frog', badge: 'crystal' }
 ];
 const housed = (id) => !!(state.isle.folk && state.isle.folk[id] >= 3);
 const villageLv = () => VILLAGERS.filter((v) => housed(v.id)).length;
@@ -18,25 +20,34 @@ const VG = { parts: {}, lamps: [], pops: [], key: '' };
 
 /* ---- the friends board ---- */
 const boardCv = document.createElement('canvas'); boardCv.width = 512; boardCv.height = 224; const boardTex = new T.CanvasTexture(boardCv);
+/* one friend's face: grey with a ? until found, a gold dot while found, their work's picture once moved in */
+function boardFace(x, v, cx, cy, sc0, f) {
+  if (f == null) f = 3; x.save(); x.translate(cx, cy); x.scale(sc0, sc0); x.lineWidth = 5; x.strokeStyle = PAL.ink; x.lineJoin = 'round';
+  const blob = (c) => { x.fillStyle = c; x.fill(); x.stroke(); };
+  if (!f) { x.beginPath(); x.arc(0, 0, 36, 0, 7); blob('#b9b0a0');
+    x.fillStyle = '#fff6e4'; x.font = '800 44px "Baloo 2", system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('?', 0, 3); x.restore(); return; }
+  if (v.ear === 'bear') [-1, 1].forEach((s) => { x.beginPath(); x.arc(s * 26, -28, 12, 0, 7); blob(v.head); });
+  if (v.ear === 'fox') [-1, 1].forEach((s) => { x.beginPath(); x.moveTo(s * 12, -30); x.lineTo(s * 32, -50); x.lineTo(s * 32, -16); x.closePath(); blob(v.head); });
+  if (v.ear === 'bunny') [-1, 1].forEach((s) => { x.beginPath(); x.ellipse(s * 14, -46, 9, 24, s * 0.15, 0, 7); blob(v.head); x.fillStyle = '#f2a8b8'; x.beginPath(); x.ellipse(s * 14, -46, 4, 15, s * 0.15, 0, 7); x.fill(); });
+  if (v.ear === 'frog') [-1, 1].forEach((s) => { x.beginPath(); x.arc(s * 17, -30, 13, 0, 7); blob(v.head); x.fillStyle = '#fff6e4'; x.beginPath(); x.arc(s * 17, -31, 7, 0, 7); x.fill(); x.fillStyle = PAL.ink; x.beginPath(); x.arc(s * 17, -30, 3.6, 0, 7); x.fill(); });
+  x.beginPath(); x.arc(0, 0, 36, 0, 7); blob(v.head);
+  if (v.ear === 'fox') { x.fillStyle = '#fbf3e4'; x.beginPath(); x.moveTo(-30, 8); x.quadraticCurveTo(0, 44, 30, 8); x.quadraticCurveTo(0, 22, -30, 8); x.fill(); }
+  if (v.ear === 'duck') { x.beginPath(); x.ellipse(0, 12, 16, 8, 0, 0, 7); blob('#f2a13c'); x.beginPath(); x.ellipse(0, -40, 24, 13, 0, 0, 7); blob('#fbf8f0'); }
+  else if (v.ear === 'frog') { x.lineWidth = 3.5; x.beginPath(); x.arc(0, 6, 16, 0.25, Math.PI - 0.25); x.stroke(); x.lineWidth = 5; x.beginPath(); x.ellipse(0, -30, 22, 9, 0, Math.PI, 0); blob('#f2c23c'); }
+  else { x.fillStyle = '#f0d6b0'; x.beginPath(); x.ellipse(0, 12, 15, 11, 0, 0, 7); x.fill(); x.fillStyle = v.ear === 'bunny' ? '#e98aa0' : PAL.ink; x.beginPath(); x.arc(0, 8, 5, 0, 7); x.fill(); }
+  if (v.ear !== 'frog') { x.fillStyle = PAL.ink; [-1, 1].forEach((s) => { x.beginPath(); x.arc(s * 13, -6, 5, 0, 7); x.fill(); }); }
+  x.lineWidth = 4;
+  if (f >= 3) { x.beginPath(); x.arc(26, 34, 20, 0, 7); blob('#fff6e4'); isleIcon(x, v.badge, 26, 34, 0.6); } /* moved in: what they make */
+  else { x.beginPath(); x.arc(26, 34, 13, 0, 7); blob('#f2c23c'); } /* found, not moved in yet */
+  x.restore();
+}
 function boardDraw() {
   const x = boardCv.getContext('2d'); x.clearRect(0, 0, 512, 224);
   x.fillStyle = '#c99158'; x.beginPath(); x.roundRect(4, 4, 504, 216, 22); x.fill(); x.lineWidth = 8; x.strokeStyle = '#6e4426'; x.stroke();
   x.fillStyle = '#e7c48f'; x.beginPath(); x.roundRect(20, 20, 472, 184, 14); x.fill();
   VILLAGERS.forEach((v, k) => {
     const cx = 64 + k * 96, cy = 100, f = state.isle && state.isle.folk ? state.isle.folk[v.id] || 0 : 0;
-    x.lineWidth = 5; x.strokeStyle = PAL.ink;
-    if (!f) { /* not found yet: a grey face with a question mark */
-      x.fillStyle = '#b9b0a0'; x.beginPath(); x.arc(cx, cy, 36, 0, 7); x.fill(); x.stroke();
-      x.fillStyle = '#fff6e4'; x.font = '800 44px "Baloo 2", system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('?', cx, cy + 3);
-    } else {
-      if (v.ear === 'bear') [-1, 1].forEach((s) => { x.fillStyle = v.head; x.beginPath(); x.arc(cx + s * 26, cy - 28, 12, 0, 7); x.fill(); x.stroke(); });
-      x.fillStyle = v.head; x.beginPath(); x.arc(cx, cy, 36, 0, 7); x.fill(); x.stroke();
-      if (v.ear === 'duck') { x.fillStyle = '#f2a13c'; x.beginPath(); x.ellipse(cx, cy + 12, 16, 8, 0, 0, 7); x.fill(); x.stroke(); x.fillStyle = '#fbf8f0'; x.beginPath(); x.ellipse(cx, cy - 40, 24, 13, 0, 0, 7); x.fill(); x.stroke(); }
-      else { x.fillStyle = '#f0d6b0'; x.beginPath(); x.ellipse(cx, cy + 12, 15, 11, 0, 0, 7); x.fill(); x.fillStyle = PAL.ink; x.beginPath(); x.arc(cx, cy + 8, 5, 0, 7); x.fill(); }
-      x.fillStyle = PAL.ink; [-1, 1].forEach((s) => { x.beginPath(); x.arc(cx + s * 13, cy - 6, 5, 0, 7); x.fill(); });
-      if (f >= 3) { x.fillStyle = '#fff6e4'; x.beginPath(); x.arc(cx + 26, cy + 34, 20, 0, 7); x.fill(); x.lineWidth = 4; x.stroke(); isleIcon(x, v.badge, cx + 26, cy + 34, 0.6); } /* moved in: what they make */
-      else { x.fillStyle = '#f2c23c'; x.beginPath(); x.arc(cx + 26, cy + 34, 13, 0, 7); x.fill(); x.lineWidth = 4; x.stroke(); } /* found, not moved in yet */
-    }
+    boardFace(x, v, cx, cy, 1, f);
   });
   boardTex.needsUpdate = true;
 }

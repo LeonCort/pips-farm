@@ -103,20 +103,21 @@ function peopleInit() {
   SM.g.visible = F.smith >= 1 && (F.smith > 1 || HAS.h3); if (SM.g.visible) smithPlace();
   if (F.smith >= 3) forgeBuild(false);
   tierSp.material.map = isleBubble('pick' + Math.min(3, toolTier() + 1));
-  TOOL.re(); bakerInit(); villageSync(false);
+  TOOL.re(); bakerInit(); loopInit(); villageSync(false);
 }
 /* the cottage on h3 just opened: she steps out once the treasure has rolled out */
-function peopleRuinOpen(R) { bakerRuinOpen(R); if (R.A.id === 'h3' && !folk().smith) { folk().smith = 1; SM.wait = 2.2; } }
+function peopleRuinOpen(R) { bakerRuinOpen(R); loopRuinOpen(R); if (R.A.id === 'h3' && !folk().smith) { folk().smith = 1; SM.wait = 2.2; } }
 
 function peopleWants(want) {
   const F = state.isle.folk; if (!F || !SM.g) return;
   if (F.smith === 1 && SM.g.visible && !SM.wait && !SM.move) want.set('p:smith', { kind: 'person', who: 'smith' });
   if (F.smith === 2 && !SM.move && HAS.h1) want.set('f:forge', { kind: 'plot', who: 'forge' });
-  bakerWants(want);
+  bakerWants(want); loopWants(want);
 }
 const tinyGeo = new T.PlaneGeometry(0.01, 0.01);
 const plotGhostGeo = (() => { const g = new T.PlaneGeometry(2.9, 1.9, 6, 4); g.rotateX(-Math.PI / 2); return g; })();
 function peopleSignMake(w, key) {
+  if (loopSignMake(w, key)) return true;
   if (w.who === 'baker' || w.who === 'oven') return bakerSignMake(w, key);
   if (w.kind === 'person') {
     const [x, z] = smithSpot(), s = signMake({ key, kind: 'person', A: null, cost: SMITH_WANT, x, z, ghostGeo: tinyGeo, ghostTex, gx: x, gz: z, gy: -5 });
@@ -126,6 +127,7 @@ function peopleSignMake(w, key) {
   return false;
 }
 function peopleBuy(s) {
+  if (loopBuy(s)) return true;
   if (s.who === 'baker' || s.who === 'oven') return bakerBuy(s);
   if (s.kind === 'person') { folk().smith = 2; SM.move = { t: 0, from: [SM.g.position.x, SM.g.position.z] }; Snd.play('success', { gain: 0.5, f: 'E6' }); burst(SM.g.position.x, 1.5, SM.g.position.z, 10); xpGain(10); return true; }
   if (s.kind === 'plot') { folk().smith = 3; forgeBuild(true); anvilIn = true; Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.15); xpGain(15); bldBadge(); SM.hop = 1; return true; }
@@ -141,7 +143,7 @@ function toolUp() {
 function anvilOpen() { if (!forgeUp() || !BM.menu) return; const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; /* a new star's card first */ BM.keys = ['tool']; bldFill(); BM.menu.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); }
 
 function peopleGoal() {
-  const bg = bakerGoal(); if (bg) return bg;
+  const bg = bakerGoal() || loopGoal(); if (bg) return bg;
   const F = state.isle.folk; if (!F || !SM.g) return null; const pp = pip.position;
   if (F.smith === 2 && SM.arr > 0 && !SM.away && Math.hypot(pp.x - SMITH_AT.x, pp.z - SMITH_AT.z) > 4) return [ANVIL_RING.x, ANVIL_RING.z]; /* she moved: show where to */
   if (F.smith === 3 && toolTier() < 3 && bldCan('tool') && Math.hypot(pp.x, pp.z) < 14 && carry.count() < cap()) return [ANVIL_RING.x, ANVIL_RING.z];
@@ -150,7 +152,7 @@ function peopleGoal() {
 
 let anvilIn = false, hamT = 0;
 function peopleStep(dt) {
-  bakerStep(dt); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
+  bakerStep(dt); loopStep(dt); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
   if (!SM.g) return;
   const F = folk(), g = SM.g, pp = pip.position;
   /* she steps out of the cottage */

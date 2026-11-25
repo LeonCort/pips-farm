@@ -60,6 +60,7 @@ function isleIcon(x, t, cx, cy, s) {
   else if (t === 'axe' || t === 'axe2' || t === 'axe3') tiersIcon(x, t);
   else if (t === 'dog' || t === 'fetch' || t === 'dig' || t === 'paw') dogIcon(x, t);
   else if (['torch', 'coat', 'boots', 'web', 'bees', 'dark', 'rain', 'snowDeep'].indexOf(t) >= 0) gearIcon(x, t);
+  else loopIcon(x, t);
   x.restore();
 }
 function paperBox(x, w, h) { x.save(); x.shadowColor = 'rgba(70,40,18,0.35)'; x.shadowBlur = 8; x.shadowOffsetY = 4; x.beginPath(); x.roundRect(6, 6, w - 12, h - 14, 18); x.fillStyle = '#fff6e4'; x.fill(); x.restore(); x.beginPath(); x.roundRect(6, 6, w - 12, h - 14, 18); x.lineWidth = 4; x.strokeStyle = '#6e4426'; x.stroke(); }
@@ -238,7 +239,7 @@ function areaDecor(A) {
   if (b === 'cave') caveDecor(A, L, base);
   if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; m.receiveShadow = true; }
 }
-const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL].some((o) => Math.hypot(o.x - x, o.z - z) < r); /* the camp's buildings */
+const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL].some((o) => Math.hypot(o.x - x, o.z - z) < r) || loopNear(x, z, r); /* the camp's buildings, the friends' houses, the monuments */
 const walkSdfArea = (A, x, z) => Math.abs(x - A.cx) > 5.55 || Math.abs(z - A.cz) > 5.55; /* keep the dressing off the cliff edge */
 /* the camp in the start area: a campfire and a little tent */
 const campFlame = (() => {
@@ -360,7 +361,7 @@ function signWants() {
 const areaGhostGeo = (() => { const g = new T.PlaneGeometry(GS * 3 - 0.6, GS * 3 - 0.6, 12, 12); g.rotateX(-Math.PI / 2); return g; })();
 function isleSigns() {
   const want = signWants();
-  for (let k = signs.length - 1; k >= 0; k--) { const s = signs[k]; if (!want.has(s.key)) { [s.g, s.ring, s.ghost].forEach((m) => sc.remove(m)); signs.splice(k, 1); } else want.delete(s.key); }
+  for (let k = signs.length - 1; k >= 0; k--) { const s = signs[k]; if (!want.has(s.key)) { [s.g, s.ring, s.ghost, s.pic].forEach((m) => m && sc.remove(m)); signs.splice(k, 1); } else want.delete(s.key); }
   want.forEach((w, key) => {
     const A = w.A;
     if (w.kind === 'area') { const [ni, nj, a, b] = w.at, x = ni * GS + a * (GS / 2 - 0.85) + (b ? 0.9 : 0), z = nj * GS + b * (GS / 2 - 0.85) + (a ? 0.9 : 0);
@@ -381,6 +382,7 @@ function signStep(s, dt) {
   if (signSmallKey(s) !== s.smKey) drawSmall(s);
   s.ghost.material.opacity = 0.55 + (reduced ? 0 : Math.sin(time * 2.4 + s.seed) * 0.25);
   if (rising || building || giveT > 0 || Math.hypot(pip.position.x - s.x, pip.position.z - s.z) > 0.85) return;
+  if (loopSignShut(s)) return; /* the bridge needs its key first (loop.js) */
   if (gearSignShut(s)) return; /* a spider web over the bridge (gear.js) */
   const t = KINDS.concat(['coin']).find((q) => haveN(q) > 0 && signNeed(s, q) > 0); if (!t) return;
   /* from the counter: the piece appears over Pip's head and flies on to the sign */
