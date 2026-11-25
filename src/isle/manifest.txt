@@ -46,6 +46,7 @@ isledog.js
 gear.js
 look.js
 loop.js
+props.js
 ferry.js
 show.js
 ../engine/input.js

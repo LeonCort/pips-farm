@@ -260,10 +260,7 @@ const campFlame = (() => {
 /* ---- chests: a tool inside ---- */
 function makeChest(x, z, tool, idx) {
   const g = new T.Group(); g.position.set(x, 0, z); sc.add(g);
-  let q = new T.BoxGeometry(0.7, 0.42, 0.48); q.translate(0, 0.21, 0); part(fac(q, (cx, cy, cz, i) => shadeY('#b07a48', cy, 0, 0.45, i, 0.5), 1400), g);
-  q = new T.BoxGeometry(0.1, 0.16, 0.06); q.translate(0, 0.36, 0.26); part(fac(q, '#f2c23c', 1401), g, 0, 0, 0, true);
-  const lid = new T.Group(); lid.position.set(0, 0.42, -0.24); g.add(lid);
-  q = new T.CylinderGeometry(0.24, 0.24, 0.7, 10, 1, false, 0, Math.PI); q.rotateZ(Math.PI / 2); q.translate(0, 0, 0.24); part(fac(q, (cx, cy, cz, i) => shadeY('#c99158', cy, 0, 0.25, i, 0.5), 1402), lid);
+  const lid = new T.Group(); lid.position.set(0, 0.42, -0.24); g.add(lid); propChest(g, lid);
   const sp = isleSprite(isleBubble(tool), 0.9); sp.position.y = 1.5; sp.visible = false; g.add(sp);
   const ring = ropeRing(0.62, 0.76); ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.035, z + 0.85); sc.add(ring);
   const c = { x, z, g, lid, sp, ring, tool, idx, open: 0, gone: 0, pop: 0.001 }; g.scale.setScalar(0.01); chests.push(c); return c;

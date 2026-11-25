@@ -21,12 +21,8 @@ function tentShape(lv) {
   if (lv <= 2) {
     /* a ridge tent like the one on the farm: striped canvas, tied-back flaps, guy ropes and pegs; level 2 is bigger, with a flag and a lantern */
     const big = lv === 2, r = big ? 1.18 : 0.98, sy = 0.8, len = big ? 1.7 : 1.4, top = r * sy * 1.5, zf = len / 2;
-    q = new T.CylinderGeometry(r, r, len, 3, 6); q.rotateX(-Math.PI / 2); q.scale(1, sy, 1); q.translate(0, r / 2 * sy, 0);
-    part(fac(q, (cx, cy, cz, i) => tone(Math.floor((cz + len / 2) / (len / (big ? 6 : 4))) % 2 ? '#f6cf62' : '#ee7a5a', i, 0.3), 1320), t);
-    q = new T.CylinderGeometry(r * 0.42, r * 0.42, 0.02, 3); q.rotateX(-Math.PI / 2); q.scale(1, 0.95, 1); q.translate(0, r * 0.2, 0); part(fac(q, '#4a3326', 1321), t, 0, 0, zf + 0.01, true);
-    [-1, 1].forEach((s) => { const f = new T.CylinderGeometry(0.055, 0.055, r * 0.52, 8); part(fac(f, '#fff2c2', 1322), t, s * r * 0.36, r * 0.29, zf + 0.04, true).rotation.z = s * 0.55; });
-    [-1, 1].forEach((s) => part(fac(new T.CylinderGeometry(0.035, 0.035, 0.26, 6).rotateX(Math.PI / 2), '#6b4630', 1323), t, 0, top, s * (zf + 0.1)));
-    [-1, 1].forEach((s) => [-zf * 0.6, zf * 0.6].forEach((z) => { const a = new T.Vector3(s * r * 0.6, top * 0.42, z), b = new T.Vector3(s * (r + 0.32), 0.03, z), L = a.distanceTo(b), g = new T.CylinderGeometry(0.011, 0.011, L, 4); g.rotateZ(Math.atan2(b.x - a.x, a.y - b.y));
+    propTent(t, r, sy, len, big);
+    [-1, 1].forEach((s) => [-zf * 0.6, zf * 0.6].forEach((z) => { const a = new T.Vector3(s * r * 0.48, top * 0.4, z), b = new T.Vector3(s * (r + 0.32), 0.03, z), L = a.distanceTo(b), g = new T.CylinderGeometry(0.011, 0.011, L, 4); g.rotateZ(Math.atan2(b.x - a.x, a.y - b.y));
       part(fac(g, '#fff6e4', 1324), t, (a.x + b.x) / 2, (a.y + b.y) / 2, z, true); part(fac(new T.CylinderGeometry(0.028, 0.018, 0.15, 5), '#6b4630', 1325), t, b.x, 0.06, z, true); }));
     /* a rolled blanket and a little mat at the door */
     q = new T.CylinderGeometry(0.09, 0.09, 0.42, 10); q.rotateZ(Math.PI / 2); part(fac(q, (cx, cy, cz, i) => shadeY(Math.floor((cx + 1) / 0.07) % 2 ? '#5b88b8' : '#f4f8fb', cy, -0.1, 0.1, i, 0.3), 1326), t, -r * 0.62, 0.09, zf + 0.22);

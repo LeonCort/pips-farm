@@ -5,7 +5,7 @@
    (isle.html?from=farm) the boat sails in and Pip hops out onto the pad. The farm has the same boat back (boat-house.js).
    If the farm page is not there (a single test page), the boat just sails a round trip. */
 const FB = { trip: null, wait: 0, page: 'bondgard.html' };
-const FERRY_DOCK = { x0: FERRY.x - 0.55, x1: FERRY.x - 3.3, boat: FERRY.x - 4.1 };
+const FERRY_DOCK = { x0: FERRY.x - 0.55, x1: FERRY.x - 3.3, boat: FERRY.x - 4.3 };
 const ferryBoat = new T.Group();
 {
   const L = [], z = FERRY.z; let q;
@@ -20,18 +20,13 @@ const ferryBoat = new T.Group();
   x.fillStyle = '#d9573f'; x.beginPath(); x.moveTo(44, 64); x.lineTo(80, 36); x.lineTo(116, 64); x.lineTo(116, 108); x.lineTo(44, 108); x.closePath(); x.fill(); x.stroke();
   x.fillStyle = '#fff6e4'; x.fillRect(68, 78, 24, 30); x.strokeRect(68, 78, 24, 30); x.beginPath(); x.moveTo(68, 78); x.lineTo(92, 108); x.moveTo(92, 78); x.lineTo(68, 108); x.stroke();
   const sp = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(c), transparent: true })); sp.scale.set(0.95, 0.95, 1); sp.position.set(FERRY.x + 0.6, 1.75, z - 0.75); sc.add(sp); FB.sign = sp;
-  /* the boat: red hull, white cabin, a flag */
-  const B = []; q = new T.SphereGeometry(0.55, 14, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2); q.scale(0.75, 0.6, 1.7); q.rotateY(Math.PI / 2); B.push(fac(q, (cx, cy) => new T.Color(cy > -0.08 ? '#fbf3e4' : '#d9573f'), 5030));
-  q = new T.BoxGeometry(0.55, 0.38, 0.5); q.translate(0.25, 0.19, 0); B.push(fac(q, (cx, cy, cz, i) => tone('#fbf3e4', i, 0.2), 5031));
-  q = new T.BoxGeometry(0.62, 0.06, 0.58); q.translate(0.25, 0.41, 0); B.push(fac(q, () => new T.Color('#5aa7d6'), 5032));
-  q = new T.CylinderGeometry(0.02, 0.02, 0.55, 5); q.translate(0.25, 0.7, 0); B.push(fac(q, () => new T.Color('#5a3a22'), 5033));
-  q = new T.BoxGeometry(0.24, 0.15, 0.02); q.translate(0.37, 0.9, 0); B.push(fac(q, () => new T.Color('#f2c23c'), 5034));
-  merged(B, MAT, ferryBoat); ferryBoat.position.set(FERRY_DOCK.boat, -0.08, z); sc.add(ferryBoat);
+  /* the boat: a planked hull with a mast and sail (props.js) */
+  propBoat(ferryBoat); ferryBoat.position.set(FERRY_DOCK.boat, -0.08, z); sc.add(ferryBoat);
 }
 const ferryRing = ropeRing(0.45, 0.6); ferryRing.rotation.x = -Math.PI / 2; ferryRing.position.set(FERRY.x + FERRY.pad, 0.175, FERRY.z); sc.add(ferryRing);
 const ferryFill = new T.Mesh(new T.CircleGeometry(0.42, 32), new T.MeshBasicMaterial({ color: '#f4b23a', transparent: true, opacity: 0.85 })); ferryFill.rotation.x = -Math.PI / 2; ferryFill.position.set(FERRY.x + FERRY.pad, 0.185, FERRY.z); ferryFill.scale.setScalar(0.001); sc.add(ferryFill);
 const ferryFade = (() => { const d = document.createElement('div'); d.setAttribute('aria-hidden', 'true'); d.style.cssText = 'position:fixed;inset:0;background:#2e8f9c;opacity:0;pointer-events:none;transition:opacity 0.6s ease;z-index:50'; document.body.appendChild(d); return d; })();
-const ferrySeat = () => tmpV.set(ferryBoat.position.x - 0.25, ferryBoat.position.y + 0.32, ferryBoat.position.z);
+const ferrySeat = () => tmpV.set(ferryBoat.position.x - 0.25, ferryBoat.position.y - 0.12, ferryBoat.position.z);
 /* is the farm page there to sail to? (a single test page has no farm: then the boat comes straight back) */
 let ferryOk = null;
 try { fetch(FB.page, { method: 'HEAD' }).then((r) => (r.ok || r.status !== 405 ? r : fetch(FB.page))).then((r) => { ferryOk = r.ok; }).catch(() => { ferryOk = false; }); } catch (e) { ferryOk = false; }
