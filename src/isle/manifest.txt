@@ -47,6 +47,7 @@ gear.js
 look.js
 loop.js
 props.js
+map.js
 ferry.js
 show.js
 snowfx.js
