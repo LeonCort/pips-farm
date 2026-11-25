@@ -103,7 +103,7 @@ function paintGroundTex() {
   for (let py = 0; py < MH; py++) for (let px = 0; px < MW; px++) {
     const x = (px + 0.5) / MW * GRW + GRX0, z = (py + 0.5) / MH * GRH + GRZ0;
     const wx = x + Math.sin(z * 2.3 + x * 0.7) * 0.09 + Math.sin(z * 5.1) * 0.04, wz = z + Math.sin(x * 2.1 - z * 0.5) * 0.09 + Math.sin(x * 4.7) * 0.04;
-    const k = isleD(x, z) < 0.99 ? roadKind(wx, wz) : 0, o = (py * MW + px) * 4; K[py * MW + px] = k;
+    const k = isleD(x, z) < 0.99 && (!ISL.roadOk || ISL.roadOk(x, z)) ? roadKind(wx, wz) : 0, o = (py * MW + px) * 4; K[py * MW + px] = k;
     id.data[o] = k === 1 ? 255 : 0; id.data[o + 1] = k === 2 ? 255 : 0; id.data[o + 3] = 255;
   }
   mx.putImageData(id, 0, 0); GMASK = { K, W: MW, H: MH };

@@ -1,7 +1,7 @@
 /* ---------- camp props in the farm's handmade style (Leon, 2026-11-25: bring the island's look up to the farm's) ----------
    Small things that make the camp feel lived in: a chopping block with split logs, two barrels and a crate, and a
    wheelbarrow of flowers. One merged mesh; Pip walks round them. */
-const LOOK = { solid: [], flames: [], feet: [] };
+const LOOK = { solid: [], flames: [], feet: [], all: [] };
 {
   const L = [], put = (g, col, seed, x, y, z, ry) => { if (ry) g.rotateY(ry); g.translate(x, y, z); L.push(fac(g, col, seed)); };
   const wood = (hex, y0, y1) => (cx, cy, cz, i) => shadeY(hex, cy, y0, y1, i, 0.4);
@@ -88,9 +88,11 @@ function lookGround() {
   nodes.forEach((n) => { if (n.shade || n.kind === 'shroom') return; n.shade = 1; const r = { tree: 0.95, rock: 0.6, boulder: 0.9, bush: 0.6, crystal: 0.6 }[n.kind]; if (r) LOOK.feet.push([n.x, n.z, r, r, 0.3, 1]); });
   if (!LOOK.feet.length) return;
   groundShade(LOOK.feet.filter((f) => f[4] !== 0).map(([x, z, rx, rz, k]) => [x, z, rx + 0.35, rz + 0.35, k == null ? 0.42 : k]));
-  let grass = false; LOOK.feet.forEach(([x, z, rx, rz, k, soft]) => { if (!soft) { deco(x, z, Math.min(rx, rz)); grass = true; } });
+  let grass = false; LOOK.feet.forEach((f) => { const [x, z, rx, rz, k, soft] = f; if (!soft && !f[6]) { f[6] = 1; deco(x, z, Math.min(rx, rz)); grass = true; } if (!soft) LOOK.all.push(f); });
   LOOK.feet.length = 0; if (grass && typeof grMask === 'function' && typeof GR !== 'undefined' && GR.tex) grMask();
 }
+/* a new corner of the first island: its streets are painted in, and the shade pools are put back on the fresh ground texture */
+function lookRepaint() { paintGroundTex(); nodes.forEach((n) => { n.shade = 0; }); LOOK.feet.push(...LOOK.all.splice(0)); LOOK.t = 0; }
 function lookStep() {
   LOOK.t = (LOOK.t || 0) - 1; if (LOOK.t <= 0) { LOOK.t = 90; lookGround(); }
   if (!reduced) LOOK.flames.forEach((f, k) => { const a = 1 + Math.sin(time * 11 + k * 2) * 0.12 + Math.sin(time * 23 + k) * 0.08; f.scale.set(1 + Math.sin(time * 7 + k) * 0.08, a, 1); f.rotation.y = time * 2 + k; });

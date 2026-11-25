@@ -126,9 +126,10 @@ function weatherStep(dt) {
   rainAmt += ((k === 'heavy' ? 1 : k === 'rain' ? 0.55 : 0) - rainAmt) * Math.min(1, dt * 0.5);
   snowAmt += ((k === 'snow' ? 1 : 0) - snowAmt) * Math.min(1, dt * 0.3);
   mistAmt += ((k === 'mist' ? 1 : 0) - mistAmt) * Math.min(1, dt * 0.25);
-  windAmt += (WX_WIND[k] - windAmt) * Math.min(1, dt * 0.35);
+  if (!(windAmt >= 0)) windAmt = 0.12; if (!isFinite(wxAng)) wxAng = 0; /* a weather kind without a wind value, or no direction yet, must not turn the wind (and with it the 3D grass) into NaN */
+  windAmt += ((WX_WIND[k] == null ? 0.12 : WX_WIND[k]) - windAmt) * Math.min(1, dt * 0.35);
   /* wind: a slowly turning direction and soft gusts */
-  let da = wx.dir - wxAng; da = Math.atan2(Math.sin(da), Math.cos(da)); wxAng += da * Math.min(1, dt * 0.25);
+  let da = (isFinite(wx.dir) ? wx.dir : wxAng) - wxAng; da = Math.atan2(Math.sin(da), Math.cos(da)); wxAng += da * Math.min(1, dt * 0.25);
   WIND.x = Math.cos(wxAng); WIND.z = Math.sin(wxAng) * 0.6; WIND.amt = windAmt;
   WIND.g = windAmt * (0.7 + 0.3 * Math.sin(time * 0.63) * Math.sin(time * 1.7 + 1));
   if (!reduced && out) sway();

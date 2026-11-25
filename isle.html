@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261125152758">
+<meta name="app-ver" content="20261125161207">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1216,7 +1216,11 @@ function wClamp(v) {
   if (s >= -0.2 && typeof pip !== 'undefined' && pip) { const px = pip.position.x, pz = pip.position.z; for (let k = 0; k < 12 && s >= -0.2; k++) { v.x += (px - v.x) * 0.35; v.z += (pz - v.z) * 0.35; s = walkSdf(v.x, v.z); } }
   return v;
 }
-const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 1.95, walk: 1.5, maskW: 1536, maskH: 1536, detW: 2560, detH: 2560, detN: 3, ring: { rx: 3, rz: 3, w: 0 }, /* no ring road: w 0 (pets still wander round it) */ roads: [[0, -1.9, 0, -5.9, 0.5, 1], [1.9, 0, 5.9, 0, 0.5, 1], [0, 1.9, 0, 5.9, 0.5, 1], [-1.9, 0, -3.1, -1.5, 0.38, 1], [-1.4, 1.4, -2.5, 3.5, 0.36, 1], [1.4, 1.4, 3.3, 3.6, 0.36, 1], [1.4, -1.4, 2.7, -1.7, 0.36, 1]], trees: [],
+const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 1.95, walk: 1.5, maskW: 1536, maskH: 1536, detW: 2560, detH: 2560, detN: 3, ring: { rx: 3, rz: 3, w: 0 }, /* no ring road: w 0 (pets still wander round it) */ roads: [[0, -1.9, 0, -5.9, 0.5, 1], [-1.9, 0, -3.1, -1.5, 0.38, 1], [1.4, -1.4, 2.7, -1.7, 0.36, 1],
+    /* the settlement fills the whole first island (Leon, 2026-11-25): an east street to the smithy (h1), a south street to the bakery (h2), two cross streets that meet at the village green (h3) */
+    [1.9, 0, 6, 0, 0.5, 1], [6, 0, 8.4, 2.2, 0.5, 1], [8.4, 2.2, 16.2, 2.2, 0.5, 1], [0, 1.9, 0, 6, 0.5, 1], [0, 6, 1.2, 8, 0.5, 1], [1.2, 8, 1.2, 16.2, 0.5, 1],
+    [7.5, 1.5, 7.5, 11, 0.45, 1], [1.0, 7.5, 16.2, 7.5, 0.45, 1], [7.5, 7.5, 7.51, 7.5, 1.7, 2], [15.3, 2.2, 15.3, -0.7, 0.36, 1], [1.2, 15.1, -1.2, 15.1, 0.36, 1]],
+  roadOk: (x, z) => { const i = gCell(x), j = gCell(z); return !!WALK[gIdx(i, j)]; }, /* a road shows only on land that is owned */ trees: [],
   box: { x0: -5.4, x1: 5.4, z0: -5.4, z1: 5.4 }, /* pets keep inside this (the area Pip is in) */
   d: (x, z) => 1 + drawSdf(x, z) / 6, clamp: wClamp,
   gw: 76, gh: 76, gx: 0, gz: 0, /* the ground covers the whole world, the cave hill too */
@@ -1226,6 +1230,11 @@ const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 1.95, walk: 1.5, mask
 /* the settlement fills the whole first area (Leon, 2026-11-25): a cobbled plaza round the campfire in the middle, dirt roads to
    the bridge and to the two neighbour areas, and a home in each corner */
 const FIRE = { x: 0, z: 0 }, TENT = { x: -3.3, z: -2.9 };
+/* where the settlement's buildings stand (here, because the land is filled before the files that build them are read) */
+const FORGE = { x: 14.0, z: -2.6 }, ANVIL = { x: 15.3, z: -2.1 }, SMITH_AT = { x: 15.3, z: -2.62 }, ANVIL_RING = { x: 15.3, z: -1.35 };
+const OVEN = { x: -2.0, z: 14.0 }, BAKER_AT = { x: -1.1, z: 14.3 }, OVEN_RING = { x: -2.0, z: 15.1 };
+const WELL = { x: 7.5, z: 7.5 };
+const BOARD = { x: 3.3, z: -4.75 };
 const KENNEL = { x: -1.3, z: -3.7 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
   isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0, sickle: 0, shovel: 0 }, chests: {}, ruins: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
@@ -1594,7 +1603,7 @@ function paintGroundTex() {
   for (let py = 0; py < MH; py++) for (let px = 0; px < MW; px++) {
     const x = (px + 0.5) / MW * GRW + GRX0, z = (py + 0.5) / MH * GRH + GRZ0;
     const wx = x + Math.sin(z * 2.3 + x * 0.7) * 0.09 + Math.sin(z * 5.1) * 0.04, wz = z + Math.sin(x * 2.1 - z * 0.5) * 0.09 + Math.sin(x * 4.7) * 0.04;
-    const k = isleD(x, z) < 0.99 ? roadKind(wx, wz) : 0, o = (py * MW + px) * 4; K[py * MW + px] = k;
+    const k = isleD(x, z) < 0.99 && (!ISL.roadOk || ISL.roadOk(x, z)) ? roadKind(wx, wz) : 0, o = (py * MW + px) * 4; K[py * MW + px] = k;
     id.data[o] = k === 1 ? 255 : 0; id.data[o + 1] = k === 2 ? 255 : 0; id.data[o + 3] = 255;
   }
   mx.putImageData(id, 0, 0); GMASK = { K, W: MW, H: MH };
@@ -2209,7 +2218,7 @@ function isleRiseStep(dt) {
   if (R.t >= 1) {
     rising = null; ground.geometry.computeVertexNormals(); smoothGeo(ground.geometry); ground.geometry.attributes.normal.needsUpdate = true; ground.geometry.attributes.color.needsUpdate = true;
     pop([R.cx, R.cz]); Snd.play('success', { gain: 0.5 }); Snd.play('sparkle', { gain: 0.4 });
-    if (R.done) R.done(); isleSigns(); save();
+    if (R.done) R.done(); if (/^h/.test(R.area || '')) lookRepaint(); isleSigns(); save();
   }
 }
 
@@ -2261,6 +2270,7 @@ const LAYOUT = {
 /* spots that must stay clear: the camp, each chest, both ends of each bridge, and where signs stand */
 function areaClear(x, z) {
   if (Math.hypot(x, z - 0.2) < 3.3) return false; /* the camp */
+  if (roadKind(x, z) || roadKind(x + 0.9, z) || roadKind(x - 0.9, z) || roadKind(x, z + 0.9) || roadKind(x, z - 0.9) || campNear(x, z, 1.5) || Math.hypot(x - FORGE.x + 0.4, z - FORGE.z) < 2.6 || Math.hypot(x - OVEN.x + 0.3, z - OVEN.z) < 2.5 || Math.hypot(x - WELL.x, z - WELL.z) < 2.4) return false; /* the settlement's streets and plots */
   for (const a of AREAS) { if (a.chest && Math.hypot(x - a.cx, z - a.cz) < 1.4) return false;
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4) return false;
@@ -2290,7 +2300,7 @@ function areaFill(A, fresh) {
 /* little things that make each biome look like itself (one mesh per area, nothing to gather): flowers on grass, pebbles on stone */
 function areaDecor(A) {
   const L = [], b = A.biome, base = AREAS.indexOf(A) * 131;
-  const spot = (k, n, w) => { const x = A.cx + (hash(k, n + base) - 0.5) * w, z = A.cz + (hash(k, n + 1 + base) - 0.5) * w; if (walkSdfArea(A, x, z)) return null; if (nodes.some((q) => Math.abs(q.x - x) < 0.55 && Math.abs(q.z - z) < 0.55)) return null; if (b === 'home' && (roadKind(x, z) || campNear(x, z, 1.5))) return null; return [x, z]; };
+  const spot = (k, n, w) => { const x = A.cx + (hash(k, n + base) - 0.5) * w, z = A.cz + (hash(k, n + 1 + base) - 0.5) * w; if (walkSdfArea(A, x, z)) return null; if (nodes.some((q) => Math.abs(q.x - x) < 0.55 && Math.abs(q.z - z) < 0.55)) return null; if (roadKind(x, z) || campNear(x, z, 1.5)) return null; return [x, z]; };
   const green = b === 'home' || b === 'meadow' || b === 'orchard' || b === 'berry';
   if (green) {
     /* flowers with petals, in little groups */
@@ -2322,7 +2332,7 @@ function areaDecor(A) {
   if (b === 'cave') caveDecor(A, L, base);
   if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; m.receiveShadow = true; }
 }
-const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, OVEN, BOARD, TENT_RING, WELL].some((o) => Math.hypot(o.x - x, o.z - z) < r); /* the camp's buildings */
+const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL].some((o) => Math.hypot(o.x - x, o.z - z) < r); /* the camp's buildings */
 const walkSdfArea = (A, x, z) => Math.abs(x - A.cx) > 5.55 || Math.abs(z - A.cz) > 5.55; /* keep the dressing off the cliff edge */
 /* the camp in the start area: a campfire and a little tent */
 const campFlame = (() => {
@@ -4295,9 +4305,10 @@ function weatherStep(dt) {
   rainAmt += ((k === 'heavy' ? 1 : k === 'rain' ? 0.55 : 0) - rainAmt) * Math.min(1, dt * 0.5);
   snowAmt += ((k === 'snow' ? 1 : 0) - snowAmt) * Math.min(1, dt * 0.3);
   mistAmt += ((k === 'mist' ? 1 : 0) - mistAmt) * Math.min(1, dt * 0.25);
-  windAmt += (WX_WIND[k] - windAmt) * Math.min(1, dt * 0.35);
+  if (!(windAmt >= 0)) windAmt = 0.12; if (!isFinite(wxAng)) wxAng = 0; /* a weather kind without a wind value, or no direction yet, must not turn the wind (and with it the 3D grass) into NaN */
+  windAmt += ((WX_WIND[k] == null ? 0.12 : WX_WIND[k]) - windAmt) * Math.min(1, dt * 0.35);
   /* wind: a slowly turning direction and soft gusts */
-  let da = wx.dir - wxAng; da = Math.atan2(Math.sin(da), Math.cos(da)); wxAng += da * Math.min(1, dt * 0.25);
+  let da = (isFinite(wx.dir) ? wx.dir : wxAng) - wxAng; da = Math.atan2(Math.sin(da), Math.cos(da)); wxAng += da * Math.min(1, dt * 0.25);
   WIND.x = Math.cos(wxAng); WIND.z = Math.sin(wxAng) * 0.6; WIND.amt = windAmt;
   WIND.g = windAmt * (0.7 + 0.3 * Math.sin(time * 0.63) * Math.sin(time * 1.7 + 1));
   if (!reduced && out) sway();
@@ -5987,7 +5998,7 @@ function peopleIcon(x, t) {
 }
 
 /* ---- where things stand at the camp: the forge north-west of the tent, the anvil in front of it, the smith behind the anvil ---- */
-const FORGE = { x: -4.0, z: 2.6 }, ANVIL = { x: -2.7, z: 3.1 }, SMITH_AT = { x: -2.7, z: 2.58 }, ANVIL_RING = { x: -2.7, z: 3.85 }; /* the south-west corner of the settlement */ // /* far enough behind the tent that the camera sees over it */
+/* (position: see rules.js) */ /* the smithy is in h1, east of the camp */ // /* the south-west corner of the settlement */ // /* far enough behind the tent that the camera sees over it */
 const SMITH_WANT = { stone: 8 }, FORGE_COST = { stone: 12, log: 10 };
 const SM = { g: null, hammer: null, pop: 0, hop: 0, move: null, swing: 0, arr: 0 };
 const folk = () => state.isle.folk || (state.isle.folk = {});
@@ -6011,7 +6022,8 @@ function smithModel() {
 function smithSpot() {
   if (folk().smith === 1) { const R = ruins.find((r) => r.A.id === 'h3'); if (R) { const c = Math.cos(R.rot), s = Math.sin(R.rot), P = [1, -1].map((k) => [R.x + s * 1.75 + c * 0.95 * k, R.z + c * 1.75 - s * 0.95 * k]);
     const busy = ([x, z]) => nodes.filter((n) => n.kind !== 'planks' && (Math.hypot(n.x - x, n.z - z) < 1.3 || (Math.abs(n.x - x) < 1.2 && n.z > z && n.z - z < 3))).length; return busy(P[0]) <= busy(P[1]) ? P[0] : P[1]; } } /* the side of the door with fewer trees in the way */
-  return [SMITH_AT.x, SMITH_AT.z];
+  if (!HAS.h1) { SM.away = 1; return [1.5, 1.0]; } /* her corner of the island is still under the sea: she waits by the fire */
+  SM.away = 0; return [SMITH_AT.x, SMITH_AT.z];
 }
 function smithPlace() { const [x, z] = smithSpot(); SM.g.position.set(x, 0, z); SM.g.rotation.y = 0; }
 
@@ -6076,7 +6088,7 @@ function peopleRuinOpen(R) { bakerRuinOpen(R); if (R.A.id === 'h3' && !folk().sm
 function peopleWants(want) {
   const F = state.isle.folk; if (!F || !SM.g) return;
   if (F.smith === 1 && SM.g.visible && !SM.wait && !SM.move) want.set('p:smith', { kind: 'person', who: 'smith' });
-  if (F.smith === 2 && !SM.move) want.set('f:forge', { kind: 'plot', who: 'forge' });
+  if (F.smith === 2 && !SM.move && HAS.h1) want.set('f:forge', { kind: 'plot', who: 'forge' });
   bakerWants(want);
 }
 const tinyGeo = new T.PlaneGeometry(0.01, 0.01);
@@ -6108,7 +6120,7 @@ function anvilOpen() { if (!forgeUp() || !BM.menu) return; const xu = document.q
 function peopleGoal() {
   const bg = bakerGoal(); if (bg) return bg;
   const F = state.isle.folk; if (!F || !SM.g) return null; const pp = pip.position;
-  if (F.smith === 2 && SM.arr > 0 && Math.hypot(pp.x - SMITH_AT.x, pp.z - SMITH_AT.z) > 4) return [ANVIL_RING.x, ANVIL_RING.z]; /* she moved: show where to */
+  if (F.smith === 2 && SM.arr > 0 && !SM.away && Math.hypot(pp.x - SMITH_AT.x, pp.z - SMITH_AT.z) > 4) return [ANVIL_RING.x, ANVIL_RING.z]; /* she moved: show where to */
   if (F.smith === 3 && toolTier() < 3 && bldCan('tool') && Math.hypot(pp.x, pp.z) < 14 && carry.count() < cap()) return [ANVIL_RING.x, ANVIL_RING.z];
   return null;
 }
@@ -6126,6 +6138,7 @@ function peopleStep(dt) {
     if (M.t < 1.0) { g.position.y = Math.abs(Math.sin(M.t * Math.PI * 2)) * 0.35; }
     else if (M.t < 1.35) { g.scale.setScalar(Math.max(0.01, 1 - (M.t - 1.0) / 0.35)); if (!M.puff) { M.puff = 1; Snd.play('whoosh', { gain: 0.4 }); burst(g.position.x, 0.8, g.position.z, 6); } }
     else { SM.move = null; g.position.y = 0; smithPlace(); SM.pop = 0.001; g.scale.setScalar(0.01); SM.arr = 25; Snd.play('pop', { gain: 0.4, f: 640 }); burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); save(); } }
+  if (SM.away && HAS.h1 && F.smith >= 2 && !SM.move && !rising) { smithPlace(); SM.pop = 0.001; g.scale.setScalar(0.01); SM.arr = 25; burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); }
   SM.arr = Math.max(0, SM.arr - dt);
   if (!g.visible) return;
   /* standing about: a little bob, turned to Pip when Pip is close */
@@ -6161,7 +6174,7 @@ function peopleStep(dt) {
    on the spot (+60) instead of having to walk to the tent. Oven upgrades at her card: faster baking, then two pies at once
    (paid with coins and crystals).
    state.isle.folk.baker: 0 in the cottage, 1 found (wants berries), 2 at the camp (oven plot), 3 oven built. state.isle.bake: progress. */
-const OVEN = { x: 3.5, z: 2.75 }, BAKER_AT = { x: 4.4, z: 3.05 }, OVEN_RING = { x: 3.5, z: 3.85 }; /* the south-east corner of the settlement */
+/* (position: see rules.js) */ /* the bakery is in h2, south of the camp */ // /* the south-east corner of the settlement */
 const BAKER_WANT = { berry: 10 }, OVEN_COST = { stone: 12, log: 10 };
 const PIE_NEED = { berry: 4 }, PIE_MAX = 5, PIE_EN = 60, OVEN_IN = new T.Vector3(OVEN.x, 0.6, OVEN.z + 0.3);
 const bakeTime = () => [0, 45, 28, 28][bldLv('oven')], bakeBatch = () => [0, 1, 1, 2][bldLv('oven')];
@@ -6198,7 +6211,8 @@ function bakerModel() {
 function bakerSpot() {
   if (folk().baker === 1) { const R = ruins.find((r) => r.A.id === 'm2'); if (R) { const c = Math.cos(R.rot), s = Math.sin(R.rot), P = [1, -1].map((k) => [R.x + s * 1.75 + c * 0.95 * k, R.z + c * 1.75 - s * 0.95 * k]);
     const busy = ([x, z]) => nodes.filter((n) => n.kind !== 'planks' && (Math.hypot(n.x - x, n.z - z) < 1.3 || (Math.abs(n.x - x) < 1.2 && n.z > z && n.z - z < 3))).length; return busy(P[0]) <= busy(P[1]) ? P[0] : P[1]; } }
-  return [BAKER_AT.x, BAKER_AT.z];
+  if (!HAS.h2) { BK.away = 1; return [1.0, 1.6]; } /* waits by the fire until her corner of the island is bought */
+  BK.away = 0; return [BAKER_AT.x, BAKER_AT.z];
 }
 function bakerPlace() { const [x, z] = bakerSpot(); BK.g.position.set(x, 0, z); BK.g.rotation.y = 0; }
 
@@ -6268,7 +6282,7 @@ function bakerRuinOpen(R) { if (R.A.id === 'm2' && !folk().baker) { folk().baker
 function bakerWants(want) {
   const F = state.isle.folk; if (!F || !BK.g) return;
   if (F.baker === 1 && BK.g.visible && !BK.wait && !BK.move) want.set('p:baker', { kind: 'person', who: 'baker' });
-  if (F.baker === 2 && !BK.move) want.set('f:oven', { kind: 'plot', who: 'oven' });
+  if (F.baker === 2 && !BK.move && HAS.h2) want.set('f:oven', { kind: 'plot', who: 'oven' });
 }
 const ovenGhostGeo = (() => { const g = new T.PlaneGeometry(2.6, 1.8, 6, 4); g.rotateX(-Math.PI / 2); return g; })();
 function bakerSignMake(w, key) {
@@ -6286,7 +6300,7 @@ function ovenLevelUp() { BK.hop = 1; burst(OVEN.x, 1.3, OVEN.z, 10); bldPop = { 
 function ovenOpen() { if (!ovenUp() || !BM.menu) return; const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; BM.keys = ['oven']; bldFill(); BM.menu.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); }
 function bakerGoal() {
   const F = state.isle.folk; if (!F || !BK.g) return null; const pp = pip.position;
-  if (F.baker === 2 && BK.arr > 0 && Math.hypot(pp.x - BAKER_AT.x, pp.z - BAKER_AT.z) > 4) return [OVEN_RING.x, OVEN_RING.z];
+  if (F.baker === 2 && BK.arr > 0 && !BK.away && Math.hypot(pp.x - BAKER_AT.x, pp.z - BAKER_AT.z) > 4) return [OVEN_RING.x, OVEN_RING.z];
   if (F.baker === 3 && bldLv('oven') < 3 && bldCan('oven') && Math.hypot(pp.x, pp.z) < 14 && carry.count() < cap()) return [OVEN_RING.x, OVEN_RING.z];
   return null;
 }
@@ -6308,6 +6322,7 @@ function bakerStep(dt) {
     if (M.t < 1.0) g.position.y = Math.abs(Math.sin(M.t * Math.PI * 2)) * 0.35;
     else if (M.t < 1.35) { g.scale.setScalar(Math.max(0.01, 1 - (M.t - 1.0) / 0.35)); if (!M.puff) { M.puff = 1; Snd.play('whoosh', { gain: 0.4 }); burst(g.position.x, 0.8, g.position.z, 6); } }
     else { BK.move = null; g.position.y = 0; bakerPlace(); BK.pop = 0.001; g.scale.setScalar(0.01); BK.arr = 25; Snd.play('pop', { gain: 0.4, f: 640 }); burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); save(); } }
+  if (BK.away && HAS.h2 && F.baker >= 2 && !BK.move && !rising) { bakerPlace(); BK.pop = 0.001; g.scale.setScalar(0.01); BK.arr = 25; burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); }
   BK.arr = Math.max(0, BK.arr - dt);
   if (eatSp.visible) { eatSp.t -= dt; eatSp.position.set(pp.x, 2.2 + (1.6 - eatSp.t) * 0.3, pp.z); eatSp.material.opacity = Math.min(1, eatSp.t * 2); if (eatSp.t <= 0) eatSp.visible = false; }
   pieT -= dt; if (pieT <= 0) { pieT = 0.5; pieEat(); }
@@ -6354,7 +6369,7 @@ const VILLAGERS = [
 const housed = (id) => !!(state.isle.folk && state.isle.folk[id] >= 3);
 const villageLv = () => VILLAGERS.filter((v) => housed(v.id)).length;
 const VG = { parts: {}, lamps: [], pops: [], key: '' };
-const BOARD = { x: 3.3, z: -4.75 }; /* behind the crate, clear of the bridge sign */
+/* (position: see rules.js) */ /* behind the crate, clear of the bridge sign */
 
 /* ---- the friends board ---- */
 const boardCv = document.createElement('canvas'); boardCv.width = 512; boardCv.height = 224; const boardTex = new T.CanvasTexture(boardCv);
@@ -6427,10 +6442,20 @@ function flowerBox(x, z, r, L, seed) {
 const VILLAGE = {
   /* from the first day: a signpost where the road leaves for the bridge */
   start: { ok: () => true, make: (g, L) => { signpost(0.85, -2.5, L, 3200, 0.4); }, at: [0.85, -2.5] },
-  /* the first friend: lanterns at the plaza's corners, a well, a second signpost down the south road */
+  /* the first friend: lanterns at the plaza's corners */
   base: { ok: () => villageLv() >= 1, make: (g, L) => {
     [[1.75, -1.75], [-1.75, 1.75]].forEach(([x, z]) => lanternMake(x, z, L).forEach((m) => g.add(m)));
-    signpost(-0.85, 2.6, L, 3230, 2.2); wellMake(WELL.x, WELL.z, L, 3260); lookFoot(WELL.x, WELL.z, 0.6); flowerBox(STORE.x - 1.25, STORE.z - 0.1, 1.2, L, 3250); }, at: [0.4, -1.5] },
+    flowerBox(STORE.x - 1.25, STORE.z - 0.1, 1.2, L, 3250); }, at: [0.4, -1.5] },
+  /* each corner of the island joins the village once it is bought: street lanterns and a signpost; the green in h3 has the well */
+  east: { ok: () => villageLv() >= 1 && !!HAS.h1, make: (g, L) => {
+    [[6.7, -0.75], [10.4, 3.0], [14.4, 3.0]].forEach(([x, z]) => lanternMake(x, z, L).forEach((m) => g.add(m))); signpost(8.6, 3.3, L, 3270, 1.2); flowerBox(12.6, 3.05, 0, L, 3280); }, at: [10, 1.2] },
+  south: { ok: () => villageLv() >= 1 && !!HAS.h2, make: (g, L) => {
+    [[-0.75, 6.7], [2.0, 10.6], [2.0, 14.4]].forEach(([x, z]) => lanternMake(x, z, L).forEach((m) => g.add(m))); signpost(2.3, 8.5, L, 3290, 2.6); flowerBox(2.05, 12.6, 1.57, L, 3300); }, at: [1.2, 10] },
+  green: { ok: () => villageLv() >= 1 && !!HAS.h3, make: (g, L) => {
+    wellMake(WELL.x, WELL.z, L, 3260); lookFoot(WELL.x, WELL.z, 0.6);
+    [[5.7, 5.9], [9.3, 9.1]].forEach(([x, z]) => lanternMake(x, z, L).forEach((m) => g.add(m)));
+    [[9.2, 6.0, 0.8], [5.8, 9.0, 0.8]].forEach(([x, z, r], k) => flowerBox(x, z, r, L, 3310 + k * 30));
+    benchMake(6.0, 6.9, 1.0, L, 3370); benchMake(9.0, 8.2, -2.1, L, 3380); signpost(9.4, 5.6, L, 3390, 0.3); }, at: [WELL.x, WELL.z] },
   smith: { ok: () => housed('smith'), make: (g, L) => {
     lanternMake(ANVIL_RING.x + 1.1, ANVIL_RING.z + 0.5, L).forEach((m) => g.add(m)); flowerBox(FORGE.x - 1.35, FORGE.z + 1.0, 0.1, L, 3450); fenceRun(FORGE.x - 1.9, FORGE.z - 1.0, FORGE.x + 1.7, FORGE.z - 1.0, L, 3460); }, at: [FORGE.x, FORGE.z] },
   baker: { ok: () => housed('baker'), make: (g, L) => {
@@ -6442,7 +6467,14 @@ const VILLAGE = {
     flowerBox(-1.0, -2.9, 1.57, L, 3700); flowerBox(2.75, 0.95, 0, L, 3720); flowerBox(-2.9, 0.9, 0.2, L, 3740); }, at: [0, 0] }
 };
 /* a signpost with pointing boards, like the farm's */
-const WELL = { x: -4.1, z: 0.0 };
+/* (position: see rules.js) */ /* in the middle of the village green */
+/* a plank bench */
+function benchMake(x, z, r, L, seed) {
+  const put = (q, col, k) => { q.rotateY(r); q.translate(x, 0, z); L.push(fac(q, () => tone(col, seed + k, 0.5), seed + k)); };
+  [0, 1].forEach((k) => { const q = new T.BoxGeometry(0.95, 0.045, 0.15); q.translate(0, 0.3, -0.08 + k * 0.16); put(q, k ? '#b9824c' : '#a8774f', k); });
+  [0, 1].forEach((k) => { const q = new T.BoxGeometry(0.95, 0.12, 0.04); q.translate(0, 0.46 + k * 0.15, -0.2); put(q, k ? '#a8774f' : '#b9824c', 2 + k); });
+  [-0.4, 0.4].forEach((dx, k) => { let q = new T.BoxGeometry(0.06, 0.3, 0.3); q.translate(dx, 0.15, 0); put(q, '#8a5f3c', 4 + k); q = new T.BoxGeometry(0.05, 0.4, 0.05); q.translate(dx, 0.5, -0.2); put(q, '#8a5f3c', 6 + k); });
+}
 /* a stone well with a little shingle roof and a bucket */
 function wellMake(x, z, L, seed) {
   for (let r = 0; r < 3; r++) for (let k = 0; k < 9; k++) { const a = (k + r * 0.5) / 9 * 6.283, q = new T.BoxGeometry(0.3, 0.17, 0.2, 2, 1, 1); jit(q, 0.02, seed + r * 9 + k); q.rotateY(-a + Math.PI / 2); q.translate(x + Math.cos(a) * 0.46, 0.09 + r * 0.17, z + Math.sin(a) * 0.46); L.push(fac(q, (cx, cy, cz, i) => tone(['#b9b3a6', '#a7a297', '#c6c0b2'][(k + r) % 3], i + k, 0.5), seed + r * 9 + k)); }
@@ -6483,7 +6515,7 @@ function villageStep(dt) {
     const u = Math.min(1, p.t / 0.6); p.g.scale.set(1, u < 1 ? Math.max(0.01, u * 1.15 - Math.max(0, u - 0.8) * 0.75) : 1, 1); if (u >= 1) VG.pops.splice(k, 1); }
   const nt = typeof nightAmt === 'number' ? nightAmt : isNight ? 1 : 0;
   VG.lamps.forEach((l, k) => { l.glow.material.opacity = nt * (reduced ? 0.8 : 0.72 + Math.sin(time * 3 + k) * 0.08); l.lamp.material.color.setRGB(1, 0.85 + 0.1 * nt, 0.55 + 0.1 * (1 - nt)); });
-  if (VG.parts.base) { const dx = pip.position.x - WELL.x, dz = pip.position.z - WELL.z, d = Math.hypot(dx, dz); if (d < 0.82 && d > 1e-4) { pip.position.x = WELL.x + dx / d * 0.82; pip.position.z = WELL.z + dz / d * 0.82; } }
+  if (VG.parts.green) { const dx = pip.position.x - WELL.x, dz = pip.position.z - WELL.z, d = Math.hypot(dx, dz); if (d < 0.82 && d > 1e-4) { pip.position.x = WELL.x + dx / d * 0.82; pip.position.z = WELL.z + dz / d * 0.82; } }
   /* Pip walks round the board's posts */
   const dx = pip.position.x - BOARD.x, dz = pip.position.z - BOARD.z; if (Math.abs(dx) < 1.15 && Math.abs(dz) < 0.3) pip.position.z = BOARD.z + Math.sign(dz || 1) * 0.3;
 }
@@ -6543,7 +6575,7 @@ function digPlace(A) {
     const x = A.cx + (Math.random() - 0.5) * 9, z = A.cz + (Math.random() - 0.5) * 9;
     if (walkSdf(x, z) > -0.9) continue;
     if (nodes.some((n) => Math.hypot(n.x - x, n.z - z) < 1.0) || signs.some((s) => s.x != null && Math.hypot(s.x - x, s.z - z) < 1.4)) continue;
-    if (A.id === 'h0' && (roadKind(x, z) || campNear(x, z, 1.8))) continue; /* not on a road or by a building */
+    if (roadKind(x, z) || campNear(x, z, 1.8)) continue; /* not on a road or by a building */
     return { x, z };
   }
   return null;
@@ -6832,7 +6864,7 @@ const gearTest = () => ({ torch: gearHas('torch'), coat: gearHas('coat'), boots:
 /* ---------- camp props in the farm's handmade style (Leon, 2026-11-25: bring the island's look up to the farm's) ----------
    Small things that make the camp feel lived in: a chopping block with split logs, two barrels and a crate, and a
    wheelbarrow of flowers. One merged mesh; Pip walks round them. */
-const LOOK = { solid: [], flames: [], feet: [] };
+const LOOK = { solid: [], flames: [], feet: [], all: [] };
 {
   const L = [], put = (g, col, seed, x, y, z, ry) => { if (ry) g.rotateY(ry); g.translate(x, y, z); L.push(fac(g, col, seed)); };
   const wood = (hex, y0, y1) => (cx, cy, cz, i) => shadeY(hex, cy, y0, y1, i, 0.4);
@@ -6919,9 +6951,11 @@ function lookGround() {
   nodes.forEach((n) => { if (n.shade || n.kind === 'shroom') return; n.shade = 1; const r = { tree: 0.95, rock: 0.6, boulder: 0.9, bush: 0.6, crystal: 0.6 }[n.kind]; if (r) LOOK.feet.push([n.x, n.z, r, r, 0.3, 1]); });
   if (!LOOK.feet.length) return;
   groundShade(LOOK.feet.filter((f) => f[4] !== 0).map(([x, z, rx, rz, k]) => [x, z, rx + 0.35, rz + 0.35, k == null ? 0.42 : k]));
-  let grass = false; LOOK.feet.forEach(([x, z, rx, rz, k, soft]) => { if (!soft) { deco(x, z, Math.min(rx, rz)); grass = true; } });
+  let grass = false; LOOK.feet.forEach((f) => { const [x, z, rx, rz, k, soft] = f; if (!soft && !f[6]) { f[6] = 1; deco(x, z, Math.min(rx, rz)); grass = true; } if (!soft) LOOK.all.push(f); });
   LOOK.feet.length = 0; if (grass && typeof grMask === 'function' && typeof GR !== 'undefined' && GR.tex) grMask();
 }
+/* a new corner of the first island: its streets are painted in, and the shade pools are put back on the fresh ground texture */
+function lookRepaint() { paintGroundTex(); nodes.forEach((n) => { n.shade = 0; }); LOOK.feet.push(...LOOK.all.splice(0)); LOOK.t = 0; }
 function lookStep() {
   LOOK.t = (LOOK.t || 0) - 1; if (LOOK.t <= 0) { LOOK.t = 90; lookGround(); }
   if (!reduced) LOOK.flames.forEach((f, k) => { const a = 1 + Math.sin(time * 11 + k * 2) * 0.12 + Math.sin(time * 23 + k) * 0.08; f.scale.set(1 + Math.sin(time * 7 + k) * 0.08, a, 1); f.rotation.y = time * 2 + k; });

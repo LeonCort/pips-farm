@@ -21,7 +21,7 @@ function peopleIcon(x, t) {
 }
 
 /* ---- where things stand at the camp: the forge north-west of the tent, the anvil in front of it, the smith behind the anvil ---- */
-const FORGE = { x: -4.0, z: 2.6 }, ANVIL = { x: -2.7, z: 3.1 }, SMITH_AT = { x: -2.7, z: 2.58 }, ANVIL_RING = { x: -2.7, z: 3.85 }; /* the south-west corner of the settlement */ // /* far enough behind the tent that the camera sees over it */
+/* (position: see rules.js) */ /* the smithy is in h1, east of the camp */ // /* the south-west corner of the settlement */ // /* far enough behind the tent that the camera sees over it */
 const SMITH_WANT = { stone: 8 }, FORGE_COST = { stone: 12, log: 10 };
 const SM = { g: null, hammer: null, pop: 0, hop: 0, move: null, swing: 0, arr: 0 };
 const folk = () => state.isle.folk || (state.isle.folk = {});
@@ -45,7 +45,8 @@ function smithModel() {
 function smithSpot() {
   if (folk().smith === 1) { const R = ruins.find((r) => r.A.id === 'h3'); if (R) { const c = Math.cos(R.rot), s = Math.sin(R.rot), P = [1, -1].map((k) => [R.x + s * 1.75 + c * 0.95 * k, R.z + c * 1.75 - s * 0.95 * k]);
     const busy = ([x, z]) => nodes.filter((n) => n.kind !== 'planks' && (Math.hypot(n.x - x, n.z - z) < 1.3 || (Math.abs(n.x - x) < 1.2 && n.z > z && n.z - z < 3))).length; return busy(P[0]) <= busy(P[1]) ? P[0] : P[1]; } } /* the side of the door with fewer trees in the way */
-  return [SMITH_AT.x, SMITH_AT.z];
+  if (!HAS.h1) { SM.away = 1; return [1.5, 1.0]; } /* her corner of the island is still under the sea: she waits by the fire */
+  SM.away = 0; return [SMITH_AT.x, SMITH_AT.z];
 }
 function smithPlace() { const [x, z] = smithSpot(); SM.g.position.set(x, 0, z); SM.g.rotation.y = 0; }
 
@@ -110,7 +111,7 @@ function peopleRuinOpen(R) { bakerRuinOpen(R); if (R.A.id === 'h3' && !folk().sm
 function peopleWants(want) {
   const F = state.isle.folk; if (!F || !SM.g) return;
   if (F.smith === 1 && SM.g.visible && !SM.wait && !SM.move) want.set('p:smith', { kind: 'person', who: 'smith' });
-  if (F.smith === 2 && !SM.move) want.set('f:forge', { kind: 'plot', who: 'forge' });
+  if (F.smith === 2 && !SM.move && HAS.h1) want.set('f:forge', { kind: 'plot', who: 'forge' });
   bakerWants(want);
 }
 const tinyGeo = new T.PlaneGeometry(0.01, 0.01);
@@ -142,7 +143,7 @@ function anvilOpen() { if (!forgeUp() || !BM.menu) return; const xu = document.q
 function peopleGoal() {
   const bg = bakerGoal(); if (bg) return bg;
   const F = state.isle.folk; if (!F || !SM.g) return null; const pp = pip.position;
-  if (F.smith === 2 && SM.arr > 0 && Math.hypot(pp.x - SMITH_AT.x, pp.z - SMITH_AT.z) > 4) return [ANVIL_RING.x, ANVIL_RING.z]; /* she moved: show where to */
+  if (F.smith === 2 && SM.arr > 0 && !SM.away && Math.hypot(pp.x - SMITH_AT.x, pp.z - SMITH_AT.z) > 4) return [ANVIL_RING.x, ANVIL_RING.z]; /* she moved: show where to */
   if (F.smith === 3 && toolTier() < 3 && bldCan('tool') && Math.hypot(pp.x, pp.z) < 14 && carry.count() < cap()) return [ANVIL_RING.x, ANVIL_RING.z];
   return null;
 }
@@ -160,6 +161,7 @@ function peopleStep(dt) {
     if (M.t < 1.0) { g.position.y = Math.abs(Math.sin(M.t * Math.PI * 2)) * 0.35; }
     else if (M.t < 1.35) { g.scale.setScalar(Math.max(0.01, 1 - (M.t - 1.0) / 0.35)); if (!M.puff) { M.puff = 1; Snd.play('whoosh', { gain: 0.4 }); burst(g.position.x, 0.8, g.position.z, 6); } }
     else { SM.move = null; g.position.y = 0; smithPlace(); SM.pop = 0.001; g.scale.setScalar(0.01); SM.arr = 25; Snd.play('pop', { gain: 0.4, f: 640 }); burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); save(); } }
+  if (SM.away && HAS.h1 && F.smith >= 2 && !SM.move && !rising) { smithPlace(); SM.pop = 0.001; g.scale.setScalar(0.01); SM.arr = 25; burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); }
   SM.arr = Math.max(0, SM.arr - dt);
   if (!g.visible) return;
   /* standing about: a little bob, turned to Pip when Pip is close */

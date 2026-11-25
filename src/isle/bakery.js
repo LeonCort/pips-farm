@@ -6,7 +6,7 @@
    on the spot (+60) instead of having to walk to the tent. Oven upgrades at her card: faster baking, then two pies at once
    (paid with coins and crystals).
    state.isle.folk.baker: 0 in the cottage, 1 found (wants berries), 2 at the camp (oven plot), 3 oven built. state.isle.bake: progress. */
-const OVEN = { x: 3.5, z: 2.75 }, BAKER_AT = { x: 4.4, z: 3.05 }, OVEN_RING = { x: 3.5, z: 3.85 }; /* the south-east corner of the settlement */
+/* (position: see rules.js) */ /* the bakery is in h2, south of the camp */ // /* the south-east corner of the settlement */
 const BAKER_WANT = { berry: 10 }, OVEN_COST = { stone: 12, log: 10 };
 const PIE_NEED = { berry: 4 }, PIE_MAX = 5, PIE_EN = 60, OVEN_IN = new T.Vector3(OVEN.x, 0.6, OVEN.z + 0.3);
 const bakeTime = () => [0, 45, 28, 28][bldLv('oven')], bakeBatch = () => [0, 1, 1, 2][bldLv('oven')];
@@ -43,7 +43,8 @@ function bakerModel() {
 function bakerSpot() {
   if (folk().baker === 1) { const R = ruins.find((r) => r.A.id === 'm2'); if (R) { const c = Math.cos(R.rot), s = Math.sin(R.rot), P = [1, -1].map((k) => [R.x + s * 1.75 + c * 0.95 * k, R.z + c * 1.75 - s * 0.95 * k]);
     const busy = ([x, z]) => nodes.filter((n) => n.kind !== 'planks' && (Math.hypot(n.x - x, n.z - z) < 1.3 || (Math.abs(n.x - x) < 1.2 && n.z > z && n.z - z < 3))).length; return busy(P[0]) <= busy(P[1]) ? P[0] : P[1]; } }
-  return [BAKER_AT.x, BAKER_AT.z];
+  if (!HAS.h2) { BK.away = 1; return [1.0, 1.6]; } /* waits by the fire until her corner of the island is bought */
+  BK.away = 0; return [BAKER_AT.x, BAKER_AT.z];
 }
 function bakerPlace() { const [x, z] = bakerSpot(); BK.g.position.set(x, 0, z); BK.g.rotation.y = 0; }
 
@@ -113,7 +114,7 @@ function bakerRuinOpen(R) { if (R.A.id === 'm2' && !folk().baker) { folk().baker
 function bakerWants(want) {
   const F = state.isle.folk; if (!F || !BK.g) return;
   if (F.baker === 1 && BK.g.visible && !BK.wait && !BK.move) want.set('p:baker', { kind: 'person', who: 'baker' });
-  if (F.baker === 2 && !BK.move) want.set('f:oven', { kind: 'plot', who: 'oven' });
+  if (F.baker === 2 && !BK.move && HAS.h2) want.set('f:oven', { kind: 'plot', who: 'oven' });
 }
 const ovenGhostGeo = (() => { const g = new T.PlaneGeometry(2.6, 1.8, 6, 4); g.rotateX(-Math.PI / 2); return g; })();
 function bakerSignMake(w, key) {
@@ -131,7 +132,7 @@ function ovenLevelUp() { BK.hop = 1; burst(OVEN.x, 1.3, OVEN.z, 10); bldPop = { 
 function ovenOpen() { if (!ovenUp() || !BM.menu) return; const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; BM.keys = ['oven']; bldFill(); BM.menu.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); }
 function bakerGoal() {
   const F = state.isle.folk; if (!F || !BK.g) return null; const pp = pip.position;
-  if (F.baker === 2 && BK.arr > 0 && Math.hypot(pp.x - BAKER_AT.x, pp.z - BAKER_AT.z) > 4) return [OVEN_RING.x, OVEN_RING.z];
+  if (F.baker === 2 && BK.arr > 0 && !BK.away && Math.hypot(pp.x - BAKER_AT.x, pp.z - BAKER_AT.z) > 4) return [OVEN_RING.x, OVEN_RING.z];
   if (F.baker === 3 && bldLv('oven') < 3 && bldCan('oven') && Math.hypot(pp.x, pp.z) < 14 && carry.count() < cap()) return [OVEN_RING.x, OVEN_RING.z];
   return null;
 }
@@ -153,6 +154,7 @@ function bakerStep(dt) {
     if (M.t < 1.0) g.position.y = Math.abs(Math.sin(M.t * Math.PI * 2)) * 0.35;
     else if (M.t < 1.35) { g.scale.setScalar(Math.max(0.01, 1 - (M.t - 1.0) / 0.35)); if (!M.puff) { M.puff = 1; Snd.play('whoosh', { gain: 0.4 }); burst(g.position.x, 0.8, g.position.z, 6); } }
     else { BK.move = null; g.position.y = 0; bakerPlace(); BK.pop = 0.001; g.scale.setScalar(0.01); BK.arr = 25; Snd.play('pop', { gain: 0.4, f: 640 }); burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); save(); } }
+  if (BK.away && HAS.h2 && F.baker >= 2 && !BK.move && !rising) { bakerPlace(); BK.pop = 0.001; g.scale.setScalar(0.01); BK.arr = 25; burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); }
   BK.arr = Math.max(0, BK.arr - dt);
   if (eatSp.visible) { eatSp.t -= dt; eatSp.position.set(pp.x, 2.2 + (1.6 - eatSp.t) * 0.3, pp.z); eatSp.material.opacity = Math.min(1, eatSp.t * 2); if (eatSp.t <= 0) eatSp.visible = false; }
   pieT -= dt; if (pieT <= 0) { pieT = 0.5; pieEat(); }

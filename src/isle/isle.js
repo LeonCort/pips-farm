@@ -124,7 +124,7 @@ function isleRiseStep(dt) {
   if (R.t >= 1) {
     rising = null; ground.geometry.computeVertexNormals(); smoothGeo(ground.geometry); ground.geometry.attributes.normal.needsUpdate = true; ground.geometry.attributes.color.needsUpdate = true;
     pop([R.cx, R.cz]); Snd.play('success', { gain: 0.5 }); Snd.play('sparkle', { gain: 0.4 });
-    if (R.done) R.done(); isleSigns(); save();
+    if (R.done) R.done(); if (/^h/.test(R.area || '')) lookRepaint(); isleSigns(); save();
   }
 }
 
@@ -176,6 +176,7 @@ const LAYOUT = {
 /* spots that must stay clear: the camp, each chest, both ends of each bridge, and where signs stand */
 function areaClear(x, z) {
   if (Math.hypot(x, z - 0.2) < 3.3) return false; /* the camp */
+  if (roadKind(x, z) || roadKind(x + 0.9, z) || roadKind(x - 0.9, z) || roadKind(x, z + 0.9) || roadKind(x, z - 0.9) || campNear(x, z, 1.5) || Math.hypot(x - FORGE.x + 0.4, z - FORGE.z) < 2.6 || Math.hypot(x - OVEN.x + 0.3, z - OVEN.z) < 2.5 || Math.hypot(x - WELL.x, z - WELL.z) < 2.4) return false; /* the settlement's streets and plots */
   for (const a of AREAS) { if (a.chest && Math.hypot(x - a.cx, z - a.cz) < 1.4) return false;
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4) return false;
@@ -205,7 +206,7 @@ function areaFill(A, fresh) {
 /* little things that make each biome look like itself (one mesh per area, nothing to gather): flowers on grass, pebbles on stone */
 function areaDecor(A) {
   const L = [], b = A.biome, base = AREAS.indexOf(A) * 131;
-  const spot = (k, n, w) => { const x = A.cx + (hash(k, n + base) - 0.5) * w, z = A.cz + (hash(k, n + 1 + base) - 0.5) * w; if (walkSdfArea(A, x, z)) return null; if (nodes.some((q) => Math.abs(q.x - x) < 0.55 && Math.abs(q.z - z) < 0.55)) return null; if (b === 'home' && (roadKind(x, z) || campNear(x, z, 1.5))) return null; return [x, z]; };
+  const spot = (k, n, w) => { const x = A.cx + (hash(k, n + base) - 0.5) * w, z = A.cz + (hash(k, n + 1 + base) - 0.5) * w; if (walkSdfArea(A, x, z)) return null; if (nodes.some((q) => Math.abs(q.x - x) < 0.55 && Math.abs(q.z - z) < 0.55)) return null; if (roadKind(x, z) || campNear(x, z, 1.5)) return null; return [x, z]; };
   const green = b === 'home' || b === 'meadow' || b === 'orchard' || b === 'berry';
   if (green) {
     /* flowers with petals, in little groups */
@@ -237,7 +238,7 @@ function areaDecor(A) {
   if (b === 'cave') caveDecor(A, L, base);
   if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; m.receiveShadow = true; }
 }
-const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, OVEN, BOARD, TENT_RING, WELL].some((o) => Math.hypot(o.x - x, o.z - z) < r); /* the camp's buildings */
+const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL].some((o) => Math.hypot(o.x - x, o.z - z) < r); /* the camp's buildings */
 const walkSdfArea = (A, x, z) => Math.abs(x - A.cx) > 5.55 || Math.abs(z - A.cz) > 5.55; /* keep the dressing off the cliff edge */
 /* the camp in the start area: a campfire and a little tent */
 const campFlame = (() => {

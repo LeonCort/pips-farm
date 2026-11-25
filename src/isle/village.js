@@ -14,7 +14,7 @@ const VILLAGERS = [
 const housed = (id) => !!(state.isle.folk && state.isle.folk[id] >= 3);
 const villageLv = () => VILLAGERS.filter((v) => housed(v.id)).length;
 const VG = { parts: {}, lamps: [], pops: [], key: '' };
-const BOARD = { x: 3.3, z: -4.75 }; /* behind the crate, clear of the bridge sign */
+/* (position: see rules.js) */ /* behind the crate, clear of the bridge sign */
 
 /* ---- the friends board ---- */
 const boardCv = document.createElement('canvas'); boardCv.width = 512; boardCv.height = 224; const boardTex = new T.CanvasTexture(boardCv);
@@ -87,10 +87,20 @@ function flowerBox(x, z, r, L, seed) {
 const VILLAGE = {
   /* from the first day: a signpost where the road leaves for the bridge */
   start: { ok: () => true, make: (g, L) => { signpost(0.85, -2.5, L, 3200, 0.4); }, at: [0.85, -2.5] },
-  /* the first friend: lanterns at the plaza's corners, a well, a second signpost down the south road */
+  /* the first friend: lanterns at the plaza's corners */
   base: { ok: () => villageLv() >= 1, make: (g, L) => {
     [[1.75, -1.75], [-1.75, 1.75]].forEach(([x, z]) => lanternMake(x, z, L).forEach((m) => g.add(m)));
-    signpost(-0.85, 2.6, L, 3230, 2.2); wellMake(WELL.x, WELL.z, L, 3260); lookFoot(WELL.x, WELL.z, 0.6); flowerBox(STORE.x - 1.25, STORE.z - 0.1, 1.2, L, 3250); }, at: [0.4, -1.5] },
+    flowerBox(STORE.x - 1.25, STORE.z - 0.1, 1.2, L, 3250); }, at: [0.4, -1.5] },
+  /* each corner of the island joins the village once it is bought: street lanterns and a signpost; the green in h3 has the well */
+  east: { ok: () => villageLv() >= 1 && !!HAS.h1, make: (g, L) => {
+    [[6.7, -0.75], [10.4, 3.0], [14.4, 3.0]].forEach(([x, z]) => lanternMake(x, z, L).forEach((m) => g.add(m))); signpost(8.6, 3.3, L, 3270, 1.2); flowerBox(12.6, 3.05, 0, L, 3280); }, at: [10, 1.2] },
+  south: { ok: () => villageLv() >= 1 && !!HAS.h2, make: (g, L) => {
+    [[-0.75, 6.7], [2.0, 10.6], [2.0, 14.4]].forEach(([x, z]) => lanternMake(x, z, L).forEach((m) => g.add(m))); signpost(2.3, 8.5, L, 3290, 2.6); flowerBox(2.05, 12.6, 1.57, L, 3300); }, at: [1.2, 10] },
+  green: { ok: () => villageLv() >= 1 && !!HAS.h3, make: (g, L) => {
+    wellMake(WELL.x, WELL.z, L, 3260); lookFoot(WELL.x, WELL.z, 0.6);
+    [[5.7, 5.9], [9.3, 9.1]].forEach(([x, z]) => lanternMake(x, z, L).forEach((m) => g.add(m)));
+    [[9.2, 6.0, 0.8], [5.8, 9.0, 0.8]].forEach(([x, z, r], k) => flowerBox(x, z, r, L, 3310 + k * 30));
+    benchMake(6.0, 6.9, 1.0, L, 3370); benchMake(9.0, 8.2, -2.1, L, 3380); signpost(9.4, 5.6, L, 3390, 0.3); }, at: [WELL.x, WELL.z] },
   smith: { ok: () => housed('smith'), make: (g, L) => {
     lanternMake(ANVIL_RING.x + 1.1, ANVIL_RING.z + 0.5, L).forEach((m) => g.add(m)); flowerBox(FORGE.x - 1.35, FORGE.z + 1.0, 0.1, L, 3450); fenceRun(FORGE.x - 1.9, FORGE.z - 1.0, FORGE.x + 1.7, FORGE.z - 1.0, L, 3460); }, at: [FORGE.x, FORGE.z] },
   baker: { ok: () => housed('baker'), make: (g, L) => {
@@ -102,7 +112,14 @@ const VILLAGE = {
     flowerBox(-1.0, -2.9, 1.57, L, 3700); flowerBox(2.75, 0.95, 0, L, 3720); flowerBox(-2.9, 0.9, 0.2, L, 3740); }, at: [0, 0] }
 };
 /* a signpost with pointing boards, like the farm's */
-const WELL = { x: -4.1, z: 0.0 };
+/* (position: see rules.js) */ /* in the middle of the village green */
+/* a plank bench */
+function benchMake(x, z, r, L, seed) {
+  const put = (q, col, k) => { q.rotateY(r); q.translate(x, 0, z); L.push(fac(q, () => tone(col, seed + k, 0.5), seed + k)); };
+  [0, 1].forEach((k) => { const q = new T.BoxGeometry(0.95, 0.045, 0.15); q.translate(0, 0.3, -0.08 + k * 0.16); put(q, k ? '#b9824c' : '#a8774f', k); });
+  [0, 1].forEach((k) => { const q = new T.BoxGeometry(0.95, 0.12, 0.04); q.translate(0, 0.46 + k * 0.15, -0.2); put(q, k ? '#a8774f' : '#b9824c', 2 + k); });
+  [-0.4, 0.4].forEach((dx, k) => { let q = new T.BoxGeometry(0.06, 0.3, 0.3); q.translate(dx, 0.15, 0); put(q, '#8a5f3c', 4 + k); q = new T.BoxGeometry(0.05, 0.4, 0.05); q.translate(dx, 0.5, -0.2); put(q, '#8a5f3c', 6 + k); });
+}
 /* a stone well with a little shingle roof and a bucket */
 function wellMake(x, z, L, seed) {
   for (let r = 0; r < 3; r++) for (let k = 0; k < 9; k++) { const a = (k + r * 0.5) / 9 * 6.283, q = new T.BoxGeometry(0.3, 0.17, 0.2, 2, 1, 1); jit(q, 0.02, seed + r * 9 + k); q.rotateY(-a + Math.PI / 2); q.translate(x + Math.cos(a) * 0.46, 0.09 + r * 0.17, z + Math.sin(a) * 0.46); L.push(fac(q, (cx, cy, cz, i) => tone(['#b9b3a6', '#a7a297', '#c6c0b2'][(k + r) % 3], i + k, 0.5), seed + r * 9 + k)); }
@@ -143,7 +160,7 @@ function villageStep(dt) {
     const u = Math.min(1, p.t / 0.6); p.g.scale.set(1, u < 1 ? Math.max(0.01, u * 1.15 - Math.max(0, u - 0.8) * 0.75) : 1, 1); if (u >= 1) VG.pops.splice(k, 1); }
   const nt = typeof nightAmt === 'number' ? nightAmt : isNight ? 1 : 0;
   VG.lamps.forEach((l, k) => { l.glow.material.opacity = nt * (reduced ? 0.8 : 0.72 + Math.sin(time * 3 + k) * 0.08); l.lamp.material.color.setRGB(1, 0.85 + 0.1 * nt, 0.55 + 0.1 * (1 - nt)); });
-  if (VG.parts.base) { const dx = pip.position.x - WELL.x, dz = pip.position.z - WELL.z, d = Math.hypot(dx, dz); if (d < 0.82 && d > 1e-4) { pip.position.x = WELL.x + dx / d * 0.82; pip.position.z = WELL.z + dz / d * 0.82; } }
+  if (VG.parts.green) { const dx = pip.position.x - WELL.x, dz = pip.position.z - WELL.z, d = Math.hypot(dx, dz); if (d < 0.82 && d > 1e-4) { pip.position.x = WELL.x + dx / d * 0.82; pip.position.z = WELL.z + dz / d * 0.82; } }
   /* Pip walks round the board's posts */
   const dx = pip.position.x - BOARD.x, dz = pip.position.z - BOARD.z; if (Math.abs(dx) < 1.15 && Math.abs(dz) < 0.3) pip.position.z = BOARD.z + Math.sign(dz || 1) * 0.3;
 }
