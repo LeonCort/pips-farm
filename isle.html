@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261125161739">
+<meta name="app-ver" content="20261125162619">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2963,7 +2963,13 @@ function wideHit(n) {
 function tierBounce(n) { n.shake = 0.14; Snd.play('tock', { gain: 0.35, f: 150 }); isleHint(n); }
 /* growing back: once Pip has slept */
 const sleepRegrow = (n) => (HAND[n.kind] && n.kind !== 'bush' ? REGROW[n.kind][0] : 1e9);
-function tierWake() { dogWake(); nodes.forEach((n) => { if (n.st === 'gone' && n.t > 1e8) n.t = 0.3 + Math.random() * 2.5; }); }
+/* Leon 2026-11-25: everything grows back DURING the night, so when Pip wakes it is all there, nothing left to wait for */
+function nodeGrown(n) {
+  n.st = 'ready'; n.grow = 1; n.t = 0; n.hp = nodeHits(n); n.main.visible = true; n.main.rotation.set(0, 0, 0); n.main.position.y = 0;
+  if (n.kind === 'tree' && n.stump) n.stump.visible = false;
+  if (n.kind === 'bush') { n.main.scale.setScalar(1); if (n.berries) { n.berries.visible = true; n.berries.children.forEach((b) => b.scale.setScalar(1)); } } else n.main.scale.setScalar(n.full);
+}
+function tierWake() { dogWake(); nodes.forEach((n) => { if (n.kind !== 'planks' && (n.st === 'gone' || n.st === 'grow' || n.st === 'fall')) nodeGrown(n); }); }
 /* old saves: gems are crystals now; hay, clay, ore and pies are gone */
 function tierMigrate(I) {
   const S = I.store; if (S.gem) S.crystal = (S.crystal || 0) + S.gem;
