@@ -4,7 +4,10 @@
    Some areas grow the island Pip is on (a sign at the edge); some are across a strip of sea, another island, which Pip
    can see from the start and reaches by building a bridge. Each area has its own biome: what grows there and its colour.
    The engine draws the ground from ISLAND.d (how far a point is from the coast) and keeps Pip on land with ISLAND.clamp. */
-const SAVE_KEY = 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip looks) is shared with the farm */
+const SHOW = /[?&]show=1\b/.test(location.search); /* the asset yard (show.js): its own save, everything built, an empty lawn on the meadow */
+const SHOW_YARD = { m0: 1, m1: 1 };
+const SHOW_T = { tier: 0 }; /* the asset yard asks for a tree or rock of a given tier */
+const SAVE_KEY = SHOW ? 'pip-isle-show' : 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip looks) is shared with the farm */
 const HERE = 'isle';
 const MAP_V = 'areas-1'; /* the map's version: a save made for another map starts over */
 const GS = 4; /* one square, in world units; an area is 3 by 3 squares (12 by 12) */
@@ -45,6 +48,9 @@ try { if (/[?&]new=1/.test(location.search)) localStorage.removeItem(SAVE_KEY); 
 function areaSquares(a, f) { for (let i = a.i; i < a.i + 3; i++) for (let j = a.j; j < a.j + 3; j++) f(i, j); }
 function areaMark(a) { HAS[a.id] = 1; areaSquares(a, (i, j) => { WALK[gIdx(i, j)] = 1; LAND[gIdx(i, j)] = 1; }); }
 AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.cave) LAND[gIdx(i, j)] = 1; }); });
+if (SHOW) try { const s = fresh(), I = s.isle; AREAS.forEach((a) => { if (!a.cave) I.areas[a.id] = 1; }); I.ruins = { h3: 1, s1: 1, w1: 1 }; I.folk = { smith: 3, baker: 3, mason: 3, knitter: 3, miner: 3 };
+  I.mon = { harbor: 1, windmill: 1, lighthouse: 1, tower: 1 }; I.keys = { rope: 2, map: 2, icepick: 2 }; I.done = 1; I.bld = { tent: 1, fire: 1, tool: 3, dog: 2, torch: 1, coat: 1, boots: 1 }; I.tools.pick = 1; I.seen = { torch: 1, coat: 1, boots: 1 };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {}
 (function () {
   let I = null; try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && s.v === 1 && s.isle && s.isle.map === MAP_V) I = s.isle; } catch (e) {}
   AREAS.forEach((a) => { if (a.start || a.cave || (I && I.areas && I.areas[a.id])) areaMark(a); });
@@ -66,6 +72,7 @@ const drawSdf = (x, z) => gSdfOf(drawn, x, z);
 /* where Pip may walk: owned areas, and the bridges built to them */
 function walkSdf(x, z) {
   let d = gSdf(x, z);
+  d = Math.min(d, segD(x, z, FERRY.x, FERRY.z, FERRY.x - 3.0, FERRY.z) - 0.55); /* the farm boat's dock: its pad is out on the planks (ferry.js) */
   for (const a of AREAS) if (a.bridge && HAS[a.id]) { const b = a.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
   return d;
 }
@@ -101,7 +108,7 @@ const BOARD = { x: 3.3, z: -4.75 };
 const HOUSES = { mason: { x: 11, z: 4.9 }, knitter: { x: 14, z: 4.9 }, miner: { x: 17, z: 4.9 } };
 const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2.6 }, windmill: { x: 2.6, z: -30, sx: -1.7, sz: 1.5, mx: -2.2, mz: 2.2 },
   lighthouse: { x: -31.4, z: -2.2, sx: 1.8, sz: 1.3, mx: 2.4, mz: -1.0 }, tower: { x: 30.6, z: -34, sx: -1.7, sz: 1.5, mx: -2.0, mz: -1.2 } };
-const FERRY = { x: -5.15, z: 1.7 }; /* the dock where the boat to the farm leaves (ferry.js) */
+const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to the farm leaves (ferry.js) */
 const TRAVEL_HOME = { x: 2.7, z: 2.6 }, CAVE_FRIEND = { x: 8.8, z: 29.2 };
 const KENNEL = { x: -1.3, z: -3.7 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },

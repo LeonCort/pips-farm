@@ -46,10 +46,11 @@ isledog.js
 gear.js
 look.js
 loop.js
+props.js
 ferry.js
+show.js
 ../engine/input.js
 ../engine/loop.js
-ferry.js
 step.js
 ../engine/loop-end.js
 start.js

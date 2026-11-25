@@ -12,19 +12,7 @@ function makeRuin(A, fresh) {
   const [ox, oz, turn] = A.ruin, x = A.cx + ox, z = A.cz + oz, idx = AREAS.indexOf(A);
   const rot = turn; /* the door faces the camera (south, +z), so the child sees the planks and the light coming out */
   const g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = rot; sc.add(g);
-  const L = [], wall = (w, h, d, px, py, pz, k) => { const q = new T.BoxGeometry(w, h, d, Math.max(1, Math.round(w * 3)), Math.max(1, Math.round(h * 3)), 1); jit(q, 0.025, 1510 + k); q.translate(px, py, pz);
-    L.push(fac(q, (cx, cy, cz, i) => (cy > py + h / 2 - 0.12 && hash(i, k) > 0.35 ? new T.Color('#6f9a4a') : shadeY(hash(i, k + 3) > 0.8 ? '#a69c8a' : '#bdb4a2', cy, 0, 1.4, i, 0.45)), 1510 + k)); };
-  wall(2.3, 1.35, 0.18, 0, 0.675, -0.95, 0); /* back */
-  wall(0.18, 1.2, 1.9, -1.06, 0.6, 0, 1); /* left */
-  wall(0.18, 0.8, 1.2, 1.06, 0.4, -0.35, 2); /* right, broken down at the front */
-  wall(0.78, 1.35, 0.18, -0.76, 0.675, 0.95, 3); wall(0.55, 1.0, 0.18, 0.86, 0.5, 0.95, 4); /* front, either side of the door */
-  wall(0.8, 0.26, 0.2, 0, 1.22, 0.95, 5); /* over the door */
-  /* half a roof, sagging, with holes */
-  let q = new T.BoxGeometry(2.5, 0.09, 1.25, 6, 1, 3); jit(q, 0.03, 1520); q.rotateX(0.42); q.translate(-0.05, 1.5, -0.42); L.push(fac(q, (cx, cy, cz, i) => tone(hash(i, 4) > 0.75 ? '#6e5a44' : '#8a6a4a', i, 0.5), 1520));
-  q = new T.BoxGeometry(1.2, 0.09, 0.9, 3, 1, 2); jit(q, 0.03, 1521); q.rotateX(-0.3); q.rotateZ(0.2); q.translate(-0.55, 1.28, 0.48); L.push(fac(q, (cx, cy, cz, i) => tone('#7d6046', i, 0.5), 1521));
-  /* ivy and fallen stones */
-  for (let k = 0; k < 7; k++) { const a = hash(k, idx + 30), b = ico(0.12 + hash(k, idx) * 0.1, 0, 1530 + k); b.translate((a - 0.5) * 2.2, 0.15 + hash(k, 9) * 1.1, -0.98 + (k % 2) * 0.02); L.push(fac(b, tone('#5f8f40', k, 0.7), 1530 + k)); }
-  for (let k = 0; k < 5; k++) { const b = ico(0.09 + hash(k, idx + 2) * 0.08, 0, 1540 + k); b.scale(1.2, 0.7, 1); b.translate(1.35 + hash(k, 3) * 0.4, 0.05, 0.2 + (hash(k, 4) - 0.5) * 1.4); L.push(fac(b, tone('#b5ac9a', k, 0.6), 1540 + k)); }
+  const L = [], door = propRuin(L, g, idx); let q;
   /* the doorway: dark until it opens */
   q = new T.PlaneGeometry(0.62, 1.08); q.translate(0, 0.54, 0.86);
   const dark = new T.Mesh(q, new T.MeshBasicMaterial({ color: '#2a2420' })); g.add(dark);
@@ -32,9 +20,9 @@ function makeRuin(A, fresh) {
   /* a warm glow inside, seen through the door once it is open */
   const glow = new T.Mesh(new T.PlaneGeometry(0.62, 1.08), new T.MeshBasicMaterial({ color: '#ffd77a', transparent: true, opacity: 0, depthWrite: false })); glow.position.set(0, 0.54, 0.87); g.add(glow);
   const c = Math.cos(rot), s = Math.sin(rot), dx = x + s * 1.25, dz = z + c * 1.25;
-  const R = { A, g, x, z, rot, dx, dz, dark, glow, open: !!state.isle.ruins[A.id], loot: RUIN_LOOT[ruins.length % RUIN_LOOT.length], t: 0, planks: null };
+  const R = { A, g, x, z, rot, dx, dz, dark, glow, door, open: !!state.isle.ruins[A.id], loot: RUIN_LOOT[ruins.length % RUIN_LOOT.length], t: 0, planks: null };
   if (!R.open) { const n = makeNode('planks', x + s * 0.98, z + c * 0.98, 1550 + idx); n.g.rotation.y = rot; n.ruin = R; R.planks = n; if (fresh) { n.pop = 0.001; n.g.scale.setScalar(0.01); } }
-  else { glow.material.opacity = 0.35; R.t = 9; }
+  else { glow.material.opacity = 0.35; R.t = 9; door.rotation.y = 2.4; }
   if (fresh) { g.scale.setScalar(0.01); R.pop = 0.001; }
   ruins.push(R); return R;
 }
@@ -52,7 +40,7 @@ function ruinStep(dt) {
       if (k === 0) nu = 1.3; else if (k === 1) nu = -1.3; else if (k === 2) nv = -1.2; else nv = 1.15;
       pip.position.x = R.x + nu * c + nv * s; pip.position.z = R.z - nu * s + nv * c; }
     if (!R.open) return;
-    R.t += dt;
+    R.t += dt; if (R.door) { const q = Math.min(1, R.t / 0.7); R.door.rotation.y = 2.4 * q * q * (3 - 2 * q); }
     R.glow.material.opacity = Math.min(0.55, R.t * 0.8) * (reduced ? 1 : 0.85 + 0.15 * Math.sin(time * 2.4));
     /* the treasure rolls out of the door one by one, towards Pip */
     if (R.loot && R.t > 0.6) { const k = Math.floor((R.t - 0.6) / 0.22); while ((R.sent || 0) <= k && (R.sent || 0) < R.loot.length) { ruinDrop(R, R.loot[R.sent || 0]); R.sent = (R.sent || 0) + 1; } if (R.sent >= R.loot.length) R.loot = null; }
