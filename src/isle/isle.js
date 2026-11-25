@@ -377,14 +377,17 @@ function signStep(s, dt) {
   s.sm.material.opacity = 1 - e; s.sm.visible = o < 0.98; s.sm.position.y = 1.62 + (reduced ? 0 : Math.sin(time * 2 + s.seed) * 0.03);
   if (signSmallKey(s) !== s.smKey) drawSmall(s);
   s.ghost.material.opacity = 0.55 + (reduced ? 0 : Math.sin(time * 2.4 + s.seed) * 0.25);
+  if (s.kind === 'bridge') bridgePart(s, dt);
   if (rising || building || giveT > 0 || Math.hypot(pip.position.x - s.x, pip.position.z - s.z) > 0.85) return;
   if (loopSignShut(s)) return; /* the bridge needs its key first (loop.js) */
   if (gearSignShut(s)) return; /* a spider web over the bridge (gear.js) */
   const t = KINDS.concat(['coin']).find((q) => haveN(q) > 0 && signNeed(s, q) > 0); if (!t) return;
   /* from the counter: the piece appears over Pip's head and flies on to the sign */
-  invWig(t); const m = spendN(t, 1)[0] || itemModel(t); if (!m.parent || m.parent === pip) { m.position.set(pip.position.x, 1.9, pip.position.z); } sc.add(m);
-  giveT = 0.08; s.fly[t] = (s.fly[t] || 0) + 1; s.payT = 1.2;
-  fly(m, () => s.g.localToWorld(tmpV.set(0, 1.9, 0)), () => { sc.remove(m); s.fly[t]--; signPaid(s)[t] = paidN(s, t) + 1; s.bump = 1; drawSign(s); Snd.play('tock', { gain: 0.4, f: 500 + (paidN(s, t) % 12) * 40 });
+  /* big prices are paid in handfuls, so no sign takes more than about three seconds to fill (Leon, 2026-11-25) */
+  const cs = signCost(s), tot = Object.keys(cs).reduce((q, k) => q + cs[k], 0), n = Math.max(1, Math.min(Math.ceil(tot / 30), signNeed(s, t), haveN(t)));
+  invWig(t); const got = spendN(t, n), m = got[0] || itemModel(t); got.slice(1).forEach((o) => { if (o.parent) o.parent.remove(o); }); if (!m.parent || m.parent === pip) { m.position.set(pip.position.x, 1.9, pip.position.z); } sc.add(m);
+  giveT = 0.07; s.fly[t] = (s.fly[t] || 0) + n; s.payT = 1.2;
+  fly(m, () => s.g.localToWorld(tmpV.set(0, 1.9, 0)), () => { sc.remove(m); s.fly[t] -= n; signPaid(s)[t] = paidN(s, t) + n; s.bump = 1; drawSign(s); Snd.play('tock', { gain: 0.4, f: 500 + (paidN(s, t) % 12) * 40 });
     if (signFull(s) && !rising && !building && signs.includes(s)) isleBuy(s); }, 0.3);
 }
 function isleBuy(s) {
@@ -416,18 +419,28 @@ function bridgeMesh(A) {
   for (let k = 0; k + 1 < zs.length; k++) if (zs[k + 1] - zs[k] > 0.2) [-0.85, 0.85].forEach((x) => { const r = new T.Mesh(RAIL_GEO, MAT); r.scale.z = zs[k + 1] - zs[k]; r.position.set(x, 0.82, zs[k]); rails.add(r); });
   return { g, planks, rails };
 }
+/* a bridge grows as it is paid for (Leon, 2026-11-25): every piece handed over lays its share of the planks, from the
+   near shore outward, so a big price shows progress; the last piece finishes it and puts up the rails */
+function bridgePart(s, dt) {
+  const A = s.A, c = signCost(s); let tot = 0, paid = 0; KINDS.concat(['coin']).forEach((t) => { tot += c[t] || 0; paid += Math.min(c[t] || 0, paidN(s, t)); });
+  if (!paid && !A.pre) return;
+  if (!A.pre) { A.pre = bridgeMesh(A); A.pre.planks.forEach((m) => { m.visible = false; }); A.pre.rails.visible = false; A.preK = 0; }
+  const P = A.pre.planks, want = Math.min(P.length - 1, Math.floor(P.length * paid / Math.max(1, tot)));
+  for (; A.preK < want; A.preK++) { const m = P[A.preK]; m.visible = true; m.scale.setScalar(0.01); m.userData.p = 0.001; if (dt) { const w = A.pre.g.localToWorld(tmpV.copy(m.position)); splash(w.x, -0.2, w.z, 2); Snd.play('tock', { gain: 0.22, f: 300 + A.preK * 9 }); } else { m.userData.p = 1; m.scale.setScalar(1); } }
+  P.forEach((m) => { if (m.userData.p > 0 && m.userData.p < 1) { m.userData.p = Math.min(1, m.userData.p + (dt || 1) * 5); m.scale.setScalar(m.userData.p < 0.7 ? m.userData.p / 0.7 * 1.15 : 1.15 - (m.userData.p - 0.7) / 0.3 * 0.15); } });
+}
 function bridgeBuild(A, now) {
-  const b = bridgeMesh(A);
-  if (now) return;
-  b.planks.forEach((m) => { m.visible = false; }); b.rails.visible = false;
-  building = { A, b, t: 0, k: 0 }; Snd.play('whoosh', { gain: 0.4 });
+  const b = A.pre || bridgeMesh(A), k0 = A.pre ? A.preK : 0; A.pre = null;
+  if (now) { b.planks.forEach((m) => { m.visible = true; m.scale.setScalar(1); }); b.rails.visible = true; return; }
+  b.planks.forEach((m, k) => { if (k >= k0) m.visible = false; }); b.rails.visible = false;
+  building = { A, b, t: k0 * 0.09, k: k0 }; Snd.play('whoosh', { gain: 0.4 });
 }
 function bridgeStep(dt) {
   const B = building; if (!B) return;
   B.t += dt; const n = B.b.planks.length, want = Math.min(n, Math.floor(B.t / 0.09));
   for (; B.k < want; B.k++) { const m = B.b.planks[B.k]; m.visible = true; m.scale.setScalar(0.01); m.userData.p = 0.001; const w = B.b.g.localToWorld(tmpV.copy(m.position)); if (B.k % 2 === 0) { splash(w.x, -0.2, w.z, 3); Snd.play('tock', { gain: 0.3, f: 300 + B.k * 9 }); } }
   B.b.planks.forEach((m) => { if (m.userData.p > 0 && m.userData.p < 1) { m.userData.p = Math.min(1, m.userData.p + dt * 5); m.scale.setScalar(m.userData.p < 0.7 ? m.userData.p / 0.7 * 1.15 : 1.15 - (m.userData.p - 0.7) / 0.3 * 0.15); } });
-  if (B.k >= n && B.t > n * 0.09 + 0.4) {
+  if (B.k >= n && B.t > n * 0.09 + 0.4 - (B.t0 || 0)) {
     B.b.rails.visible = true; building = null; areaMark(B.A); state.isle.areas[B.A.id] = 1;
     pop([B.A.bridge.x1, B.A.bridge.z1]); Snd.play('success', { gain: 0.5 }); Snd.play('sparkle', { gain: 0.4 }); isleSigns(); save();
   }

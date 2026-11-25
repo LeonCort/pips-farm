@@ -3,11 +3,12 @@
      2  fetch: things left lying on the ground run back to Pip in the dog's mouth
      3  sniff: every island area hides one buried treasure; the dog smells it, barks, digs, and coins (and sometimes a
         crystal) pop out. A new one is buried each time Pip sleeps.
-     4  saddlebags: two little bags on the dog's back, so Pip can carry 6 more coins (cap() in rules.js)
+     4  courier (Leon, 2026-11-25): when Pip's backpack is full of coins, the dog takes them and runs them home to the crate
+     5  saddlebags: two little bags on the dog's back, so Pip can carry 6 more coins (cap() in rules.js)
    No faster travel (Leon said to skip that). The dog engine (engine/dog.js) asks petPlace() for a goal; dogGoal() gives it. */
-BLD.dog = { max: 4, cost: [null, null, { log: 10, berry: 8, coin: 5 }, { stone: 14, berry: 12, coin: 12 }, { log: 18, stone: 14, crystal: 4, coin: 20 }], pic: [null, 'dog', 'dog', 'dog', 'dog'] };
+BLD.dog = { max: 5, cost: [null, null, { log: 10, berry: 8, coin: 5 }, { stone: 14, berry: 12, coin: 12 }, { stone: 16, berry: 14, coin: 15 }, { log: 18, stone: 14, crystal: 4, coin: 20 }], pic: [null, 'dog', 'dog', 'dog', 'dog', 'dog'] };
 const dogLv = () => bldLv('dog');
-const dogBags = () => (dogLv() >= 4 ? 6 : 0);
+const dogBags = () => (dogLv() >= 5 ? 6 : 0);
 const DG = { mode: null, d: null, t: 0, cool: 3, spot: null, bub: null, holes: [], dirt: [] };
 const DIG = {}; /* area id -> { x, z } of today's buried treasure */
 
@@ -43,7 +44,7 @@ function dogBagSync() {
     const st = new T.BoxGeometry(0.42, 0.03, 0.06); st.translate(0, 0.585, -0.06); L.push(fac(st, '#8a3f22', 1503));
     merged(L, MAT, dogBagG);
   }
-  const want = dogLv() >= 4 && state.pet !== 'none';
+  const want = dogLv() >= 5 && state.pet !== 'none';
   if (want && dogBagG.parent !== (dog.body || dog.g)) (dog.body || dog.g).add(dogBagG);
   dogBagG.visible = want;
 }
@@ -82,6 +83,8 @@ function dogGoal() {
   if (DG.mode === 'fetch') return [DG.d.m.position.x, DG.d.m.position.z, sp];
   if (DG.mode === 'back') { const a = pip.rotation.y; return [pp.x + Math.sin(a) * 0.7, pp.z + Math.cos(a) * 0.7, sp]; }
   if (DG.mode === 'sniff' || DG.mode === 'dig') return [DG.spot.x, DG.spot.z + 0.45, 2.4];
+  if (DG.mode === 'take') return [pp.x, pp.z, sp];
+  if (DG.mode === 'home') return [STORE.x, STORE.z + 0.95, sp * 1.15];
   return null;
 }
 function dogMouth() { return dog.head || dog.g; }
@@ -104,15 +107,24 @@ function dogStepIsle(dt) {
   const lv = dogLv(), dp = dog.g.position, pp = pip.position;
   if (DG.bub) { DG.bub.t -= dt; DG.bub.position.set(dp.x, 1.45 + Math.sin(time * 4) * 0.04, dp.z); if (DG.bub.t <= 0) { sc.remove(DG.bub); DG.bub = null; } }
   dirtStep(dt);
-  if (!dogFree()) { if (DG.mode === 'back') dogDrop(); DG.mode = null; DG.d = null; return; }
+  if (!dogFree()) { if (DG.mode === 'back') dogDrop(); if (DG.mode === 'home') courierEnd(); DG.mode = null; DG.d = null; return; }
   DG.cool -= dt;
   if (!DG.mode && DG.cool <= 0) {
     const d = lv >= 2 ? dogFind() : null;
-    if (d) { DG.mode = 'fetch'; DG.d = d; bark(0.4); }
+    if (lv >= 4 && !inCave && carry.count('coin') > 0 && carry.count() >= cap() && Math.hypot(pp.x - dp.x, pp.z - dp.z) < 14) { DG.mode = 'take'; DG.t = 0; bark(0.5); dogBubble('coin'); }
+    else if (d) { DG.mode = 'fetch'; DG.d = d; bark(0.4); }
     else if (lv >= 3) { const A = areaAt(pp.x, pp.z), s = digSpot(A); if (s && Math.hypot(s.x - dp.x, s.z - dp.z) < 8 && Math.hypot(s.x - pp.x, s.z - pp.z) < 9) { DG.mode = 'sniff'; DG.spot = s; DG.area = A; DG.t = 0; } }
     if (!DG.mode) DG.cool = 0.5;
   }
-  if (DG.mode === 'fetch') {
+  if (DG.mode === 'take') { /* the courier: fetch the coins off Pip, they are safe in the crate's count at once, then run them home */
+    DG.t += dt; if (carry.count() < cap() || DG.t > 12) { DG.mode = null; DG.cool = 1; }
+    else if (Math.hypot(pp.x - dp.x, pp.z - dp.z) < 1.15) { let n = 0, m; while ((m = carry.take('coin'))) { n++; if (m.parent) m.parent.remove(m); }
+      state.isle.store.coin = storeN('coin') + n; invDirty = true; save();
+      const c = itemModel('coin'), mo = dogMouth(); mo.add(c); if (mo === dog.head) c.position.set(0, -0.1, 0.24); else c.position.set(0, 0.55, 0.42); c.rotation.set(Math.PI / 2, 0, 0); c.scale.setScalar(1.2);
+      DG.coin = c; DG.mode = 'home'; DG.t = 0; dog.hop = 1; Snd.play('pop', { gain: 0.4, f: 700 }); Snd.play('sparkle', { gain: 0.3 }, 0.1); }
+  } else if (DG.mode === 'home') {
+    DG.t += dt; if (Math.hypot(STORE.x - dp.x, STORE.z + 0.95 - dp.z) < 0.5 || DG.t > 25) { courierEnd(); DG.mode = null; DG.cool = 1; }
+  } else if (DG.mode === 'fetch') {
     const D = DG.d; if (drops.indexOf(D) < 0) { DG.mode = null; DG.d = null; return; } /* Pip got it first */
     if (Math.hypot(D.m.position.x - dp.x, D.m.position.z - dp.z) < 0.45) {
       drops.splice(drops.indexOf(D), 1); sc.remove(D.m); const mo = dogMouth(); mo.add(D.m);
@@ -158,9 +170,12 @@ function dirtStep(dt) {
   for (let k = DG.dirt.length - 1; k >= 0; k--) { const m = DG.dirt[k], v = m.userData.v; v.y -= 12 * dt; m.position.addScaledVector(v, dt); if (m.position.y < 0.02) { sc.remove(m); DG.dirt.splice(k, 1); } }
 }
 /* the dog card's effect picture: what the next trick is */
+function courierEnd() { if (!DG.coin) return; if (DG.coin.parent) DG.coin.parent.remove(DG.coin); DG.coin = null; const p = dog.g.position; if (Math.hypot(STORE.x - p.x, STORE.z + 0.95 - p.z) < 1.5) { burst(STORE.x, 1.0, STORE.z, 8); invWig('coin'); Snd.play('tock', { gain: 0.4, f: 520 }); dog.hop = 1; } }
 function dogEff(x, lv) {
   if (lv <= 2) isleIcon(x, 'fetch', 48, 48, 1.4);
   else if (lv === 3) isleIcon(x, 'dig', 48, 50, 1.4);
+  else if (lv === 4) { /* coins, an arrow, the crate */ isleIcon(x, 'coin', 22, 34, 0.8); isleIcon(x, 'coin', 32, 46, 0.8); x.lineWidth = 6; x.lineCap = 'round'; x.strokeStyle = '#f2a13c'; x.beginPath(); x.moveTo(40, 66); x.lineTo(58, 66); x.moveTo(52, 59); x.lineTo(60, 66); x.lineTo(52, 73); x.stroke();
+    x.lineWidth = 3; x.strokeStyle = PAL.ink; x.beginPath(); x.rect(62, 50, 28, 24); x.fillStyle = '#c0935f'; x.fill(); x.stroke(); x.beginPath(); x.moveTo(62, 58); x.lineTo(90, 58); x.moveTo(76, 50); x.lineTo(76, 74); x.stroke(); }
   else { isleIcon(x, 'bag', 36, 48, 1.1); x.font = '700 26px Fredoka, sans-serif'; x.lineWidth = 5; x.strokeStyle = PAL.ink; x.fillStyle = '#7cc85a'; x.strokeText('+6', 58, 60); x.fillText('+6', 58, 60); }
 }
 function dogUp() { dogBagSync(); const p = dog.g.position; burst(p.x, 1.0, p.z, 8); dog.hop = 1; bark(0.6); camFocus.set(p.x, 0, p.z); DG.cool = 1; }
