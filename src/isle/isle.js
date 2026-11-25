@@ -152,6 +152,7 @@ function makeNode(kind, x, z, seed) {
   const g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = hash(seed, 3) * 6.28; sc.add(g);
   const n = { kind, x, z, g, st: 'ready', hp: HITS[kind], t: 0, grow: 1, shake: 0, fall: 0, pop: 0, seed };
   if (FIND_NODE[kind]) findNode(n, g);
+  else if (kind === 'tall') { n.main = new T.Mesh(TALL_GEO, MAT); n.main.receiveShadow = true; /* no shadow of its own: there are many */ n.full = 0.92 + hash(seed, 4) * 0.2; n.main.scale.setScalar(n.full); g.add(n.main); }
   else if (kind === 'shroom') { n.main = new T.Mesh(SHROOM_GEO, shroomMat); n.full = 1; g.add(n.main); }
   else if (kind === 'crystal') { n.main = new T.Mesh(CRYSTAL_GEO, crystalMat); n.full = 0.9 + hash(seed, 4) * 0.3; n.main.scale.setScalar(n.full); g.add(n.main); }
   else if (kind === 'planks') { n.main = new T.Mesh(RUIN_BOARDS, MAT); n.main.castShadow = true; n.full = 1; g.add(n.main); }
@@ -183,7 +184,7 @@ function areaClear(x, z) {
   for (const a of AREAS) { if (a.chest && Math.hypot(x - a.cx, z - a.cz) < 1.4) return false;
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
-    if (findKeep(a, x, z)) return false;
+    if (findKeep(a, x, z) || tallKeep(a, x, z)) return false;
     if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
@@ -203,7 +204,7 @@ function areaFill(A, fresh) {
     const n = Math.sin(x * 0.45 + base * 0.13) + Math.cos(z * 0.41 - base * 0.07), k = LAYOUT[A.biome](x, z, hash(sd, 3), n); if (!k) continue;
     const nd = makeNode(k, x, z, sd); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); }
   }
-  findFill(A, fresh);
+  findFill(A, fresh); tallFill(A, fresh);
   if (A.chest && !state.isle.chests[A.id]) makeChest(A.cx, A.cz - 0.4, A.chest, A.id);
   if (A.ruin) makeRuin(A, fresh);
   if (A.stairs) stairsBuild(A, fresh);
@@ -458,6 +459,7 @@ function bridgeStep(dt) {
 /* ---- drops: chunks that pop out and wait to be picked up ---- */
 function dropOut(n) {
   if (FIND_NODE[n.kind]) return findGot(n);
+  if (n.kind === 'tall') return tallCut(n);
   const [t, k] = YIELD[n.kind];
   const kk = tierYield(n), lucky = xpLucky(n), out = Array(lucky ? kk * 2 : kk).fill(t), tr = TREASURE[n.kind]; xpGain(XP_FOR[n.kind] || 2); if (Math.random() < tr[1]) out.push(tr[0]);
   out.forEach((t) => { const m = itemModel(t), a = Math.random() * 6.28; m.position.set(n.x, 0.6, n.z); sc.add(m); drops.push({ m, t, vx: Math.cos(a) * 1.4, vz: Math.sin(a) * 1.4, vy: 3.2 + Math.random(), land: 0, wait: 0.15 });
@@ -518,6 +520,7 @@ function isleStep(dt) {
   /* keep Pip and the touch point on land, and out of trees and rocks */
   const v = tmpV.set(px, 0, pz); wClamp(v); pip.position.x = v.x; pip.position.z = v.z;
   nodes.forEach((n) => { if (Math.abs(n.x - pip.position.x) > 3 || Math.abs(n.z - pip.position.z) > 3) return; const r = n.kind === 'tree' ? NODE_R.tree : n.kind === 'grass' ? 0.2 : n.st === 'ready' || n.st === 'grow' ? NODE_R[n.kind] * (n.kind === 'bush' ? 1 : n.main.scale.x / n.full) : 0.2;
+    if (n.box && n.st === 'ready') { tallPush(n); return; } /* tall grass is a wall, not a round thing (tall.js) */
     const dx = pip.position.x - n.x, dz = pip.position.z - n.z, d = Math.hypot(dx, dz); if (d < r && d > 1e-4) { pip.position.x = n.x + dx / d * r; pip.position.z = n.z + dz / d * r; }
     const tx = target.x - n.x, tz = target.z - n.z, td = Math.hypot(tx, tz); if (td < r) { const k = td > 1e-4 ? (r + 0.05) / td : 0; target.x = n.x + (k ? tx * k : r + 0.05); target.z = n.z + (k ? tz * k : 0); } });
   chests.forEach((c) => { if (c.gone) return; const dx = pip.position.x - c.x, dz = pip.position.z - c.z, d = Math.hypot(dx, dz); if (d < 0.5 && d > 1e-4) { pip.position.x = c.x + dx / d * 0.5; pip.position.z = c.z + dz / d * 0.5; } });
