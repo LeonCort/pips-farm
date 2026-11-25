@@ -234,7 +234,7 @@ function propTree(kind, s, tier) {
     for (let i = 0; i < n; i++) { const R = 0.62 - i * (0.5 / n), yb = 0.36 + i * 0.3, h = 0.52, ph = hash(s, i) * 6, lob = (a) => 0.5 + 0.5 * Math.cos(7 * a * 6.2832 + ph);
       const fn = (r1, dy, r2) => (a, b0) => { const b = r1 + ((r2 || 1) - r1) * b0, t = a * 6.2832, l = lob(a), r = R * Math.pow(1 - b, 0.85) * (0.8 + 0.3 * l * (1 - b)); return [Math.cos(t) * r, yb + h * b - 0.13 * l * (1 - b) * (1 - b) + dy, Math.sin(t) * r]; };
       const q = prGrid([], fn(0, 0), 28, 3, [0, 1, 0], '#ffffff', s + i); C.push(q);
-      if (tier >= 3) prGrid(W, fn(0.04, 0.022, 0.5), 28, 1, [0, 1, 0], (cx, cy, cz, k) => tone('#f2f6f8', k, 0.2), s + 50 + i); }
+      if (tier >= 3 && !ISLAND.snowFx) prGrid(W, fn(0.04, 0.022, 0.5), 28, 1, [0, 1, 0], (cx, cy, cz, k) => tone('#f2f6f8', k, 0.2), s + 50 + i); }
     const q = new T.ConeGeometry(0.07, 0.3, 6); q.translate(0, 0.36 + (n - 1) * 0.3 + 0.52 + 0.08, 0); C.push(q);
     base = s % 2 ? PAL.pine : PAL.forest; y0 = 0.3; y1 = 0.36 + n * 0.3 + 0.4;
   } else {

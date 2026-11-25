@@ -185,13 +185,13 @@ function weatherStep(dt) {
   /* snow settles on the ground, the trees and the roofs while it snows, and slowly thaws back to a light frost */
   if (season === 'winter') { wx.cover = snowAmt > 0.3 ? Math.min(1, Math.max(wx.cover, 0.35) + dt * snowAmt / 55) : Math.max(0.35, wx.cover - dt / 300); if (wx.cover > 0.65) wx.man = 1; }
   else { wx.cover = 0; wx.man = 0; }
-  coverT -= dt; if (coverT <= 0) { coverT = 0.75; if (season === 'winter' && Math.abs(wx.cover - coverShown) > 0.03) { coverShown = wx.cover; snowPaint(wx.cover); } else if (season !== 'winter') coverShown = -1; }
-  capMat.opacity = season === 'winter' ? clamp((wx.cover - 0.25) / 0.6, 0, 1) : 0; capMat.visible = capMat.opacity > 0.01;
+  coverT -= dt; if (coverT <= 0) { coverT = 0.75; if (season === 'winter' && !ISL.snowFx && Math.abs(wx.cover - coverShown) > 0.03) { coverShown = wx.cover; snowPaint(wx.cover); } else if (season !== 'winter') coverShown = -1; }
+  capMat.opacity = season === 'winter' && !ISL.snowFx ? clamp((wx.cover - 0.25) / 0.6, 0, 1) : 0; capMat.visible = capMat.opacity > 0.01;
   manAmt += ((wx.man && season === 'winter' ? 1 : 0) - manAmt) * Math.min(1, dt * 0.5);
   snowman.visible = manAmt > 0.01; snowman.scale.setScalar(Math.max(0.001, manAmt));
   /* footprints */
   const pp = pip.position;
-  if (season === 'winter' && wx.cover > 0.55 && out && !mount && pp.y < 0.05 && hAt(pp.x, pp.z) > -0.05) {
+  if (season === 'winter' && !ISL.snowFx && wx.cover > 0.55 && out && !mount && pp.y < 0.05 && hAt(pp.x, pp.z) > -0.05) {
     const d = Math.hypot(pp.x - printLast.x, pp.z - printLast.z);
     if (d > 0.32) { if (d < 1) { const p = PRINTS[printI], a = pip.rotation.y; printI = (printI + 1) % PRINTS.length; printSide = -printSide; p.t = 14; p.m.visible = true; p.m.position.set(pp.x + Math.cos(a) * 0.09 * printSide, 0.06, pp.z - Math.sin(a) * 0.09 * printSide); p.m.rotation.z = a; p.m.scale.set(1, 1.5, 1); } printLast.copy(pp); }
   } else printLast.copy(pp);

@@ -49,6 +49,7 @@ loop.js
 props.js
 ferry.js
 show.js
+snowfx.js
 ../engine/input.js
 ../engine/loop.js
 step.js
