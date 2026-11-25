@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261125193535">
+<meta name="app-ver" content="20261125200241">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1249,7 +1249,7 @@ const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2
   lighthouse: { x: -31.4, z: -2.2, sx: 1.8, sz: 1.3, mx: 2.4, mz: -1.0 }, tower: { x: 30.6, z: -34, sx: -1.7, sz: 1.5, mx: -2.0, mz: -1.2 } };
 const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to the farm leaves (ferry.js) */
 const TRAVEL_HOME = { x: 2.7, z: 2.6 }, CAVE_FRIEND = { x: 8.8, z: 29.2 };
-const SPOT_AT = { tent: [-4.5, -1.5], fire: [-1.75, 0.75], dog: [-0.75, -2.7], gear: [3.6, 3.6] }; /* the upgrade rings in the camp (spots.js) */
+const SPOT_AT = { tent: [-4.5, -1.5], fire: [-1.75, 0.75], dog: [-0.75, -2.7], gear: [12.9, -0.6] }; /* gear is made at the smithy in h1, off the crowded start square */ /* the upgrade rings in the camp (spots.js) */
 const KENNEL = { x: -1.3, z: -3.7 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
   isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0, sickle: 0, shovel: 0 }, chests: {}, ruins: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
@@ -3268,11 +3268,21 @@ function xpPick(k) {
   const X = xpS(); if (X[k] >= XP_PERK_MAX || X.pend <= 0) return;
   X[k]++; X.pend--; if (k === 'en') { state.isle.en = Math.min(enMax(), state.isle.en + 20); enShow = -1; enBarW(); }
   save(); Snd.play('success', { gain: 0.45, f: 'E6' });
-  if (X.pend > 0) xpPicks(); else XPB.menu.hidden = true;
+  if (X.pend > 0 && !xpFull()) xpPicks(); else { X.pend = 0; XPB.menu.hidden = true; }
+}
+/* every picture full (15 levels in): there is nothing left to pick, so a new level just fills the energy bar with a
+   cheer instead of opening a card nobody can answer */
+const xpFull = () => { const X = xpS(); return X.en >= XP_PERK_MAX && X.hit >= XP_PERK_MAX && X.luck >= XP_PERK_MAX; };
+function xpTreat() {
+  const X = xpS(); X.pend = 0; XPB.menu.hidden = true; xpUpT = 0;
+  state.isle.en = enMax(); enShow = -1; enBarW(); save();
+  XPB.el.classList.remove('up'); void XPB.el.offsetWidth; XPB.el.classList.add('up');
+  Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.45 }, 0.15); burst(pip.position.x, 1.4, pip.position.z, 12);
 }
 function xpStep(dt) {
   if (!XPB.el) return;
   const X = xpS();
+  if (X.pend > 0 && xpFull()) { xpTreat(); return; }
   if (xpUpT > 0) { xpUpT -= dt; if (xpUpT <= 0 && X.pend > 0) xpShow(); }
   else if (X.pend > 0 && XPB.menu.hidden && !enSleep && !rising && (!BM.menu || BM.menu.hidden)) xpShow();
 }
@@ -6500,7 +6510,7 @@ const VILLAGE = {
   /* the first friend: lanterns at the plaza's corners */
   base: { ok: () => villageLv() >= 1, make: (g, L) => {
     [[1.75, -1.75], [-1.75, 1.75]].forEach(([x, z]) => lanternMake(x, z, L).forEach((m) => g.add(m)));
-    flowerBox(STORE.x - 1.25, STORE.z - 0.1, 1.2, L, 3250); }, at: [0.4, -1.5] },
+    }, at: [0.4, -1.5] }, /* (Leon 2026-11-25: the start square got crowded: its flower boxes, extra lanterns, planters and bunting now stand out along the streets and on the green) */
   /* each corner of the island joins the village once it is bought: street lanterns and a signpost; the green in h3 has the well */
   east: { ok: () => villageLv() >= 1 && !!HAS.h1, make: (g, L) => {
     [[6.7, -0.75], [10.4, 3.0], [14.4, 3.0]].forEach(([x, z]) => lanternMake(x, z, L).forEach((m) => g.add(m))); signpost(8.6, 3.3, L, 3270, 1.2); flowerBox(12.6, 3.05, 0, L, 3280); }, at: [10, 1.2] },
@@ -6516,7 +6526,7 @@ const VILLAGE = {
   baker: { ok: () => housed('baker'), make: (g, L) => {
     lanternMake(OVEN_RING.x - 1.2, OVEN_RING.z + 0.4, L).forEach((m) => g.add(m)); flowerBox(OVEN.x + 1.5, OVEN.z - 0.9, -0.3, L, 3550); fenceRun(OVEN.x - 1.0, OVEN.z - 1.1, OVEN.x + 1.6, OVEN.z - 1.1, L, 3560); }, at: [OVEN.x, OVEN.z] },
   /* the mason paves the streets with cobbles and sets stone planters by the plaza */
-  mason: { ok: () => housed('mason'), make: (g, L) => { villageCobbles(); stonePlanter(-2.6, -0.9, L, 3800); stonePlanter(2.6, 0.9, L, 3820); stonePlanter(HOUSES.mason.x - 1.3, HOUSES.mason.z + 1.5, L, 3840); }, at: [HOUSES.mason.x, HOUSES.mason.z] },
+  mason: { ok: () => housed('mason'), make: (g, L) => { villageCobbles(); stonePlanter(6.7, 1.1, L, 3800); stonePlanter(1.1, 6.7, L, 3820); stonePlanter(HOUSES.mason.x - 1.3, HOUSES.mason.z + 1.5, L, 3840); }, at: [HOUSES.mason.x, HOUSES.mason.z] },
   /* the knitter hangs bunting down the streets (and knits a quilt for the tent: more energy, build.js) */
   knitter: { ok: () => housed('knitter'), make: (g, L) => {
     [[16.0, 8.25]].forEach(([x, z]) => poleMake(x, z, L, 3900)); poleMake(10.0, 8.25, L, 3905);
@@ -6526,9 +6536,11 @@ const VILLAGE = {
     [[-0.8, -5.0], [9.5, 1.4], [12.8, 1.4], [0.3, 9.3], [0.3, 12.6], [3.5, 8.3], [12.5, 8.3], [15.5, 8.3]].forEach(([x, z], k) => crystLamp(x, z, L, g, 3970 + k * 5)); }, at: [HOUSES.miner.x, HOUSES.miner.z] },
   /* two friends: bunting across the plaza, more lanterns down the roads, flower beds */
   fest: { ok: () => villageLv() >= 2, make: (g, L) => {
-    [[-1.75, -1.75], [1.75, 1.75], [0.85, -4.0], [4.2, -0.85], [-0.85, 4.2]].forEach(([x, z]) => lanternMake(x, z, L).forEach((m) => g.add(m)));
-    L.push(...buntingGeo([2.05, -1.75], [-1.45, 1.75], 3600)); L.push(...buntingGeo([-1.45, -1.75], [2.05, 1.75], 3650));
-    flowerBox(-1.0, -2.9, 1.57, L, 3700); flowerBox(2.75, 0.95, 0, L, 3720); flowerBox(-2.9, 0.9, 0.2, L, 3740); }, at: [0, 0] }
+    lanternMake(0.85, -4.0, L).forEach((m) => g.add(m));
+    /* the party flags hang round the village green, not over the campfire */
+    [[5.5, 5.4], [9.5, 5.4], [5.5, 9.6], [9.5, 9.6]].forEach(([x, z], k) => poleMake(x, z, L, 3600 + k));
+    L.push(...buntingGeo([5.5, 5.4], [9.5, 5.4], 3610)); L.push(...buntingGeo([5.5, 9.6], [9.5, 9.6], 3650));
+    flowerBox(4.6, 7.0, 1.57, L, 3700); flowerBox(10.4, 8.0, 1.57, L, 3720); }, at: [WELL.x, WELL.z] }
 };
 /* a signpost with pointing boards, like the farm's */
 /* (position: see rules.js) */ /* in the middle of the village green */

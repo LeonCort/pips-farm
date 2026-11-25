@@ -62,11 +62,21 @@ function xpPick(k) {
   const X = xpS(); if (X[k] >= XP_PERK_MAX || X.pend <= 0) return;
   X[k]++; X.pend--; if (k === 'en') { state.isle.en = Math.min(enMax(), state.isle.en + 20); enShow = -1; enBarW(); }
   save(); Snd.play('success', { gain: 0.45, f: 'E6' });
-  if (X.pend > 0) xpPicks(); else XPB.menu.hidden = true;
+  if (X.pend > 0 && !xpFull()) xpPicks(); else { X.pend = 0; XPB.menu.hidden = true; }
+}
+/* every picture full (15 levels in): there is nothing left to pick, so a new level just fills the energy bar with a
+   cheer instead of opening a card nobody can answer */
+const xpFull = () => { const X = xpS(); return X.en >= XP_PERK_MAX && X.hit >= XP_PERK_MAX && X.luck >= XP_PERK_MAX; };
+function xpTreat() {
+  const X = xpS(); X.pend = 0; XPB.menu.hidden = true; xpUpT = 0;
+  state.isle.en = enMax(); enShow = -1; enBarW(); save();
+  XPB.el.classList.remove('up'); void XPB.el.offsetWidth; XPB.el.classList.add('up');
+  Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.45 }, 0.15); burst(pip.position.x, 1.4, pip.position.z, 12);
 }
 function xpStep(dt) {
   if (!XPB.el) return;
   const X = xpS();
+  if (X.pend > 0 && xpFull()) { xpTreat(); return; }
   if (xpUpT > 0) { xpUpT -= dt; if (xpUpT <= 0 && X.pend > 0) xpShow(); }
   else if (X.pend > 0 && XPB.menu.hidden && !enSleep && !rising && (!BM.menu || BM.menu.hidden)) xpShow();
 }
