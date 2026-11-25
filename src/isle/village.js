@@ -14,7 +14,7 @@ const VILLAGERS = [
 const housed = (id) => !!(state.isle.folk && state.isle.folk[id] >= 3);
 const villageLv = () => VILLAGERS.filter((v) => housed(v.id)).length;
 const VG = { parts: {}, lamps: [], pops: [], key: '' };
-const BOARD = { x: 2.95, z: -3.05 };
+const BOARD = { x: 3.3, z: -4.75 }; /* behind the crate, clear of the bridge sign */
 
 /* ---- the friends board ---- */
 const boardCv = document.createElement('canvas'); boardCv.width = 512; boardCv.height = 224; const boardTex = new T.CanvasTexture(boardCv);
@@ -85,28 +85,53 @@ function flowerBox(x, z, r, L, seed) {
 }
 /* which pieces the camp has earned, and how each is made */
 const VILLAGE = {
+  /* from the first day: a signpost where the road leaves for the bridge */
+  start: { ok: () => true, make: (g, L) => { signpost(0.85, -2.5, L, 3200, 0.4); }, at: [0.85, -2.5] },
+  /* the first friend: lanterns at the plaza's corners, a well, a second signpost down the south road */
   base: { ok: () => villageLv() >= 1, make: (g, L) => {
-    L.push(...pathGeo([[TENT_RING.x, TENT_RING.z], [0.5, 1.9], [1.4, 1.2]], 3200));
-    L.push(...pathGeo([[1.4, 1.2], [1.6, 0.3], [STORE.x, STORE.z + 0.95]], 3250));
-    L.push(...pathGeo([[STORE.x, STORE.z + 0.95], [0.6, -1.6], [0.3, -3.2], [0.1, -4.9]], 3300));
-    lanternMake(0.75, -3.5, L).forEach((m) => g.add(m)); lanternMake(-0.75, 1.0, L).forEach((m) => g.add(m)); }, at: [0.4, -1.5] },
+    [[1.75, -1.75], [-1.75, 1.75]].forEach(([x, z]) => lanternMake(x, z, L).forEach((m) => g.add(m)));
+    signpost(-0.85, 2.6, L, 3230, 2.2); wellMake(WELL.x, WELL.z, L, 3260); flowerBox(STORE.x - 1.25, STORE.z - 0.1, 1.2, L, 3250); }, at: [0.4, -1.5] },
   smith: { ok: () => housed('smith'), make: (g, L) => {
-    L.push(...pathGeo([[TENT_RING.x, TENT_RING.z], [-0.9, 0.3], [-1.6, -0.4], [ANVIL_RING.x, ANVIL_RING.z]], 3400));
-    lanternMake(-3.0, -0.75, L).forEach((m) => g.add(m)); flowerBox(-3.6, -1.15, 0.2, L, 3450); }, at: [FORGE.x, FORGE.z] },
+    lanternMake(ANVIL_RING.x + 1.1, ANVIL_RING.z + 0.5, L).forEach((m) => g.add(m)); flowerBox(FORGE.x + 0.1, FORGE.z + 1.0, 0.1, L, 3450); fenceRun(FORGE.x - 1.0, FORGE.z - 1.0, FORGE.x + 1.7, FORGE.z - 1.0, L, 3460); }, at: [FORGE.x, FORGE.z] },
   baker: { ok: () => housed('baker'), make: (g, L) => {
-    L.push(...pathGeo([[1.4, 1.2], [2.4, 1.0], [OVEN_RING.x, OVEN_RING.z]], 3500));
-    lanternMake(4.15, 1.4, L).forEach((m) => g.add(m)); flowerBox(4.5, -0.85, -0.3, L, 3550); }, at: [OVEN.x, OVEN.z] },
+    lanternMake(OVEN_RING.x - 1.2, OVEN_RING.z + 0.4, L).forEach((m) => g.add(m)); flowerBox(OVEN.x + 1.5, OVEN.z - 0.9, -0.3, L, 3550); fenceRun(OVEN.x - 1.0, OVEN.z - 1.1, OVEN.x + 1.6, OVEN.z - 1.1, L, 3560); }, at: [OVEN.x, OVEN.z] },
+  /* two friends: bunting across the plaza, more lanterns down the roads, flower beds */
   fest: { ok: () => villageLv() >= 2, make: (g, L) => {
-    L.push(...buntingGeo([1.05, -3.5], [4.45, 1.4], 3600)); L.push(...buntingGeo([-0.45, 1.0], [-2.7, -0.75], 3650));
-    flowerBox(-2.4, 2.0, 0.5, L, 3700); flowerBox(2.6, 2.55, -0.2, L, 3720); }, at: [1.0, 0.5] }
+    [[-1.75, -1.75], [1.75, 1.75], [0.85, -4.0], [4.2, -0.85], [-0.85, 4.2]].forEach(([x, z]) => lanternMake(x, z, L).forEach((m) => g.add(m)));
+    L.push(...buntingGeo([2.05, -1.75], [-1.45, 1.75], 3600)); L.push(...buntingGeo([-1.45, -1.75], [2.05, 1.75], 3650));
+    flowerBox(-1.0, -2.9, 1.57, L, 3700); flowerBox(2.75, 0.95, 0, L, 3720); flowerBox(-2.9, 0.9, 0.2, L, 3740); }, at: [0, 0] }
 };
+/* a signpost with pointing boards, like the farm's */
+const WELL = { x: -4.1, z: 0.0 };
+/* a stone well with a little shingle roof and a bucket */
+function wellMake(x, z, L, seed) {
+  for (let r = 0; r < 3; r++) for (let k = 0; k < 9; k++) { const a = (k + r * 0.5) / 9 * 6.283, q = new T.BoxGeometry(0.3, 0.17, 0.2, 2, 1, 1); jit(q, 0.02, seed + r * 9 + k); q.rotateY(-a + Math.PI / 2); q.translate(x + Math.cos(a) * 0.46, 0.09 + r * 0.17, z + Math.sin(a) * 0.46); L.push(fac(q, (cx, cy, cz, i) => tone(['#b9b3a6', '#a7a297', '#c6c0b2'][(k + r) % 3], i + k, 0.5), seed + r * 9 + k)); }
+  let q = new T.CylinderGeometry(0.4, 0.4, 0.04, 12); q.translate(x, 0.3, z); L.push(fac(q, '#3f7f9c', seed + 40)); /* water */
+  [-1, 1].forEach((s, k) => { q = new T.BoxGeometry(0.09, 1.25, 0.09); q.translate(x + s * 0.5, 0.95, z); L.push(fac(q, (cx, cy, cz, i) => shadeY('#8a6a4a', cy, 0.3, 1.6, i, 0.4), seed + 41 + k)); });
+  q = new T.CylinderGeometry(0.045, 0.045, 1.1, 6); q.rotateZ(Math.PI / 2); q.translate(x, 1.3, z); L.push(fac(q, '#6e4c30', seed + 44));
+  [-1, 1].forEach((s) => { for (let r = 0; r < 4; r++) { q = new T.BoxGeometry(1.3, 0.035, 0.2); q.rotateX(s * 0.72); q.translate(x, 1.86 - r * 0.115, z + s * (0.08 + r * 0.13)); L.push(fac(q, (cx, cy, cz, i) => tone(r % 2 ? '#9c4a2b' : '#ad5632', i, 0.6), seed + 50 + r + (s > 0 ? 4 : 0))); } });
+  q = new T.CylinderGeometry(0.008, 0.008, 0.55, 3); q.translate(x + 0.1, 1.02, z); L.push(fac(q, '#e8dcc0', seed + 60));
+  q = new T.CylinderGeometry(0.11, 0.085, 0.17, 8); q.translate(x + 0.1, 0.68, z); L.push(fac(q, (cx, cy, cz, i) => tone('#a8774f', i, 0.5), seed + 61));
+}
+function signpost(x, z, L, seed, turn) { turn = turn || 0;
+  let q = new T.CylinderGeometry(0.05, 0.07, 1.9, 7, 3); jit(q, 0.008, seed); q.translate(x, 0.95, z); L.push(fac(q, (cx, cy, cz, i) => shadeY(PAL.trunk, cy, 0, 1.9, i, 0.4), seed));
+  [['#e9684a', 1.62, 0.2, 1], ['#f2c23c', 1.36, 1.75, -1], ['#49b6b0', 1.1, -1.2, 1]].forEach(([col, y, r, s2], k) => { const sh = new T.Shape(); sh.moveTo(0, -0.1); sh.lineTo(0.62, -0.1); sh.lineTo(0.8, 0); sh.lineTo(0.62, 0.1); sh.lineTo(0, 0.1); sh.closePath();
+    q = new T.ExtrudeGeometry(sh, { depth: 0.04, bevelEnabled: false }); q.translate(-0.12, 0, -0.02); if (s2 < 0) q.rotateY(Math.PI); q.rotateY(r + turn); q.translate(x, y, z); L.push(fac(q, (cx, cy, cz, i) => tone(col, i, 0.35), seed + 5 + k)); });
+  for (let k = 0; k < 4; k++) { const b = ico(0.07 + hash(seed, k) * 0.04, 1, seed + 20 + k); b.scale(1.2, 0.7, 1); b.translate(x + Math.cos(k * 1.7) * 0.14, 0.04, z + Math.sin(k * 1.7) * 0.14); L.push(fac(b, '#b3b9bf', seed + 20 + k)); }
+}
+/* a low rough fence: posts and two rails */
+function fenceRun(x0, z0, x1, z1, L, seed) {
+  const n = Math.max(2, Math.round(Math.hypot(x1 - x0, z1 - z0) / 0.9)), ry = -Math.atan2(z1 - z0, x1 - x0), len = Math.hypot(x1 - x0, z1 - z0) / n;
+  for (let k = 0; k <= n; k++) { const t = k / n, x = x0 + (x1 - x0) * t, z = z0 + (z1 - z0) * t, h = 0.62 + hash(seed, k) * 0.1; let q = new T.CylinderGeometry(0.045, 0.055, h, 6); q.translate(x, h / 2, z); L.push(fac(q, (cx, cy, cz, i) => shadeY('#8a6a4a', cy, 0, 0.7, i, 0.4), seed + k));
+    if (k < n) [0.26, 0.48].forEach((y, j) => { q = new T.BoxGeometry(len + 0.08, 0.06, 0.035); q.rotateZ((hash(seed + j, k) - 0.5) * 0.08); q.rotateY(ry); q.translate(x + (x1 - x0) / n / 2, y, z + (z1 - z0) / n / 2); L.push(fac(q, tone('#a8805a', k + j, 0.6), seed + 30 + k * 2 + j)); }); }
+}
 function villageSync(anim) {
   const key = Object.keys(VILLAGE).filter((k) => VILLAGE[k].ok()).join(',') + '|' + VILLAGERS.map((v) => (state.isle.folk || {})[v.id] || 0).join('');
   if (key === VG.key) return; VG.key = key; boardDraw();
   let n = 0;
   Object.keys(VILLAGE).forEach((k) => {
     const P = VILLAGE[k]; if (VG.parts[k] || !P.ok()) return;
-    const g = new T.Group(); sc.add(g); const L = []; P.make(g, L); if (L.length) { const m = merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), MAT, g); m.castShadow = false; }
+    const g = new T.Group(); sc.add(g); const L = []; P.make(g, L); if (L.length) { merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), MAT, g); }
     VG.parts[k] = g;
     if (anim) { g.visible = false; VG.pops.push({ g, t: -0.9 * n++, at: P.at }); }
   });
@@ -118,6 +143,7 @@ function villageStep(dt) {
     const u = Math.min(1, p.t / 0.6); p.g.scale.set(1, u < 1 ? Math.max(0.01, u * 1.15 - Math.max(0, u - 0.8) * 0.75) : 1, 1); if (u >= 1) VG.pops.splice(k, 1); }
   const nt = typeof nightAmt === 'number' ? nightAmt : isNight ? 1 : 0;
   VG.lamps.forEach((l, k) => { l.glow.material.opacity = nt * (reduced ? 0.8 : 0.72 + Math.sin(time * 3 + k) * 0.08); l.lamp.material.color.setRGB(1, 0.85 + 0.1 * nt, 0.55 + 0.1 * (1 - nt)); });
+  if (VG.parts.base) { const dx = pip.position.x - WELL.x, dz = pip.position.z - WELL.z, d = Math.hypot(dx, dz); if (d < 0.82 && d > 1e-4) { pip.position.x = WELL.x + dx / d * 0.82; pip.position.z = WELL.z + dz / d * 0.82; } }
   /* Pip walks round the board's posts */
   const dx = pip.position.x - BOARD.x, dz = pip.position.z - BOARD.z; if (Math.abs(dx) < 1.15 && Math.abs(dz) < 0.3) pip.position.z = BOARD.z + Math.sign(dz || 1) * 0.3;
 }

@@ -21,7 +21,7 @@ function springSpot() {
     const a = Math.random() * 6.28, r = 2.5 + Math.random() * 4.5, x = pip.position.x + Math.cos(a) * r, z = pip.position.z + Math.sin(a) * r;
     if (walkSdf(x, z) > -1.1) continue; const A = areaAt(x, z); if (!A || !HAS[A.id] || A.cave) continue;
     if (nodes.some((n) => Math.hypot(n.x - x, n.z - z) < 1.3) || signs.some((s) => Math.hypot(s.x - x, s.z - z) < 1.5) || chests.some((c) => Math.hypot(c.x - x, c.z - z) < 1.5)) continue;
-    if (Math.hypot(x - STORE.x, z - STORE.z) < 1.6 || Math.hypot(x - TENT_RING.x, z - TENT_RING.z) < 1.6 || Math.hypot(x + 1.1, z - 1.0) < 1.6 || Math.hypot(x - 1.4, z - 1.2) < 1.3) continue;
+    if (Math.hypot(x - STORE.x, z - STORE.z) < 1.6 || Math.hypot(x - TENT_RING.x, z - TENT_RING.z) < 1.6 || campNear(x, z, 1.6) || roadKind(x, z)) continue;
     if (ruins.some((R) => Math.hypot(R.x - x, R.z - z) < 2.2) || (stairsDown && Math.hypot(stairsDown.x - x, stairsDown.z - z) < 2)) continue;
     return [x, z];
   }

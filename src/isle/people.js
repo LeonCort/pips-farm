@@ -21,7 +21,7 @@ function peopleIcon(x, t) {
 }
 
 /* ---- where things stand at the camp: the forge north-west of the tent, the anvil in front of it, the smith behind the anvil ---- */
-const FORGE = { x: -2.9, z: -2.45 }, ANVIL = { x: -1.6, z: -1.95 }, SMITH_AT = { x: -1.6, z: -2.47 }, ANVIL_RING = { x: -1.6, z: -1.2 }; /* far enough behind the tent that the camera sees over it */
+const FORGE = { x: -4.0, z: 2.6 }, ANVIL = { x: -2.7, z: 3.1 }, SMITH_AT = { x: -2.7, z: 2.58 }, ANVIL_RING = { x: -2.7, z: 3.85 }; /* the south-west corner of the settlement */ // /* far enough behind the tent that the camera sees over it */
 const SMITH_WANT = { stone: 8 }, FORGE_COST = { stone: 12, log: 10 };
 const SM = { g: null, hammer: null, pop: 0, hop: 0, move: null, swing: 0, arr: 0 };
 const folk = () => state.isle.folk || (state.isle.folk = {});
@@ -106,7 +106,7 @@ function peopleSignMake(w, key) {
     const [x, z] = smithSpot(), s = signMake({ key, kind: 'person', A: null, cost: SMITH_WANT, x, z, ghostGeo: tinyGeo, ghostTex, gx: x, gz: z, gy: -5 });
     s.g.children.forEach((m) => { if (m.isMesh) m.visible = false; }); s.ghost.visible = false; s.ring.scale.setScalar(1.35); return true;
   }
-  if (w.kind === 'plot') { signMake({ key, kind: 'plot', A: null, cost: FORGE_COST, x: -0.5, z: -1.4, ghostGeo: plotGhostGeo, ghostTex, gx: FORGE.x + 0.45, gz: FORGE.z + 0.2, gy: 0.04 }); return true; }
+  if (w.kind === 'plot') { signMake({ key, kind: 'plot', A: null, cost: FORGE_COST, x: ANVIL_RING.x + 0.9, z: ANVIL_RING.z - 0.2, ghostGeo: plotGhostGeo, ghostTex, gx: FORGE.x + 0.45, gz: FORGE.z + 0.2, gy: 0.04 }); return true; }
   return false;
 }
 function peopleBuy(s) {

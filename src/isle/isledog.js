@@ -54,7 +54,7 @@ function digPlace(A) {
     const x = A.cx + (Math.random() - 0.5) * 9, z = A.cz + (Math.random() - 0.5) * 9;
     if (walkSdf(x, z) > -0.9) continue;
     if (nodes.some((n) => Math.hypot(n.x - x, n.z - z) < 1.0) || signs.some((s) => s.x != null && Math.hypot(s.x - x, s.z - z) < 1.4)) continue;
-    if (A.id === 'h0' && (Math.hypot(x, z) < 3.8 || [BOARD, FORGE, OVEN, KENNEL].some((o) => Math.hypot(o.x - x, o.z - z) < 1.8))) continue; /* not in the camp */
+    if (A.id === 'h0' && (roadKind(x, z) || campNear(x, z, 1.8))) continue; /* not on a road or by a building */
     return { x, z };
   }
   return null;

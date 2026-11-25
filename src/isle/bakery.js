@@ -6,7 +6,7 @@
    on the spot (+60) instead of having to walk to the tent. Oven upgrades at her card: faster baking, then two pies at once
    (paid with coins and crystals).
    state.isle.folk.baker: 0 in the cottage, 1 found (wants berries), 2 at the camp (oven plot), 3 oven built. state.isle.bake: progress. */
-const OVEN = { x: 3.3, z: -0.05 }, BAKER_AT = { x: 4.2, z: 0.25 }, OVEN_RING = { x: 3.3, z: 1.05 };
+const OVEN = { x: 3.5, z: 2.75 }, BAKER_AT = { x: 4.4, z: 3.05 }, OVEN_RING = { x: 3.5, z: 3.85 }; /* the south-east corner of the settlement */
 const BAKER_WANT = { berry: 10 }, OVEN_COST = { stone: 12, log: 10 };
 const PIE_NEED = { berry: 4 }, PIE_MAX = 5, PIE_EN = 60, OVEN_IN = new T.Vector3(OVEN.x, 0.6, OVEN.z + 0.3);
 const bakeTime = () => [0, 45, 28, 28][bldLv('oven')], bakeBatch = () => [0, 1, 1, 2][bldLv('oven')];

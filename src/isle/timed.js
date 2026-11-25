@@ -15,7 +15,7 @@ function timedSpot(r0, r1) {
   for (let k = 0; k < 60; k++) {
     const a = Math.random() * 6.28, r = r0 + Math.random() * (r1 - r0), x = pip.position.x + Math.cos(a) * r, z = pip.position.z + Math.sin(a) * r;
     if (walkSdf(x, z) > -0.8) continue; const A = areaAt(x, z); if (!A || !HAS[A.id]) continue;
-    if (nodes.some((n) => Math.hypot(n.x - x, n.z - z) < 1.0) || signs.some((s) => Math.hypot(s.x - x, s.z - z) < 1.3) || Math.hypot(x - STORE.x, z - STORE.z) < 1.4 || Math.hypot(x - TENT_RING.x, z - TENT_RING.z) < 1.2 || Math.hypot(x + 1.1, z - 1.0) < 1.4) continue;
+    if (nodes.some((n) => Math.hypot(n.x - x, n.z - z) < 1.0) || signs.some((s) => Math.hypot(s.x - x, s.z - z) < 1.3) || Math.hypot(x - STORE.x, z - STORE.z) < 1.4 || Math.hypot(x - TENT_RING.x, z - TENT_RING.z) < 1.2 || campNear(x, z, 1.5) || roadKind(x, z)) continue;
     return [x, z];
   }
   return null;

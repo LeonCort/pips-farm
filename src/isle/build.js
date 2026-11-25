@@ -67,7 +67,7 @@ function bldStep(dt) {
   const fl = campFlame.t.userData.flag; if (fl && !reduced) fl.rotation.y = Math.sin(time * 3) * 0.25;
   const s = campFlame.f.userData.s || 1; campFlame.f.scale.x = campFlame.f.scale.z = s;
   /* Pip walks round the tent, not through it */
-  if (!enSleep) { const r = [0, 0.7, 0.92, 0.95][bldLv('tent')], dx = pip.position.x + 1.1, dz = pip.position.z - 1.0, d = Math.hypot(dx, dz); if (d < r && d > 1e-4) { pip.position.x = -1.1 + dx / d * r; pip.position.z = 1.0 + dz / d * r; } }
+  if (!enSleep) { const r = [0, 0.7, 0.92, 0.95][bldLv('tent')], dx = pip.position.x - TENT.x, dz = pip.position.z - TENT.z, d = Math.hypot(dx, dz); if (d < r && d > 1e-4) { pip.position.x = TENT.x + dx / d * r; pip.position.z = TENT.z + dz / d * r; } }
   bldT -= dt; if (bldT <= 0) { bldT = 0.5; bldBadge(); }
 }
 let bldT = 0;
@@ -149,15 +149,15 @@ function bldUp(k) {
   if (!bldCan(k)) { const card = BM[k]; card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); Snd.play('blip', { gain: 0.2, f: 260 }); return; }
   Object.keys(c).forEach((t) => { state.isle.store[t] -= c[t]; });
   state.isle.bld[k] = bldLv(k) + 1; save();
-  if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(-1.1, 1.2, 1.0, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
+  if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(TENT.x, 1.2, TENT.z, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
   else if (k === 'tool') toolUp();
   else if (k === 'oven') ovenLevelUp();
   else if (k === 'dog') dogUp();
   else if (GEAR[k]) gearGot(k);
-  else { fireShape(bldLv('fire')); bldPop = { g: campFlame.g, t: 0 }; burst(1.4, 0.8, 1.2, 10); }
+  else { fireShape(bldLv('fire')); bldPop = { g: campFlame.g, t: 0 }; burst(FIRE.x, 0.8, FIRE.z, 10); }
   enShow = -1; enBarW();
   Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.1);
-  BM.menu.hidden = true; bldBadge(); if (k === 'tent' || k === 'fire') camFocus.set(k === 'tent' ? -1.1 : 1.4, 0, k === 'tent' ? 1.0 : 1.2);
+  BM.menu.hidden = true; bldBadge(); if (k === 'tent' || k === 'fire') camFocus.set(k === 'tent' ? TENT.x : FIRE.x, 0, k === 'tent' ? TENT.z : FIRE.z);
 }
 /* the energy bar grows with the tent */
 function enBarW() { const b = ENB.el && ENB.el.querySelector('.bar'); if (b) b.style.width = Math.min(220, 120 * enMax() / 100) + 'px'; }

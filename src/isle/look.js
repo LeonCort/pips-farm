@@ -6,14 +6,14 @@ const LOOK = { solid: [] };
   const L = [], put = (g, col, seed, x, y, z, ry) => { if (ry) g.rotateY(ry); g.translate(x, y, z); L.push(fac(g, col, seed)); };
   const wood = (hex, y0, y1) => (cx, cy, cz, i) => shadeY(hex, cy, y0, y1, i, 0.4);
   /* the chopping block: a stump with rings, split logs stacked beside it */
-  { const x = 0.7, z = 3.0;
+  { const x = -1.9, z = 2.2;
     put(new T.CylinderGeometry(0.27, 0.31, 0.34, 12), wood('#8a5f3c', 0, 0.34), 2600, x, 0.17, z);
     put(new T.CylinderGeometry(0.235, 0.235, 0.012, 12), '#e7c48f', 2601, x, 0.345, z); put(new T.CylinderGeometry(0.11, 0.11, 0.014, 10), '#d3a66c', 2602, x + 0.02, 0.347, z);
     for (let k = 0; k < 6; k++) { const row = k < 3 ? 0 : 1, q = new T.CylinderGeometry(0.085, 0.085, 0.5, 8); q.rotateX(Math.PI / 2); put(q, wood(k % 2 ? '#a8774f' : '#96683f', -0.09, 0.09), 2610 + k, x + 0.5 + (k % 3) * 0.17 + row * 0.085, 0.085 + row * 0.15, z + 0.05, 0);
       const e = new T.CylinderGeometry(0.066, 0.066, 0.012, 8); e.rotateX(Math.PI / 2); put(e, '#e7c48f', 2620 + k, x + 0.5 + (k % 3) * 0.17 + row * 0.085, 0.085 + row * 0.15, z + 0.305, 0); if (k === 4) break; }
     LOOK.solid.push([x, z, 0.34], [x + 0.68, z + 0.05, 0.36]); }
   /* two barrels and a crate by the tent */
-  { const x = -2.75, z = 0.75;
+  { const x = TENT.x - 1.75, z = TENT.z - 0.4;
     [[0, 0, 0.26], [0.5, 0.18, 0.22]].forEach(([dx, dz, r], k) => { const pts = [[r * 0.82, 0], [r * 0.97, 0.12], [r, 0.3], [r * 0.97, 0.48], [r * 0.82, 0.6]].map(([a, b]) => new T.Vector2(a, b * (r / 0.26)));
       put(new T.LatheGeometry(pts, 14), (cx, cy, cz, i) => shadeY(Math.floor((Math.atan2(cz - z - dz, cx - x - dx) + 3.15) / 0.45) % 2 ? '#a8714d' : '#96623f', cy, 0, 0.6, i, 0.3), 2630 + k, x + dx, 0, z + dz);
       [0.13, 0.47].forEach((h, j) => put(new T.TorusGeometry(r * 0.955, 0.016, 5, 16).rotateX(Math.PI / 2), '#5a5f68', 2634 + k * 2 + j, x + dx, h * (r / 0.26), z + dz));
@@ -23,7 +23,7 @@ const LOOK = { solid: [] };
     [0, 1, 2].forEach((j) => put(ico(0.07, 1, 2650 + j), ['#d6406a', '#c3335c', '#e0556f'][j], 2650 + j, x + 0.06 + j * 0.07, 0.38, z + 0.52 + (j % 2) * 0.08));
     LOOK.solid.push([x, z, 0.33], [x + 0.5, z + 0.18, 0.3], [x + 0.12, z + 0.56, 0.32]); }
   /* a wheelbarrow of flowers */
-  { const x = -1.3, z = 3.1, r = 0.9, g0 = L.length;
+  { const x = 4.4, z = -2.2, r = 0.9, g0 = L.length;
     const P = (g, col, seed, px, py, pz, rz) => { if (rz) g.rotateZ(rz); g.translate(px, py, pz); g.rotateY(r); g.translate(x, 0, z); L.push(fac(g, col, seed)); };
     P(new T.BoxGeometry(0.62, 0.24, 0.46), wood('#a8714d', 0.24, 0.48), 2660, 0, 0.36, 0); P(new T.BoxGeometry(0.56, 0.04, 0.4), '#6b4a3c', 2661, 0, 0.47, 0);
     P(new T.CylinderGeometry(0.14, 0.14, 0.06, 12).rotateX(Math.PI / 2), '#4a3a2e', 2662, 0.38, 0.14, 0);

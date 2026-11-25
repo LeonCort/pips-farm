@@ -185,8 +185,8 @@ function areaClear(x, z) {
   return true;
 }
 /* the start area is laid out by hand round the camp, so there is plenty to gather from the first minute (Leon, 2026-11-23) */
-const START_NODES = [['tree', -4.2, -4.0], ['tree', -2.4, -4.3], ['tree', 3.4, -4.2], ['tree', -4.4, 2.2], ['tree', 4.3, 3.3], ['tree', 2.6, 4.4], ['tree', -3.8, 4.3], ['tree', -4.5, -1.6],
-  ['bush', -2.8, 3.3], ['bush', 4.3, -2.6], ['bush', -4.4, 0.3], ['bush', 3.4, 2.4], ['bush', -0.9, 4.4], ['rock', 4.4, -0.9], ['rock', -4.3, -2.9]]; /* the last rock moved aside for the smith's forge (people.js) */
+const START_NODES = [['tree', -4.9, -4.9], ['tree', 4.9, -4.9], ['tree', -4.9, 4.9], ['tree', 4.9, 4.9], ['tree', 5.0, -1.5], ['tree', -5.0, 1.2], ['tree', 2.1, 5.1], ['tree', -1.7, -5.2],
+  ['bush', 5.1, -3.3], ['bush', 5.2, 2.0], ['bush', -5.1, -1.2], ['bush', -1.5, 4.9], ['bush', -5.2, 3.7], ['rock', 3.3, 5.1], ['rock', -3.2, -5.1]]; /* round the rim: the middle is the settlement */
 function areaFill(A, fresh) {
   if (A.start) { START_NODES.forEach(([k, x, z], q) => makeNode(k, x, z, 50 + q)); areaDecor(A); return; }
   const SP = 2.05, base = AREAS.indexOf(A) * 997; let c = 0;
@@ -205,7 +205,7 @@ function areaFill(A, fresh) {
 /* little things that make each biome look like itself (one mesh per area, nothing to gather): flowers on grass, pebbles on stone */
 function areaDecor(A) {
   const L = [], b = A.biome, base = AREAS.indexOf(A) * 131;
-  const spot = (k, n, w) => { const x = A.cx + (hash(k, n + base) - 0.5) * w, z = A.cz + (hash(k, n + 1 + base) - 0.5) * w; if (walkSdfArea(A, x, z)) return null; if (nodes.some((q) => Math.abs(q.x - x) < 0.55 && Math.abs(q.z - z) < 0.55)) return null; if (b === 'home' && Math.hypot(x, z) < 3.2) return null; return [x, z]; };
+  const spot = (k, n, w) => { const x = A.cx + (hash(k, n + base) - 0.5) * w, z = A.cz + (hash(k, n + 1 + base) - 0.5) * w; if (walkSdfArea(A, x, z)) return null; if (nodes.some((q) => Math.abs(q.x - x) < 0.55 && Math.abs(q.z - z) < 0.55)) return null; if (b === 'home' && (roadKind(x, z) || campNear(x, z, 1.5))) return null; return [x, z]; };
   const green = b === 'home' || b === 'meadow' || b === 'orchard' || b === 'berry';
   if (green) {
     /* flowers with petals, in little groups */
@@ -237,17 +237,18 @@ function areaDecor(A) {
   if (b === 'cave') caveDecor(A, L, base);
   if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; m.receiveShadow = true; }
 }
+const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, OVEN, BOARD, TENT_RING, WELL].some((o) => Math.hypot(o.x - x, o.z - z) < r); /* the camp's buildings */
 const walkSdfArea = (A, x, z) => Math.abs(x - A.cx) > 5.55 || Math.abs(z - A.cz) > 5.55; /* keep the dressing off the cliff edge */
 /* the camp in the start area: a campfire and a little tent */
 const campFlame = (() => {
-  const g = new T.Group(); g.position.set(1.4, 0, 1.2); sc.add(g); const L = [];
+  const g = new T.Group(); g.position.set(FIRE.x, 0, FIRE.z); sc.add(g); const L = [];
   for (let k = 0; k < 8; k++) { const a = k / 8 * 6.28, q = ico(0.11, 0, 1300 + k); q.scale(1.2, 0.7, 1); q.translate(Math.cos(a) * 0.36, 0.06, Math.sin(a) * 0.36); L.push(fac(q, tone('#a9b2bb', k, 0.6), 1300 + k)); }
   [0.6, 2.2].forEach((r, k) => { const q = new T.CylinderGeometry(0.05, 0.05, 0.5, 6); q.rotateZ(Math.PI / 2); q.rotateY(r); q.translate(0, 0.08 + k * 0.04, 0); L.push(fac(q, PAL.trunk, 1310 + k)); });
   merged(L, MAT, g);
   const f = new T.Mesh(new T.ConeGeometry(0.16, 0.42, 7), new T.MeshBasicMaterial({ color: '#f2a13c' })); f.position.y = 0.3; g.add(f);
   const f2 = new T.Mesh(new T.ConeGeometry(0.09, 0.26, 6), new T.MeshBasicMaterial({ color: '#ffe07a' })); f2.position.y = 0.26; g.add(f2);
   /* the tent */
-  const t = new T.Group(); t.position.set(-1.1, 0, 1.0); t.rotation.y = 0.5; sc.add(t);
+  const t = new T.Group(); t.position.set(TENT.x, 0, TENT.z); t.rotation.y = 0.5; sc.add(t);
   let q = new T.ConeGeometry(0.85, 1.15, 4); q.rotateY(Math.PI / 4); q.translate(0, 0.575, 0); part(fac(q, (cx, cy, cz, i) => shadeY('#e9684a', cy, 0, 1.2, i, 0.4), 1320), t);
   q = new T.PlaneGeometry(0.42, 0.62); q.translate(0, 0.31, 0.62); part(fac(q, '#7a3a2a', 1321), t, 0, 0, 0, true);
   return { g, f, f2, t };
@@ -562,7 +563,7 @@ function isleTest() {
 }
 
 /* ---- the storage crate at the camp: a full backpack empties into it, and signs take from it too ---- */
-const STORE = { x: 1.7, z: -1.5 };
+const STORE = { x: 3.0, z: -2.7 };
 const storeN = (t) => (state.isle && state.isle.store ? state.isle.store[t] || 0 : 0);
 const storeG = (() => {
   const g = new T.Group(); g.position.set(STORE.x, 0, STORE.z); sc.add(g); const L = [];
@@ -756,7 +757,7 @@ const enHint = isleSprite(isleBubble('tent'), 0.85); enHint.visible = false; sc.
 function enTired() { enHint.visible = true; enHint.t = 2; Snd.play('blip', { gain: 0.2, f: 300 }); const b = ENB.el; if (b) { b.classList.remove('wig'); void b.offsetWidth; b.classList.add('wig'); } }
 /* the mat in front of the tent: night-blue with a tent and moon, a gold arc fills while Pip stands on it */
 const TENT_RING = (() => {
-  const x = -1.1 + Math.sin(0.5) * 1.45, z = 1.0 + Math.cos(0.5) * 1.45, R = 0.6;
+  const x = TENT.x + Math.sin(0.5) * 1.45, z = TENT.z + Math.cos(0.5) * 1.45, R = 0.6;
   const c = document.createElement('canvas'); c.width = c.height = 256; const q = c.getContext('2d');
   q.fillStyle = '#2b3560'; q.beginPath(); q.arc(128, 128, 124, 0, 7); q.fill();
   q.fillStyle = '#f4ecc8'; [[48, 70], [208, 86], [70, 196], [196, 186], [128, 34]].forEach(([a, b]) => { q.beginPath(); q.arc(a, b, 4.5, 0, 7); q.fill(); });
@@ -795,7 +796,7 @@ function enStep(dt) {
   const R = TENT_RING, low = I.en < enMax() * 0.35;
   R.glow.material.opacity = low ? 0.3 + (reduced ? 0.2 : 0.3 * (0.5 + 0.5 * Math.sin(time * 3.2))) : 0;
   if (!enSleep) {
-    if (!work) I.en = Math.min(enMax(), I.en + dt * enRegen() * (Math.hypot(pip.position.x - 1.4, pip.position.z - 1.2) < 2.6 ? 2 : 1) /* twice as fast by the fire */);
+    if (!work) I.en = Math.min(enMax(), I.en + dt * enRegen() * (Math.hypot(pip.position.x - FIRE.x, pip.position.z - FIRE.z) < 2.6 ? 2 : 1) /* twice as fast by the fire */);
     const d = Math.hypot(pip.position.x - R.x, pip.position.z - R.z), still = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) < 0.3;
     const on = d < R.R && still && I.en < enMax() - 1 && !rising;
     R.w = on ? Math.min(1, R.w + dt / 0.7) : Math.max(0, R.w - dt * 3); R.fg.setDrawRange(0, 6 * Math.round(40 * R.w));
@@ -809,7 +810,7 @@ function enStep(dt) {
   const u = Math.min(1, S.t / 0.6); /* walk into the door, shrinking */
   pip.position.set(R.x + (S.dx - R.x) * u, 0, R.z + (S.dz - R.z) * u); pip.scale.setScalar(Math.max(0.01, 1 - u * 0.9)); pip.visible = u < 1; target.copy(pip.position);
   if (!S.z) { S.z = new T.Sprite(new T.SpriteMaterial({ map: zTex, transparent: true, depthTest: false })); S.z.renderOrder = 6; S.z.scale.set(0.7, 0.46, 1); sc.add(S.z); }
-  S.z.visible = S.t > 0.6 && q < 0.97; S.z.position.set(-1.1 + 0.15, 1.6 + Math.sin(S.t * 2.2) * 0.12, 1.0);
+  S.z.visible = S.t > 0.6 && q < 0.97; S.z.position.set(TENT.x + 0.15, 1.6 + Math.sin(S.t * 2.2) * 0.12, TENT.z);
   enDraw();
   if (q >= 1 && S.t > 4.0) {
     sc.remove(S.z); pip.visible = true; pip.scale.setScalar(1); pip.position.set(R.x, 0, R.z); target.copy(pip.position); pip.rotation.y = 0.5; enSleep = null; I.en = enMax(); tierWake(); save();
@@ -821,6 +822,6 @@ function enSleepStart() {
   /* at night (or late afternoon), sleep to the next morning; in the daytime, a short nap */
   const f = dayFrac(), day = Math.floor(state.clock / DAY);
   const to = f > 0.5 ? (day + 1) * DAY + DAY * 0.03 : f < 0.03 ? day * DAY + DAY * 0.03 : state.clock + DAY * 0.12;
-  enSleep = { t: 0, from: state.clock, to, en0: state.isle.en, dx: -1.1 + Math.sin(0.5) * 0.5, dz: 1.0 + Math.cos(0.5) * 0.5, z: null };
+  enSleep = { t: 0, from: state.clock, to, en0: state.isle.en, dx: TENT.x + Math.sin(0.5) * 0.5, dz: TENT.z + Math.cos(0.5) * 0.5, z: null };
   work = null; Snd.play('pop', { gain: 0.35, f: 380 });
 }
