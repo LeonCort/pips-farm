@@ -72,6 +72,11 @@ function isleBubble(t) {
   isleIcon(x, t, 64, 62, 1.7);
   const tex = new T.CanvasTexture(c); isleBub[t] = tex; return tex;
 }
+/* a ring of rope lying on the grass, like the farm's, where Pip stands to pay or to use something */
+function ropeRing(r0, r1) {
+  const R = (r0 + r1) / 2, g = new T.TorusGeometry(R, 0.065, 6, 44); g.scale(1, 1, 0.5);
+  const m = new T.Mesh(fac(g, (cx, cy, cz, i) => tone(Math.floor((Math.atan2(cy, cx) + 3.15) * R * 9) % 2 ? '#fff0c8' : '#e0bf86', i, 0.2), 1490), MAT); m.receiveShadow = true; m.add(new T.Mesh(new T.RingGeometry(r0 - 0.04, r1 + 0.04, 28), ringMat)); return m; /* the pale band under the rope keeps it easy to see */
+}
 function isleSprite(tex, s) { const sp = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true, depthWrite: false })); sp.scale.set(s, s, 1); return sp; }
 
 /* ---- things Pip carries: logs, stones and berries ---- */
@@ -256,7 +261,7 @@ function makeChest(x, z, tool, idx) {
   const lid = new T.Group(); lid.position.set(0, 0.42, -0.24); g.add(lid);
   q = new T.CylinderGeometry(0.24, 0.24, 0.7, 10, 1, false, 0, Math.PI); q.rotateZ(Math.PI / 2); q.translate(0, 0, 0.24); part(fac(q, (cx, cy, cz, i) => shadeY('#c99158', cy, 0, 0.25, i, 0.5), 1402), lid);
   const sp = isleSprite(isleBubble(tool), 0.9); sp.position.y = 1.5; sp.visible = false; g.add(sp);
-  const ring = new T.Mesh(new T.RingGeometry(0.62, 0.76, 28), ringMat); ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.035, z + 0.85); sc.add(ring);
+  const ring = ropeRing(0.62, 0.76); ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.035, z + 0.85); sc.add(ring);
   const c = { x, z, g, lid, sp, ring, tool, idx, open: 0, gone: 0, pop: 0.001 }; g.scale.setScalar(0.01); chests.push(c); return c;
 }
 function chestStep(c, dt) {
@@ -278,8 +283,22 @@ const ghostTex = (() => { const c = document.createElement('canvas'); c.width = 
   x.fillStyle = 'rgba(236,211,160,0.35)'; x.beginPath(); x.roundRect(8, 8, 112, 112, 16); x.fill(); x.setLineDash([12, 9]); x.lineWidth = 5; x.strokeStyle = 'rgba(255,246,228,0.95)'; x.stroke();
   return new T.CanvasTexture(c); })();
 const ghostGeo = (() => { const g = new T.PlaneGeometry(GS - 0.5, GS - 0.5, 8, 8); g.rotateX(-Math.PI / 2); return g; })();
-const POST_GEO = (() => { const q = new T.BoxGeometry(0.12, 1.0, 0.12); q.translate(0, 0.5, 0); return fac(q, PAL.trunk, 1500); })();
-const BOARD_GEO = (() => { const q = new T.BoxGeometry(0.7, 0.42, 0.08); q.translate(0, 0.98, 0); return fac(q, '#e7c48f', 1501); })();
+/* a hand-made sign: a round post with a rope wrap and stones at its foot, and a board of two planks nailed on a little crooked */
+const POST_GEO = (() => { const L = [];
+  let q = new T.CylinderGeometry(0.055, 0.075, 1.22, 8, 4); jit(q, 0.008, 1500); q.translate(0, 0.61, 0); L.push(q);
+  q = new T.ConeGeometry(0.06, 0.07, 8); q.translate(0, 1.255, 0); L.push(q);
+  [0.74, 0.79, 0.84].forEach((y) => { const r = new T.TorusGeometry(0.068, 0.016, 5, 10); r.rotateX(Math.PI / 2); r.translate(0, y, 0); L.push(r); });
+  [[0.13, 0.05, 0.085], [-0.1, 0.09, 0.07], [-0.04, -0.12, 0.075], [0.1, -0.08, 0.05]].forEach(([x, z, r], k) => { const b = ico(r, 1, 1503 + k, r * 0.1); b.scale(1.2, 0.7, 1); b.translate(x, r * 0.4, z); L.push(b); });
+  for (let k = 0; k < 4; k++) { const b = new T.ConeGeometry(0.022, 0.2, 3); b.translate(0, 0.1, 0); b.rotateZ((k - 1.5) * 0.3); b.rotateY(k * 1.7); b.translate(-0.15 + k * 0.02, 0, 0.12); L.push(b); }
+  return fac(mergeGeos(L), (cx, cy, cz, i) => { const d = Math.hypot(cx, cz);
+    if (cy < 0.2 && d > 0.085) return cy > 0.11 && cx < -0.08 && cz > 0.06 ? tone('#6fae4c', i, 0.4) : shadeY('#b3b9bf', cy, 0, 0.12, i, 0.4);
+    if (cy > 0.72 && cy < 0.86 && d > 0.06) return tone('#ead9b0', i, 0.3);
+    return shadeY(PAL.trunk, cy, 0, 1.3, i, 0.4); }, 1500); })();
+const BOARD_GEO = (() => { const L = [];
+  [[1.09, 0.02, 0.03], [0.87, -0.015, -0.04]].forEach(([y, x, rz], k) => { const q = new T.BoxGeometry(0.74, 0.2, 0.06, 4, 1, 1); jit(q, 0.008, 1501 + k); q.rotateZ(rz); q.translate(x, y, 0.07); L.push(q);
+    [-0.29, 0.29].forEach((nx) => { const n = new T.CylinderGeometry(0.018, 0.018, 0.02, 6); n.rotateX(Math.PI / 2); n.translate(x + nx, y, 0.105); L.push(n); }); });
+  const b = new T.BoxGeometry(0.07, 0.46, 0.035); b.translate(0, 0.98, 0.03); L.push(b);
+  return fac(mergeGeos(L), (cx, cy, cz, i) => cz > 0.1 ? new T.Color('#4a4038') : cz < 0.05 ? tone('#8a6a4a', i, 0.3) : shadeY(cy > 0.98 ? '#ecca94' : '#e0b87c', cy, 0.7, 1.25, i, 0.25), 1501); })();
 /* a sign's price: a home square costs by how many squares are bought; a bridge or a bonus piece has its own price */
 const signCost = (s) => s.cost;
 const costKinds = (s) => KINDS.filter((t) => signCost(s)[t] > 0);
@@ -317,7 +336,7 @@ function signMake(o) {
   g.scale.setScalar(1.3);
   const sp = isleSprite(null, 1); sp.position.y = 2.2; sp.material.opacity = 0; sp.visible = false; g.add(sp);
   const sm = isleSprite(null, 1); sm.position.y = 1.62; g.add(sm);
-  const ring = new T.Mesh(new T.RingGeometry(0.55, 0.7, 28), ringMat); ring.rotation.x = -Math.PI / 2; ring.position.set(o.x, 0.035, o.z); sc.add(ring);
+  const ring = ropeRing(0.55, 0.7); ring.rotation.x = -Math.PI / 2; ring.position.set(o.x, 0.035, o.z); sc.add(ring);
   const ghost = new T.Mesh(o.ghostGeo, new T.MeshBasicMaterial({ map: o.ghostTex, transparent: true, depthWrite: false })); ghost.position.set(o.gx, o.gy == null ? -0.3 : o.gy, o.gz); if (o.gr) ghost.rotation.y = o.gr; sc.add(ghost);
   const sg = Object.assign(o, { g, sp, sm, ring, ghost, fly: {}, bump: 0, seed: signs.length * 1.7, open: 0, payT: 0 }); signs.push(sg); return sg;
 }
@@ -376,16 +395,25 @@ function isleBuy(s) {
 
 /* ---- bridges: planks laid one by one from the shore to the next island; once built, its area is Pip's ---- */
 let building = null;
-const PLANK_GEO = (() => { const q = new T.BoxGeometry(1.7, 0.08, 0.38); return fac(q, (cx, cy, cz, i) => tone('#b98a5a', i, 0.7), 1800); })();
-const RAIL_GEO = (() => { const q = new T.BoxGeometry(0.08, 0.08, 1); return fac(q, '#8a6a4e', 1801); })();
-const BPOST_GEO = (() => { const q = new T.CylinderGeometry(0.09, 0.1, 1.5, 7); q.translate(0, -0.35, 0); return fac(q, PAL.trunk, 1802); })();
+/* the bridges: worn planks of three kinds, round posts with caps and a rope wrap, and rope rails that sag between them */
+const PLANK_GEOS = [0, 1, 2].map((k) => { const q = new T.BoxGeometry(1.66 + k * 0.04, 0.08, 0.36 + (k - 1) * 0.02, 6, 1, 1);
+  return fac(q, (cx, cy, cz, i) => { const c = tone(['#c0935f', '#b08454', '#c99f6c'][k], Math.round(cx * 9), 0.25); if (cy < 0) c.multiplyScalar(0.7); if (Math.abs(cx) > 0.74 && cy > 0 && hash(Math.round(cz * 30), k) > 0.5) c.multiplyScalar(0.8); return c; }, 1800 + k); });
+const PLANK_GEO = PLANK_GEOS[0];
+const RAIL_GEO = (() => { const L = []; for (let k = 0; k < 8; k++) { const t0 = k / 8, t1 = (k + 1) / 8, y0 = -0.16 * Math.sin(t0 * Math.PI), y1 = -0.16 * Math.sin(t1 * Math.PI), len = Math.hypot(0.125, y1 - y0);
+    const q = new T.CylinderGeometry(0.024, 0.024, len + 0.012, 5); q.rotateX(Math.PI / 2 - Math.atan2(y1 - y0, 0.125)); q.translate(0, (y0 + y1) / 2, (t0 + t1) / 2); L.push(q); }
+  return fac(mergeGeos(L), (cx, cy, cz, i) => tone(Math.floor(cz * 40) % 2 ? '#ead9b0' : '#cdb07e', i, 0.2), 1801); })(); /* one sagging span of rope, 1 long: scaled per gap */
+const BPOST_GEO = (() => { const L = []; let q = new T.CylinderGeometry(0.075, 0.095, 1.5, 8, 3); jit(q, 0.008, 1802); q.translate(0, -0.35, 0); L.push(q);
+  q = new T.SphereGeometry(0.095, 8, 6); q.scale(1, 0.75, 1); q.translate(0, 0.42, 0); L.push(q);
+  [0.2, 0.25].forEach((y) => { const r = new T.TorusGeometry(0.09, 0.018, 5, 10); r.rotateX(Math.PI / 2); r.translate(0, y, 0); L.push(r); });
+  return fac(mergeGeos(L), (cx, cy, cz, i) => cy > 0.17 && cy < 0.28 && Math.hypot(cx, cz) > 0.08 ? tone('#ead9b0', i, 0.3) : shadeY(PAL.trunk, cy, -1.1, 0.5, i, 0.4), 1802); })();
 function bridgeMesh(A) {
   const B = A.bridge, L = Math.hypot(B.x1 - B.x0, B.z1 - B.z0), ux = (B.x1 - B.x0) / L, uz = (B.z1 - B.z0) / L, g = new T.Group(); g.position.set(B.x0, 0, B.z0); g.rotation.y = Math.atan2(ux, uz); sc.add(g);
   const n = Math.ceil(L / 0.42), planks = [];
-  for (let k = 0; k < n; k++) { const m = new T.Mesh(PLANK_GEO, MAT); m.position.set((hash(k, 3) - 0.5) * 0.06, 0.04, 0.21 + k * 0.42); m.rotation.y = (hash(k, 4) - 0.5) * 0.05; m.receiveShadow = true; m.castShadow = true; g.add(m); planks.push(m); }
+  for (let k = 0; k < n; k++) { const m = new T.Mesh(PLANK_GEOS[Math.floor(hash(k, 7) * 3)], MAT); m.position.set((hash(k, 3) - 0.5) * 0.06, 0.04, 0.21 + k * 0.42); m.rotation.y = (hash(k, 4) - 0.5) * 0.05; m.receiveShadow = true; m.castShadow = true; g.add(m); planks.push(m); }
   const rails = new T.Group(); g.add(rails);
-  for (let k = 0; k <= Math.floor(L / 1.6); k++) { const z = Math.min(L - 0.2, 0.2 + k * 1.6); [-0.85, 0.85].forEach((x) => { const p = new T.Mesh(BPOST_GEO, MAT); p.position.set(x, 0.59, z); p.castShadow = true; rails.add(p); }); }
-  [-0.85, 0.85].forEach((x) => { const r = new T.Mesh(RAIL_GEO, MAT); r.scale.z = L; r.position.set(x, 0.74, L / 2); rails.add(r); });
+  const zs = []; for (let k = 0; k <= Math.floor(L / 1.6); k++) zs.push(Math.min(L - 0.2, 0.2 + k * 1.6));
+  zs.forEach((z) => [-0.85, 0.85].forEach((x) => { const p = new T.Mesh(BPOST_GEO, MAT); p.position.set(x, 0.59, z); p.castShadow = true; rails.add(p); }));
+  for (let k = 0; k + 1 < zs.length; k++) if (zs[k + 1] - zs[k] > 0.2) [-0.85, 0.85].forEach((x) => { const r = new T.Mesh(RAIL_GEO, MAT); r.scale.z = zs[k + 1] - zs[k]; r.position.set(x, 0.82, zs[k]); rails.add(r); });
   return { g, planks, rails };
 }
 function bridgeBuild(A, now) {
@@ -538,9 +566,18 @@ const STORE = { x: 1.7, z: -1.5 };
 const storeN = (t) => (state.isle && state.isle.store ? state.isle.store[t] || 0 : 0);
 const storeG = (() => {
   const g = new T.Group(); g.position.set(STORE.x, 0, STORE.z); sc.add(g); const L = [];
-  let q = new T.BoxGeometry(1.3, 0.12, 0.9); q.translate(0, 0.06, 0); L.push(fac(q, '#8a6a4e', 1600));
-  [[0, 0.45, 1.3, 0.1], [0, -0.45, 1.3, 0.1], [0.65, 0, 0.1, 0.9], [-0.65, 0, 0.1, 0.9]].forEach(([x, z, w, d], k) => { for (let r = 0; r < 3; r++) { q = new T.BoxGeometry(w, 0.15, d); q.translate(x, 0.14 + r * 0.17, z); L.push(fac(q, tone('#c99158', k * 3 + r, 0.8), 1601 + k * 3 + r)); } });
-  [[-0.62, -0.42], [0.62, -0.42], [-0.62, 0.42], [0.62, 0.42]].forEach(([x, z], k) => { q = new T.BoxGeometry(0.12, 0.62, 0.12); q.translate(x, 0.31, z); L.push(fac(q, '#7d5e4e', 1620 + k)); });
+  /* a sturdy plank crate: uneven boards with gaps, corner posts with caps, iron straps, rope handles, and two sacks leaning on it */
+  let q = new T.BoxGeometry(1.3, 0.12, 0.9); q.translate(0, 0.06, 0); L.push(fac(q, '#6f5038', 1600));
+  [[0, 0.45, 1.3, 0.08, 0], [0, -0.45, 1.3, 0.08, 0], [0.65, 0, 0.9, 0.08, 1], [-0.65, 0, 0.9, 0.08, 1]].forEach(([x, z, w, d, side], k) => { for (let r = 0; r < 3; r++) {
+    q = new T.BoxGeometry(w - 0.02, 0.15, d, 5, 1, 1); jit(q, 0.008, 1601 + k * 3 + r); if (side) q.rotateY(Math.PI / 2); q.rotateZ((hash(k, r) - 0.5) * 0.03); q.translate(x, 0.15 + r * 0.175, z);
+    const base = ['#cf9a60', '#c08a52', '#d6a56c'][(k + r) % 3]; L.push(fac(q, (cx, cy, cz, i) => shadeY(base, cy, 0, 0.62, Math.round((side ? cz : cx) * 7) + r, 0.3), 1601 + k * 3 + r)); } });
+  [[-0.64, -0.44], [0.64, -0.44], [-0.64, 0.44], [0.64, 0.44]].forEach(([x, z], k) => { q = new T.BoxGeometry(0.13, 0.66, 0.13, 1, 3, 1); jit(q, 0.006, 1620 + k); q.translate(x, 0.33, z); L.push(fac(q, (cx, cy, cz, i) => shadeY('#7d5e4e', cy, 0, 0.7, i, 0.35), 1620 + k));
+    q = new T.BoxGeometry(0.17, 0.04, 0.17); q.translate(x, 0.675, z); L.push(fac(q, '#5a4336', 1624 + k)); });
+  [-0.35, 0.35].forEach((x, k) => { q = new T.BoxGeometry(0.07, 0.56, 0.02); q.translate(x, 0.33, 0.495); L.push(fac(q, '#555c66', 1630 + k)); [0.12, 0.5].forEach((y, j) => { const n = new T.SphereGeometry(0.018, 6, 4); n.translate(x, y, 0.51); L.push(fac(n, '#2f343b', 1632 + k * 2 + j)); }); });
+  [-1, 1].forEach((s2, k) => { q = new T.TorusGeometry(0.1, 0.018, 5, 10, Math.PI); q.rotateZ(Math.PI); q.rotateY(Math.PI / 2); q.translate(s2 * 0.7, 0.44, 0); L.push(fac(q, '#ead9b0', 1640 + k)); });
+  [[-0.92, 0.2, 0.2], [-0.86, -0.2, 0.17]].forEach(([x, z, r], k) => { q = ico(r, 2, 1650 + k, 0.012); q.scale(1, 1.25, 0.9); q.translate(x, r * 1.1, z); L.push(fac(q, (cx, cy, cz, i) => shadeY(k ? '#d9c39a' : '#e3d0a8', cy, 0, 0.5, i, 0.2), 1650 + k));
+    q = new T.TorusGeometry(r * 0.42, 0.016, 5, 10); q.rotateX(Math.PI / 2); q.translate(x, r * 2.2, z); L.push(fac(q, '#a8743f', 1654 + k)); q = ico(r * 0.4, 1, 1656 + k); q.scale(1, 0.7, 1); q.translate(x, r * 2.35, z); L.push(fac(q, '#d9c39a', 1656 + k)); });
+  L.forEach((g2, k) => { if (g2.index) L[k] = g2.toNonIndexed(); });
   merged(L, MAT, g);
   /* what is inside: a few logs, stones and berries show once there are some */
   const fill = { log: [], stone: [], berry: [] };
@@ -550,7 +587,7 @@ const storeG = (() => {
   const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x = c.getContext('2d'); paperBox(x, 256, 96);
   ['log', 'stone', 'berry'].forEach((t, k) => isleIcon(x, t, 60 + k * 68, 46, 1.0));
   const sp = isleSprite(new T.CanvasTexture(c), 1); sp.scale.set(1.5, 0.56, 1); sp.position.set(0, 1.35, 0); g.add(sp);
-  const ring = new T.Mesh(new T.RingGeometry(0.62, 0.78, 28), ringMat); ring.rotation.x = -Math.PI / 2; ring.position.set(STORE.x, 0.035, STORE.z + 0.95); sc.add(ring);
+  const ring = ropeRing(0.62, 0.78); ring.rotation.x = -Math.PI / 2; ring.position.set(STORE.x, 0.035, STORE.z + 0.95); sc.add(ring);
   return { g, fill, sp };
 })();
 let storeT = 0;

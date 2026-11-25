@@ -37,3 +37,13 @@ function lookStep() {
   if (enSleep) return; const p = pip.position;
   LOOK.solid.forEach(([x, z, r]) => { const dx = p.x - x, dz = p.z - z, d = Math.hypot(dx, dz), R = r + 0.22; if (d < R && d > 1e-4) { p.x = x + dx / d * R; p.z = z + dz / d * R; } });
 }
+/* the season dial, the toast and the settings sheet in the same parchment and wood as the counters */
+{
+  const WOOD = 'linear-gradient(165deg,#c4935f,#7a4c2a 50%,#a8723f) border-box', st = document.createElement('style');
+  st.textContent = '.clock{border:5px solid transparent!important;background:linear-gradient(#fdf3dc,#f0dcb2) padding-box,' + WOOD + '!important;box-shadow:0 5px 0 rgba(70,40,18,.4),0 9px 14px rgba(70,40,18,.22),inset 0 -4px 8px rgba(160,110,50,.22)!important;color:#3a2414}'
+    + '.toast{border:5px solid transparent!important;background:linear-gradient(#fdf3dc,#f0dcb2) padding-box,' + WOOD + '!important;box-shadow:0 6px 0 rgba(70,40,18,.4),0 12px 18px rgba(70,40,18,.25)!important;color:#3a2414}'
+    + '.sheet{border:6px solid transparent!important;border-bottom:0!important;background:linear-gradient(#fdf3dc,#f3e2bf) padding-box,linear-gradient(165deg,#c4935f,#6e4426 55%,#a8723f) border-box!important}'
+    + '.menuBtn{border:4px solid #fff3dc!important;box-shadow:0 0 0 3px #4a2e1a,0 6px 0 3px rgba(60,34,16,.4),0 10px 14px rgba(60,34,16,.22)!important}'
+    + '.xpUp>div,.xpCard{border-color:#6e4426}';
+  document.head.appendChild(st);
+}

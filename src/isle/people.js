@@ -76,7 +76,7 @@ function forgeBuild(anim) {
   const bed = new T.Mesh(new T.BoxGeometry(0.62, 0.05, 0.5), new T.MeshBasicMaterial({ color: '#ff7a2a' })); bed.position.set(0.25, 0.92, 0.08); g.add(bed);
   forgeGlow = new T.Sprite(new T.SpriteMaterial({ map: softTex(32, 32), color: '#ffb060', transparent: true, opacity: 0.5, depthWrite: false })); forgeGlow.position.set(0.22, 0.75, 0.7); forgeGlow.scale.set(1.5, 1.2, 1); g.add(forgeGlow);
   forgeG = g;
-  anvilRing = new T.Mesh(new T.RingGeometry(0.45, 0.6, 28), ringMat); anvilRing.rotation.x = -Math.PI / 2; anvilRing.position.set(ANVIL_RING.x, 0.035, ANVIL_RING.z); sc.add(anvilRing);
+  anvilRing = ropeRing(0.45, 0.6); anvilRing.rotation.x = -Math.PI / 2; anvilRing.position.set(ANVIL_RING.x, 0.035, ANVIL_RING.z); sc.add(anvilRing);
   if (anim) { g.scale.setScalar(0.01); bldPop = { g, t: 0 }; burst(FORGE.x, 1.2, FORGE.z, 12); burst(ANVIL.x, 0.9, ANVIL.z, 6); }
 }
 

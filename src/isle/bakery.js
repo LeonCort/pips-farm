@@ -77,7 +77,7 @@ function ovenBuild(anim) {
   /* finished pies wait on the front of the base and on the shelf (up to five shown) */
   [[-0.32, 0.51, 0.42], [0.32, 0.51, 0.42], [-1.08, 0.64, 0.15], [-0.84, 0.64, 0.15], [0.0, 0.51, 0.47]].forEach(([x, y, z]) => { const m = new T.Mesh(PIE_GEO, MAT); m.position.set(x, y, z); m.visible = false; g.add(m); ovenPies.push(m); });
   ovenG = g;
-  ovenRing = new T.Mesh(new T.RingGeometry(0.45, 0.6, 28), ringMat); ovenRing.rotation.x = -Math.PI / 2; ovenRing.position.set(OVEN_RING.x, 0.035, OVEN_RING.z); sc.add(ovenRing);
+  ovenRing = ropeRing(0.45, 0.6); ovenRing.rotation.x = -Math.PI / 2; ovenRing.position.set(OVEN_RING.x, 0.035, OVEN_RING.z); sc.add(ovenRing);
   if (anim) { g.scale.setScalar(0.01); bldPop = { g, t: 0 }; burst(OVEN.x, 1.2, OVEN.z, 12); }
 }
 
