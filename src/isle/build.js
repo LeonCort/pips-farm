@@ -9,7 +9,7 @@ const BLD = {
 };
 const bldKeys = () => ['tent', 'fire', 'dog'].concat(forgeUp() ? ['tool'] : [], ovenUp() ? ['oven'] : [], gearKeys());
 const bldLv = (k) => (state.isle && state.isle.bld && state.isle.bld[k]) || 1;
-const enMax = () => [0, 100, 130, 160][bldLv('tent')] + xpEn();
+const enMax = () => [0, 100, 130, 160][bldLv('tent')] + xpEn() + (state.isle.folk && state.isle.folk.knitter >= 3 ? 25 : 0); /* the knitter's quilt */
 const enRegen = () => [0, 0.2, 0.33, 0.5][bldLv('fire')];
 const bldCan = (k) => { const c = BLD[k].cost[bldLv(k) + 1]; return !!c && Object.keys(c).every((t) => haveN(t) >= c[t]); };
 let bldPop = null;
