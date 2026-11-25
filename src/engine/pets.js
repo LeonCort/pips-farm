@@ -155,6 +155,8 @@ function wanderPick(w) {
   const p = w.d.g.position; let k = 0, x, z;
   do { const n = RG.n[Math.floor(Math.random() * RG.n.length)]; x = n[0]; z = n[1]; k++; } while (k < 20 && (Math.hypot(x - p.x, z - p.z) > 14 || Math.hypot(x - p.x, z - p.z) < 3 || z > 11.5));
   w.path = roadPath(p.x, p.z, x, z); w.i = 0;
+  /* the island: streets on land that is still under the sea are not there yet */
+  if (ISL.roadOk && w.path) { const bad = w.path.findIndex((q) => !ISL.roadOk(q[0], q[1])); if (bad >= 0) w.path.length = bad; if (!w.path.length) { w.path = null; w.wait = 1.5; } }
 }
 function wanderStep(w, dt) {
   const d = w.d, p = d.g.position, pp = pip.position, near = !inHouse && !trip && Math.hypot(pp.x - p.x, pp.z - p.z) < 2.4;
@@ -163,7 +165,7 @@ function wanderStep(w, dt) {
   else if (near) { if (!w.hi) { w.hi = true; d.hop = 1; petVoice(d.kind, 0.35); } }
   else if (w.path) {
     const q = w.path[w.i]; if (!q) w.path = null;
-    else if (walkTo(d.g, q[0], q[1], dt, sp)) { w.i++; if (w.i >= w.path.length) { w.path = null; w.wait = 2.5 + Math.random() * 5; } }
+    else if (walkTo(d.g, q[0], q[1], dt, sp) | (ISL.petLand ? (ISL.petLand(p), 0) : 0)) { w.i++; if (w.i >= w.path.length) { w.path = null; w.wait = 2.5 + Math.random() * 5; } }
     else moving = true;
   } else { w.wait -= dt; if (w.wait <= 0) wanderPick(w); }
   if (!near && Math.hypot(pp.x - p.x, pp.z - p.z) > 3.2) w.hi = false;

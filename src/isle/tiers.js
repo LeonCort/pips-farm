@@ -39,9 +39,18 @@ function tierBounce(n) { n.shake = 0.14; Snd.play('tock', { gain: 0.35, f: 150 }
 const sleepRegrow = (n) => (HAND[n.kind] && n.kind !== 'bush' ? REGROW[n.kind][0] : 1e9);
 /* Leon 2026-11-25: everything grows back DURING the night, so when Pip wakes it is all there, nothing left to wait for */
 function nodeGrown(n) {
-  n.st = 'ready'; n.grow = 1; n.t = 0; n.hp = nodeHits(n); n.main.visible = true; n.main.rotation.set(0, 0, 0); n.main.position.y = 0;
+  n.st = 'ready'; n.grow = 1; n.t = 0; n.sleepG = 0; n.hp = nodeHits(n); n.main.visible = true; n.main.rotation.set(0, 0, 0); n.main.position.y = 0;
   if (n.kind === 'tree' && n.stump) n.stump.visible = false;
   if (n.kind === 'bush') { n.main.scale.setScalar(1); if (n.berries) { n.berries.visible = true; n.berries.children.forEach((b) => b.scale.setScalar(1)); } } else n.main.scale.setScalar(n.full);
+}
+/* Leon 2026-11-25 (later): but it should be SEEN growing, not pop in: as Pip falls asleep every felled tree, mined rock and
+   picked bush starts growing, one after the other, and is full size before Pip crawls out (tierWake then only tidies up) */
+function sleepGrow() {
+  nodes.forEach((n, k) => { if (n.kind === 'planks' || !(n.st === 'gone' || n.st === 'grow' || n.st === 'fall')) return;
+    n.st = 'grow'; n.grow = 0.02; n.sleepG = 0.02 + hash(k, 77) * 0.8; n.main.visible = true; n.main.rotation.set(0, 0, 0); n.main.position.y = 0;
+    const lo = LOW[n.kind]; n.main.scale.setScalar(n.kind === 'bush' ? 1 : n.full * (lo || 0.02));
+    if (n.kind === 'tree' && n.stump) n.stump.visible = false;
+    if (n.kind === 'bush' && n.berries) { n.berries.visible = true; n.berries.children.forEach((b) => b.scale.setScalar(0.02)); } });
 }
 function tierWake() { dogWake(); villageWake(); nodes.forEach((n) => { if (n.kind !== 'planks' && (n.st === 'gone' || n.st === 'grow' || n.st === 'fall')) nodeGrown(n); }); }
 /* old saves: gems are crystals now; hay, clay, ore and pies are gone */

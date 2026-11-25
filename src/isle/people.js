@@ -130,7 +130,7 @@ function peopleBuy(s) {
   if (loopBuy(s)) return true;
   if (s.who === 'baker' || s.who === 'oven') return bakerBuy(s);
   if (s.kind === 'person') { folk().smith = 2; SM.move = { t: 0, from: [SM.g.position.x, SM.g.position.z] }; Snd.play('success', { gain: 0.5, f: 'E6' }); burst(SM.g.position.x, 1.5, SM.g.position.z, 10); xpGain(10); return true; }
-  if (s.kind === 'plot') { folk().smith = 3; forgeBuild(true); anvilIn = true; Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.15); xpGain(15); bldBadge(); SM.hop = 1; return true; }
+  if (s.kind === 'plot') { folk().smith = 3; forgeBuild(true); anvilIn = true; Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.15); xpGain(15); bldBadge(); SM.hop = 1; keyGive('rope', ANVIL.x, ANVIL.z); /* the rope for the meadow bridge, right away (it used to come only after a reload) */ return true; }
   return false;
 }
 /* a new tool level: the tools are made again in the new colour, sparks fly off the anvil and she hops */

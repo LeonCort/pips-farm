@@ -125,7 +125,7 @@ function bakerSignMake(w, key) {
 }
 function bakerBuy(s) {
   if (s.who === 'baker') { folk().baker = 2; BK.move = { t: 0 }; Snd.play('success', { gain: 0.5, f: 'E6' }); burst(BK.g.position.x, 1.5, BK.g.position.z, 10); xpGain(10); return true; }
-  if (s.who === 'oven') { folk().baker = 3; ovenBuild(true); ovenIn = true; /* step off and back on to open her card */ Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.15); xpGain(15); bldBadge(); BK.hop = 1; return true; }
+  if (s.who === 'oven') { folk().baker = 3; ovenBuild(true); ovenIn = true; /* step off and back on to open her card */ Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.15); xpGain(15); bldBadge(); BK.hop = 1; keyGive('map', OVEN.x, OVEN.z + 1.0); /* the map for the stone island bridge */ return true; }
   return false;
 }
 function ovenLevelUp() { BK.hop = 1; burst(OVEN.x, 1.3, OVEN.z, 10); bldPop = { g: ovenG, t: 0 }; }
