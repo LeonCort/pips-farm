@@ -59,6 +59,7 @@ function tierMigrate(I) {
   ['gem', 'hay', 'clay', 'ore', 'pie'].forEach((t) => { delete S[t]; });
   Object.keys(I.paid || {}).forEach((k) => { ['hay', 'clay', 'ore', 'gem'].forEach((t) => { delete I.paid[k][t]; }); });
   if (I.bld && I.bld.tool > 3) I.bld.tool = 3;
+  if (!I.dogV) { if (I.bld && I.bld.dog >= 4) I.bld.dog = 5; I.dogV = 2; } /* the courier trick came in as level 4; dogs that had saddlebags keep them (level 5) */
 }
 /* the axe, in the counter's picture style; axe2 copper, axe3 crystal */
 function tiersIcon(x, t) {
