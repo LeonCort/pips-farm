@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261125205104">
+<meta name="app-ver" content="20261125210340">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1161,23 +1161,26 @@ const AREAS = [
   { id: 'h1', i: 2, j: -1, biome: 'rocks', cost: { log: 8, berry: 3 }, chest: 'pick' },
   { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 10, stone: 4, berry: 4 } },
   { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag', ruin: [2.3, 1.0, -0.25], stairs: [-2.6, 2.2] },
-  { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
-  { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 } },
+  { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, finds: [['hive', -3.6, -2.0], ['hive', 3.7, -3.5], ['hive', -2.9, 3.3]], bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
+  { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', 2.5, -3.2], ['hive', -3.0, 2.6]] },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, berry: 12, stone: 10 }, ruin: [0.4, 0, 0.2] },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14 } },
   /* the stone island has no bridge: the only way there is the mine's tunnel under the sea, and the lift at its end (cave.js) */
-  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.4, 0] },
-  { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3] },
-  { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 } },
+  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.4, 0], finds: [['iron', -3.6, -3.0], ['iron', -3.0, 3.5], ['iron', 0.4, -4.1]] },
+  { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3], finds: [['iron', 3.4, 3.2]] },
+  { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 }, finds: [['iron', -3.2, -2.2]] },
   /* the winter island, east of the orchard, over a bridge */
   { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 34, berry: 16, stone: 20 }, bridge: { from: 'm2', x0: 17.4, z0: -16, x1: 22.6, z1: -16 } },
   { id: 'w1', i: 6, j: -9, biome: 'snow', cost: { log: 40, stone: 30, crystal: 8 }, ruin: [-2.5, 1.5, 0] },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
   { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 },
   /* the mine runs on west under the sea: a gallery behind rubble, then the lift room behind a rockfall */
-  { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1 },
-  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1 }
+  { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1, finds: [['copper', -3.5, -3.4], ['copper', -1.0, -4.0], ['copper', 2.6, -3.3], ['copper', 3.4, 3.3], ['copper', -3.2, 3.5]] },
+  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, finds: [['glow', 2.6, -3.6], ['glow', -0.8, -4.1], ['glow', 3.5, 3.4]] }
 ];
+/* the special finds (finds.js): what each find node gives, how many, and the tool level it needs */
+const FINDS = ['honey', 'copper', 'iron', 'glow'];
+const FIND_NODE = { hive: { t: 'honey', n: 1, tier: 1 }, copper: { t: 'copper', n: 2, tier: 1 }, iron: { t: 'iron', n: 2, tier: 2 }, glow: { t: 'glow', n: 1, tier: 3 } };
 const AREA_BY = {}; AREAS.forEach((a) => { AREA_BY[a.id] = a; a.cx = (a.i + 1) * GS; a.cz = (a.j + 1) * GS; });
 /* what each biome looks like: a tint over the grass */
 const BIOME_BEACH = { snow: '#c9dcf2', stone: '#a9a79c', clay: '#b9906e', cave: '#5d5249' }; /* the rim and the cliff under each island */
@@ -2157,8 +2160,8 @@ function isleIcon(x, t, cx, cy, s) {
   else if (t === 'clay') { x.beginPath(); x.moveTo(-19, 10); x.quadraticCurveTo(-18, -10, 0, -12); x.quadraticCurveTo(18, -10, 19, 10); x.closePath(); blob('#c9774a'); x.beginPath(); x.moveTo(-8, -4); x.quadraticCurveTo(0, -8, 8, -4); x.strokeStyle = '#f0b48c'; x.lineWidth = 2.6; x.stroke(); }
   else if (t === 'gem' || t === 'crystal') { x.beginPath(); x.moveTo(0, -20); x.lineTo(15, -6); x.lineTo(0, 20); x.lineTo(-15, -6); x.closePath(); blob('#7fd3ef'); x.beginPath(); x.moveTo(-15, -6); x.lineTo(15, -6); x.moveTo(0, -20); x.lineTo(-4, 20); x.lineWidth = 1.8; x.strokeStyle = '#3f9cc0'; x.stroke(); }
   else if (t === 'coin') { x.beginPath(); x.arc(0, 0, 17, 0, 7); blob('#f2c23c'); x.beginPath(); x.arc(0, 0, 11, 0, 7); x.lineWidth = 2.2; x.strokeStyle = '#c08a1a'; x.stroke(); x.fillStyle = '#fff2b0'; x.beginPath(); x.arc(-5, -6, 3, 0, 7); x.fill(); }
-  else if (t === 'pick' || t === 'pick2' || t === 'pick3') { x.beginPath(); x.moveTo(-3, -10); x.lineTo(3, 20); x.lineWidth = 6; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.2; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
-    x.beginPath(); x.moveTo(-22, -4); x.quadraticCurveTo(0, -22, 22, -4); x.quadraticCurveTo(0, t === 'pick' ? -12 : -3, -22, -4); x.closePath(); blob({ pick2: '#e0904f', pick3: '#7fd3ef' }[t] || '#c7ced6'); if (t === 'pick3') { x.fillStyle = '#e9fbff'; x.beginPath(); x.arc(-8, -11, 2.6, 0, 7); x.fill(); } }
+  else if (t === 'pick' || t === 'pick2' || t === 'pick3' || t === 'pick4') { x.beginPath(); x.moveTo(-3, -10); x.lineTo(3, 20); x.lineWidth = 6; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.2; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
+    x.beginPath(); x.moveTo(-22, -4); x.quadraticCurveTo(0, -22, 22, -4); x.quadraticCurveTo(0, t === 'pick' ? -12 : -3, -22, -4); x.closePath(); blob({ pick2: '#e0904f', pick3: '#7f93aa', pick4: '#7fd3ef' }[t] || '#c7ced6'); if (t === 'pick4') { x.fillStyle = '#e9fbff'; x.beginPath(); x.arc(-8, -11, 2.6, 0, 7); x.fill(); } }
   else if (t === 'bag') { x.beginPath(); x.moveTo(-12, -6); x.quadraticCurveTo(0, -24, 12, -6); x.lineWidth = 4; x.strokeStyle = '#7d5e4e'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink; x.beginPath(); x.moveTo(-18, -6); x.lineTo(18, -6); x.lineTo(14, 16); x.lineTo(-14, 16); x.closePath(); blob('#d9a56b'); x.beginPath(); x.moveTo(-16, 4); x.lineTo(16, 4); x.lineWidth = 2; x.strokeStyle = '#a8743f'; x.stroke(); }
   else if (t === 'bolt') { x.beginPath(); x.moveTo(4, -22); x.lineTo(-14, 4); x.lineTo(-1, 4); x.lineTo(-6, 22); x.lineTo(14, -4); x.lineTo(1, -4); x.closePath(); blob('#f7c948'); x.fillStyle = '#fff2b0'; x.beginPath(); x.moveTo(2, -15); x.lineTo(-7, -1); x.lineTo(-3, -1); x.closePath(); x.fill(); }
   else if (t === 'shovel') { x.beginPath(); x.moveTo(0, -22); x.lineTo(0, 6); x.lineWidth = 7; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.6; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
@@ -2180,8 +2183,9 @@ function isleIcon(x, t, cx, cy, s) {
   else if (t === 'tent') { x.beginPath(); x.moveTo(-22, 16); x.lineTo(0, -20); x.lineTo(22, 16); x.closePath(); blob('#e9684a'); x.beginPath(); x.moveTo(-7, 16); x.lineTo(0, 2); x.lineTo(7, 16); x.closePath(); blob('#7a3a2a');
     x.fillStyle = '#f4d76a'; const mn = new Path2D('M14 -24 A8 8 0 1 0 24 -12 A6 6 0 1 1 14 -24 Z'); x.fill(mn); x.lineWidth = 2; x.stroke(mn); }
   else if (t === 'ore') peopleIcon(x, t);
+  else if (FINDS.indexOf(t) >= 0) findIcon(x, t);
   else if (t === 'pie' || t === 'oven') bakeryIcon(x, t);
-  else if (t === 'axe' || t === 'axe2' || t === 'axe3') tiersIcon(x, t);
+  else if (/^axe/.test(t)) tiersIcon(x, t);
   else if (t === 'dog' || t === 'fetch' || t === 'dig' || t === 'paw') dogIcon(x, t);
   else if (['torch', 'coat', 'boots', 'web', 'bees', 'dark', 'rain', 'snowDeep'].indexOf(t) >= 0) gearIcon(x, t);
   else loopIcon(x, t);
@@ -2274,7 +2278,8 @@ const berryMat = new T.MeshStandardMaterial({ color: '#d6406a', roughness: 0.4 }
 function makeNode(kind, x, z, seed) {
   const g = new T.Group(); g.position.set(x, 0, z); g.rotation.y = hash(seed, 3) * 6.28; sc.add(g);
   const n = { kind, x, z, g, st: 'ready', hp: HITS[kind], t: 0, grow: 1, shake: 0, fall: 0, pop: 0, seed };
-  if (kind === 'shroom') { n.main = new T.Mesh(SHROOM_GEO, shroomMat); n.full = 1; g.add(n.main); }
+  if (FIND_NODE[kind]) findNode(n, g);
+  else if (kind === 'shroom') { n.main = new T.Mesh(SHROOM_GEO, shroomMat); n.full = 1; g.add(n.main); }
   else if (kind === 'crystal') { n.main = new T.Mesh(CRYSTAL_GEO, crystalMat); n.full = 0.9 + hash(seed, 4) * 0.3; n.main.scale.setScalar(n.full); g.add(n.main); }
   else if (kind === 'planks') { n.main = new T.Mesh(RUIN_BOARDS, MAT); n.main.castShadow = true; n.full = 1; g.add(n.main); }
   else if (kind === 'tree') { n.main = propTree(hash(seed, 2) > 0.7 || (areaAt(x, z) && areaAt(x, z).biome === 'snow') ? 'pine' : 'tree', seed, SHOW_T.tier || nodeTier('tree', x, z)); n.main.scale.setScalar(1.05 + hash(seed, 9) * 0.25); n.full = n.main.scale.x; g.add(n.main);
@@ -2305,6 +2310,7 @@ function areaClear(x, z) {
   for (const a of AREAS) { if (a.chest && Math.hypot(x - a.cx, z - a.cz) < 1.4) return false;
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
+    if (findKeep(a, x, z)) return false;
     if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
@@ -2324,6 +2330,7 @@ function areaFill(A, fresh) {
     const n = Math.sin(x * 0.45 + base * 0.13) + Math.cos(z * 0.41 - base * 0.07), k = LAYOUT[A.biome](x, z, hash(sd, 3), n); if (!k) continue;
     const nd = makeNode(k, x, z, sd); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); }
   }
+  findFill(A, fresh);
   if (A.chest && !state.isle.chests[A.id]) makeChest(A.cx, A.cz - 0.4, A.chest, A.id);
   if (A.ruin) makeRuin(A, fresh);
   if (A.stairs) stairsBuild(A, fresh);
@@ -2577,6 +2584,7 @@ function bridgeStep(dt) {
 
 /* ---- drops: chunks that pop out and wait to be picked up ---- */
 function dropOut(n) {
+  if (FIND_NODE[n.kind]) return findGot(n);
   const [t, k] = YIELD[n.kind];
   const kk = tierYield(n), lucky = xpLucky(n), out = Array(lucky ? kk * 2 : kk).fill(t), tr = TREASURE[n.kind]; xpGain(XP_FOR[n.kind] || 2); if (Math.random() < tr[1]) out.push(tr[0]);
   out.forEach((t) => { const m = itemModel(t), a = Math.random() * 6.28; m.position.set(n.x, 0.6, n.z); sc.add(m); drops.push({ m, t, vx: Math.cos(a) * 1.4, vz: Math.sin(a) * 1.4, vy: 3.2 + Math.random(), land: 0, wait: 0.15 });
@@ -2616,7 +2624,7 @@ function nodeStep(n, dt) {
     if (n.grow >= 1) { n.st = 'ready'; n.sleepG = 0; n.hp = nodeHits(n); } }
 }
 function nodeHit(n, side) {
-  n.hp -= hitPow(n); if (!side && toolTier() >= 3 && toolKind(n.kind)) wideHit(n); n.shake = byHand(n.kind) ? 0.12 : 0.28; hpShow(n);
+  n.hp -= hitPow(n); if (!side && toolTier() >= 3 && toolKind(n.kind)) wideHit(n, toolTier() >= 4 ? 3 : 1); n.shake = byHand(n.kind) ? 0.12 : 0.28; hpShow(n);
   const sx = n.x + (pip.position.x - n.x) * 0.4, sz = n.z + (pip.position.z - n.z) * 0.4;
   if (n.kind === 'tree' || n.kind === 'planks') Snd.play('tock', { gain: 0.55, f: 240 + Math.random() * 40 }); else if (PICKY[n.kind]) Snd.play(n.kind === 'clay' ? 'stamp' : 'impact', { gain: 0.35 }); else Snd.play('swish', { gain: 0.4 });
   if (n.kind !== 'bush' && n.kind !== 'grass') splash(sx, 0.6, sz, 3);
@@ -2983,18 +2991,20 @@ function enSleepStart() {
    harder, pulls the drops in from further away, and the crystal tools hit the thing next to it too.
    Things grow back after Pip has slept in the tent, not on a timer. */
 const BIOME_TIER = { home: 1, rocks: 1, berry: 1, meadow: 1, orchard: 2, stone: 2, clay: 2, cave: 2, snow: 3 };
-const TIER_MUL = [1, 1, 2.5, 5]; /* how big the pile is */
-const HIT_MUL = [1, 1, 1.5, 2]; /* how many more hits it takes, with the right tool */
+const TIER_MUL = [1, 1, 2.5, 5, 10]; /* how big the pile is */
+const HIT_MUL = [1, 1, 1.5, 2, 2.5]; /* how many more hits it takes, with the right tool */
 const HAND = { bush: 1, planks: 1, shroom: 1 }; /* always open: picked by hand, or a door's old boards */
 const toolTier = () => bldLv('tool');
 const toolKind = (k) => !HAND[k];
 function nodeTier(kind, x, z) {
+  if (FIND_NODE[kind]) return FIND_NODE[kind].tier; /* a find's level is its own, not the island's (finds.js) */
   if (HAND[kind]) return 1;
   const A = areaAt(x, z); let t = A ? BIOME_TIER[A.biome] || 1 : 1;
   if (kind === 'boulder' || kind === 'crystal') t = Math.max(t, 2);
   return t;
 }
 const nodeHits = (n) => HITS[n.kind] * HIT_MUL[n.tier || 1];
+/* (finds give their own fixed number: finds.js) */
 const tierYield = (n) => Math.max(1, Math.round(YIELD[n.kind][1] * TIER_MUL[n.tier || 1]));
 function gated(n) { return gearGate(n) || toolKind(n.kind) && ((NEED[n.kind] && !hasTool(n.kind)) || toolTier() < (n.tier || 1)); }
 function gateIcon(n) { if (gearGate(n)) return 'torch'; if (NEED[n.kind] && !hasTool(n.kind)) return 'pick'; const t = n.tier || 1; return (NEED[n.kind] ? 'pick' : 'axe') + (t > 1 ? t : ''); }
@@ -3006,9 +3016,9 @@ function tierInit(n) {
   if (n.tier >= 2 && (n.kind === 'tree' || n.kind === 'rock' || n.kind === 'crystal')) { const s = n.tier === 2 ? 1.3 : 1.5; n.main.scale.multiplyScalar(s); n.full *= s; }
 }
 /* the crystal tools: each swing also hits the nearest thing of the same kind next to it */
-function wideHit(n) {
-  let best = null, bd = 1.8; nodes.forEach((m) => { if (m === n || m.kind !== n.kind || m.st !== 'ready' || gated(m)) return; const d = Math.hypot(m.x - n.x, m.z - n.z); if (d < bd) { bd = d; best = m; } });
-  if (best) nodeHit(best, true);
+function wideHit(n, cnt) {
+  const near = []; nodes.forEach((m) => { if (m === n || m.kind !== n.kind || m.st !== 'ready' || gated(m)) return; const d = Math.hypot(m.x - n.x, m.z - n.z); if (d < 1.8) near.push([d, m]); });
+  near.sort((a, b) => a[0] - b[0]).slice(0, cnt || 1).forEach((q) => nodeHit(q[1], true)); /* the star tools reach three */
 }
 /* a weak tool bounces off: a little shake, a dull knock, and the bubble with the tool it needs */
 function tierBounce(n) { n.shake = 0.14; Snd.play('tock', { gain: 0.35, f: 150 }); isleHint(n); }
@@ -3035,15 +3045,15 @@ function tierMigrate(I) {
   const S = I.store; if (S.gem) S.crystal = (S.crystal || 0) + S.gem;
   ['gem', 'hay', 'clay', 'ore', 'pie'].forEach((t) => { delete S[t]; });
   Object.keys(I.paid || {}).forEach((k) => { ['hay', 'clay', 'ore', 'gem'].forEach((t) => { delete I.paid[k][t]; }); });
-  if (I.bld && I.bld.tool > 3) I.bld.tool = 3;
+  if (I.bld && I.bld.tool > 4) I.bld.tool = 4;
   if (!I.dogV) { if (I.bld && I.bld.dog >= 4) I.bld.dog = 5; I.dogV = 2; } /* the courier trick came in as level 4; dogs that had saddlebags keep them (level 5) */
 }
-/* the axe, in the counter's picture style; axe2 copper, axe3 crystal */
+/* the axe, in the counter's picture style; axe2 copper, axe3 iron, axe4 star crystal */
 function tiersIcon(x, t) {
   const blob = (f) => { x.fillStyle = f; x.fill(); x.stroke(); };
   x.beginPath(); x.moveTo(-10, 20); x.lineTo(8, -16); x.lineWidth = 7; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.6; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
-  x.beginPath(); x.moveTo(2, -14); x.quadraticCurveTo(-4, -24, 6, -24); x.lineTo(20, -18); x.quadraticCurveTo(24, -6, 16, 2); x.lineTo(4, -4); x.closePath(); blob({ axe2: '#e0904f', axe3: '#7fd3ef' }[t] || '#c7ced6');
-  if (t === 'axe3') { x.fillStyle = '#e9fbff'; x.beginPath(); x.arc(12, -14, 2.6, 0, 7); x.fill(); }
+  x.beginPath(); x.moveTo(2, -14); x.quadraticCurveTo(-4, -24, 6, -24); x.lineTo(20, -18); x.quadraticCurveTo(24, -6, 16, 2); x.lineTo(4, -4); x.closePath(); blob({ axe2: '#e0904f', axe3: '#7f93aa', axe4: '#7fd3ef' }[t] || '#c7ced6');
+  if (t === 'axe4') { x.fillStyle = '#e9fbff'; x.beginPath(); x.arc(12, -14, 2.6, 0, 7); x.fill(); }
 }
 /* ---------- the build menu (Leon's idea list, 2026-11-23): make the camp better ----------
    A hammer button opens two picture cards: the tent (a bigger tent, then a little hut: more energy) and the campfire
@@ -3052,7 +3062,7 @@ function tiersIcon(x, t) {
 const BLD = {
   tent: { max: 3, cost: [null, null, { log: 12, berry: 5 }, { log: 20, stone: 10, berry: 10 }], pic: [null, 'tent', 'tent', 'hut'] },
   fire: { max: 3, cost: [null, null, { log: 6, stone: 4 }, { log: 12, stone: 12, crystal: 2 }], pic: [null, 'fire', 'fire', 'fire'] },
-  tool: { max: 3, cost: [null, null, { stone: 14, log: 10, coin: 10 }, { crystal: 8, stone: 20, coin: 25 }], pic: [null, 'pick', 'pick2', 'pick3'] } /* at the smith's anvil (people.js) */
+  tool: { max: 4, cost: [null, null, { copper: 6, stone: 14, coin: 10 }, { iron: 6, crystal: 4, coin: 25 }, { glow: 3, crystal: 12, coin: 40 }], pic: [null, 'pick', 'pick2', 'pick3', 'pick4'] } /* at the smith's anvil (people.js) */
 };
 const bldKeys = () => ['tent', 'fire', 'dog'].concat(forgeUp() ? ['tool'] : [], ovenUp() ? ['oven'] : [], gearKeys());
 const bldLv = (k) => (state.isle && state.isle.bld && state.isle.bld[k]) || 1;
@@ -3183,7 +3193,7 @@ function bldEff(k, lv) {
   isleIcon(x, k === 'tool' ? 'perkHit' : k === 'oven' ? 'pie' : 'bolt', 30, 48, k === 'oven' ? 0.95 : 1.1);
   x.lineWidth = 4; x.strokeStyle = PAL.ink;
   if (k === 'oven') { if (lv >= 3) { isleIcon(x, 'pie', 30, 74, 0.7); } for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < Math.min(lv, 2) ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
-  else if (k === 'tool') { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } isleIcon(x, lv >= 3 ? 'axe3' : 'axe2', 78, 80, 0.5); }
+  else if (k === 'tool') { for (let q = 0; q < 4; q++) { x.beginPath(); x.moveTo(50 + q * 10, 30); x.lineTo(60 + q * 10, 48); x.lineTo(50 + q * 10, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 6; x.stroke(); } isleIcon(x, 'axe' + lv, 78, 80, 0.5); }
   else if (k === 'tent') { for (let q = 0; q < 3; q++) { x.beginPath(); x.roundRect(54, 70 - q * 22, 32, 16, 5); x.fillStyle = q < lv ? '#7cc85a' : '#e6d9bd'; x.fill(); x.stroke(); } }
   else { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
   return c;
@@ -6105,7 +6115,7 @@ if (window.__farmTest) window.__g2 = { make: (x, z) => { ['bunny', 'bear', 'fox'
    the stone islands and the cave need copper, the winter island crystal. A weaker tool just bounces off.
    state.isle.folk.smith: 0 in the cottage, 1 found (wants stones), 2 at the camp (forge plot), 3 forge built. */
 const TIER_NEED = {}; /* (old: ore) */
-const TIER_COL = [null, null, '#d9804a', '#62c8ee'];
+const TIER_COL = [null, null, '#d9804a', '#8496ab', '#62c8ee']; /* copper, iron, star crystal */
 function toolCol(hex) {
   let tr = 1; try { tr = toolTier(); } catch (e) {} /* the tools are first made before the game is loaded */
   const c = new T.Color(hex); if (tr < 2) return c;
@@ -6201,7 +6211,7 @@ function peopleInit() {
   if (!SM.g) SM.g = smithModel();
   SM.g.visible = F.smith >= 1 && (F.smith > 1 || HAS.h3); if (SM.g.visible) smithPlace();
   if (F.smith >= 3) forgeBuild(false);
-  tierSp.material.map = isleBubble('pick' + Math.min(3, toolTier() + 1));
+  tierSp.material.map = isleBubble('pick' + Math.min(4, toolTier() + 1));
   TOOL.re(); bakerInit(); loopInit(); hamSync(false); villageSync(false);
 }
 /* the cottage on h3 just opened: she steps out once the treasure has rolled out */
@@ -6235,7 +6245,7 @@ function peopleBuy(s) {
 /* a new tool level: the tools are made again in the new colour, sparks fly off the anvil and she hops */
 function toolUp() {
   TOOL.re(); SM.hop = 1; burst(ANVIL.x, 0.9, ANVIL.z, 10); splash(ANVIL.x, 0.7, ANVIL.z, 8);
-  tierSp.material.map = isleBubble('pick' + Math.min(3, toolTier() + 1)); hintSp.visible = false;
+  tierSp.material.map = isleBubble('pick' + Math.min(4, toolTier() + 1)); hintSp.visible = false;
   /* the new pick flies up out of the anvil to Pip */
   const sp = isleSprite(isleBubble('pick' + toolTier()), 0.9); sp.position.set(ANVIL.x, 1.0, ANVIL.z); sc.add(sp); SM.gift = { sp, t: 0 };
 }
@@ -6251,7 +6261,7 @@ function peopleGoal() {
 
 let anvilIn = false, hamT = 0;
 function peopleStep(dt) {
-  bakerStep(dt); loopStep(dt); hamStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
+  bakerStep(dt); loopStep(dt); hamStep(dt); findStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
   if (!SM.g) return;
   const F = folk(), g = SM.g, pp = pip.position;
   /* she steps out of the cottage */
@@ -6286,7 +6296,7 @@ function peopleStep(dt) {
     const inR = Math.hypot(pp.x - ANVIL_RING.x, pp.z - ANVIL_RING.z) < 0.55; if (!inR) anvilIn = false; else if (!anvilIn && BM.menu && BM.menu.hidden) { anvilOpen(); anvilIn = !BM.menu.hidden; } /* once per visit; waits for a new star's card */
     anvilRing.material.opacity = 0.55;
     /* over her head: the next tool she can make */
-    tierSp.visible = toolTier() < 3 && !SM.gift; if (tierSp.visible) { const can = bldCan('tool'); tierSp.position.set(g.position.x, 2.15 + (reduced ? 0 : Math.sin(time * 2) * 0.05), g.position.z); tierSp.scale.setScalar(0.8 * (can && !reduced ? 1 + Math.sin(time * 5) * 0.08 : 1)); tierSp.material.opacity = can ? 1 : 0.7; }
+    tierSp.visible = toolTier() < 4 && !SM.gift; if (tierSp.visible) { const can = bldCan('tool'); tierSp.position.set(g.position.x, 2.15 + (reduced ? 0 : Math.sin(time * 2) * 0.05), g.position.z); tierSp.scale.setScalar(0.8 * (can && !reduced ? 1 + Math.sin(time * 5) * 0.08 : 1)); tierSp.material.opacity = can ? 1 : 0.7; }
   }
   if (SM.gift) { const G = SM.gift; G.t += dt; G.sp.position.y = 1.0 + G.t * 1.6; G.sp.material.opacity = Math.max(0, 1 - Math.max(0, G.t - 0.9) * 2); if (G.t > 1.5) { sc.remove(G.sp); SM.gift = null; } }
 }
@@ -6918,7 +6928,7 @@ ISLAND.petRoute = landRoute; ISLAND.petLand = landKeep;
      snow boots: deep snow on the winter island slows Pip right down. Boots walk normally.
    When Pip meets an obstacle, a bubble shows the gear it needs, and from then on that gear has a card in the build menu. */
 const GEAR = {
-  torch: { cost: { log: 8, berry: 4, coin: 6 }, eff: ['web', 'bees', 'dark'] },
+  torch: { cost: { honey: 3, log: 8, coin: 6 }, eff: ['web', 'bees', 'dark'] },
   coat: { cost: { berry: 14, log: 6, coin: 12 }, eff: ['rain'] },
   boots: { cost: { log: 16, stone: 10, coin: 18 }, eff: ['snowDeep'] }
 };
@@ -7677,6 +7687,76 @@ function hamStep(dt) {
     A.h.forEach((h) => { const dx = pp.x - h[0], dz = pp.z - h[1], d = Math.hypot(dx, dz); if (d < 0.95 && d > 1e-4) { pp.x = h[0] + dx / d * 0.95; pp.z = h[1] + dz / d * 0.95; } });
     const dx = pp.x - A.crate[0], dz = pp.z - A.crate[1], d = Math.hypot(dx, dz); if (d < 0.55 && d > 1e-4) { pp.x = A.crate[0] + dx / d * 0.55; pp.z = A.crate[1] + dz / d * 0.55; } });
 }
+/* ---------- special finds (Leon, 2026-11-25: "special finds for gear unlocking") ----------
+   Four things that only turn up in one place each, and that a piece of gear or a tool level needs:
+     honey   honeycomb on the meadow's bee stumps (by hand)          -> the torch
+     copper  copper veins in the mine's west gallery (any pickaxe)   -> the copper tools (level 2)
+     iron    iron veins on the stone island (copper pickaxe)         -> the iron tools (level 3)
+     glow    star crystals in the mine's lift room (iron pickaxe)    -> the star tools (level 4)
+   They are not counters and not carried: a find goes straight into the store as a small number, and shows only as a
+   price on the card that needs it. Where they stand is set by hand, per area (rules.js: finds). They come back after sleeping. */
+/* FINDS and FIND_NODE are in rules.js: pictures are drawn before this file is read */
+const FD = { floats: [] };
+Object.keys(FIND_NODE).forEach((k) => { const F = FIND_NODE[k], hand = k === 'hive';
+  YIELD[k] = [F.t, F.n]; HITS[k] = hand ? 3 : 8; REGROW[k] = [1e9, 0]; LOW[k] = hand ? 0.02 : 0.35; NODE_R[k] = hand ? 0.4 : 0.55; TREASURE[k] = ['coin', 0];
+  XP_FOR[k] = 6; HP_H[k] = hand ? 1.25 : 1.3; EN_COST[k] = 2; if (hand) HAND[k] = 1; else { NEED[k] = 'pick'; PICKY[k] = 1; } });
+
+function findIcon(x, t) {
+  const blob = (f) => { x.fillStyle = f; x.fill(); x.stroke(); };
+  if (t === 'honey') { [[-9, -7], [9, -7], [0, 9]].forEach(([a, b], k) => { x.beginPath(); for (let q = 0; q < 6; q++) { const an = q / 6 * Math.PI * 2 + Math.PI / 6; x.lineTo(a + Math.cos(an) * 10.5, b + Math.sin(an) * 10.5); } x.closePath(); blob(k === 2 ? '#f2a13c' : '#f7c948'); });
+    x.fillStyle = '#fff2b0'; x.beginPath(); x.arc(-12, -10, 2.6, 0, 7); x.fill(); }
+  else if (t === 'copper' || t === 'iron') { const c = t === 'copper' ? ['#e0904f', '#f6c59a', '#b5622c'] : ['#8fa0b4', '#dfe7ef', '#5d6c7e'];
+    x.beginPath(); x.moveTo(-18, 8); x.lineTo(-14, -8); x.lineTo(0, -15); x.lineTo(16, -8); x.lineTo(19, 8); x.lineTo(4, 15); x.closePath(); blob(c[0]);
+    x.beginPath(); x.moveTo(-14, -8); x.lineTo(-2, 0); x.lineTo(16, -8); x.moveTo(-2, 0); x.lineTo(4, 15); x.lineWidth = 2; x.strokeStyle = c[2]; x.stroke();
+    x.fillStyle = c[1]; x.beginPath(); x.moveTo(-8, -7); x.lineTo(0, -11); x.lineTo(4, -8); x.lineTo(-3, -4); x.closePath(); x.fill(); }
+  else if (t === 'glow') { x.beginPath(); for (let q = 0; q < 8; q++) { const r = q % 2 ? 7 : 22, a = q / 8 * Math.PI * 2 - Math.PI / 2; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.closePath(); blob('#ffe07a');
+    x.beginPath(); x.moveTo(0, -22); x.lineTo(0, 22); x.moveTo(-22, 0); x.lineTo(22, 0); x.lineWidth = 1.6; x.strokeStyle = '#f2a13c'; x.stroke(); x.fillStyle = '#ffffff'; x.beginPath(); x.arc(-3, -4, 3, 0, 7); x.fill(); }
+}
+/* ---- how they look ---- */
+const findFlat = (L) => merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), MAT, new T.Group()).geometry;
+const FIND_GEO = {};
+function findGeo(k) {
+  if (FIND_GEO[k]) return FIND_GEO[k]; const L = []; let q;
+  if (k === 'hive') { /* the honeycomb: a stack of golden six-sided cakes, dripping */
+    [[0, 0.5, 0.2, 0.1], [0.03, 0.61, 0.23, 0.1], [-0.02, 0.72, 0.19, 0.1], [0.02, 0.82, 0.13, 0.08]].forEach(([x, y, r, h], i) => { q = new T.CylinderGeometry(r, r * 0.95, h, 6); q.rotateY(i * 0.5); q.translate(x, y, 0); L.push(fac(q, (cx, cy, cz, f) => tone(i % 2 ? '#f7c948' : '#f2a13c', f, 0.35), 2800 + i)); });
+    [[0.17, 0.5], [-0.14, 0.58], [0.05, 0.47]].forEach(([x, y], i) => { q = ico(0.045, 1, 2810 + i); q.scale(1, 1.7, 1); q.translate(x, y, 0.14 - i * 0.12); L.push(fac(q, () => new T.Color('#ffd76a'), 2810 + i)); });
+  } else if (k === 'hiveBase') { /* an old stump the bees moved into */
+    q = new T.CylinderGeometry(0.27, 0.34, 0.46, 9); jit(q, 0.02, 2820); q.translate(0, 0.23, 0); L.push(fac(q, (cx, cy, cz, f) => (cy > 0.44 ? tone('#e7c48f', f, 0.3) : shadeY('#8a5f3c', cy, 0, 0.46, f, 0.5)), 2820));
+    [0.9, 2.6, 4.4].forEach((a, i) => { q = ico(0.11, 0, 2822 + i); q.scale(1.5, 0.6, 1); q.translate(Math.cos(a) * 0.34, 0.05, Math.sin(a) * 0.34); L.push(fac(q, () => tone('#74a857', i, 0.5), 2822 + i)); });
+  } else if (k === 'glow') { /* a star crystal: tall pale-gold spikes */
+    [[0, 0, 0.78, 0, 0], [0.2, 0.08, 0.5, 0.45, 0.2], [-0.2, 0.04, 0.55, -0.4, -0.2], [0.02, -0.2, 0.42, 0.1, -0.5], [-0.08, 0.2, 0.36, -0.15, 0.5]].forEach(([x, z, h, rz, rx], i) => { q = new T.OctahedronGeometry(0.13, 0); q.scale(1, h / 0.13 * 0.5, 1); q.translate(0, h * 0.45, 0); q.rotateZ(rz); q.rotateX(rx); q.translate(x, 0, z);
+      L.push(fac(q, (cx, cy, cz, f) => new T.Color(f % 3 === 0 ? '#ffffff' : i % 2 ? '#ffd76a' : '#fff3b0'), 2830 + i)); });
+    q = ico(0.22, 0, 2836); q.scale(1.3, 0.5, 1.2); q.translate(0, 0.05, 0); L.push(fac(q, '#6a625a', 2836));
+  } else { /* a vein: a dark rock shot through with metal, and nuggets sitting on it */
+    const c = k === 'copper' ? ['#e8914a', '#f6b987'] : ['#a9c4e6', '#eef5fc'];
+    q = ico(0.52, 1, 2840, 0.07); q.scale(1.15, 0.78, 1); q.translate(0, 0.3, 0); L.push(fac(q, (cx, cy, cz, f) => (f % 4 === 0 ? tone(c[0], f, 0.4) : shadeY('#474d57', cy, 0, 0.7, f, 0.5)), k === 'copper' ? 2840 : 2841));
+    [[0.3, 0.52, 0.18], [-0.26, 0.56, -0.1], [0.02, 0.68, 0.02], [-0.36, 0.3, 0.3], [0.42, 0.26, -0.26], [0.1, 0.4, 0.44]].forEach(([x, y, z], i) => { q = ico(0.13 + (i % 3) * 0.03, 0, 2850 + i); q.translate(x, y, z); L.push(fac(q, (cx, cy, cz, f) => new T.Color(c[f % 2]), 2850 + i)); });
+  }
+  return (FIND_GEO[k] = findFlat(L));
+}
+let findGlowMat = null;
+/* called by makeNode (isle.js) for the kinds above */
+function findNode(n, g) {
+  const k = n.kind;
+  if (k === 'glow') { findGlowMat = findGlowMat || (() => { const m = crystalMat.clone(); m.emissive = new T.Color('#c9962a'); m.emissiveIntensity = 0.75; return m; })(); n.main = new T.Mesh(findGeo(k), findGlowMat); }
+  else { n.main = new T.Mesh(findGeo(k), MAT); n.main.castShadow = true; n.main.receiveShadow = true; }
+  n.full = k === 'hive' ? 1 : 0.95 + hash(n.seed, 4) * 0.2; n.main.scale.setScalar(n.full); g.add(n.main);
+  if (k === 'hive') { const b = new T.Mesh(findGeo('hiveBase'), MAT); b.castShadow = true; b.receiveShadow = true; g.add(b); }
+}
+/* the find goes straight to the store, and a picture with its number floats up where it was */
+function findGot(n) {
+  const [t, c] = YIELD[n.kind]; state.isle.store[t] = (state.isle.store[t] || 0) + c; xpGain(XP_FOR[n.kind]);
+  const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, c), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(n.x, 1.5, n.z); sc.add(sp); FD.floats.push({ sp, t: 0 });
+  Snd.play('sparkle', { gain: 0.45 }); burst(n.x, 1.0, n.z, 6); bldBadge(); save();
+}
+function findStep(dt) {
+  for (let k = FD.floats.length - 1; k >= 0; k--) { const G = FD.floats[k]; G.t += dt;
+    G.sp.position.y = 1.5 + Math.min(1, G.t / 0.5) * 0.7 + G.t * 0.12; G.sp.material.opacity = G.t > 1.4 ? Math.max(0, 1 - (G.t - 1.4) * 2.5) : 1;
+    if (G.t > 1.8) { sc.remove(G.sp); G.sp.material.map.dispose(); FD.floats.splice(k, 1); } }
+}
+/* the finds an area holds, at fixed spots (rules.js) */
+function findFill(A, fresh) { (A.finds || []).forEach(([k, dx, dz], q) => { const n = makeNode(k, A.cx + dx, A.cz + dz, AREAS.indexOf(A) * 997 + 900 + q); if (fresh) { n.pop = 0.001; n.g.scale.setScalar(0.01); } }); }
+const findKeep = (a, x, z) => !!a.finds && a.finds.some((f) => Math.hypot(x - a.cx - f[1], z - a.cz - f[2]) < 1.5);
 /* ---------- props rebuilt for the highest graphics level (Leon, 2026-11-25): the chest, the boat, the old cottage
    and the two tents. They were a handful of flat boxes; now they are made of boards, stones, cloth panels and shingles
    like the hut and the forge. Only functions in this file: the files before it in the list call them. ---------- */

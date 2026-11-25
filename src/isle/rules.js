@@ -22,23 +22,26 @@ const AREAS = [
   { id: 'h1', i: 2, j: -1, biome: 'rocks', cost: { log: 8, berry: 3 }, chest: 'pick' },
   { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 10, stone: 4, berry: 4 } },
   { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag', ruin: [2.3, 1.0, -0.25], stairs: [-2.6, 2.2] },
-  { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
-  { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 } },
+  { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, finds: [['hive', -3.6, -2.0], ['hive', 3.7, -3.5], ['hive', -2.9, 3.3]], bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
+  { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', 2.5, -3.2], ['hive', -3.0, 2.6]] },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, berry: 12, stone: 10 }, ruin: [0.4, 0, 0.2] },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14 } },
   /* the stone island has no bridge: the only way there is the mine's tunnel under the sea, and the lift at its end (cave.js) */
-  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.4, 0] },
-  { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3] },
-  { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 } },
+  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.4, 0], finds: [['iron', -3.6, -3.0], ['iron', -3.0, 3.5], ['iron', 0.4, -4.1]] },
+  { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3], finds: [['iron', 3.4, 3.2]] },
+  { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 }, finds: [['iron', -3.2, -2.2]] },
   /* the winter island, east of the orchard, over a bridge */
   { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 34, berry: 16, stone: 20 }, bridge: { from: 'm2', x0: 17.4, z0: -16, x1: 22.6, z1: -16 } },
   { id: 'w1', i: 6, j: -9, biome: 'snow', cost: { log: 40, stone: 30, crystal: 8 }, ruin: [-2.5, 1.5, 0] },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
   { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 },
   /* the mine runs on west under the sea: a gallery behind rubble, then the lift room behind a rockfall */
-  { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1 },
-  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1 }
+  { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1, finds: [['copper', -3.5, -3.4], ['copper', -1.0, -4.0], ['copper', 2.6, -3.3], ['copper', 3.4, 3.3], ['copper', -3.2, 3.5]] },
+  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, finds: [['glow', 2.6, -3.6], ['glow', -0.8, -4.1], ['glow', 3.5, 3.4]] }
 ];
+/* the special finds (finds.js): what each find node gives, how many, and the tool level it needs */
+const FINDS = ['honey', 'copper', 'iron', 'glow'];
+const FIND_NODE = { hive: { t: 'honey', n: 1, tier: 1 }, copper: { t: 'copper', n: 2, tier: 1 }, iron: { t: 'iron', n: 2, tier: 2 }, glow: { t: 'glow', n: 1, tier: 3 } };
 const AREA_BY = {}; AREAS.forEach((a) => { AREA_BY[a.id] = a; a.cx = (a.i + 1) * GS; a.cz = (a.j + 1) * GS; });
 /* what each biome looks like: a tint over the grass */
 const BIOME_BEACH = { snow: '#c9dcf2', stone: '#a9a79c', clay: '#b9906e', cave: '#5d5249' }; /* the rim and the cliff under each island */

@@ -6,18 +6,20 @@
    harder, pulls the drops in from further away, and the crystal tools hit the thing next to it too.
    Things grow back after Pip has slept in the tent, not on a timer. */
 const BIOME_TIER = { home: 1, rocks: 1, berry: 1, meadow: 1, orchard: 2, stone: 2, clay: 2, cave: 2, snow: 3 };
-const TIER_MUL = [1, 1, 2.5, 5]; /* how big the pile is */
-const HIT_MUL = [1, 1, 1.5, 2]; /* how many more hits it takes, with the right tool */
+const TIER_MUL = [1, 1, 2.5, 5, 10]; /* how big the pile is */
+const HIT_MUL = [1, 1, 1.5, 2, 2.5]; /* how many more hits it takes, with the right tool */
 const HAND = { bush: 1, planks: 1, shroom: 1 }; /* always open: picked by hand, or a door's old boards */
 const toolTier = () => bldLv('tool');
 const toolKind = (k) => !HAND[k];
 function nodeTier(kind, x, z) {
+  if (FIND_NODE[kind]) return FIND_NODE[kind].tier; /* a find's level is its own, not the island's (finds.js) */
   if (HAND[kind]) return 1;
   const A = areaAt(x, z); let t = A ? BIOME_TIER[A.biome] || 1 : 1;
   if (kind === 'boulder' || kind === 'crystal') t = Math.max(t, 2);
   return t;
 }
 const nodeHits = (n) => HITS[n.kind] * HIT_MUL[n.tier || 1];
+/* (finds give their own fixed number: finds.js) */
 const tierYield = (n) => Math.max(1, Math.round(YIELD[n.kind][1] * TIER_MUL[n.tier || 1]));
 function gated(n) { return gearGate(n) || toolKind(n.kind) && ((NEED[n.kind] && !hasTool(n.kind)) || toolTier() < (n.tier || 1)); }
 function gateIcon(n) { if (gearGate(n)) return 'torch'; if (NEED[n.kind] && !hasTool(n.kind)) return 'pick'; const t = n.tier || 1; return (NEED[n.kind] ? 'pick' : 'axe') + (t > 1 ? t : ''); }
@@ -29,9 +31,9 @@ function tierInit(n) {
   if (n.tier >= 2 && (n.kind === 'tree' || n.kind === 'rock' || n.kind === 'crystal')) { const s = n.tier === 2 ? 1.3 : 1.5; n.main.scale.multiplyScalar(s); n.full *= s; }
 }
 /* the crystal tools: each swing also hits the nearest thing of the same kind next to it */
-function wideHit(n) {
-  let best = null, bd = 1.8; nodes.forEach((m) => { if (m === n || m.kind !== n.kind || m.st !== 'ready' || gated(m)) return; const d = Math.hypot(m.x - n.x, m.z - n.z); if (d < bd) { bd = d; best = m; } });
-  if (best) nodeHit(best, true);
+function wideHit(n, cnt) {
+  const near = []; nodes.forEach((m) => { if (m === n || m.kind !== n.kind || m.st !== 'ready' || gated(m)) return; const d = Math.hypot(m.x - n.x, m.z - n.z); if (d < 1.8) near.push([d, m]); });
+  near.sort((a, b) => a[0] - b[0]).slice(0, cnt || 1).forEach((q) => nodeHit(q[1], true)); /* the star tools reach three */
 }
 /* a weak tool bounces off: a little shake, a dull knock, and the bubble with the tool it needs */
 function tierBounce(n) { n.shake = 0.14; Snd.play('tock', { gain: 0.35, f: 150 }); isleHint(n); }
@@ -58,13 +60,13 @@ function tierMigrate(I) {
   const S = I.store; if (S.gem) S.crystal = (S.crystal || 0) + S.gem;
   ['gem', 'hay', 'clay', 'ore', 'pie'].forEach((t) => { delete S[t]; });
   Object.keys(I.paid || {}).forEach((k) => { ['hay', 'clay', 'ore', 'gem'].forEach((t) => { delete I.paid[k][t]; }); });
-  if (I.bld && I.bld.tool > 3) I.bld.tool = 3;
+  if (I.bld && I.bld.tool > 4) I.bld.tool = 4;
   if (!I.dogV) { if (I.bld && I.bld.dog >= 4) I.bld.dog = 5; I.dogV = 2; } /* the courier trick came in as level 4; dogs that had saddlebags keep them (level 5) */
 }
-/* the axe, in the counter's picture style; axe2 copper, axe3 crystal */
+/* the axe, in the counter's picture style; axe2 copper, axe3 iron, axe4 star crystal */
 function tiersIcon(x, t) {
   const blob = (f) => { x.fillStyle = f; x.fill(); x.stroke(); };
   x.beginPath(); x.moveTo(-10, 20); x.lineTo(8, -16); x.lineWidth = 7; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3.6; x.strokeStyle = '#a8774f'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
-  x.beginPath(); x.moveTo(2, -14); x.quadraticCurveTo(-4, -24, 6, -24); x.lineTo(20, -18); x.quadraticCurveTo(24, -6, 16, 2); x.lineTo(4, -4); x.closePath(); blob({ axe2: '#e0904f', axe3: '#7fd3ef' }[t] || '#c7ced6');
-  if (t === 'axe3') { x.fillStyle = '#e9fbff'; x.beginPath(); x.arc(12, -14, 2.6, 0, 7); x.fill(); }
+  x.beginPath(); x.moveTo(2, -14); x.quadraticCurveTo(-4, -24, 6, -24); x.lineTo(20, -18); x.quadraticCurveTo(24, -6, 16, 2); x.lineTo(4, -4); x.closePath(); blob({ axe2: '#e0904f', axe3: '#7f93aa', axe4: '#7fd3ef' }[t] || '#c7ced6');
+  if (t === 'axe4') { x.fillStyle = '#e9fbff'; x.beginPath(); x.arc(12, -14, 2.6, 0, 7); x.fill(); }
 }

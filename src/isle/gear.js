@@ -6,7 +6,7 @@
      snow boots: deep snow on the winter island slows Pip right down. Boots walk normally.
    When Pip meets an obstacle, a bubble shows the gear it needs, and from then on that gear has a card in the build menu. */
 const GEAR = {
-  torch: { cost: { log: 8, berry: 4, coin: 6 }, eff: ['web', 'bees', 'dark'] },
+  torch: { cost: { honey: 3, log: 8, coin: 6 }, eff: ['web', 'bees', 'dark'] },
   coat: { cost: { berry: 14, log: 6, coin: 12 }, eff: ['rain'] },
   boots: { cost: { log: 16, stone: 10, coin: 18 }, eff: ['snowDeep'] }
 };
