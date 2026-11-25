@@ -466,9 +466,12 @@ function nodeStep(n, dt) {
     if (n.fall > 1.4) { n.st = 'gone'; n.main.visible = false; n.main.rotation.z = 0; n.main.position.y = 0; } return; }
   if (n.st === 'gone') { n.t -= dt; if (n.t <= 0) { n.st = 'grow'; n.grow = 0.2; n.main.visible = true;
       if (n.kind === 'tree') { n.stump.visible = false; } if (n.kind === 'bush') n.berries.visible = true; } }
-  if (n.st === 'grow') { const tg = REGROW[n.kind][1], lo = LOW[n.kind]; n.grow = tg ? Math.min(1, n.grow + dt / tg) : 1; n.main.scale.setScalar(n.full * (lo ? lo + (1 - lo) * n.grow : n.grow));
+  if (n.st === 'grow') { const tg = REGROW[n.kind][1], lo = LOW[n.kind];
+    if (n.sleepG) { n.sleepG -= dt; if (n.sleepG > 0) return; n.sleepG = -1; n.grow = Math.min(1, n.grow + dt / 2.3); } /* growing back while Pip sleeps: seen, and done by morning (tiers.js sleepGrow) */
+    else n.grow = tg ? Math.min(1, n.grow + dt / tg) : 1;
+    const gq = n.sleepG ? 1 - Math.pow(1 - n.grow, 2.2) : n.grow; n.main.scale.setScalar(n.full * (lo ? lo + (1 - lo) * gq : gq));
     if (n.kind === 'bush') { n.main.scale.setScalar(1); n.berries.children.forEach((b, k) => { b.scale.setScalar(Math.min(1, n.grow * 1.3)); }); }
-    if (n.grow >= 1) { n.st = 'ready'; n.hp = nodeHits(n); } }
+    if (n.grow >= 1) { n.st = 'ready'; n.sleepG = 0; n.hp = nodeHits(n); } }
 }
 function nodeHit(n, side) {
   n.hp -= hitPow(n); if (!side && toolTier() >= 3 && toolKind(n.kind)) wideHit(n); n.shake = byHand(n.kind) ? 0.12 : 0.28; hpShow(n);
@@ -809,6 +812,7 @@ function enStep(dt) {
   /* asleep in the tent: the night runs by fast and the bar fills; then Pip crawls out in the morning */
   const S = enSleep; S.t += dt; const q = Math.min(1, Math.max(0, (S.t - 0.6) / 3.0)), e = q * q * (3 - 2 * q);
   if (S.t > 0.6) { state.clock = S.from + (S.to - S.from) * e; clockPinned = true; }
+  if (S.t > 0.6 && !S.grew) { S.grew = 1; sleepGrow(); }
   I.en = S.en0 + (enMax() - S.en0) * e;
   const u = Math.min(1, S.t / 0.6); /* walk into the door, shrinking */
   pip.position.set(R.x + (S.dx - R.x) * u, 0, R.z + (S.dz - R.z) * u); pip.scale.setScalar(Math.max(0.01, 1 - u * 0.9)); pip.visible = u < 1; target.copy(pip.position);

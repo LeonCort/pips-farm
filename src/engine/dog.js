@@ -76,7 +76,10 @@ function dogStep(dt) {
     }
     d.barkT -= dt; if (d.barkT <= 0) { d.barkT = 16 + Math.random() * 26; if (dd < 7) bark(0.45); }
   }
+  /* the island: the pet goes round by land and over the bridges, never across the sea (isledog.js) */
+  if (ISL.petRoute && !home) { const q = ISL.petRoute(d, tx, tz); if (q) { tx = q[0]; tz = q[1]; } else if (d.chase && !isNight) { p.set(pp.x - 0.8, 0, pp.z + 0.4); tx = p.x; tz = p.z; } else { tx = p.x; tz = p.z; } }
   const moving = !walkTo(d.g, tx, tz, dt, sp);
+  if (ISL.petLand && !home) ISL.petLand(p);
   d.asleep = isNight && !moving && !home;
   if (d.kind !== 'dog') { petAnim(d, moving, sp, dt, away ? null : pp); zzz(d, d.asleep, dt); return; }
   const run = moving ? (sp > 2 ? 16 : 10) : 0;

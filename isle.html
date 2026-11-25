@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261125190210">
+<meta name="app-ver" content="20261125190744">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2578,9 +2578,12 @@ function nodeStep(n, dt) {
     if (n.fall > 1.4) { n.st = 'gone'; n.main.visible = false; n.main.rotation.z = 0; n.main.position.y = 0; } return; }
   if (n.st === 'gone') { n.t -= dt; if (n.t <= 0) { n.st = 'grow'; n.grow = 0.2; n.main.visible = true;
       if (n.kind === 'tree') { n.stump.visible = false; } if (n.kind === 'bush') n.berries.visible = true; } }
-  if (n.st === 'grow') { const tg = REGROW[n.kind][1], lo = LOW[n.kind]; n.grow = tg ? Math.min(1, n.grow + dt / tg) : 1; n.main.scale.setScalar(n.full * (lo ? lo + (1 - lo) * n.grow : n.grow));
+  if (n.st === 'grow') { const tg = REGROW[n.kind][1], lo = LOW[n.kind];
+    if (n.sleepG) { n.sleepG -= dt; if (n.sleepG > 0) return; n.sleepG = -1; n.grow = Math.min(1, n.grow + dt / 2.3); } /* growing back while Pip sleeps: seen, and done by morning (tiers.js sleepGrow) */
+    else n.grow = tg ? Math.min(1, n.grow + dt / tg) : 1;
+    const gq = n.sleepG ? 1 - Math.pow(1 - n.grow, 2.2) : n.grow; n.main.scale.setScalar(n.full * (lo ? lo + (1 - lo) * gq : gq));
     if (n.kind === 'bush') { n.main.scale.setScalar(1); n.berries.children.forEach((b, k) => { b.scale.setScalar(Math.min(1, n.grow * 1.3)); }); }
-    if (n.grow >= 1) { n.st = 'ready'; n.hp = nodeHits(n); } }
+    if (n.grow >= 1) { n.st = 'ready'; n.sleepG = 0; n.hp = nodeHits(n); } }
 }
 function nodeHit(n, side) {
   n.hp -= hitPow(n); if (!side && toolTier() >= 3 && toolKind(n.kind)) wideHit(n); n.shake = byHand(n.kind) ? 0.12 : 0.28; hpShow(n);
@@ -2921,6 +2924,7 @@ function enStep(dt) {
   /* asleep in the tent: the night runs by fast and the bar fills; then Pip crawls out in the morning */
   const S = enSleep; S.t += dt; const q = Math.min(1, Math.max(0, (S.t - 0.6) / 3.0)), e = q * q * (3 - 2 * q);
   if (S.t > 0.6) { state.clock = S.from + (S.to - S.from) * e; clockPinned = true; }
+  if (S.t > 0.6 && !S.grew) { S.grew = 1; sleepGrow(); }
   I.en = S.en0 + (enMax() - S.en0) * e;
   const u = Math.min(1, S.t / 0.6); /* walk into the door, shrinking */
   pip.position.set(R.x + (S.dx - R.x) * u, 0, R.z + (S.dz - R.z) * u); pip.scale.setScalar(Math.max(0.01, 1 - u * 0.9)); pip.visible = u < 1; target.copy(pip.position);
@@ -2981,9 +2985,18 @@ function tierBounce(n) { n.shake = 0.14; Snd.play('tock', { gain: 0.35, f: 150 }
 const sleepRegrow = (n) => (HAND[n.kind] && n.kind !== 'bush' ? REGROW[n.kind][0] : 1e9);
 /* Leon 2026-11-25: everything grows back DURING the night, so when Pip wakes it is all there, nothing left to wait for */
 function nodeGrown(n) {
-  n.st = 'ready'; n.grow = 1; n.t = 0; n.hp = nodeHits(n); n.main.visible = true; n.main.rotation.set(0, 0, 0); n.main.position.y = 0;
+  n.st = 'ready'; n.grow = 1; n.t = 0; n.sleepG = 0; n.hp = nodeHits(n); n.main.visible = true; n.main.rotation.set(0, 0, 0); n.main.position.y = 0;
   if (n.kind === 'tree' && n.stump) n.stump.visible = false;
   if (n.kind === 'bush') { n.main.scale.setScalar(1); if (n.berries) { n.berries.visible = true; n.berries.children.forEach((b) => b.scale.setScalar(1)); } } else n.main.scale.setScalar(n.full);
+}
+/* Leon 2026-11-25 (later): but it should be SEEN growing, not pop in: as Pip falls asleep every felled tree, mined rock and
+   picked bush starts growing, one after the other, and is full size before Pip crawls out (tierWake then only tidies up) */
+function sleepGrow() {
+  nodes.forEach((n, k) => { if (n.kind === 'planks' || !(n.st === 'gone' || n.st === 'grow' || n.st === 'fall')) return;
+    n.st = 'grow'; n.grow = 0.02; n.sleepG = 0.02 + hash(k, 77) * 0.8; n.main.visible = true; n.main.rotation.set(0, 0, 0); n.main.position.y = 0;
+    const lo = LOW[n.kind]; n.main.scale.setScalar(n.kind === 'bush' ? 1 : n.full * (lo || 0.02));
+    if (n.kind === 'tree' && n.stump) n.stump.visible = false;
+    if (n.kind === 'bush' && n.berries) { n.berries.visible = true; n.berries.children.forEach((b) => b.scale.setScalar(0.02)); } });
 }
 function tierWake() { dogWake(); villageWake(); nodes.forEach((n) => { if (n.kind !== 'planks' && (n.st === 'gone' || n.st === 'grow' || n.st === 'fall')) nodeGrown(n); }); }
 /* old saves: gems are crystals now; hay, clay, ore and pies are gone */
@@ -4133,7 +4146,10 @@ function dogStep(dt) {
     }
     d.barkT -= dt; if (d.barkT <= 0) { d.barkT = 16 + Math.random() * 26; if (dd < 7) bark(0.45); }
   }
+  /* the island: the pet goes round by land and over the bridges, never across the sea (isledog.js) */
+  if (ISL.petRoute && !home) { const q = ISL.petRoute(d, tx, tz); if (q) { tx = q[0]; tz = q[1]; } else if (d.chase && !isNight) { p.set(pp.x - 0.8, 0, pp.z + 0.4); tx = p.x; tz = p.z; } else { tx = p.x; tz = p.z; } }
   const moving = !walkTo(d.g, tx, tz, dt, sp);
+  if (ISL.petLand && !home) ISL.petLand(p);
   d.asleep = isNight && !moving && !home;
   if (d.kind !== 'dog') { petAnim(d, moving, sp, dt, away ? null : pp); zzz(d, d.asleep, dt); return; }
   const run = moving ? (sp > 2 ? 16 : 10) : 0;
@@ -5087,6 +5103,8 @@ function wanderPick(w) {
   const p = w.d.g.position; let k = 0, x, z;
   do { const n = RG.n[Math.floor(Math.random() * RG.n.length)]; x = n[0]; z = n[1]; k++; } while (k < 20 && (Math.hypot(x - p.x, z - p.z) > 14 || Math.hypot(x - p.x, z - p.z) < 3 || z > 11.5));
   w.path = roadPath(p.x, p.z, x, z); w.i = 0;
+  /* the island: streets on land that is still under the sea are not there yet */
+  if (ISL.roadOk && w.path) { const bad = w.path.findIndex((q) => !ISL.roadOk(q[0], q[1])); if (bad >= 0) w.path.length = bad; if (!w.path.length) { w.path = null; w.wait = 1.5; } }
 }
 function wanderStep(w, dt) {
   const d = w.d, p = d.g.position, pp = pip.position, near = !inHouse && !trip && Math.hypot(pp.x - p.x, pp.z - p.z) < 2.4;
@@ -5095,7 +5113,7 @@ function wanderStep(w, dt) {
   else if (near) { if (!w.hi) { w.hi = true; d.hop = 1; petVoice(d.kind, 0.35); } }
   else if (w.path) {
     const q = w.path[w.i]; if (!q) w.path = null;
-    else if (walkTo(d.g, q[0], q[1], dt, sp)) { w.i++; if (w.i >= w.path.length) { w.path = null; w.wait = 2.5 + Math.random() * 5; } }
+    else if (walkTo(d.g, q[0], q[1], dt, sp) | (ISL.petLand ? (ISL.petLand(p), 0) : 0)) { w.i++; if (w.i >= w.path.length) { w.path = null; w.wait = 2.5 + Math.random() * 5; } }
     else moving = true;
   } else { w.wait -= dt; if (w.wait <= 0) wanderPick(w); }
   if (!near && Math.hypot(pp.x - p.x, pp.z - p.z) > 3.2) w.hi = false;
@@ -6740,6 +6758,46 @@ function dogEff(x, lv) {
 }
 function dogUp() { dogBagSync(); const p = dog.g.position; burst(p.x, 1.0, p.z, 8); dog.hop = 1; bark(0.6); camFocus.set(p.x, 0, p.z); DG.cool = 1; }
 const dogTest = () => ({ lv: dogLv(), mode: DG.mode, cap: cap(), dug: Object.assign({}, state.isle.dug), spots: Object.keys(DIG).length, holes: DG.holes.length, pos: [+dog.g.position.x.toFixed(2), +dog.g.position.z.toFixed(2)], bags: !!(dogBagG && dogBagG.visible) });
+
+/* ---------- pets keep to the land and take the bridges (Leon, 2026-11-25) ----------
+   The pet used to run in a straight line at whatever it was after, so it crossed the sea between islands, and the pets
+   nobody picked strolled the settlement's streets while those corners were still under water.
+   landRoute: if the straight line to the goal leaves the land, find the way over owned squares and built bridges
+   (a flood fill from the goal over the 19 by 19 grid) and head for the furthest corner of it that is in plain sight. */
+function landLine(x0, z0, x1, z1) { const L = Math.hypot(x1 - x0, z1 - z0), n = Math.ceil(L / 0.4); for (let k = 1; k < n; k++) { const u = k / n; if (walkSdf(x0 + (x1 - x0) * u, z0 + (z1 - z0) * u) > -0.12) return false; } return true; }
+const LR_DIST = new Int16Array(GWN * GWN);
+function landBridges() { return AREAS.filter((a) => a.bridge && HAS[a.id]).map((a) => { const b = a.bridge; return { b, a: [gCell(b.x0), gCell(b.z0)], c: [gCell(b.x1), gCell(b.z1)] }; }); }
+function landPath(px, pz, tx, tz) {
+  const BR = landBridges(), D = LR_DIST; D.fill(-1); const Q = [];
+  const seed = (i, j) => { if (owned(i, j) && D[gIdx(i, j)] < 0) { D[gIdx(i, j)] = 0; Q.push(i, j); } };
+  seed(gCell(tx), gCell(tz)); if (!Q.length) BR.forEach((B) => { if (segD(tx, tz, B.b.x0, B.b.z0, B.b.x1, B.b.z1) < 1.4) { seed(B.a[0], B.a[1]); seed(B.c[0], B.c[1]); } });
+  if (!Q.length) return null;
+  const link = (i, j) => { const o = []; BR.forEach((B) => { if (B.a[0] === i && B.a[1] === j) o.push([B.c, B, 0]); else if (B.c[0] === i && B.c[1] === j) o.push([B.a, B, 1]); }); return o; };
+  for (let h = 0; h < Q.length; h += 2) { const i = Q[h], j = Q[h + 1], d = D[gIdx(i, j)] + 1;
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { const ni = i + a, nj = j + b; if (owned(ni, nj) && D[gIdx(ni, nj)] < 0) { D[gIdx(ni, nj)] = d; Q.push(ni, nj); } });
+    link(i, j).forEach(([c]) => { if (D[gIdx(c[0], c[1])] < 0) { D[gIdx(c[0], c[1])] = d; Q.push(c[0], c[1]); } }); }
+  const dOf = (i, j) => (owned(i, j) ? D[gIdx(i, j)] : -1);
+  let i = gCell(px), j = gCell(pz); const P = [];
+  if (dOf(i, j) < 0) { /* out on a bridge: walk to the end that is nearer the goal */
+    let best = null; BR.forEach((B) => { if (segD(px, pz, B.b.x0, B.b.z0, B.b.x1, B.b.z1) > 1.4) return; [[B.a, B.b.x0, B.b.z0], [B.c, B.b.x1, B.b.z1]].forEach(([c, x, z]) => { const d = dOf(c[0], c[1]); if (d >= 0 && (!best || d < best[0])) best = [d, c, x, z]; }); });
+    if (!best) return null; P.push([best[2], best[3]]); i = best[1][0]; j = best[1][1]; }
+  for (let g = 0; g < 400 && D[gIdx(i, j)] > 0; g++) { const d = D[gIdx(i, j)]; let nx = null;
+    for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (dOf(i + a, j + b) === d - 1) { nx = [i + a, j + b]; break; }
+    if (!nx) for (const [c, B, back] of link(i, j)) if (dOf(c[0], c[1]) === d - 1) { nx = c; P.push(back ? [B.b.x1, B.b.z1] : [B.b.x0, B.b.z0], back ? [B.b.x0, B.b.z0] : [B.b.x1, B.b.z1]); break; }
+    if (!nx) return null; i = nx[0]; j = nx[1]; P.push([i * GS, j * GS]); }
+  P.push([tx, tz]); return P;
+}
+/* where to head right now: the goal itself if it is in plain sight over land, else the next corner of the way round; null: no way */
+function landRoute(d, tx, tz) {
+  const p = d.g.position; if (inCave || landLine(p.x, p.z, tx, tz)) { d.lr = null; return [tx, tz]; }
+  let R = d.lr; if (!R || time - R.at > 0.7 || Math.hypot(R.tx - tx, R.tz - tz) > 3) R = d.lr = { at: time, tx, tz, P: landPath(p.x, p.z, tx, tz) };
+  if (!R.P) return null;
+  for (let k = R.P.length - 1; k >= 0; k--) if (landLine(p.x, p.z, R.P[k][0], R.P[k][1])) return R.P[k];
+  return R.P[0];
+}
+/* never out at sea: slide back to the shore (the cave has its own walls) */
+function landKeep(p) { if (!inCave && walkSdf(p.x, p.z) > -0.15) wClamp(p); }
+ISLAND.petRoute = landRoute; ISLAND.petLand = landKeep;
 /* ---------- gear against the islands' obstacles (Leon's vision for Pips Island, 2026-11-24) ----------
    No fighting: each obstacle has a piece of gear that gets Pip past it, bought in the build menu once Pip has met it.
      torch:      the cave stairs are pitch dark; spider webs cover the bridges to the stone island and the winter island;

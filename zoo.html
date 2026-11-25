@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261125190210">
+<meta name="app-ver" content="20261125190744">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2722,7 +2722,10 @@ function dogStep(dt) {
     }
     d.barkT -= dt; if (d.barkT <= 0) { d.barkT = 16 + Math.random() * 26; if (dd < 7) bark(0.45); }
   }
+  /* the island: the pet goes round by land and over the bridges, never across the sea (isledog.js) */
+  if (ISL.petRoute && !home) { const q = ISL.petRoute(d, tx, tz); if (q) { tx = q[0]; tz = q[1]; } else if (d.chase && !isNight) { p.set(pp.x - 0.8, 0, pp.z + 0.4); tx = p.x; tz = p.z; } else { tx = p.x; tz = p.z; } }
   const moving = !walkTo(d.g, tx, tz, dt, sp);
+  if (ISL.petLand && !home) ISL.petLand(p);
   d.asleep = isNight && !moving && !home;
   if (d.kind !== 'dog') { petAnim(d, moving, sp, dt, away ? null : pp); zzz(d, d.asleep, dt); return; }
   const run = moving ? (sp > 2 ? 16 : 10) : 0;
@@ -3676,6 +3679,8 @@ function wanderPick(w) {
   const p = w.d.g.position; let k = 0, x, z;
   do { const n = RG.n[Math.floor(Math.random() * RG.n.length)]; x = n[0]; z = n[1]; k++; } while (k < 20 && (Math.hypot(x - p.x, z - p.z) > 14 || Math.hypot(x - p.x, z - p.z) < 3 || z > 11.5));
   w.path = roadPath(p.x, p.z, x, z); w.i = 0;
+  /* the island: streets on land that is still under the sea are not there yet */
+  if (ISL.roadOk && w.path) { const bad = w.path.findIndex((q) => !ISL.roadOk(q[0], q[1])); if (bad >= 0) w.path.length = bad; if (!w.path.length) { w.path = null; w.wait = 1.5; } }
 }
 function wanderStep(w, dt) {
   const d = w.d, p = d.g.position, pp = pip.position, near = !inHouse && !trip && Math.hypot(pp.x - p.x, pp.z - p.z) < 2.4;
@@ -3684,7 +3689,7 @@ function wanderStep(w, dt) {
   else if (near) { if (!w.hi) { w.hi = true; d.hop = 1; petVoice(d.kind, 0.35); } }
   else if (w.path) {
     const q = w.path[w.i]; if (!q) w.path = null;
-    else if (walkTo(d.g, q[0], q[1], dt, sp)) { w.i++; if (w.i >= w.path.length) { w.path = null; w.wait = 2.5 + Math.random() * 5; } }
+    else if (walkTo(d.g, q[0], q[1], dt, sp) | (ISL.petLand ? (ISL.petLand(p), 0) : 0)) { w.i++; if (w.i >= w.path.length) { w.path = null; w.wait = 2.5 + Math.random() * 5; } }
     else moving = true;
   } else { w.wait -= dt; if (w.wait <= 0) wanderPick(w); }
   if (!near && Math.hypot(pp.x - p.x, pp.z - p.z) > 3.2) w.hi = false;

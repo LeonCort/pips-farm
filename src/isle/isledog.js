@@ -165,3 +165,43 @@ function dogEff(x, lv) {
 }
 function dogUp() { dogBagSync(); const p = dog.g.position; burst(p.x, 1.0, p.z, 8); dog.hop = 1; bark(0.6); camFocus.set(p.x, 0, p.z); DG.cool = 1; }
 const dogTest = () => ({ lv: dogLv(), mode: DG.mode, cap: cap(), dug: Object.assign({}, state.isle.dug), spots: Object.keys(DIG).length, holes: DG.holes.length, pos: [+dog.g.position.x.toFixed(2), +dog.g.position.z.toFixed(2)], bags: !!(dogBagG && dogBagG.visible) });
+
+/* ---------- pets keep to the land and take the bridges (Leon, 2026-11-25) ----------
+   The pet used to run in a straight line at whatever it was after, so it crossed the sea between islands, and the pets
+   nobody picked strolled the settlement's streets while those corners were still under water.
+   landRoute: if the straight line to the goal leaves the land, find the way over owned squares and built bridges
+   (a flood fill from the goal over the 19 by 19 grid) and head for the furthest corner of it that is in plain sight. */
+function landLine(x0, z0, x1, z1) { const L = Math.hypot(x1 - x0, z1 - z0), n = Math.ceil(L / 0.4); for (let k = 1; k < n; k++) { const u = k / n; if (walkSdf(x0 + (x1 - x0) * u, z0 + (z1 - z0) * u) > -0.12) return false; } return true; }
+const LR_DIST = new Int16Array(GWN * GWN);
+function landBridges() { return AREAS.filter((a) => a.bridge && HAS[a.id]).map((a) => { const b = a.bridge; return { b, a: [gCell(b.x0), gCell(b.z0)], c: [gCell(b.x1), gCell(b.z1)] }; }); }
+function landPath(px, pz, tx, tz) {
+  const BR = landBridges(), D = LR_DIST; D.fill(-1); const Q = [];
+  const seed = (i, j) => { if (owned(i, j) && D[gIdx(i, j)] < 0) { D[gIdx(i, j)] = 0; Q.push(i, j); } };
+  seed(gCell(tx), gCell(tz)); if (!Q.length) BR.forEach((B) => { if (segD(tx, tz, B.b.x0, B.b.z0, B.b.x1, B.b.z1) < 1.4) { seed(B.a[0], B.a[1]); seed(B.c[0], B.c[1]); } });
+  if (!Q.length) return null;
+  const link = (i, j) => { const o = []; BR.forEach((B) => { if (B.a[0] === i && B.a[1] === j) o.push([B.c, B, 0]); else if (B.c[0] === i && B.c[1] === j) o.push([B.a, B, 1]); }); return o; };
+  for (let h = 0; h < Q.length; h += 2) { const i = Q[h], j = Q[h + 1], d = D[gIdx(i, j)] + 1;
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { const ni = i + a, nj = j + b; if (owned(ni, nj) && D[gIdx(ni, nj)] < 0) { D[gIdx(ni, nj)] = d; Q.push(ni, nj); } });
+    link(i, j).forEach(([c]) => { if (D[gIdx(c[0], c[1])] < 0) { D[gIdx(c[0], c[1])] = d; Q.push(c[0], c[1]); } }); }
+  const dOf = (i, j) => (owned(i, j) ? D[gIdx(i, j)] : -1);
+  let i = gCell(px), j = gCell(pz); const P = [];
+  if (dOf(i, j) < 0) { /* out on a bridge: walk to the end that is nearer the goal */
+    let best = null; BR.forEach((B) => { if (segD(px, pz, B.b.x0, B.b.z0, B.b.x1, B.b.z1) > 1.4) return; [[B.a, B.b.x0, B.b.z0], [B.c, B.b.x1, B.b.z1]].forEach(([c, x, z]) => { const d = dOf(c[0], c[1]); if (d >= 0 && (!best || d < best[0])) best = [d, c, x, z]; }); });
+    if (!best) return null; P.push([best[2], best[3]]); i = best[1][0]; j = best[1][1]; }
+  for (let g = 0; g < 400 && D[gIdx(i, j)] > 0; g++) { const d = D[gIdx(i, j)]; let nx = null;
+    for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (dOf(i + a, j + b) === d - 1) { nx = [i + a, j + b]; break; }
+    if (!nx) for (const [c, B, back] of link(i, j)) if (dOf(c[0], c[1]) === d - 1) { nx = c; P.push(back ? [B.b.x1, B.b.z1] : [B.b.x0, B.b.z0], back ? [B.b.x0, B.b.z0] : [B.b.x1, B.b.z1]); break; }
+    if (!nx) return null; i = nx[0]; j = nx[1]; P.push([i * GS, j * GS]); }
+  P.push([tx, tz]); return P;
+}
+/* where to head right now: the goal itself if it is in plain sight over land, else the next corner of the way round; null: no way */
+function landRoute(d, tx, tz) {
+  const p = d.g.position; if (inCave || landLine(p.x, p.z, tx, tz)) { d.lr = null; return [tx, tz]; }
+  let R = d.lr; if (!R || time - R.at > 0.7 || Math.hypot(R.tx - tx, R.tz - tz) > 3) R = d.lr = { at: time, tx, tz, P: landPath(p.x, p.z, tx, tz) };
+  if (!R.P) return null;
+  for (let k = R.P.length - 1; k >= 0; k--) if (landLine(p.x, p.z, R.P[k][0], R.P[k][1])) return R.P[k];
+  return R.P[0];
+}
+/* never out at sea: slide back to the shore (the cave has its own walls) */
+function landKeep(p) { if (!inCave && walkSdf(p.x, p.z) > -0.15) wClamp(p); }
+ISLAND.petRoute = landRoute; ISLAND.petLand = landKeep;
