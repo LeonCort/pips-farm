@@ -42,7 +42,7 @@ const sky = new T.Mesh(new T.SphereGeometry(150, 32, 16), new T.ShaderMaterial({
    The game gives the island's shape in ISLAND: an oval a by b with a wavy coast (wob: waves, size, turn), an optional
    point (cape: angle, size, width), a round plaza in the middle, an oval ring road and straight roads. */
 const ISL = ISLAND, RING = ISLAND.ring, ROADS = ISLAND.roads; /* ROADS: x0, z0, x1, z1, half width, kind */
-function isleD(x, z) { const u = x / ISL.a, v = z / ISL.b, th = Math.atan2(v, u), c = ISL.cape; let f = 1;
+function isleD(x, z) { if (ISL.d) return ISL.d(x, z); /* a game may give its own coast (the island game's squares) */ const u = x / ISL.a, v = z / ISL.b, th = Math.atan2(v, u), c = ISL.cape; let f = 1;
   for (const w of ISL.wob) f += w[1] * Math.sin(w[0] * th + w[2]);
   if (c) { const dth = th - c[0]; f += c[1] * Math.exp(-dth * dth / c[2]); }
   return Math.hypot(u, v) / f; }
@@ -59,8 +59,11 @@ function roadKind(x, z) {
 /* keep a target point on the island */
 function onIsle(v) { if (inHouse) { v.x = clamp(v.x, IN_B.x0, IN_B.x1); v.z = clamp(v.z, IN_B.z0, IN_B.z1); return v; }
   if (Math.abs(v.x - DOCK.x) < 0.6 && v.z > DOCK.edge - 1 && v.z < DOCK.z1 + 1) { v.x = clamp(v.x, DOCK.x - 0.35, DOCK.x + 0.35); v.z = Math.min(v.z, DOCK.z1 - 0.3); return v; } /* out along the dock */
+  if (ISL.clamp) return ISL.clamp(v); /* a game whose island is not an oval keeps points on it itself */
   const d = isleD(v.x, v.z), lim = 0.965; if (d > lim) { v.x *= lim / d; v.z *= lim / d; } return v; }
-const tg = new T.PlaneGeometry(58, 40, 112, 78); tg.rotateX(-Math.PI / 2);
+/* the ground's size: 58 by 40 round the middle, unless the game asks for more (the island game's world of islands: ISLAND.gw, gh, gx, gz) */
+const GRW = ISL.gw || 58, GRH = ISL.gh || 40, GRX = ISL.gx || 0, GRZ = ISL.gz || 0, GRX0 = GRX - GRW / 2, GRZ0 = GRZ - GRH / 2;
+const tg = new T.PlaneGeometry(GRW, GRH, Math.round(GRW / 58 * 112), Math.round(GRH / 40 * 78)); tg.rotateX(-Math.PI / 2); tg.translate(GRX, 0, GRZ);
 { const p = tg.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i) + (hash(i, 1) - 0.5) * 0.3, z = p.getZ(i) + (hash(i, 2) - 0.5) * 0.3; p.setXYZ(i, x, hAt(x, z) + (hAt(x, z) === 0 ? hash(i, 5) * 0.04 : 0), z); } }
 /* cozy ground (farm): soft grass gradients in the vertex colours, and the roads, pebbles, cobbles and painted grass strokes
    in two textures made once at start, so the paths get round, overgrown edges instead of triangle steps */
@@ -72,8 +75,9 @@ const WET_SAND = new T.Color('#b79a70');
 /* the coast: grass softens into sand over a ragged band, and the sand darkens where the waves wet it */
 function groundCol(x, y, z, key, grass, beach, warm) {
   if (y < -0.6) return tone(PAL.bed, key, 0.4);
+  if (ISL.beachAt) beach = ISL.beachAt(x, z) || beach; /* a game may give parts of its coast their own sand (the island game's snow and stone islands) */
   if (y < -0.05) { const c = tone(beach || PAL.sand, key, 0.4); return c.lerp(WET_SAND, 0.5 * clamp((-y - 0.08) / 0.3, 0, 1)); }
-  const c = grassAt(x, z, grass || PAL.grass, key, warm);
+  const c = grassAt(x, z, grass || PAL.grass, key, warm); if (ISL.tint) ISL.tint(x, z, c); /* a game may tint parts of its land (the island game's islands) */
   const d = isleD(x, z) + 0.012 * Math.sin(x * 1.7 + z * 0.9) + 0.008 * Math.sin(x * 4.1 - z * 3.3), q = clamp((d - 0.925) / 0.05, 0, 1);
   return q > 0 ? c.lerp(tone(beach || PAL.sand, key, 0.4), q * q * (3 - 2 * q)) : c;
 }
@@ -84,7 +88,7 @@ let ground, GMASK = null; /* GMASK: road kind per mask pixel */
   const gm = new T.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
   gm.onBeforeCompile = (sh) => {
     sh.uniforms.gMask = GU.mask; sh.uniforms.gDet = GU.det; sh.uniforms.pathCol = GU.path; sh.uniforms.cobCol = GU.cob;
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vGuv;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvGuv = vec2((position.x + 29.0) / 58.0, (position.z + 20.0) / 40.0);');
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vGuv;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvGuv = vec2((position.x - (' + GRX0.toFixed(3) + ')) / ' + GRW.toFixed(3) + ', (position.z - (' + GRZ0.toFixed(3) + ')) / ' + GRH.toFixed(3) + ');');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec2 vGuv; uniform sampler2D gMask; uniform sampler2D gDet; uniform vec3 pathCol; uniform vec3 cobCol;')
       .replace('#include <color_fragment>', 'vec4 gmk = texture2D(gMask, vGuv); vec3 gdt = texture2D(gDet, vGuv).rgb; vec3 gcl = mix(vColor, pathCol, gmk.r); gcl = mix(gcl, cobCol, gmk.g); diffuseColor.rgb *= gcl * gdt * 1.02;');
   };
@@ -93,45 +97,45 @@ let ground, GMASK = null; /* GMASK: road kind per mask pixel */
   paintGroundTex();
 }
 /* world (x, z) to texture pixels: the farm ground is 58 x 40 */
-const GX = (x, W) => (x + 29) / 58 * W, GZ = (z, H) => (z + 20) / 40 * H;
+const GX = (x, W) => (x - GRX0) / GRW * W, GZ = (z, H) => (z - GRZ0) / GRH * H;
 function paintGroundTex() {
-  const MW = 1024, MH = 512, mc = document.createElement('canvas'); mc.width = MW; mc.height = MH; const mx = mc.getContext('2d'), id = mx.createImageData(MW, MH), K = new Uint8Array(MW * MH);
+  const GN = ISL.detN || 1, MW = ISL.maskW || 1024, MH = ISL.maskH || 512, /* a game with a bigger world asks for bigger textures and more strokes (the island game) */ mc = document.createElement('canvas'); mc.width = MW; mc.height = MH; const mx = mc.getContext('2d'), id = mx.createImageData(MW, MH), K = new Uint8Array(MW * MH);
   for (let py = 0; py < MH; py++) for (let px = 0; px < MW; px++) {
-    const x = (px + 0.5) / MW * 58 - 29, z = (py + 0.5) / MH * 40 - 20;
+    const x = (px + 0.5) / MW * GRW + GRX0, z = (py + 0.5) / MH * GRH + GRZ0;
     const wx = x + Math.sin(z * 2.3 + x * 0.7) * 0.09 + Math.sin(z * 5.1) * 0.04, wz = z + Math.sin(x * 2.1 - z * 0.5) * 0.09 + Math.sin(x * 4.7) * 0.04;
-    const k = isleD(x, z) < 0.99 ? roadKind(wx, wz) : 0, o = (py * MW + px) * 4; K[py * MW + px] = k;
+    const k = isleD(x, z) < 0.99 && (!ISL.roadOk || ISL.roadOk(x, z)) ? roadKind(wx, wz) : 0, o = (py * MW + px) * 4; K[py * MW + px] = k;
     id.data[o] = k === 1 ? 255 : 0; id.data[o + 1] = k === 2 ? 255 : 0; id.data[o + 3] = 255;
   }
   mx.putImageData(id, 0, 0); GMASK = { K, W: MW, H: MH };
   /* overgrown edges: grass blades reaching from the verge onto the dirt */
   mx.strokeStyle = '#000'; mx.lineWidth = 1.3; mx.lineCap = 'round'; mx.beginPath();
-  for (let i = 0; i < 26000; i++) { const px = Math.floor(hash(i, 3.1) * MW), py = Math.floor(hash(i, 5.7) * MH), k = K[py * MW + px]; if (k !== 1) continue;
+  for (let i = 0; i < 26000 * GN; i++) { const px = Math.floor(hash(i, 3.1) * MW), py = Math.floor(hash(i, 5.7) * MH), k = K[py * MW + px]; if (k !== 1) continue;
     let gx = 0, gy = 0; for (const [dx, dy] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) { const qx = px + dx, qy = py + dy; if (qx >= 0 && qy >= 0 && qx < MW && qy < MH && K[qy * MW + qx] === 0) { gx += dx; gy += dy; } }
     if (!gx && !gy) continue; const l = Math.hypot(gx, gy) || 1, L = 2 + hash(i, 9.1) * 3.5, a = (hash(i, 2.2) - 0.5) * 1.2, ux = -gx / l, uy = -gy / l, ca = Math.cos(a), sa = Math.sin(a);
     mx.moveTo(px + gx / l * 1.5, py + gy / l * 1.5); mx.lineTo(px + (ux * ca - uy * sa) * L, py + (ux * sa + uy * ca) * L); }
   mx.stroke();
   const mt = new T.CanvasTexture(mc); mt.flipY = false; mt.anisotropy = 4; GU.mask.value = mt;
   /* detail: a multiplier (white = unchanged) with painted grass strokes, pebbles, cobbles and fallen leaves */
-  const DW = 2048, DH = 1024, dc = document.createElement('canvas'); dc.width = DW; dc.height = DH; const d = dc.getContext('2d');
+  const DW = ISL.detW || 2048, DH = ISL.detH || 1024, dc = document.createElement('canvas'); dc.width = DW; dc.height = DH; const d = dc.getContext('2d');
   d.fillStyle = '#e8e8e8'; d.fillRect(0, 0, DW, DH);
   const kAt = (px, py) => K[Math.min(MH - 1, Math.max(0, Math.floor(py / DH * MH))) * MW + Math.min(MW - 1, Math.max(0, Math.floor(px / DW * MW)))];
   /* soft blotches so big lawns are not flat */
-  for (let i = 0; i < 900; i++) { const x = hash(i, 11.1) * DW, y = hash(i, 12.3) * DH, r = 14 + hash(i, 13.7) * 40, v = hash(i, 14.9) > 0.5; const g = d.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, v ? 'rgba(255,255,240,0.35)' : 'rgba(150,160,120,0.22)'); g.addColorStop(1, 'rgba(232,232,232,0)'); d.fillStyle = g; d.fillRect(x - r, y - r, r * 2, r * 2); }
+  for (let i = 0; i < 900 * GN; i++) { const x = hash(i, 11.1) * DW, y = hash(i, 12.3) * DH, r = 14 + hash(i, 13.7) * 40, v = hash(i, 14.9) > 0.5; const g = d.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, v ? 'rgba(255,255,240,0.35)' : 'rgba(150,160,120,0.22)'); g.addColorStop(1, 'rgba(232,232,232,0)'); d.fillStyle = g; d.fillRect(x - r, y - r, r * 2, r * 2); }
   /* grass strokes, batched by shade */
   const SH = ['rgba(255,255,236,0.7)', 'rgba(250,255,225,0.55)', 'rgba(185,198,150,0.45)', 'rgba(160,176,128,0.4)'];
   SH.forEach((c, si) => { d.strokeStyle = c; d.lineWidth = si < 2 ? 1.4 : 1.6; d.lineCap = 'round'; d.beginPath();
-    for (let i = 0; i < 11000; i++) { const x = hash(i, 21.3 + si) * DW, y = hash(i, 22.9 + si) * DH; if (kAt(x, y)) continue; const L = 3 + hash(i, 23.1 + si) * 6, a = -1.57 + (hash(i, 24.7 + si) - 0.5) * 1.1; d.moveTo(x, y); d.quadraticCurveTo(x + Math.cos(a) * L * 0.5 + 1.5, y + Math.sin(a) * L * 0.5, x + Math.cos(a) * L, y + Math.sin(a) * L); }
+    for (let i = 0; i < 11000 * GN; i++) { const x = hash(i, 21.3 + si) * DW, y = hash(i, 22.9 + si) * DH; if (kAt(x, y)) continue; const L = 3 + hash(i, 23.1 + si) * 6, a = -1.57 + (hash(i, 24.7 + si) - 0.5) * 1.1; d.moveTo(x, y); d.quadraticCurveTo(x + Math.cos(a) * L * 0.5 + 1.5, y + Math.sin(a) * L * 0.5, x + Math.cos(a) * L, y + Math.sin(a) * L); }
     d.stroke(); });
   /* the verge: a little darker where grass meets the path (reads like ambient shade) */
   d.fillStyle = 'rgba(120,130,90,0.16)';
-  for (let i = 0; i < 30000; i++) { const x = hash(i, 31.3) * DW, y = hash(i, 32.9) * DH; if (kAt(x, y)) continue; if (kAt(x + 7, y) || kAt(x - 7, y) || kAt(x, y + 7) || kAt(x, y - 7)) { d.beginPath(); d.arc(x, y, 3 + hash(i, 33.3) * 3, 0, 6.283); d.fill(); } }
+  for (let i = 0; i < 30000 * GN; i++) { const x = hash(i, 31.3) * DW, y = hash(i, 32.9) * DH; if (kAt(x, y)) continue; if (kAt(x + 7, y) || kAt(x - 7, y) || kAt(x, y + 7) || kAt(x, y - 7)) { d.beginPath(); d.arc(x, y, 3 + hash(i, 33.3) * 3, 0, 6.283); d.fill(); } }
   /* dirt: speckles and pebbles */
-  for (let i = 0; i < 40000; i++) { const x = hash(i, 41.3) * DW, y = hash(i, 42.9) * DH; if (kAt(x, y) !== 1) continue; const big = hash(i, 43.3) > 0.93, r = big ? 1.4 + hash(i, 44.1) * 1.6 : 0.8 + hash(i, 44.1) * 1.2;
+  for (let i = 0; i < 40000 * GN; i++) { const x = hash(i, 41.3) * DW, y = hash(i, 42.9) * DH; if (kAt(x, y) !== 1) continue; const big = hash(i, 43.3) > 0.93, r = big ? 1.4 + hash(i, 44.1) * 1.6 : 0.8 + hash(i, 44.1) * 1.2;
     if (big) { d.fillStyle = 'rgba(110,95,80,0.5)'; d.beginPath(); d.ellipse(x + 0.8, y + 1, r * 1.2, r, 0, 0, 6.283); d.fill(); d.fillStyle = hash(i, 45.1) > 0.5 ? '#f6f2ee' : '#d8d4d6'; d.beginPath(); d.ellipse(x, y, r * 1.2, r, hash(i, 46.2) * 3, 0, 6.283); d.fill(); }
     else { d.fillStyle = hash(i, 45.1) > 0.5 ? 'rgba(255,255,255,0.6)' : 'rgba(150,130,110,0.4)'; d.fillRect(x, y, r, r); } }
   /* cobbles: hand-laid stones of mixed sizes and shades, fanned in rings round the plaza and in staggered rows along the street,
      with dark joints, the odd sunken or missing stone (dirt or moss showing) and a light top edge on each */
-  { const C = 0.21, gX = (x) => (x + 29) / 58 * DW, gZ = (z) => (z + 20) / 40 * DH;
+  { const C = 0.21, gX = (x) => (x - GRX0) / GRW * DW, gZ = (z) => (z - GRZ0) / GRH * DH;
     /* joints first: dark, a little brown in places and green in others */
     for (let py = 0; py < DH; py += 3) for (let px = 0; px < DW; px += 3) if (kAt(px, py) === 2) { const t = hash(Math.floor(px / 40), Math.floor(py / 40), 7);
       d.fillStyle = t > 0.8 ? 'rgba(124,136,96,0.55)' : t > 0.55 ? 'rgba(140,120,104,0.55)' : 'rgba(146,134,126,0.52)'; d.beginPath(); d.moveTo(px + 2.8, py); d.arc(px, py, 2.8, 0, 6.283); d.fill(); }
@@ -160,18 +164,18 @@ function paintGroundTex() {
         x += L + C * 0.05; } } }
   /* fallen leaves */
   const LV = ['#e8a050', '#d97a3a', '#e9c060', '#c8643a'];
-  for (let i = 0; i < 700; i++) { const x = hash(i, 51.3) * DW, y = hash(i, 52.9) * DH; if (hash(i, 50.1) > 0.35 && !kAt(x, y)) continue; d.fillStyle = LV[i % 4]; d.save(); d.translate(x, y); d.rotate(hash(i, 53.3) * 6.283); d.beginPath(); d.ellipse(0, 0, 3.2, 1.6, 0, 0, 6.283); d.fill(); d.restore(); }
+  for (let i = 0; i < 700 * GN; i++) { const x = hash(i, 51.3) * DW, y = hash(i, 52.9) * DH; if (hash(i, 50.1) > 0.35 && !kAt(x, y)) continue; d.fillStyle = LV[i % 4]; d.save(); d.translate(x, y); d.rotate(hash(i, 53.3) * 6.283); d.beginPath(); d.ellipse(0, 0, 3.2, 1.6, 0, 0, 6.283); d.fill(); d.restore(); }
   const dt = new T.CanvasTexture(dc); dt.flipY = false; dt.anisotropy = 4; GU.det.value = dt; GU.detC = dc;
 }
 /* contact shade: soft dark pools painted under trees, houses and props once the world is built (a cheap stand-in for ambient occlusion) */
 function groundShade(list) {
   if (!GU.detC) return; const d = GU.detC.getContext('2d'), W = GU.detC.width, H = GU.detC.height; d.save(); d.globalCompositeOperation = 'multiply';
-  list.forEach(([x, z, rx, rz, k]) => { const px = GX(x, W), py = GZ(z, H), sx = rx / 58 * W, sz = rz / 40 * H, r = Math.max(sx, sz); if (r < 1) return;
+  list.forEach(([x, z, rx, rz, k]) => { const px = GX(x, W), py = GZ(z, H), sx = rx / GRW * W, sz = rz / GRH * H, r = Math.max(sx, sz); if (r < 1) return;
     d.save(); d.translate(px, py); d.scale(sx / r, sz / r); const g = d.createRadialGradient(0, 0, r * 0.15, 0, 0, r); const a = k == null ? 0.42 : k; g.addColorStop(0, 'rgba(70,80,60,' + a + ')'); g.addColorStop(0.6, 'rgba(120,130,100,' + a * 0.45 + ')'); g.addColorStop(1, 'rgba(255,255,255,0)'); d.fillStyle = g; d.beginPath(); d.arc(0, 0, r, 0, 6.283); d.fill(); d.restore(); });
   d.restore(); GU.det.value.needsUpdate = true;
 }
 let wg = new T.PlaneGeometry(160, 160, 56, 56); wg.rotateX(-Math.PI / 2);
-wg = fac(wg, (cx, cy, cz, i) => { const d = Math.hypot(cx / 1.6, cz) * 0.8; return tone(d < 16 ? PAL.seaShallow : d < 28 ? PAL.sea : PAL.seaDeep, i, 0.9); });
+wg = fac(wg, (cx, cy, cz, i) => { const d = ISL.d ? 16 * clamp((ISL.d(cx, cz) - 1) / 1.3, 0, 2) : Math.hypot(cx / 1.6, cz) * 0.8; return tone(d < 16 ? PAL.seaShallow : d < 28 ? PAL.sea : PAL.seaDeep, i, 0.9); });
 const water = new T.Mesh(wg, new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.28, metalness: 0.05 })); water.position.y = -0.45; water.receiveShadow = true; sc.add(water);
 const wp = wg.attributes.position, wn = wg.attributes.normal;
 
@@ -207,4 +211,4 @@ function tree(kind, s) {
   }
   return g;
 }
-[[-6.2, -12.8, 'pine'], [7.9, -12.3, 'pine'], [-16.4, -7.6, 'pine'], [-17.6, -3.0, 'tree'], [-17.6, 3.0, 'pine'], [2.6, -13.9, 'tree'], [-7.6, 12.6, 'pine'], [-9.2, 12.0, 'pine'], [-6.0, 13.2, 'pine'], [-2.0, 13.4, 'tree'], [5.4, 12.4, 'tree'], [12.6, 9.8, 'pine'], [17.6, 9.4, 'pine'], [22.0, 3.6, 'tree'], [20.8, -6.6, 'pine'], [15.2, -9.6, 'pine'], [-5.2, -3.8, 'tree'], [5.2, 3.9, 'tree'], [-5.0, 3.6, 'pine'], [5.0, -3.9, 'pine']].forEach((t, i) => { const m = tree(t[2], i * 7 + 3); m.position.set(t[0], hAt(t[0], t[1]), t[1]); m.rotation.y = hash(i, 4) * 6.28; m.scale.setScalar(0.85 + hash(i, 9) * 0.4); sc.add(m); });
+(ISL.trees || [[-6.2, -12.8, 'pine'], [7.9, -12.3, 'pine'], [-16.4, -7.6, 'pine'], [-17.6, -3.0, 'tree'], [-17.6, 3.0, 'pine'], [2.6, -13.9, 'tree'], [-7.6, 12.6, 'pine'], [-9.2, 12.0, 'pine'], [-6.0, 13.2, 'pine'], [-2.0, 13.4, 'tree'], [5.4, 12.4, 'tree'], [12.6, 9.8, 'pine'], [17.6, 9.4, 'pine'], [22.0, 3.6, 'tree'], [20.8, -6.6, 'pine'], [15.2, -9.6, 'pine'], [-5.2, -3.8, 'tree'], [5.2, 3.9, 'tree'], [-5.0, 3.6, 'pine'], [5.0, -3.9, 'pine']]).forEach((t, i) => { const m = tree(t[2], i * 7 + 3); m.position.set(t[0], hAt(t[0], t[1]), t[1]); m.rotation.y = hash(i, 4) * 6.28; m.scale.setScalar(0.85 + hash(i, 9) * 0.4); sc.add(m); });

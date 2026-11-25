@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261123192441">
+<meta name="app-ver" content="20261125170418">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1457,7 +1457,7 @@ const sky = new T.Mesh(new T.SphereGeometry(150, 32, 16), new T.ShaderMaterial({
    The game gives the island's shape in ISLAND: an oval a by b with a wavy coast (wob: waves, size, turn), an optional
    point (cape: angle, size, width), a round plaza in the middle, an oval ring road and straight roads. */
 const ISL = ISLAND, RING = ISLAND.ring, ROADS = ISLAND.roads; /* ROADS: x0, z0, x1, z1, half width, kind */
-function isleD(x, z) { const u = x / ISL.a, v = z / ISL.b, th = Math.atan2(v, u), c = ISL.cape; let f = 1;
+function isleD(x, z) { if (ISL.d) return ISL.d(x, z); /* a game may give its own coast (the island game's squares) */ const u = x / ISL.a, v = z / ISL.b, th = Math.atan2(v, u), c = ISL.cape; let f = 1;
   for (const w of ISL.wob) f += w[1] * Math.sin(w[0] * th + w[2]);
   if (c) { const dth = th - c[0]; f += c[1] * Math.exp(-dth * dth / c[2]); }
   return Math.hypot(u, v) / f; }
@@ -1474,8 +1474,11 @@ function roadKind(x, z) {
 /* keep a target point on the island */
 function onIsle(v) { if (inHouse) { v.x = clamp(v.x, IN_B.x0, IN_B.x1); v.z = clamp(v.z, IN_B.z0, IN_B.z1); return v; }
   if (Math.abs(v.x - DOCK.x) < 0.6 && v.z > DOCK.edge - 1 && v.z < DOCK.z1 + 1) { v.x = clamp(v.x, DOCK.x - 0.35, DOCK.x + 0.35); v.z = Math.min(v.z, DOCK.z1 - 0.3); return v; } /* out along the dock */
+  if (ISL.clamp) return ISL.clamp(v); /* a game whose island is not an oval keeps points on it itself */
   const d = isleD(v.x, v.z), lim = 0.965; if (d > lim) { v.x *= lim / d; v.z *= lim / d; } return v; }
-const tg = new T.PlaneGeometry(58, 40, 112, 78); tg.rotateX(-Math.PI / 2);
+/* the ground's size: 58 by 40 round the middle, unless the game asks for more (the island game's world of islands: ISLAND.gw, gh, gx, gz) */
+const GRW = ISL.gw || 58, GRH = ISL.gh || 40, GRX = ISL.gx || 0, GRZ = ISL.gz || 0, GRX0 = GRX - GRW / 2, GRZ0 = GRZ - GRH / 2;
+const tg = new T.PlaneGeometry(GRW, GRH, Math.round(GRW / 58 * 112), Math.round(GRH / 40 * 78)); tg.rotateX(-Math.PI / 2); tg.translate(GRX, 0, GRZ);
 { const p = tg.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i) + (hash(i, 1) - 0.5) * 0.3, z = p.getZ(i) + (hash(i, 2) - 0.5) * 0.3; p.setXYZ(i, x, hAt(x, z) + (hAt(x, z) === 0 ? hash(i, 5) * 0.04 : 0), z); } }
 /* cozy ground (farm): soft grass gradients in the vertex colours, and the roads, pebbles, cobbles and painted grass strokes
    in two textures made once at start, so the paths get round, overgrown edges instead of triangle steps */
@@ -1487,8 +1490,9 @@ const WET_SAND = new T.Color('#b79a70');
 /* the coast: grass softens into sand over a ragged band, and the sand darkens where the waves wet it */
 function groundCol(x, y, z, key, grass, beach, warm) {
   if (y < -0.6) return tone(PAL.bed, key, 0.4);
+  if (ISL.beachAt) beach = ISL.beachAt(x, z) || beach; /* a game may give parts of its coast their own sand (the island game's snow and stone islands) */
   if (y < -0.05) { const c = tone(beach || PAL.sand, key, 0.4); return c.lerp(WET_SAND, 0.5 * clamp((-y - 0.08) / 0.3, 0, 1)); }
-  const c = grassAt(x, z, grass || PAL.grass, key, warm);
+  const c = grassAt(x, z, grass || PAL.grass, key, warm); if (ISL.tint) ISL.tint(x, z, c); /* a game may tint parts of its land (the island game's islands) */
   const d = isleD(x, z) + 0.012 * Math.sin(x * 1.7 + z * 0.9) + 0.008 * Math.sin(x * 4.1 - z * 3.3), q = clamp((d - 0.925) / 0.05, 0, 1);
   return q > 0 ? c.lerp(tone(beach || PAL.sand, key, 0.4), q * q * (3 - 2 * q)) : c;
 }
@@ -1499,7 +1503,7 @@ let ground, GMASK = null; /* GMASK: road kind per mask pixel */
   const gm = new T.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
   gm.onBeforeCompile = (sh) => {
     sh.uniforms.gMask = GU.mask; sh.uniforms.gDet = GU.det; sh.uniforms.pathCol = GU.path; sh.uniforms.cobCol = GU.cob;
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vGuv;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvGuv = vec2((position.x + 29.0) / 58.0, (position.z + 20.0) / 40.0);');
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vGuv;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvGuv = vec2((position.x - (' + GRX0.toFixed(3) + ')) / ' + GRW.toFixed(3) + ', (position.z - (' + GRZ0.toFixed(3) + ')) / ' + GRH.toFixed(3) + ');');
     sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec2 vGuv; uniform sampler2D gMask; uniform sampler2D gDet; uniform vec3 pathCol; uniform vec3 cobCol;')
       .replace('#include <color_fragment>', 'vec4 gmk = texture2D(gMask, vGuv); vec3 gdt = texture2D(gDet, vGuv).rgb; vec3 gcl = mix(vColor, pathCol, gmk.r); gcl = mix(gcl, cobCol, gmk.g); diffuseColor.rgb *= gcl * gdt * 1.02;');
   };
@@ -1508,45 +1512,45 @@ let ground, GMASK = null; /* GMASK: road kind per mask pixel */
   paintGroundTex();
 }
 /* world (x, z) to texture pixels: the farm ground is 58 x 40 */
-const GX = (x, W) => (x + 29) / 58 * W, GZ = (z, H) => (z + 20) / 40 * H;
+const GX = (x, W) => (x - GRX0) / GRW * W, GZ = (z, H) => (z - GRZ0) / GRH * H;
 function paintGroundTex() {
-  const MW = 1024, MH = 512, mc = document.createElement('canvas'); mc.width = MW; mc.height = MH; const mx = mc.getContext('2d'), id = mx.createImageData(MW, MH), K = new Uint8Array(MW * MH);
+  const GN = ISL.detN || 1, MW = ISL.maskW || 1024, MH = ISL.maskH || 512, /* a game with a bigger world asks for bigger textures and more strokes (the island game) */ mc = document.createElement('canvas'); mc.width = MW; mc.height = MH; const mx = mc.getContext('2d'), id = mx.createImageData(MW, MH), K = new Uint8Array(MW * MH);
   for (let py = 0; py < MH; py++) for (let px = 0; px < MW; px++) {
-    const x = (px + 0.5) / MW * 58 - 29, z = (py + 0.5) / MH * 40 - 20;
+    const x = (px + 0.5) / MW * GRW + GRX0, z = (py + 0.5) / MH * GRH + GRZ0;
     const wx = x + Math.sin(z * 2.3 + x * 0.7) * 0.09 + Math.sin(z * 5.1) * 0.04, wz = z + Math.sin(x * 2.1 - z * 0.5) * 0.09 + Math.sin(x * 4.7) * 0.04;
-    const k = isleD(x, z) < 0.99 ? roadKind(wx, wz) : 0, o = (py * MW + px) * 4; K[py * MW + px] = k;
+    const k = isleD(x, z) < 0.99 && (!ISL.roadOk || ISL.roadOk(x, z)) ? roadKind(wx, wz) : 0, o = (py * MW + px) * 4; K[py * MW + px] = k;
     id.data[o] = k === 1 ? 255 : 0; id.data[o + 1] = k === 2 ? 255 : 0; id.data[o + 3] = 255;
   }
   mx.putImageData(id, 0, 0); GMASK = { K, W: MW, H: MH };
   /* overgrown edges: grass blades reaching from the verge onto the dirt */
   mx.strokeStyle = '#000'; mx.lineWidth = 1.3; mx.lineCap = 'round'; mx.beginPath();
-  for (let i = 0; i < 26000; i++) { const px = Math.floor(hash(i, 3.1) * MW), py = Math.floor(hash(i, 5.7) * MH), k = K[py * MW + px]; if (k !== 1) continue;
+  for (let i = 0; i < 26000 * GN; i++) { const px = Math.floor(hash(i, 3.1) * MW), py = Math.floor(hash(i, 5.7) * MH), k = K[py * MW + px]; if (k !== 1) continue;
     let gx = 0, gy = 0; for (const [dx, dy] of [[3, 0], [-3, 0], [0, 3], [0, -3]]) { const qx = px + dx, qy = py + dy; if (qx >= 0 && qy >= 0 && qx < MW && qy < MH && K[qy * MW + qx] === 0) { gx += dx; gy += dy; } }
     if (!gx && !gy) continue; const l = Math.hypot(gx, gy) || 1, L = 2 + hash(i, 9.1) * 3.5, a = (hash(i, 2.2) - 0.5) * 1.2, ux = -gx / l, uy = -gy / l, ca = Math.cos(a), sa = Math.sin(a);
     mx.moveTo(px + gx / l * 1.5, py + gy / l * 1.5); mx.lineTo(px + (ux * ca - uy * sa) * L, py + (ux * sa + uy * ca) * L); }
   mx.stroke();
   const mt = new T.CanvasTexture(mc); mt.flipY = false; mt.anisotropy = 4; GU.mask.value = mt;
   /* detail: a multiplier (white = unchanged) with painted grass strokes, pebbles, cobbles and fallen leaves */
-  const DW = 2048, DH = 1024, dc = document.createElement('canvas'); dc.width = DW; dc.height = DH; const d = dc.getContext('2d');
+  const DW = ISL.detW || 2048, DH = ISL.detH || 1024, dc = document.createElement('canvas'); dc.width = DW; dc.height = DH; const d = dc.getContext('2d');
   d.fillStyle = '#e8e8e8'; d.fillRect(0, 0, DW, DH);
   const kAt = (px, py) => K[Math.min(MH - 1, Math.max(0, Math.floor(py / DH * MH))) * MW + Math.min(MW - 1, Math.max(0, Math.floor(px / DW * MW)))];
   /* soft blotches so big lawns are not flat */
-  for (let i = 0; i < 900; i++) { const x = hash(i, 11.1) * DW, y = hash(i, 12.3) * DH, r = 14 + hash(i, 13.7) * 40, v = hash(i, 14.9) > 0.5; const g = d.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, v ? 'rgba(255,255,240,0.35)' : 'rgba(150,160,120,0.22)'); g.addColorStop(1, 'rgba(232,232,232,0)'); d.fillStyle = g; d.fillRect(x - r, y - r, r * 2, r * 2); }
+  for (let i = 0; i < 900 * GN; i++) { const x = hash(i, 11.1) * DW, y = hash(i, 12.3) * DH, r = 14 + hash(i, 13.7) * 40, v = hash(i, 14.9) > 0.5; const g = d.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, v ? 'rgba(255,255,240,0.35)' : 'rgba(150,160,120,0.22)'); g.addColorStop(1, 'rgba(232,232,232,0)'); d.fillStyle = g; d.fillRect(x - r, y - r, r * 2, r * 2); }
   /* grass strokes, batched by shade */
   const SH = ['rgba(255,255,236,0.7)', 'rgba(250,255,225,0.55)', 'rgba(185,198,150,0.45)', 'rgba(160,176,128,0.4)'];
   SH.forEach((c, si) => { d.strokeStyle = c; d.lineWidth = si < 2 ? 1.4 : 1.6; d.lineCap = 'round'; d.beginPath();
-    for (let i = 0; i < 11000; i++) { const x = hash(i, 21.3 + si) * DW, y = hash(i, 22.9 + si) * DH; if (kAt(x, y)) continue; const L = 3 + hash(i, 23.1 + si) * 6, a = -1.57 + (hash(i, 24.7 + si) - 0.5) * 1.1; d.moveTo(x, y); d.quadraticCurveTo(x + Math.cos(a) * L * 0.5 + 1.5, y + Math.sin(a) * L * 0.5, x + Math.cos(a) * L, y + Math.sin(a) * L); }
+    for (let i = 0; i < 11000 * GN; i++) { const x = hash(i, 21.3 + si) * DW, y = hash(i, 22.9 + si) * DH; if (kAt(x, y)) continue; const L = 3 + hash(i, 23.1 + si) * 6, a = -1.57 + (hash(i, 24.7 + si) - 0.5) * 1.1; d.moveTo(x, y); d.quadraticCurveTo(x + Math.cos(a) * L * 0.5 + 1.5, y + Math.sin(a) * L * 0.5, x + Math.cos(a) * L, y + Math.sin(a) * L); }
     d.stroke(); });
   /* the verge: a little darker where grass meets the path (reads like ambient shade) */
   d.fillStyle = 'rgba(120,130,90,0.16)';
-  for (let i = 0; i < 30000; i++) { const x = hash(i, 31.3) * DW, y = hash(i, 32.9) * DH; if (kAt(x, y)) continue; if (kAt(x + 7, y) || kAt(x - 7, y) || kAt(x, y + 7) || kAt(x, y - 7)) { d.beginPath(); d.arc(x, y, 3 + hash(i, 33.3) * 3, 0, 6.283); d.fill(); } }
+  for (let i = 0; i < 30000 * GN; i++) { const x = hash(i, 31.3) * DW, y = hash(i, 32.9) * DH; if (kAt(x, y)) continue; if (kAt(x + 7, y) || kAt(x - 7, y) || kAt(x, y + 7) || kAt(x, y - 7)) { d.beginPath(); d.arc(x, y, 3 + hash(i, 33.3) * 3, 0, 6.283); d.fill(); } }
   /* dirt: speckles and pebbles */
-  for (let i = 0; i < 40000; i++) { const x = hash(i, 41.3) * DW, y = hash(i, 42.9) * DH; if (kAt(x, y) !== 1) continue; const big = hash(i, 43.3) > 0.93, r = big ? 1.4 + hash(i, 44.1) * 1.6 : 0.8 + hash(i, 44.1) * 1.2;
+  for (let i = 0; i < 40000 * GN; i++) { const x = hash(i, 41.3) * DW, y = hash(i, 42.9) * DH; if (kAt(x, y) !== 1) continue; const big = hash(i, 43.3) > 0.93, r = big ? 1.4 + hash(i, 44.1) * 1.6 : 0.8 + hash(i, 44.1) * 1.2;
     if (big) { d.fillStyle = 'rgba(110,95,80,0.5)'; d.beginPath(); d.ellipse(x + 0.8, y + 1, r * 1.2, r, 0, 0, 6.283); d.fill(); d.fillStyle = hash(i, 45.1) > 0.5 ? '#f6f2ee' : '#d8d4d6'; d.beginPath(); d.ellipse(x, y, r * 1.2, r, hash(i, 46.2) * 3, 0, 6.283); d.fill(); }
     else { d.fillStyle = hash(i, 45.1) > 0.5 ? 'rgba(255,255,255,0.6)' : 'rgba(150,130,110,0.4)'; d.fillRect(x, y, r, r); } }
   /* cobbles: hand-laid stones of mixed sizes and shades, fanned in rings round the plaza and in staggered rows along the street,
      with dark joints, the odd sunken or missing stone (dirt or moss showing) and a light top edge on each */
-  { const C = 0.21, gX = (x) => (x + 29) / 58 * DW, gZ = (z) => (z + 20) / 40 * DH;
+  { const C = 0.21, gX = (x) => (x - GRX0) / GRW * DW, gZ = (z) => (z - GRZ0) / GRH * DH;
     /* joints first: dark, a little brown in places and green in others */
     for (let py = 0; py < DH; py += 3) for (let px = 0; px < DW; px += 3) if (kAt(px, py) === 2) { const t = hash(Math.floor(px / 40), Math.floor(py / 40), 7);
       d.fillStyle = t > 0.8 ? 'rgba(124,136,96,0.55)' : t > 0.55 ? 'rgba(140,120,104,0.55)' : 'rgba(146,134,126,0.52)'; d.beginPath(); d.moveTo(px + 2.8, py); d.arc(px, py, 2.8, 0, 6.283); d.fill(); }
@@ -1575,18 +1579,18 @@ function paintGroundTex() {
         x += L + C * 0.05; } } }
   /* fallen leaves */
   const LV = ['#e8a050', '#d97a3a', '#e9c060', '#c8643a'];
-  for (let i = 0; i < 700; i++) { const x = hash(i, 51.3) * DW, y = hash(i, 52.9) * DH; if (hash(i, 50.1) > 0.35 && !kAt(x, y)) continue; d.fillStyle = LV[i % 4]; d.save(); d.translate(x, y); d.rotate(hash(i, 53.3) * 6.283); d.beginPath(); d.ellipse(0, 0, 3.2, 1.6, 0, 0, 6.283); d.fill(); d.restore(); }
+  for (let i = 0; i < 700 * GN; i++) { const x = hash(i, 51.3) * DW, y = hash(i, 52.9) * DH; if (hash(i, 50.1) > 0.35 && !kAt(x, y)) continue; d.fillStyle = LV[i % 4]; d.save(); d.translate(x, y); d.rotate(hash(i, 53.3) * 6.283); d.beginPath(); d.ellipse(0, 0, 3.2, 1.6, 0, 0, 6.283); d.fill(); d.restore(); }
   const dt = new T.CanvasTexture(dc); dt.flipY = false; dt.anisotropy = 4; GU.det.value = dt; GU.detC = dc;
 }
 /* contact shade: soft dark pools painted under trees, houses and props once the world is built (a cheap stand-in for ambient occlusion) */
 function groundShade(list) {
   if (!GU.detC) return; const d = GU.detC.getContext('2d'), W = GU.detC.width, H = GU.detC.height; d.save(); d.globalCompositeOperation = 'multiply';
-  list.forEach(([x, z, rx, rz, k]) => { const px = GX(x, W), py = GZ(z, H), sx = rx / 58 * W, sz = rz / 40 * H, r = Math.max(sx, sz); if (r < 1) return;
+  list.forEach(([x, z, rx, rz, k]) => { const px = GX(x, W), py = GZ(z, H), sx = rx / GRW * W, sz = rz / GRH * H, r = Math.max(sx, sz); if (r < 1) return;
     d.save(); d.translate(px, py); d.scale(sx / r, sz / r); const g = d.createRadialGradient(0, 0, r * 0.15, 0, 0, r); const a = k == null ? 0.42 : k; g.addColorStop(0, 'rgba(70,80,60,' + a + ')'); g.addColorStop(0.6, 'rgba(120,130,100,' + a * 0.45 + ')'); g.addColorStop(1, 'rgba(255,255,255,0)'); d.fillStyle = g; d.beginPath(); d.arc(0, 0, r, 0, 6.283); d.fill(); d.restore(); });
   d.restore(); GU.det.value.needsUpdate = true;
 }
 let wg = new T.PlaneGeometry(160, 160, 56, 56); wg.rotateX(-Math.PI / 2);
-wg = fac(wg, (cx, cy, cz, i) => { const d = Math.hypot(cx / 1.6, cz) * 0.8; return tone(d < 16 ? PAL.seaShallow : d < 28 ? PAL.sea : PAL.seaDeep, i, 0.9); });
+wg = fac(wg, (cx, cy, cz, i) => { const d = ISL.d ? 16 * clamp((ISL.d(cx, cz) - 1) / 1.3, 0, 2) : Math.hypot(cx / 1.6, cz) * 0.8; return tone(d < 16 ? PAL.seaShallow : d < 28 ? PAL.sea : PAL.seaDeep, i, 0.9); });
 const water = new T.Mesh(wg, new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.28, metalness: 0.05 })); water.position.y = -0.45; water.receiveShadow = true; sc.add(water);
 const wp = wg.attributes.position, wn = wg.attributes.normal;
 
@@ -1622,7 +1626,7 @@ function tree(kind, s) {
   }
   return g;
 }
-[[-6.2, -12.8, 'pine'], [7.9, -12.3, 'pine'], [-16.4, -7.6, 'pine'], [-17.6, -3.0, 'tree'], [-17.6, 3.0, 'pine'], [2.6, -13.9, 'tree'], [-7.6, 12.6, 'pine'], [-9.2, 12.0, 'pine'], [-6.0, 13.2, 'pine'], [-2.0, 13.4, 'tree'], [5.4, 12.4, 'tree'], [12.6, 9.8, 'pine'], [17.6, 9.4, 'pine'], [22.0, 3.6, 'tree'], [20.8, -6.6, 'pine'], [15.2, -9.6, 'pine'], [-5.2, -3.8, 'tree'], [5.2, 3.9, 'tree'], [-5.0, 3.6, 'pine'], [5.0, -3.9, 'pine']].forEach((t, i) => { const m = tree(t[2], i * 7 + 3); m.position.set(t[0], hAt(t[0], t[1]), t[1]); m.rotation.y = hash(i, 4) * 6.28; m.scale.setScalar(0.85 + hash(i, 9) * 0.4); sc.add(m); });
+(ISL.trees || [[-6.2, -12.8, 'pine'], [7.9, -12.3, 'pine'], [-16.4, -7.6, 'pine'], [-17.6, -3.0, 'tree'], [-17.6, 3.0, 'pine'], [2.6, -13.9, 'tree'], [-7.6, 12.6, 'pine'], [-9.2, 12.0, 'pine'], [-6.0, 13.2, 'pine'], [-2.0, 13.4, 'tree'], [5.4, 12.4, 'tree'], [12.6, 9.8, 'pine'], [17.6, 9.4, 'pine'], [22.0, 3.6, 'tree'], [20.8, -6.6, 'pine'], [15.2, -9.6, 'pine'], [-5.2, -3.8, 'tree'], [5.2, 3.9, 'tree'], [-5.0, 3.6, 'pine'], [5.0, -3.9, 'pine']]).forEach((t, i) => { const m = tree(t[2], i * 7 + 3); m.position.set(t[0], hAt(t[0], t[1]), t[1]); m.rotation.y = hash(i, 4) * 6.28; m.scale.setScalar(0.85 + hash(i, 9) * 0.4); sc.add(m); });
 /* ---------- building kit: how every game paints its world ----------
    at(x, z, turn) gives a painter for one object; parts painted into STATIC are merged into one mesh
    (cheap to draw); solid() marks a circle Pip walks around, deco() a spot flowers keep clear of;
@@ -2592,7 +2596,7 @@ function skyStep(dt) {
   if (nightAmt > 0.01) for (let k = 0; k < FLY_N; k++) { const s = flySeed[k], t = time * s.s + s.a; flyPos[k * 3] = s.x + Math.sin(t) * 1.2; flyPos[k * 3 + 1] = 0.5 + Math.sin(t * 1.7) * 0.3 + 0.3; flyPos[k * 3 + 2] = s.z + Math.cos(t * 0.8) * 1.0; }
   if (nightAmt > 0.01) flyGeo.attributes.position.needsUpdate = true;
   /* the season changes at sunrise */
-  const s = SEASONS[Math.floor(state.clock / DAY) % 4];
+  const s = ISL.seasonAt ? ISL.seasonAt() : SEASONS[Math.floor(state.clock / DAY) % 4]; /* a game can tie the season to a place (the island's season zones) */
   if (s !== season || seasonShown === null) { const first = seasonShown === null; season = s; seasonShown = s; paintSeason(s); const fl = FALL[s]; fallMat.color.set(fl.c); fallMat.size = fl.size; if (!first) { seasonToast(s); Snd.play('sparkle', { gain: 0.5 }); } }
   /* falling petals, leaves or snow drift around the camera */
   const fl = FALL[season]; falling.visible = !reduced && !inHouse;
@@ -2770,7 +2774,7 @@ const WX_KINDS = ['clear', 'windy', 'rain', 'heavy', 'mist', 'snow'];
 const WX_TOAST = { windy: ['wind', 'Det blåser!'], rain: ['rain', 'Det regnar!'], heavy: ['rain', 'Det ösregnar!'], mist: ['mist', 'Dimma!'], snow: ['snow', 'Det snöar!'] };
 const WX_WIND = { clear: 0.12, windy: 1, rain: 0.42, heavy: 0.78, mist: 0, snow: 0.22 }; /* storms sway the trees and hedges harder */
 const raining = () => state.wx.k === 'rain' || state.wx.k === 'heavy';
-const seasonNow = () => SEASONS[Math.floor(state.clock / DAY) % 4]; /* the season variable only catches up in the next skyStep */
+const seasonNow = () => (ISL.seasonAt ? ISL.seasonAt() : SEASONS[Math.floor(state.clock / DAY) % 4]); /* the season variable only catches up in the next skyStep */
 function wxWeights() {
   const f = dayFrac(), morn = f < 0.16 || f > 0.95, k = state.wx.k;
   const s = seasonNow(), w = s === 'winter' ? { clear: 3, windy: 1.3, snow: 3, mist: 0.8 } : s === 'autumn' ? { clear: 3, windy: 2, rain: 1.8, heavy: 0.9, mist: 1.6 } : s === 'summer' ? { clear: 5, windy: 1.2, rain: 1.1, heavy: 0.7, mist: 0.3 } : { clear: 4, windy: 1.4, rain: 1.8, heavy: 0.5, mist: 0.8 };
@@ -2892,9 +2896,10 @@ function weatherStep(dt) {
   rainAmt += ((k === 'heavy' ? 1 : k === 'rain' ? 0.55 : 0) - rainAmt) * Math.min(1, dt * 0.5);
   snowAmt += ((k === 'snow' ? 1 : 0) - snowAmt) * Math.min(1, dt * 0.3);
   mistAmt += ((k === 'mist' ? 1 : 0) - mistAmt) * Math.min(1, dt * 0.25);
-  windAmt += (WX_WIND[k] - windAmt) * Math.min(1, dt * 0.35);
+  if (!(windAmt >= 0)) windAmt = 0.12; if (!isFinite(wxAng)) wxAng = 0; /* a weather kind without a wind value, or no direction yet, must not turn the wind (and with it the 3D grass) into NaN */
+  windAmt += ((WX_WIND[k] == null ? 0.12 : WX_WIND[k]) - windAmt) * Math.min(1, dt * 0.35);
   /* wind: a slowly turning direction and soft gusts */
-  let da = wx.dir - wxAng; da = Math.atan2(Math.sin(da), Math.cos(da)); wxAng += da * Math.min(1, dt * 0.25);
+  let da = (isFinite(wx.dir) ? wx.dir : wxAng) - wxAng; da = Math.atan2(Math.sin(da), Math.cos(da)); wxAng += da * Math.min(1, dt * 0.25);
   WIND.x = Math.cos(wxAng); WIND.z = Math.sin(wxAng) * 0.6; WIND.amt = windAmt;
   WIND.g = windAmt * (0.7 + 0.3 * Math.sin(time * 0.63) * Math.sin(time * 1.7 + 1));
   if (!reduced && out) sway();
@@ -2999,7 +3004,7 @@ const PUD_TEX = (() => {
 /* where puddles lie: mostly on the dirt roads (long side along the road) and a few in grass hollows; [x, z, radius, angle] */
 const PUD_AT = [[0, 5.3, 0.95, 1.57], [-5.4, 0, 1.05, 0.1], [5.6, 0.1, 0.9, -0.15], [-12.6, 3.0, 1.0, 1.5], [-12.6, -3.2, 0.85, 1.7], [0.1, -8.3, 0.8, 1.4],
   [4.2, 6.5, 0.75, 0.6], [-6.6, -5.1, 0.85, -0.6], [-7.6, -2.4, 0.7, 1.2], [6.9, -3.8, 0.9, -1.0], [-2.7, 7.1, 0.8, 0.35], [0.2, 10.2, 0.9, 1.6], [-9.3, 0.1, 0.75, 0.0], [12.2, 0.3, 0.7, 0.2], [2.6, -6.6, 0.6, 0.9], [-3.4, -10.0, 0.7, 0.4]];
-const PUDDLES = PUD_AT.map(([x, z, r, a], i) => ({ x, z, r: r * 0.8, a, cell: i % 16 }));
+const PUDDLES = (ISL.puddles || PUD_AT).map(([x, z, r, a], i) => ({ x, z, r: r * 0.8, a, cell: i % 16 }));
 const pudU = { map: { value: PUD_TEX }, uWet: { value: 0 }, uRain: { value: 0 }, uT: { value: 0 }, uIce: { value: 0 }, uHor: { value: new T.Color() }, uTop: { value: new T.Color() }, uMud: { value: new T.Color('#3b2d22') }, uDeep: { value: new T.Color('#232c35') } };
 const pudMat = new T.ShaderMaterial({
   uniforms: Object.assign(T.UniformsUtils.clone(T.UniformsLib.fog), pudU), fog: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2,
@@ -3180,7 +3185,7 @@ function rainStep(dt, out) {
     if (dPos[i * 3 + 1] < 0.03 || d.t <= 0) { if (d.fall && dPos[i * 3 + 1] < 0.05) { rainRing(dPos[i * 3], dPos[i * 3 + 2], false); RINGS[(ringI + RN - 1) % RN].r *= 0.8; } dPos[i * 3 + 1] = -99; } }
   dropPts.visible = anyD && out; if (anyD) dropGeo2.attributes.position.needsUpdate = true;
   /* the rain gear goes on with the rain (outside) and comes off when it stops or Pip goes in */
-  const gear = rainOn && rainAmt > 0.12 && !inHouse && !(typeof ED !== 'undefined' && ED.on) && !dressing && season !== 'winter';
+  const gear = rainOn && rainAmt > 0.12 && !inHouse && !(typeof ED !== 'undefined' && ED.on) && !dressing && season !== 'winter' && (typeof gearRain !== 'function' || gearRain()); /* the island: only once Pip owns the coat */
   if (gear !== RGEAR.on) { rainGearShow(gear); if (gear && out && !sleep) { Snd.play('pop', { gain: 0.3, f: 520 }); splash(pip.position.x, 1.2, pip.position.z, 5); } }
 }
 /* after the lamps are set for the time of day: a dark rainy day lights the street lamps, their pools and the windows */
@@ -3191,7 +3196,7 @@ function rainLate() {
 }
 /* dev mode only: a cloud button under the globe that cycles the weather, so a rainy day can be tested without waiting for one */
 const wxBtn = (() => { const b = document.createElement('button'); b.id = 'wxBtn'; b.type = 'button'; b.textContent = '🌧'; b.setAttribute('aria-label', 'Byt väder');
-  b.style.cssText = 'position:fixed;left:max(12px,env(safe-area-inset-left,0px));top:calc(50% + 34px);width:48px;height:48px;border-radius:50%;border:3px solid #22303c;background:#fffaf0;font-size:22px;line-height:1;box-shadow:0 4px 0 rgba(34,48,60,.25);z-index:30;padding:0';
+  b.style.cssText = 'position:fixed;left:max(12px,env(safe-area-inset-left,0px));top:calc(50% + 92px);width:48px;height:48px;border-radius:50%;border:3px solid #22303c;background:#fffaf0;font-size:22px;line-height:1;box-shadow:0 4px 0 rgba(34,48,60,.25);z-index:30;padding:0';
   const order = ['clear', 'rain', 'heavy', 'mist', 'windy'];
   b.addEventListener('click', (e) => { e.stopPropagation(); const i = order.indexOf(state.wx.k), k = order[(i + 1) % order.length]; wxSet(k, k === 'clear' ? 120 : 90); delete state.wx.nx; /* dev testing: jump straight to the new weather instead of a slow fade */ rainAmt = k === 'heavy' ? 1 : k === 'rain' ? 0.55 : 0; mistAmt = k === 'mist' ? 1 : 0; windAmt = WX_WIND[k]; fogAmt = clamp((k === 'mist' ? 0.4 : 0) + rainAmt * 0.85, 0, 1); if (raining()) { wet = Math.max(wet, 0.8); RS.gw = 1; } b.textContent = { clear: '🌧', rain: '⛈', heavy: '🌫', mist: '💨', windy: '☀️' }[k]; });
   ['pointerdown', 'touchstart'].forEach((ev) => b.addEventListener(ev, (e) => e.stopPropagation(), { passive: true }));
@@ -4323,7 +4328,7 @@ function grBuild(dens) {
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 aI; uniform vec3 uGFocus; uniform float uGL, uGT, uGH; uniform vec2 uGWind, uGFade; uniform vec4 uGPush[8]; uniform sampler2D uGTex, gMask, gDet;')
       .replace('#include <color_vertex>', `#include <color_vertex>
         vec2 gc = uGFocus.xz, groot = gc + (fract((aI.xy - gc) / uGL + 0.5) - 0.5) * uGL;
-        vec2 guv = vec2((groot.x + 29.0) / 58.0, (groot.y + 20.0) / 40.0);
+        vec2 guv = vec2((groot.x - (${GRX0.toFixed(3)})) / ${GRW.toFixed(3)}, (groot.y - (${GRZ0.toFixed(3)})) / ${GRH.toFixed(3)});
         vec4 gtx = texture2D(uGTex, guv); vec4 gmk = texture2D(gMask, guv);
         float gd = gtx.a * (1.0 - smoothstep(0.15, 0.6, gmk.r + gmk.g));
         float gh = uGH * aI.w * smoothstep(0.2, 0.7, gd) * (1.0 - smoothstep(uGFade.x, uGFade.y, length(groot - gc)));
@@ -4341,9 +4346,9 @@ function grBuild(dens) {
 function grMask() {
   if (!ground) return; const W = GR.W, H = GR.H, d = GR.tex.image.data, acc = new Float32Array(W * H * 4);
   const p = ground.geometry.attributes.position, c = ground.geometry.attributes.color;
-  for (let i = 0; i < p.count; i++) { const tx = Math.round((p.getX(i) + 29) / 58 * W - 0.5), tz = Math.round((p.getZ(i) + 20) / 40 * H - 0.5); if (tx < 0 || tz < 0 || tx >= W || tz >= H) continue; const o = (tz * W + tx) * 4; acc[o] += c.getX(i); acc[o + 1] += c.getY(i); acc[o + 2] += c.getZ(i); acc[o + 3]++; }
+  for (let i = 0; i < p.count; i++) { const tx = Math.round((p.getX(i) - GRX0) / GRW * W - 0.5), tz = Math.round((p.getZ(i) - GRZ0) / GRH * H - 0.5); if (tx < 0 || tz < 0 || tx >= W || tz >= H) continue; const o = (tz * W + tx) * 4; acc[o] += c.getX(i); acc[o + 1] += c.getY(i); acc[o + 2] += c.getZ(i); acc[o + 3]++; }
   const pens = typeof PEN !== 'undefined' ? Object.values(PEN) : [], deco = typeof DECO !== 'undefined' ? DECO : [];
-  for (let tz = 0; tz < H; tz++) for (let tx = 0; tx < W; tx++) { const o = (tz * W + tx) * 4, x = (tx + 0.5) / W * 58 - 29, z = (tz + 0.5) / H * 40 - 20;
+  for (let tz = 0; tz < H; tz++) for (let tx = 0; tx < W; tx++) { const o = (tz * W + tx) * 4, x = (tx + 0.5) / W * GRW + GRX0, z = (tz + 0.5) / H * GRH + GRZ0;
     let k = 1 - smoothstep(0.84, 0.9, isleD(x, z));
     if (k > 0 && typeof MEADOW !== 'undefined' && x > MEADOW.x0 - 0.3 && x < MEADOW.x1 + 0.3 && z > MEADOW.z0 - 0.3 && z < MEADOW.z1 + 0.3) k = 0;
     if (k > 0) for (const q of pens) if (Math.abs(x - q.x) < q.w / 2 + 0.35 && Math.abs(z - q.z) < q.d / 2 + 0.35) { k = 0; break; }
@@ -4621,7 +4626,7 @@ function placeMood() {
 }
 /* the farm's house radio (farm/radio.js) can swap the day song, preview a station in the house, or turn music off */
 function musicMood() { const m = placeMood(); return typeof radioMood === 'function' ? radioMood(m) : m; }
-Snd.tracks = HERE === 'farm' ? ['pastoral', 'relaxed', 'coin'] : ['pastoral', 'coin', 'relaxed'];
+Snd.tracks = HERE === 'farm' ? ['pastoral', 'relaxed', 'coin'] : HERE === 'isle' ? ['sway', 'relaxed'] : ['pastoral', 'coin', 'relaxed'];
 if (window.__farmTest) { window.__snd = Snd; window.__pip = pip; }
 let actT = 0, menuT = 0, time = 0, xferT = 0, lastT = 0, saveT = 0, waterT = 0;
 function step(dt) {

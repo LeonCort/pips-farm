@@ -1,0 +1,55 @@
+# Pips Island (isle.html): script files glued in this order by tools/build.py. Paths are relative to this folder.
+# The engine files go in the same order as in the farm; zoo files sit where the farm's matching ones do.
+# Not here yet, because they still need the farm's house, fountain or flowers:
+#   polish.js (shadows and the fountain), cozy.js (flowers and bees). guest2.js is in, for the people Pip finds (people.js).
+../engine/core.js
+../engine/game.js
+rules.js
+../engine/setup.js
+../engine/curve.js
+../engine/cloudchunk.js
+../engine/curve2.js
+../engine/scene.js
+../engine/kit.js
+../engine/icons.js
+../engine/fx.js
+../engine/base.js
+world.js
+isle.js
+tiers.js
+build.js
+xp.js
+ruins.js
+cave.js
+springs.js
+zones.js
+timed.js
+../engine/pip2.js
+../engine/walkto.js
+../engine/sky.js
+../engine/dog.js
+../engine/pet2.js
+../engine/weather.js
+../engine/rain.js
+../engine/weather-test.js
+../engine/roads.js
+../engine/editor.js
+../engine/pets.js
+../engine/gfx.js
+../engine/clouds.js
+../engine/rays.js
+../engine/guest2.js
+people.js
+bakery.js
+village.js
+isledog.js
+gear.js
+look.js
+loop.js
+ferry.js
+../engine/input.js
+../engine/loop.js
+ferry.js
+step.js
+../engine/loop-end.js
+start.js

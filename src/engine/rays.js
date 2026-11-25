@@ -316,7 +316,7 @@ function grBuild(dens) {
     sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec4 aI; uniform vec3 uGFocus; uniform float uGL, uGT, uGH; uniform vec2 uGWind, uGFade; uniform vec4 uGPush[8]; uniform sampler2D uGTex, gMask, gDet;')
       .replace('#include <color_vertex>', `#include <color_vertex>
         vec2 gc = uGFocus.xz, groot = gc + (fract((aI.xy - gc) / uGL + 0.5) - 0.5) * uGL;
-        vec2 guv = vec2((groot.x + 29.0) / 58.0, (groot.y + 20.0) / 40.0);
+        vec2 guv = vec2((groot.x - (${GRX0.toFixed(3)})) / ${GRW.toFixed(3)}, (groot.y - (${GRZ0.toFixed(3)})) / ${GRH.toFixed(3)});
         vec4 gtx = texture2D(uGTex, guv); vec4 gmk = texture2D(gMask, guv);
         float gd = gtx.a * (1.0 - smoothstep(0.15, 0.6, gmk.r + gmk.g));
         float gh = uGH * aI.w * smoothstep(0.2, 0.7, gd) * (1.0 - smoothstep(uGFade.x, uGFade.y, length(groot - gc)));
@@ -334,9 +334,9 @@ function grBuild(dens) {
 function grMask() {
   if (!ground) return; const W = GR.W, H = GR.H, d = GR.tex.image.data, acc = new Float32Array(W * H * 4);
   const p = ground.geometry.attributes.position, c = ground.geometry.attributes.color;
-  for (let i = 0; i < p.count; i++) { const tx = Math.round((p.getX(i) + 29) / 58 * W - 0.5), tz = Math.round((p.getZ(i) + 20) / 40 * H - 0.5); if (tx < 0 || tz < 0 || tx >= W || tz >= H) continue; const o = (tz * W + tx) * 4; acc[o] += c.getX(i); acc[o + 1] += c.getY(i); acc[o + 2] += c.getZ(i); acc[o + 3]++; }
+  for (let i = 0; i < p.count; i++) { const tx = Math.round((p.getX(i) - GRX0) / GRW * W - 0.5), tz = Math.round((p.getZ(i) - GRZ0) / GRH * H - 0.5); if (tx < 0 || tz < 0 || tx >= W || tz >= H) continue; const o = (tz * W + tx) * 4; acc[o] += c.getX(i); acc[o + 1] += c.getY(i); acc[o + 2] += c.getZ(i); acc[o + 3]++; }
   const pens = typeof PEN !== 'undefined' ? Object.values(PEN) : [], deco = typeof DECO !== 'undefined' ? DECO : [];
-  for (let tz = 0; tz < H; tz++) for (let tx = 0; tx < W; tx++) { const o = (tz * W + tx) * 4, x = (tx + 0.5) / W * 58 - 29, z = (tz + 0.5) / H * 40 - 20;
+  for (let tz = 0; tz < H; tz++) for (let tx = 0; tx < W; tx++) { const o = (tz * W + tx) * 4, x = (tx + 0.5) / W * GRW + GRX0, z = (tz + 0.5) / H * GRH + GRZ0;
     let k = 1 - smoothstep(0.84, 0.9, isleD(x, z));
     if (k > 0 && typeof MEADOW !== 'undefined' && x > MEADOW.x0 - 0.3 && x < MEADOW.x1 + 0.3 && z > MEADOW.z0 - 0.3 && z < MEADOW.z1 + 0.3) k = 0;
     if (k > 0) for (const q of pens) if (Math.abs(x - q.x) < q.w / 2 + 0.35 && Math.abs(z - q.z) < q.d / 2 + 0.35) { k = 0; break; }
