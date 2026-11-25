@@ -823,7 +823,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261125175803">
+<meta name="app-ver" content="20261125182254">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -3646,10 +3646,13 @@ function zzz(an, on, dt) {
 {
   const kWall = (hex, y, h, key) => { const c = tone(hex, key, 0.5), q = clamp(y / h, 0, 1); return c.multiplyScalar(0.8 + 0.28 * q); };
   const g = new T.Group(); g.position.set(KENNEL.x, 0, KENNEL.z); sc.add(g);
+  if (typeof propKennel === 'function') propKennel(g); /* the island draws its own doghouse (isle/props.js) */
+  else {
   let q = new T.BoxGeometry(1.0, 0.62, 0.9); q.translate(0, 0.31, 0); part(fac(jit(q, 0.015, 411), (cx, cy, cz, i) => kWall(PAL.accent, cy, 0.62, i)), g);
-  [-1, 1].forEach((s) => { q = new T.BoxGeometry(0.66, 0.07, 1.04); q.translate(0, 0, 0); const m = part(fac(q, PAL.trunk, 412), g, s * 0.27, 0.8, 0); m.rotation.z = -s * 0.62; });
-  q = new T.CircleGeometry(0.2, 12); const door = part(fac(q, PAL.ink, 413), g, 0, 0.26, 0.452); door.scale.y = 1.25;
-  q = new T.CylinderGeometry(0.2, 0.2, 0.06, 12); part(fac(q, '#d8d0c0', 414), g, 0.42, 0.03, 0.72);
+    [-1, 1].forEach((s) => { q = new T.BoxGeometry(0.66, 0.07, 1.04); q.translate(0, 0, 0); const m = part(fac(q, PAL.trunk, 412), g, s * 0.27, 0.8, 0); m.rotation.z = -s * 0.62; });
+    q = new T.CircleGeometry(0.2, 12); const door = part(fac(q, PAL.ink, 413), g, 0, 0.26, 0.452); door.scale.y = 1.25;
+    q = new T.CylinderGeometry(0.2, 0.2, 0.06, 12); part(fac(q, '#d8d0c0', 414), g, 0.42, 0.03, 0.72);
+  }
 }
 let dog = (() => {
   /* a fluffy golden retriever: round soft shapes, floppy ears, a feathery tail and a red collar with a tag */

@@ -47,11 +47,11 @@ function showBuild() {
   piece('Fence', (L, g, x) => fenceRun(x - 0.9, z, x + 0.9, z, L, 3460));
   /* row 4: what grows, and things found */
   z = -12.3; k = 0;
-  const node = (kind, name, seed) => { const xx = sx(k++), n = makeNode(kind, xx, z, seed); n.g.updateMatrixWorld(true); const b = new T.Box3().setFromObject(n.g); showTag(name, showTris(n.g), xx, Math.min(4, b.max.y) + 0.55, z); SH.items.push({ name, x: xx, z: z + 1.6, tris: showTris(n.g), grp: 'Nature' }); };
+  const node = (kind, name, seed, tier) => { SHOW_T.tier = tier || 0; const xx = X0 + k++ * 2.25, n = makeNode(kind, xx, z, seed); SHOW_T.tier = 0; n.g.updateMatrixWorld(true); const b = new T.Box3().setFromObject(n.g); showTag(name, showTris(n.g), xx, Math.min(4, b.max.y) + 0.55, z); SH.items.push({ name, x: xx, z: z + 1.6, tris: showTris(n.g), grp: 'Nature' }); };
   let sT = 1, sP = 1; while (hash(sT, 2) > 0.7) sT++; while (hash(sP, 2) <= 0.7) sP++;
-  node('tree', 'Tree', sT); node('tree', 'Pine', sP); node('bush', 'Berry bush', 7); node('rock', 'Rock', 8); node('boulder', 'Boulder', 9); node('crystal', 'Crystal', 10);
-  { const c = makeChest(sx(k), z, 'pick', 9999); chests.splice(chests.indexOf(c), 1); sc.remove(c.ring); c.g.scale.setScalar(1); showPut(c.g, 'Chest', sx(k++), z, { grp: 'Nature', front: 1.4 }); }
-  showPut(ferryBoat.clone(true), 'Boat', sx(k++), z, { y: 0.3, grp: 'Nature', front: 1.4 });
+  node('tree', 'Tree 1', sT, 1); node('tree', 'Tree 2 (old oak)', sT, 2); node('tree', 'Pine', sP, 1); node('tree', 'Snow pine', sP, 3); node('bush', 'Berry bush', 7); node('rock', 'Rock', 9, 1); node('boulder', 'Boulder', 9); node('crystal', 'Crystal', 10);
+  { const c = makeChest(X0 + k * 2.25, z, 'pick', 9999); chests.splice(chests.indexOf(c), 1); sc.remove(c.ring); c.g.scale.setScalar(1); showPut(c.g, 'Chest', X0 + k++ * 2.25, z, { grp: 'Nature', front: 1.4 }); }
+  showPut(ferryBoat.clone(true), 'Boat', X0 + k++ * 2.25 + 0.6, z, { y: 0.3, grp: 'Nature', front: 1.4 });
   /* row 5: everyone, and what Pip carries */
   z = -22.4; k = 0; const who = (g, name) => { g.rotation.y = 0; showPut(g, name, X0 + k++ * 1.9, z, { grp: 'Friends', front: 1.3 }); };
   who(smithModel(), 'Smith'); who(bakerModel(), 'Baker'); ['mason', 'knitter', 'miner'].forEach((id) => who(loopFolkModel(id), id[0].toUpperCase() + id.slice(1)));

@@ -15,7 +15,7 @@ function prGrid(L, fn, na, nb, dir, col, seed) {
   for (let i = 0; i < na; i++) for (let j = 0; j < nb; j++) { const a = V(i, j), b = V(i + 1, j), c = V(i, j + 1), d = V(i + 1, j + 1); tri(a, b, c); tri(b, d, c); }
   const q = new T.BufferGeometry(); q.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); q.computeVertexNormals(); L.push(fac(q, col, seed)); return q;
 }
-const prCol = (hex) => () => new T.Color(hex);
+function prCol(hex) { return () => new T.Color(hex); }
 
 /* ----- the treasure chest: plank sides, corner posts, iron straps, a gold lock, ring handles, a lid of curved staves ----- */
 function propChest(g, lid) {
@@ -174,4 +174,137 @@ function propTent(t, r, sy, len, big) {
   if (!big) { prGrid(L, (a, b) => sideP(1, -0.12 + a * 0.26, 0.42 + b * 0.17, 0.012), 2, 2, [nx, ny, 0], prCol('#7fb4d6'), 1368);
     prGrid(L, (a, b) => sideP(-1, 0.2 + a * 0.2, 0.25 + b * 0.14, 0.012), 2, 2, [-nx, ny, 0], prCol('#fff2c2'), 1369); }
   merged(L, MAT, t);
+}
+
+/* ---------- nature and camp things rebuilt (Leon, 2026-11-25): trees with roots, branches and leaf clusters, an old oak
+   for the second tier, pines with drooping boughs (snow on the winter ones), chiselled rocks and boulders with moss and
+   grass at the foot, the log and stone Pip carries, the campfire and the doghouse. ---------- */
+function prJoin(list) { /* painted pieces into one geometry */
+  let n = 0; list.forEach((g) => { n += g.attributes.position.count; }); const P = new Float32Array(n * 3), N = new Float32Array(n * 3), C = new Float32Array(n * 3); let o = 0;
+  list.forEach((g) => { P.set(g.attributes.position.array, o * 3); N.set(g.attributes.normal.array, o * 3); C.set(g.attributes.color.array, o * 3); o += g.attributes.position.count; });
+  const q = new T.BufferGeometry(); q.setAttribute('position', new T.BufferAttribute(P, 3)); q.setAttribute('normal', new T.BufferAttribute(N, 3)); q.setAttribute('color', new T.BufferAttribute(C, 3)); q.computeBoundingSphere(); return q;
+}
+/* a ball cut by flat planes: a chiselled stone */
+function prChisel(r, seed, sx, sy, sz, cuts, det) {
+  const g = new T.IcosahedronGeometry(r, det == null ? 2 : det), p = g.attributes.position;
+  for (let k = 0; k < (cuts || 9); k++) { const a = hash(seed, k) * 6.283, e = (hash(seed, k + 20) - 0.25) * 1.5, nx = Math.cos(a) * Math.cos(e), ny = Math.sin(e), nz = Math.sin(a) * Math.cos(e), d = r * (0.6 + hash(seed, k + 40) * 0.28);
+    for (let i = 0; i < p.count; i++) { const t = p.getX(i) * nx + p.getY(i) * ny + p.getZ(i) * nz - d; if (t > 0) p.setXYZ(i, p.getX(i) - nx * t, p.getY(i) - ny * t, p.getZ(i) - nz * t); } }
+  g.scale(sx || 1, sy || 1, sz || 1); return g;
+}
+/* hard facets, lit from above: tops lighter, undersides darker; moss on flat tops above mossY */
+function prFacet(g, moss, mossY, seed) {
+  g.computeVertexNormals(); const n = g.attributes.normal, c = g.attributes.color, p = g.attributes.position, mc = moss ? new T.Color(moss) : null;
+  for (let i = 0; i < n.count; i += 3) { const ny = n.getY(i), k = 0.8 + 0.3 * Math.max(0, ny) - 0.15 * Math.max(0, -ny), y = (p.getY(i) + p.getY(i + 1) + p.getY(i + 2)) / 3, ms = mc && ny > 0.7 && y > mossY && hash(Math.round(p.getX(i) * 4), Math.round(p.getZ(i) * 4), seed) > 0.42;
+    for (let j = i; j < i + 3; j++) { if (ms) { const t = tone(moss, i + seed, 0.4); c.setXYZ(j, t.r, t.g, t.b); } else c.setXYZ(j, c.getX(j) * k, c.getY(j) * k, c.getZ(j) * k); } }
+  return g;
+}
+function prStones(lumps, seed, top, cols, moss, tufts) {
+  const L = lumps.map(([r, x, y, z, sx, sy, sz, det], k) => { const g = prChisel(r, seed + k * 7, sx, sy, sz, det === 0 ? 5 : 9, det); g.rotateY(hash(seed, k) * 6.28); g.translate(x, y, z);
+    return prFacet(fac(g, (cx, cy, cz, i) => { const c = shadeY(cols[(k + (hash(i, seed) > 0.8 ? 1 : 0)) % cols.length], cy, -0.05, top, i, 0.3); if (cy < 0.09) c.multiplyScalar(0.82); return c; }, seed + k), moss, top * 0.55, seed); });
+  (tufts || []).forEach(([x, z], k) => { for (let j = 0; j < 3; j++) { const h = 0.16 + hash(k, j + seed) * 0.14, q = new T.ConeGeometry(0.035, h, 3); q.translate(0, h / 2, 0); q.rotateZ((j - 1) * 0.35); q.rotateY(hash(k, seed) * 6); q.translate(x + (j - 1) * 0.04, 0, z); L.push(fac(q, (cx, cy) => leafY('#7fae52', cy, 0, 0.3, k + j, 0.4), seed + 90 + k)); } });
+  return prJoin(L);
+}
+function propRockGeo(v) {
+  const s = 1200 + v * 31, a = v * 2.1, c = Math.cos(a), n = Math.sin(a);
+  return prStones([[0.5, 0, 0.24, 0, 1.12, 0.74 + v * 0.06, 0.94, 2], [0.3, 0.42 * c, 0.15, 0.42 * n, 1, 0.8, 1, 1], [0.23, -0.4 * c + 0.1, 0.11, -0.36 * n + 0.2, 1.1, 0.75, 1, 1],
+    [0.1, 0.55 * n, 0.04, 0.52 * c, 1.2, 0.7, 1, 0], [0.08, -0.6 * n, 0.03, -0.3 * c, 1.2, 0.7, 1, 0], [0.07, 0.2, 0.03, 0.66, 1.1, 0.7, 1, 0]], s, 0.68, ['#aab3bc', '#98a2ac', '#b9c1c9'], v === 2 ? '#7f9e5a' : null, [[0.58 * c, 0.5 * n + 0.2], [-0.5, 0.42], [0.1, -0.6]]);
+}
+function propBoulderGeo(v) {
+  const s = 1420 + v * 37, f = v ? -1 : 1;
+  return prStones([[0.85, 0, 0.46, 0, 1.08, 0.86, 0.95, 2], [0.55, 0.64 * f, 0.3, 0.2, 1, 0.85, 1, 2], [0.47, -0.6 * f, 0.26, -0.12, 1, 0.86, 1.05, 1], [0.36, 0.08, 0.98, 0.1 * f, 1.25, 0.5, 1.05, 1], [0.32, 0.1 * f, 0.18, 0.74, 1.2, 0.75, 1, 1],
+    [0.14, 0.98 * f, 0.06, 0.62, 1.2, 0.7, 1, 0], [0.12, -0.98 * f, 0.05, 0.5, 1.2, 0.7, 1, 0], [0.1, 0.4, 0.04, -0.95, 1.2, 0.7, 1, 0]], s, 1.25, ['#959ea7', '#858f99', '#a3abb3'], '#7f9e5a', [[1.05 * f, 0.1], [-0.95 * f, 0.6], [0.3, 1.0], [-0.3, -0.95], [0.75, -0.6]]);
+}
+/* a trunk: wider at the foot with root toes, a slight lean */
+function prTrunk(h, r0, r1, flare, seed, lean) {
+  const q = new T.CylinderGeometry(1, 1, 1, 9, 5, true), p = q.attributes.position, ph = hash(seed, 5) * 6;
+  for (let i = 0; i < p.count; i++) { const b = p.getY(i) + 0.5, th = Math.atan2(p.getZ(i), p.getX(i)), r = r1 + (r0 - r1) * Math.pow(1 - b, 1.6) + flare * Math.pow(1 - b, 4) * (0.45 + 0.55 * Math.max(0, Math.cos(4 * th + ph)));
+    p.setXYZ(i, Math.cos(th) * r + (lean || 0) * b * b * Math.cos(ph), b * h, Math.sin(th) * r + (lean || 0) * b * b * Math.sin(ph)); }
+  return fac(q, (cx, cy, cz, i) => shadeY(hash(Math.round(Math.atan2(cz, cx) * 2.2), seed) > 0.5 ? '#7a5232' : '#8f6340', cy, -0.1, h * 1.2, Math.round(Math.atan2(cz, cx) * 2.2), 0.35), seed);
+}
+function propStumpGeo() {
+  const L = [prTrunk(0.24, 0.2, 0.165, 0.1, 1201)];
+  [[0, 0.05, '#c79a62'], [0.05, 0.11, '#e7c48f'], [0.11, 0.165, '#d6b07a']].forEach(([a, b, c], k) => { const q = a ? new T.RingGeometry(a, b, 10) : new T.CircleGeometry(b, 10); q.rotateX(-Math.PI / 2); q.translate(0, 0.241, 0); L.push(fac(q, prCol(c), 1202 + k)); });
+  return prJoin(L);
+}
+function propTree(kind, s, tier) {
+  const g = new T.Group(), W = [], C = [], up = new T.Vector3(0, 1, 0), dv = new T.Vector3(), qt = new T.Quaternion(), mt = new T.Matrix4();
+  let base, y0, y1, pine = 0;
+  if (kind === 'pine') {
+    pine = 1; const n = tier >= 2 ? 6 : 5, th = 0.5; W.push(prTrunk(th + 0.1, 0.11, 0.06, 0.05, s, 0.02));
+    for (let i = 0; i < n; i++) { const R = 0.62 - i * (0.5 / n), yb = 0.36 + i * 0.3, h = 0.52, ph = hash(s, i) * 6, lob = (a) => 0.5 + 0.5 * Math.cos(7 * a * 6.2832 + ph);
+      const fn = (r1, dy, r2) => (a, b0) => { const b = r1 + ((r2 || 1) - r1) * b0, t = a * 6.2832, l = lob(a), r = R * Math.pow(1 - b, 0.85) * (0.8 + 0.3 * l * (1 - b)); return [Math.cos(t) * r, yb + h * b - 0.13 * l * (1 - b) * (1 - b) + dy, Math.sin(t) * r]; };
+      const q = prGrid([], fn(0, 0), 28, 3, [0, 1, 0], '#ffffff', s + i); C.push(q);
+      if (tier >= 3) prGrid(W, fn(0.04, 0.022, 0.5), 28, 1, [0, 1, 0], (cx, cy, cz, k) => tone('#f2f6f8', k, 0.2), s + 50 + i); }
+    const q = new T.ConeGeometry(0.07, 0.3, 6); q.translate(0, 0.36 + (n - 1) * 0.3 + 0.52 + 0.08, 0); C.push(q);
+    base = s % 2 ? PAL.pine : PAL.forest; y0 = 0.3; y1 = 0.36 + n * 0.3 + 0.4;
+  } else {
+    const oak = tier >= 2, h = oak ? 0.82 : 0.95, B = [], sq = oak ? 0.8 : 0.88, nr = oak ? 7 : 5, rr = oak ? 0.62 : 0.4, cy0 = oak ? 1.28 : 1.38;
+    W.push(prTrunk(h, oak ? 0.2 : 0.12, oak ? 0.13 : 0.075, oak ? 0.16 : 0.09, s, oak ? 0.06 : 0.04));
+    B.push([oak ? 0.52 : 0.46, 0, cy0, 0]);
+    for (let k = 0; k < nr; k++) { const a = k / nr * 6.283 + hash(s, k) * 0.7, r = (oak ? 0.36 : 0.3) + hash(k, s) * 0.1; B.push([r, Math.cos(a) * rr, cy0 - 0.22 + hash(s, k + 9) * 0.32, Math.sin(a) * rr]); }
+    B.push([oak ? 0.38 : 0.32, 0.1, cy0 + (oak ? 0.36 : 0.4), -0.06]); if (oak) B.push([0.34, -0.26, cy0 + 0.3, 0.2]); else B.push([0.22, Math.cos(s) * 0.34, 0.98, Math.sin(s) * 0.34]);
+    B.forEach(([r, x, y, z], k) => { const q = ico(r, 1, s + k, r * 0.07); q.scale(1, sq, 1); q.translate(x, y, z); C.push(q); });
+    /* limbs up into the leaves */
+    for (let k = 0; k < 3; k++) { const b = B[1 + ((k * 2) % nr)], x0 = 0, yb = h * (0.62 + k * 0.1), len = Math.hypot(b[1], b[2] - yb, b[3]) * 0.9, q = new T.CylinderGeometry(oak ? 0.04 : 0.025, oak ? 0.075 : 0.045, len, 5); q.translate(0, len / 2, 0);
+      dv.set(b[1], b[2] - yb, b[3]).normalize(); qt.setFromUnitVectors(up, dv); q.applyMatrix4(mt.makeRotationFromQuaternion(qt)); q.translate(x0, yb, 0); W.push(fac(q, (cx, cy) => shadeY('#7a5232', cy, 0, 1.6, k, 0.3), s + 20 + k)); }
+    /* small leaf bumps break up the round outline */
+    for (let k = 0; k < (oak ? 20 : 14); k++) { const b = B[k % B.length], a = hash(k, s) * 6.283, e = hash(k, s + 7) * 1.3 - 0.15, dx = Math.cos(a) * Math.cos(e), dy = Math.sin(e), dz = Math.sin(a) * Math.cos(e);
+      const rr2 = b[0] * (0.3 + hash(k, 3) * 0.14), q = ico(rr2, 0, s + 60 + k, rr2 * 0.1); q.translate(b[1] + dx * b[0] * 0.8, b[2] + dy * b[0] * sq * 0.8, b[3] + dz * b[0] * 0.8); C.push(q); }
+    if (oak) for (let k = 0; k < 7; k++) { const b = B[1 + (k % nr)], a = hash(k, s + 3) * 6.283, q = new T.IcosahedronGeometry(0.06, 0); q.translate(b[1] + Math.cos(a) * b[0] * 0.8, b[2] - b[0] * sq * 0.55, b[3] + Math.sin(a) * b[0] * 0.8); W.push(fac(q, (cx, cy, cz, i) => tone('#d6403a', i, 0.3), s + 40 + k)); }
+    base = PAL.forest; y0 = 0.7; y1 = cy0 + 0.75;
+  }
+  part(prJoin(W), g);
+  const m = part(fac(mergeGeos(C), (cx, cy, cz, i) => leafY(base, cy, y0, y1, i)), g); m.userData = { base, y0, y1 }; if (pine) m.userData.pine = 1; leafs.push(m);
+  return g;
+}
+/* what Pip carries: a log with bark, cut ends and a twig stub; a chiselled stone */
+function propLogGeo() {
+  const L = []; let q = new T.CylinderGeometry(0.085, 0.085, 0.42, 10, 2, true); jit(q, 0.006, 1100); q.rotateZ(Math.PI / 2); L.push(fac(q, (cx, cy, cz) => tone(hash(Math.round(Math.atan2(cz, cy) * 1.6), 2) > 0.5 ? '#9a6a3e' : '#86592f', Math.round(Math.atan2(cz, cy) * 1.6), 0.4), 1100));
+  [-1, 1].forEach((s) => [[0, 0.03, '#c79a62'], [0.03, 0.062, '#ecca96'], [0.062, 0.086, '#b98a58']].forEach(([a, b, c], k) => { q = a ? new T.RingGeometry(a, b, 10) : new T.CircleGeometry(b, 10); q.rotateY(s * Math.PI / 2); q.translate(s * 0.211, 0, 0); L.push(fac(q, prCol(c), 1102 + k)); }));
+  q = new T.CylinderGeometry(0.018, 0.026, 0.07, 5); q.rotateZ(-0.5); q.translate(0.06, 0.1, 0.01); L.push(fac(q, prCol('#86592f'), 1106));
+  return prJoin(L);
+}
+function propStoneGeo() { const g = prChisel(0.13, 1101, 1.2, 0.85, 1, 8, 1); return prFacet(fac(g, (cx, cy, cz, i) => shadeY(i % 5 === 0 ? '#98a2ac' : '#aab3bc', cy, -0.12, 0.12, i, 0.3), 1101)); }
+/* the campfire: a ring of chiselled stones, ash, logs stood in a cone with charred tips, glowing embers */
+function propFire(g) {
+  const L = [];
+  for (let k = 0; k < 10; k++) { const a = k / 10 * 6.283 + hash(k, 2) * 0.2, r = 0.1 + hash(k, 1300) * 0.035, q = prChisel(r, 1300 + k, 1.25, 0.8, 1, 7, 1); q.rotateY(-a); q.translate(Math.cos(a) * 0.38, 0.05, Math.sin(a) * 0.38); L.push(prFacet(fac(q, (cx, cy, cz, i) => shadeY(k % 3 ? '#a9b2bb' : '#8f98a1', cy, -0.05, 0.16, i, 0.3), 1300 + k))); }
+  let q = new T.CylinderGeometry(0.3, 0.33, 0.03, 12); q.translate(0, 0.015, 0); L.push(fac(q, (cx, cy, cz, i) => tone(Math.hypot(cx, cz) < 0.16 ? '#3a3531' : '#5a544d', i, 0.3), 1311));
+  for (let k = 0; k < 5; k++) { const a = k / 5 * 6.283 + 0.3; q = new T.CylinderGeometry(0.034, 0.045, 0.44, 6); q.translate(0, 0.22, 0); q.rotateZ(0.62); q.rotateY(-a); q.translate(Math.cos(a) * 0.2, 0.02, Math.sin(a) * 0.2); L.push(fac(q, (cx, cy) => (cy > 0.24 ? tone('#2f2a26', k, 0.2) : shadeY('#86592f', cy, -0.1, 0.4, k, 0.4)), 1312 + k)); }
+  merged(L, MAT, g);
+  for (let k = 0; k < 5; k++) { const a = k * 1.9 + 0.5, e = new T.Mesh(new T.BoxGeometry(0.05, 0.03, 0.05), new T.MeshBasicMaterial({ color: k % 2 ? '#ff8a3c' : '#ffc45a' })); e.position.set(Math.cos(a) * 0.11, 0.04, Math.sin(a) * 0.11); e.rotation.y = a; g.add(e); }
+}
+/* what the bigger campfires add: split-log benches; then a tripod with a pot and a pile of firewood */
+function propFireMore(L, lv) {
+  let q; const rings = (x, y, z, ry, r, sd) => [[0, r * 0.45, '#d9b27c'], [r * 0.45, r, '#ecca96']].forEach(([a, b, c], k) => { const d = a ? new T.RingGeometry(a, b, 9) : new T.CircleGeometry(b, 9); d.rotateY(Math.PI / 2 + ry); d.translate(x, y, z); L.push(fac(d, prCol(c), sd + k)); });
+  if (lv >= 2) [[1.0, 0.25, 0.3], [-0.2, 1.0, 1.75]].forEach(([x, z, r], k) => {
+    q = new T.CylinderGeometry(0.14, 0.14, 0.9, 9); q.rotateZ(Math.PI / 2); q.scale(1, 0.8, 1); q.rotateY(r); q.translate(x, 0.24, z); L.push(fac(q, (cx, cy, cz, i) => tone(i % 3 ? '#86592f' : '#9a6a3e', i % 5, 0.4), 1330 + k));
+    prBox(L, 0.86, 0.03, 0.2, x, 0.345, z, '#e2bf8a', 1326 + k, { ry: r, t: 0.2 });
+    [-1, 1].forEach((s) => { q = new T.CylinderGeometry(0.075, 0.085, 0.16, 7); q.translate(x + Math.cos(r) * s * 0.3, 0.08, z - Math.sin(r) * s * 0.3); L.push(fac(q, (cx, cy, cz, i) => tone('#7a5232', i, 0.4), 1332 + k * 2 + s)); }); });
+  if (lv >= 3) {
+    [0, 2.1, 4.2].forEach((a, k) => { q = new T.CylinderGeometry(0.02, 0.028, 1.12, 5); q.translate(0, 0.56, 0); q.rotateX(-0.36); q.rotateY(a); q.translate(Math.sin(a) * 0.4, 0, Math.cos(a) * 0.4); L.push(fac(q, (cx, cy) => shadeY('#7a5232', cy, 0, 1.2, k, 0.3), 1335 + k)); });
+    prBox(L, 0.07, 0.06, 0.07, 0, 1.03, 0, '#fff2c2', 1338, { t: 0.1 }); q = new T.CylinderGeometry(0.008, 0.008, 0.3, 4); q.translate(0, 0.86, 0); L.push(fac(q, prCol('#3a3f48'), 1339));
+    q = new T.SphereGeometry(0.17, 12, 6, 0, Math.PI * 2, Math.PI * 0.42, Math.PI * 0.58); q.translate(0, 0.6, 0); L.push(fac(q, (cx, cy, cz, i) => shadeY('#4a5560', cy, 0.4, 0.7, i % 2, 0.2), 1340));
+    q = new T.TorusGeometry(0.165, 0.02, 5, 12); q.rotateX(Math.PI / 2); q.translate(0, 0.645, 0); L.push(fac(q, prCol('#39424c'), 1341));
+    q = new T.CircleGeometry(0.155, 12); q.rotateX(-Math.PI / 2); q.translate(0, 0.635, 0); L.push(fac(q, prCol('#e0a04a'), 1342));
+    q = new T.TorusGeometry(0.15, 0.01, 4, 10, Math.PI); q.translate(0, 0.65, 0); L.push(fac(q, prCol('#39424c'), 1343));
+    [[0, 0], [0.13, 0], [0.26, 0], [0.065, 0.11], [0.195, 0.11], [0.13, 0.22]].forEach(([dx, dy], k) => { q = new T.CylinderGeometry(0.06, 0.06, 0.4, 7); q.rotateX(Math.PI / 2); q.translate(-1.05 + dx, 0.06 + dy, -0.35); L.push(fac(q, (cx, cy, cz, i) => tone(k % 2 ? '#9a6a3e' : '#86592f', i % 3, 0.3), 1345 + k)); rings(-1.05 + dx, 0.06 + dy, -0.149, Math.PI / 2, 0.06, 1352 + k * 2); });
+  }
+}
+/* the doghouse: red boards on a stone step, a shingle roof, an arched door with white trim, a bone over the door, a full bowl */
+function propKennel(g) {
+  const L = [], zf = 0.45;
+  kitStone(L, 1.12, 0.1, 1.02, 0, 0, 0, 420, { ch: 0.1, bl: 0.26, th: 0.08 });
+  kitPlanks(L, 1.0, 0.56, 0.9, 0.1, 430, { cols: ['#d9573f', '#cf4f39', '#e0634a', '#c94a34'] });
+  kitRoof(L, 1.16, 1.3, 0.62, 0.5, 440, { ry: Math.PI / 2, gable: '#d9573f', cols: ['#6f7f8f', '#62717f', '#7c8c9b', '#596876'] });
+  prBox(L, 0.36, 0.26, 0.02, 0, 0.23, zf + 0.03, prCol('#2a1f1a'), 450);
+  let q = new T.CircleGeometry(0.18, 10, 0, Math.PI); q.translate(0, 0.36, zf + 0.041); L.push(fac(q, prCol('#2a1f1a'), 451));
+  q = new T.TorusGeometry(0.2, 0.026, 5, 10, Math.PI); q.translate(0, 0.36, zf + 0.045); L.push(fac(q, prCol('#fbf3e4'), 452));
+  [-1, 1].forEach((s) => prBox(L, 0.05, 0.27, 0.05, s * 0.2, 0.235, zf + 0.045, '#fbf3e4', 453 + s, { t: 0.1 }));
+  prBox(L, 0.2, 0.045, 0.03, 0, 0.82, zf + 0.06, '#fbf3e4', 456, { t: 0.1 });
+  [-1, 1].forEach((sx) => [-1, 1].forEach((sy) => { q = new T.IcosahedronGeometry(0.035, 1); q.translate(sx * 0.105, 0.82 + sy * 0.024, zf + 0.06); L.push(fac(q, prCol('#fbf3e4'), 457)); }));
+  q = new T.CylinderGeometry(0.19, 0.15, 0.09, 12); q.translate(0.5, 0.045, 0.82); L.push(fac(q, (cx, cy, cz, i) => tone('#5aa7d6', i % 2, 0.2), 460));
+  q = new T.CylinderGeometry(0.165, 0.165, 0.02, 12); q.translate(0.5, 0.086, 0.82); L.push(fac(q, (cx, cy, cz, i) => tone('#9a6a3e', i, 0.5), 461));
+  prBox(L, 0.5, 0.02, 0.3, 0, 0.012, zf + 0.3, '#74a857', 462, { t: 0.2 });
+  merged(L, MAT, g);
 }

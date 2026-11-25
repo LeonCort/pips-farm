@@ -6,6 +6,7 @@
    The engine draws the ground from ISLAND.d (how far a point is from the coast) and keeps Pip on land with ISLAND.clamp. */
 const SHOW = /[?&]show=1\b/.test(location.search); /* the asset yard (show.js): its own save, everything built, an empty lawn on the meadow */
 const SHOW_YARD = { m0: 1, m1: 1 };
+const SHOW_T = { tier: 0 }; /* the asset yard asks for a tree or rock of a given tier */
 const SAVE_KEY = SHOW ? 'pip-isle-show' : 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip looks) is shared with the farm */
 const HERE = 'isle';
 const MAP_V = 'areas-1'; /* the map's version: a save made for another map starts over */

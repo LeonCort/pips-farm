@@ -25,7 +25,7 @@ function tierPow(n) { return toolKind(n.kind) ? 1 + 1.5 * Math.max(0, toolTier()
 const dropReach = () => (toolTier() >= 2 ? 4.5 : 2.2);
 /* a tier-2 or tier-3 thing looks bigger: an old oak, a tall winter pine, a big crystal */
 function tierInit(n) {
-  n.tier = nodeTier(n.kind, n.x, n.z); n.hp = nodeHits(n);
+  n.tier = SHOW_T.tier || nodeTier(n.kind, n.x, n.z); n.hp = nodeHits(n);
   if (n.tier >= 2 && (n.kind === 'tree' || n.kind === 'rock' || n.kind === 'crystal')) { const s = n.tier === 2 ? 1.3 : 1.5; n.main.scale.multiplyScalar(s); n.full *= s; }
 }
 /* the crystal tools: each swing also hits the nearest thing of the same kind next to it */

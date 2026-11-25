@@ -86,8 +86,8 @@ ITEM_H.gem = 0.2; ITEM_H.crystal = 0.2; ITEM_H.coin = 0.08;
 function itemGeo(t) {
   if (ITEM_GEO[t]) return ITEM_GEO[t];
   let g;
-  if (t === 'log') { const a = new T.CylinderGeometry(0.085, 0.085, 0.42, 9); a.rotateZ(Math.PI / 2); g = fac(a, (cx, cy, cz) => Math.abs(cx) > 0.2 ? new T.Color('#e7c48f') : tone('#9a6a3e', cy * 40 + cz * 13, 0.6), 1100); }
-  else if (t === 'stone') { const a = ico(0.13, 1, 1101); a.scale(1.2, 0.85, 1); g = fac(a, (cx, cy, cz, i) => shadeY('#aab3bc', cy, -0.12, 0.12, i, 0.5), 1101); }
+  if (t === 'log') g = propLogGeo();
+  else if (t === 'stone') g = propStoneGeo();
   else if (t === 'hay') { const a = new T.CylinderGeometry(0.11, 0.13, 0.3, 9); a.rotateZ(Math.PI / 2); g = fac(a, (cx, cy, cz, i) => Math.abs(cx) < 0.03 ? new T.Color('#b5562f') : tone('#e8c95a', i, 0.6), 1105); }
   else if (t === 'clay') { const a = ico(0.13, 1, 1106); a.scale(1.25, 0.7, 1.05); g = fac(a, (cx, cy, cz, i) => shadeY('#c9774a', cy, -0.1, 0.1, i, 0.4), 1106); }
   else if (t === 'gem' || t === 'crystal') { const a = new T.OctahedronGeometry(0.11, 0); a.scale(1, 1.4, 1); a.translate(0, 0.14, 0); g = fac(a, (cx, cy, cz, i) => new T.Color(i % 2 ? '#7fd3ef' : '#bdeaf8'), 1103); }
@@ -138,13 +138,13 @@ function rockLumps(parts, seed, top, cols, moss) {
     if (moss && cy > top * 0.74 && hash(Math.round(cx * 3), Math.round(cz * 3), seed + 3) > 0.5) return tone(moss, i, 0.4);
     if (cy < 0.1) c.multiplyScalar(0.8); return c; }, seed);
 }
-const ROCK_GEO = rockLumps([[0.5, 0, 0.26, 0, 1.1, 0.72, 0.92], [0.3, 0.38, 0.17, 0.16, 1, 0.75, 1], [0.24, -0.4, 0.13, 0.2, 1.1, 0.7, 1], [0.1, 0.5, 0.05, 0.5, 1.2, 0.6, 1], [0.08, -0.55, 0.04, -0.3, 1.2, 0.6, 1]], 1200, 0.68, ['#aab3bc', '#98a2ac'], null);
-const STUMP_GEO = (() => { const g = new T.CylinderGeometry(0.17, 0.21, 0.24, 9); g.translate(0, 0.12, 0); return fac(g, (cx, cy) => cy > 0.2 ? new T.Color('#e7c48f') : tone(PAL.trunk, cx * 40, 0.5), 1201); })();
+const ROCK_GEOS = [0, 1, 2].map(propRockGeo);
+const STUMP_GEO = propStumpGeo();
 const BUSH_GEO = (() => { const g = fluff(0.42, 1210, 6, 0.8); g.translate(0, 0.36, 0); return fac(g, (cx, cy, cz, i) => leafY('#4f9c48', cy, 0, 0.8, i), 1210); })();
 const GRASS_GEO = (() => { const L = []; for (let k = 0; k < 18; k++) { const a = k / 18 * 6.28 + hash(k, 1400) * 0.5, h = 0.55 + hash(k, 1401) * 0.5, q = new T.ConeGeometry(0.075, h, 4); q.translate(0, h / 2, 0); q.rotateZ(0.18 + hash(k, 1402) * 0.25); q.rotateY(a); q.translate(Math.cos(a) * 0.1, 0, -Math.sin(a) * 0.1); L.push(q); }
   return fac(mergeGeos(L), (cx, cy, cz, i) => cy > 0.7 ? tone('#f0dc7a', i, 0.4) : leafY('#b9cf58', cy, 0, 0.9, i, 0.5), 1405); })();
 const CLAY_GEO = (() => { const g = ico(0.5, 1, 1410, 0.06); g.scale(1.0, 0.62, 0.9); g.translate(0, 0.16, 0); return fac(g, (cx, cy, cz, i) => cy > 0.42 ? tone('#c47a52', i, 0.5) : shadeY('#9c5534', cy, -0.1, 0.45, i, 0.6), 1410); })();
-const BOULDER_GEO = rockLumps([[0.85, 0, 0.5, 0, 1.08, 0.82, 0.95], [0.55, 0.62, 0.34, 0.2, 1, 0.8, 1], [0.48, -0.6, 0.3, -0.1, 1, 0.82, 1.05], [0.34, 0.1, 0.2, 0.7, 1.2, 0.7, 1], [0.14, 0.95, 0.07, 0.6, 1.2, 0.6, 1], [0.12, -0.95, 0.06, 0.5, 1.2, 0.6, 1]], 1420, 1.2, ['#959ea7', '#858f99'], '#7f9e5a');
+const BOULDER_GEOS = [0, 1].map(propBoulderGeo);
 const BERRY_GEO = new T.SphereGeometry(0.075, 8, 6);
 const berryMat = new T.MeshStandardMaterial({ color: '#d6406a', roughness: 0.4 });
 function makeNode(kind, x, z, seed) {
@@ -153,9 +153,9 @@ function makeNode(kind, x, z, seed) {
   if (kind === 'shroom') { n.main = new T.Mesh(SHROOM_GEO, shroomMat); n.full = 1; g.add(n.main); }
   else if (kind === 'crystal') { n.main = new T.Mesh(CRYSTAL_GEO, crystalMat); n.full = 0.9 + hash(seed, 4) * 0.3; n.main.scale.setScalar(n.full); g.add(n.main); }
   else if (kind === 'planks') { n.main = new T.Mesh(RUIN_BOARDS, MAT); n.main.castShadow = true; n.full = 1; g.add(n.main); }
-  else if (kind === 'tree') { n.main = tree(hash(seed, 2) > 0.7 || (areaAt(x, z) && areaAt(x, z).biome === 'snow') ? 'pine' : 'tree', seed); n.main.scale.setScalar(1.05 + hash(seed, 9) * 0.25); n.full = n.main.scale.x; g.add(n.main);
+  else if (kind === 'tree') { n.main = propTree(hash(seed, 2) > 0.7 || (areaAt(x, z) && areaAt(x, z).biome === 'snow') ? 'pine' : 'tree', seed, SHOW_T.tier || nodeTier('tree', x, z)); n.main.scale.setScalar(1.05 + hash(seed, 9) * 0.25); n.full = n.main.scale.x; g.add(n.main);
     n.stump = new T.Mesh(STUMP_GEO, MAT); n.stump.castShadow = true; n.stump.receiveShadow = true; n.stump.visible = false; g.add(n.stump); }
-  else if (kind === 'rock' || kind === 'ore' || kind === 'boulder' || kind === 'clay' || kind === 'grass') { n.main = new T.Mesh(kind === 'ore' ? ORE_GEO : kind === 'rock' ? ROCK_GEO : kind === 'boulder' ? BOULDER_GEO : kind === 'clay' ? CLAY_GEO : GRASS_GEO, MAT); n.main.castShadow = kind !== 'clay'; n.main.receiveShadow = true;
+  else if (kind === 'rock' || kind === 'ore' || kind === 'boulder' || kind === 'clay' || kind === 'grass') { n.main = new T.Mesh(kind === 'ore' ? ORE_GEO : kind === 'rock' ? ROCK_GEOS[seed % 3] : kind === 'boulder' ? BOULDER_GEOS[seed % 2] : kind === 'clay' ? CLAY_GEO : GRASS_GEO, MAT); n.main.castShadow = kind !== 'clay'; n.main.receiveShadow = true;
     n.full = kind === 'grass' ? 0.9 + hash(seed, 4) * 0.3 : 0.9 + hash(seed, 4) * 0.25; n.main.scale.setScalar(n.full); g.add(n.main); }
   else { n.main = new T.Mesh(BUSH_GEO, MAT); n.main.castShadow = true; n.main.receiveShadow = true; n.full = 1; g.add(n.main); n.berries = new T.Group(); g.add(n.berries);
     for (let k = 0; k < 7; k++) { const a = k / 7 * 6.28 + hash(seed, k), r = 0.32 + hash(k, seed) * 0.1, b = new T.Mesh(BERRY_GEO, berryMat); b.position.set(Math.cos(a) * r, 0.3 + hash(seed, k + 5) * 0.32, Math.sin(a) * r); n.berries.add(b); } }
@@ -245,9 +245,7 @@ const walkSdfArea = (A, x, z) => Math.abs(x - A.cx) > 5.55 || Math.abs(z - A.cz)
 /* the camp in the start area: a campfire and a little tent */
 const campFlame = (() => {
   const g = new T.Group(); g.position.set(FIRE.x, 0, FIRE.z); sc.add(g); const L = [];
-  for (let k = 0; k < 8; k++) { const a = k / 8 * 6.28, q = ico(0.11, 0, 1300 + k); q.scale(1.2, 0.7, 1); q.translate(Math.cos(a) * 0.36, 0.06, Math.sin(a) * 0.36); L.push(fac(q, tone('#a9b2bb', k, 0.6), 1300 + k)); }
-  [0.6, 2.2].forEach((r, k) => { const q = new T.CylinderGeometry(0.05, 0.05, 0.5, 6); q.rotateZ(Math.PI / 2); q.rotateY(r); q.translate(0, 0.08 + k * 0.04, 0); L.push(fac(q, PAL.trunk, 1310 + k)); });
-  merged(L, MAT, g);
+  propFire(g);
   const f = new T.Mesh(new T.ConeGeometry(0.16, 0.42, 7), new T.MeshBasicMaterial({ color: '#f2a13c' })); f.position.y = 0.3; g.add(f);
   const f2 = new T.Mesh(new T.ConeGeometry(0.09, 0.26, 6), new T.MeshBasicMaterial({ color: '#ffe07a' })); f2.position.y = 0.26; g.add(f2);
   /* the tent */

@@ -66,11 +66,7 @@ const fireX = new T.Group(); campFlame.g.add(fireX);
 function fireShape(lv) {
   while (fireX.children.length) fireX.remove(fireX.children[0]);
   const L = [];
-  if (lv >= 2) [[0.95, 0.25, 0.3], [-0.2, 0.95, 1.75]].forEach(([x, z, r], k) => { /* log benches to sit on */
-    const q = new T.CylinderGeometry(0.13, 0.13, 0.85, 8); q.rotateZ(Math.PI / 2); q.rotateY(r); q.translate(x, 0.13, z); L.push(fac(q, (cx, cy, cz, i) => tone('#9a6a3e', i, 0.5), 1330 + k)); });
-  if (lv >= 3) { /* a tripod with a cooking pot */
-    [0, 2.1, 4.2].forEach((a, k) => { const q = new T.CylinderGeometry(0.02, 0.02, 1.0, 4); q.rotateX(0.32); q.rotateY(a); q.translate(Math.sin(a) * 0.16, 0.46, Math.cos(a) * 0.16); L.push(fac(q, PAL.trunk, 1335 + k)); });
-    const p = new T.SphereGeometry(0.16, 10, 6, 0, Math.PI * 2, Math.PI * 0.35, Math.PI * 0.65); p.translate(0, 0.62, 0); L.push(fac(p, '#4a5560', 1338)); }
+  propFireMore(L, lv);
   if (L.length) merged(L, MAT, fireX);
   campFlame.f.position.y = lv >= 3 ? 0.24 : 0.3; campFlame.f.userData.s = lv >= 2 ? 1.2 : 1;
 }
