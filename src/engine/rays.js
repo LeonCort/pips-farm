@@ -337,7 +337,7 @@ function grMask() {
   for (let i = 0; i < p.count; i++) { const tx = Math.round((p.getX(i) - GRX0) / GRW * W - 0.5), tz = Math.round((p.getZ(i) - GRZ0) / GRH * H - 0.5); if (tx < 0 || tz < 0 || tx >= W || tz >= H) continue; const o = (tz * W + tx) * 4; acc[o] += c.getX(i); acc[o + 1] += c.getY(i); acc[o + 2] += c.getZ(i); acc[o + 3]++; }
   const pens = typeof PEN !== 'undefined' ? Object.values(PEN) : [], deco = typeof DECO !== 'undefined' ? DECO : [];
   for (let tz = 0; tz < H; tz++) for (let tx = 0; tx < W; tx++) { const o = (tz * W + tx) * 4, x = (tx + 0.5) / W * GRW + GRX0, z = (tz + 0.5) / H * GRH + GRZ0;
-    let k = 1 - smoothstep(0.84, 0.9, isleD(x, z));
+    let k = 1 - smoothstep(0.84, 0.9, isleD(x, z)); if (k > 0 && typeof snxGrass === 'function') k *= snxGrass(x, z);
     if (k > 0 && typeof MEADOW !== 'undefined' && x > MEADOW.x0 - 0.3 && x < MEADOW.x1 + 0.3 && z > MEADOW.z0 - 0.3 && z < MEADOW.z1 + 0.3) k = 0;
     if (k > 0) for (const q of pens) if (Math.abs(x - q.x) < q.w / 2 + 0.35 && Math.abs(z - q.z) < q.d / 2 + 0.35) { k = 0; break; }
     if (k > 0 && Math.abs(x - HOUSE.x) < 1.9 && z > HOUSE.z - 1.8 && z < HOUSE.z + 1.9) k = 0;

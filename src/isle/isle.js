@@ -234,7 +234,7 @@ function areaDecor(A) {
   }
   if (b === 'snow') {
     /* soft drifts of snow, and a few icy stones */
-    for (let k = 0; k < 34; k++) { const p = spot(k, 95, 11); if (!p) continue; const r = 0.3 + hash(k, 96) * 0.45, q = ico(r, 2, 2400 + k, 0.01); q.scale(1.3, 0.28, 1); q.translate(p[0], 0.0, p[1]); L.push(fac(q, (cx, cy, cz, i) => tone(cy > 0.06 ? '#e4eefc' : '#c4d6ee', i, 0.06), 2400 + k)); }
+    if (!ISLAND.snowFx) for (let k = 0; k < 34; k++) { const p = spot(k, 95, 11); if (!p) continue; const r = 0.3 + hash(k, 96) * 0.45, q = ico(r, 2, 2400 + k, 0.01); q.scale(1.3, 0.28, 1); q.translate(p[0], 0.0, p[1]); L.push(fac(q, (cx, cy, cz, i) => tone(cy > 0.06 ? '#e4eefc' : '#c4d6ee', i, 0.06), 2400 + k)); }
     for (let k = 0; k < 24; k++) { const p = spot(k, 98, 11.4); if (!p) continue; const r = 0.07 + hash(k, 99) * 0.08, q = ico(r, 1, 2450 + k); q.scale(1.2, 0.6, 1); q.translate(p[0], r * 0.3, p[1]); L.push(fac(q, '#b9c7d6', 2450 + k)); }
   }
   if (b === 'cave') caveDecor(A, L, base);
@@ -510,7 +510,7 @@ function isleStep(dt) {
   storeStep2(dt); invFlyStep(dt); invStep();
   for (let k = chests.length - 1; k >= 0; k--) { chestStep(chests[k], dt); if (chests[k].gone) chests.splice(k, 1); }
   if (hintSp.visible) { hintSp.t -= dt; hintSp.material.opacity = Math.min(1, hintSp.t * 2); if (hintSp.t <= 0) hintSp.visible = false; }
-  const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1); bldStep(dt); xpStep(dt); luckStep(dt); ruinStep(dt); caveStep(dt); springStep(dt); zoneStep(dt); timedStep(dt); peopleStep(dt);
+  const fl = reduced ? 1 : 1 + Math.sin(time * 13) * 0.12 + Math.sin(time * 7.3) * 0.08; campFlame.f.scale.set(1, fl, 1); campFlame.f2.scale.set(1, 2 - fl, 1); bldStep(dt); xpStep(dt); luckStep(dt); ruinStep(dt); caveStep(dt); springStep(dt); zoneStep(dt); timedStep(dt); peopleStep(dt); snxStep(dt);
 }
 /* the pets keep inside the box of the land Pip is on: home, or an island once Pip is there */
 function isleBoxStep() { const A = areaAt(pip.position.x, pip.position.z); if (A && HAS[A.id] && !A.cave) { const b = ISLAND.box; b.x0 = A.cx - 5.4; b.x1 = A.cx + 5.4; b.z0 = A.cz - 5.4; b.z1 = A.cz + 5.4; } }

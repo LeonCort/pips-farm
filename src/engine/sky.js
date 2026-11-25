@@ -221,7 +221,7 @@ function skyStep(dt) {
   if (nightAmt > 0.01) flyGeo.attributes.position.needsUpdate = true;
   /* the season changes at sunrise */
   const s = ISL.seasonAt ? ISL.seasonAt() : SEASONS[Math.floor(state.clock / DAY) % 4]; /* a game can tie the season to a place (the island's season zones) */
-  if (s !== season || seasonShown === null) { const first = seasonShown === null; season = s; seasonShown = s; paintSeason(s); const fl = FALL[s]; fallMat.color.set(fl.c); fallMat.size = fl.size; if (!first) { seasonToast(s); Snd.play('sparkle', { gain: 0.5 }); } }
+  if (s !== season || seasonShown === null) { const first = seasonShown === null; season = s; seasonShown = s; paintSeason(ISL.paintSeason ? ISL.paintSeason(s) : s); const fl = FALL[s]; fallMat.color.set(fl.c); fallMat.size = fl.size; if (!first) { seasonToast(s); Snd.play('sparkle', { gain: 0.5 }); } }
   /* falling petals, leaves or snow drift around the camera */
   const fl = FALL[season]; falling.visible = !reduced && !inHouse;
   /* more of them come loose when it blows, and they drift sideways with the wind */
