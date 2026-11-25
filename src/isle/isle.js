@@ -180,7 +180,8 @@ function areaClear(x, z) {
   if (roadKind(x, z) || roadKind(x + 0.9, z) || roadKind(x - 0.9, z) || roadKind(x, z + 0.9) || roadKind(x, z - 0.9) || campNear(x, z, 1.5) || Math.hypot(x - FORGE.x + 0.4, z - FORGE.z) < 2.6 || Math.hypot(x - OVEN.x + 0.3, z - OVEN.z) < 2.5 || Math.hypot(x - WELL.x, z - WELL.z) < 2.4) return false; /* the settlement's streets and plots */
   for (const a of AREAS) { if (a.chest && Math.hypot(x - a.cx, z - a.cz) < 1.4) return false;
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
-    if (a.cave && Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4) return false;
+    if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
+    if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
   if (Math.max(Math.abs(x), Math.abs(z)) < 6 && Math.max(Math.abs(x), Math.abs(z)) > 4.6) return false; /* the start area's shore, where its signs stand */
@@ -203,6 +204,7 @@ function areaFill(A, fresh) {
   if (A.ruin) makeRuin(A, fresh);
   if (A.stairs) stairsBuild(A, fresh);
   if (A.cave) caveBuild(A);
+  if (A.lift) liftTopBuild(A, fresh);
   areaDecor(A);
 }
 /* little things that make each biome look like itself (one mesh per area, nothing to gather): flowers on grass, pebbles on stone */
@@ -346,6 +348,7 @@ function signWants() {
   AREAS.forEach((A) => {
     if (HAS[A.id] || (rising && rising.area === A.id) || (building && building.A === A)) return;
     if (A.bridge) { if (HAS[A.bridge.from]) want.set('b:' + A.id, { kind: 'bridge', A }); return; }
+    if (A.lift) { if (mineS().g2) want.set('l:' + A.id, { kind: 'lift', A }); return; } /* the lift at the end of the mine (cave.js) */
     /* the owned square touching this area that is nearest its middle: the sign stands there, by the shared edge */
     let best = null, bd = 1e9;
     areaSquares(A, (i, j) => DIRS.forEach(([a, b]) => { const ni = i - a, nj = j - b; if (!owned(ni, nj) || used.has(ni + ',' + nj)) return; const d = Math.hypot(ni * GS - A.cx, nj * GS - A.cz); if (d < bd - 0.01) { bd = d; best = [ni, nj, a, b]; } }));
@@ -362,6 +365,8 @@ function isleSigns() {
     const A = w.A;
     if (w.kind === 'area') { const [ni, nj, a, b] = w.at, x = ni * GS + a * (GS / 2 - 0.85) + (b ? 0.9 : 0), z = nj * GS + b * (GS / 2 - 0.85) + (a ? 0.9 : 0);
       signMake({ key, kind: 'area', A, cost: A.cost, x, z, ghostGeo: areaGhostGeo, ghostTex, gx: A.cx, gz: A.cz }); }
+    else if (w.kind === 'lift') { const q = new T.PlaneGeometry(1.5, 1.5, 2, 2); q.rotateX(-Math.PI / 2);
+      signMake({ key, kind: 'lift', A, cost: A.cost, x: LIFT.low.x + 1.45, z: LIFT.low.z - 1.0, ghostGeo: q, ghostTex: ghostRound, gx: LIFT.low.x, gz: LIFT.low.z, gy: 0.05 }); }
     else if (!peopleSignMake(w, key)) { const B = A.bridge, L = Math.hypot(B.x1 - B.x0, B.z1 - B.z0), ux = (B.x1 - B.x0) / L, uz = (B.z1 - B.z0) / L, q = new T.PlaneGeometry(1.7, L, 2, 8); q.rotateX(-Math.PI / 2);
       signMake({ key, kind: 'bridge', A, cost: A.cost, x: B.x0 - ux * 0.6 - uz * 1.5, z: B.z0 - uz * 0.6 + ux * 1.5, ghostGeo: q, ghostTex, gx: (B.x0 + B.x1) / 2, gz: (B.z0 + B.z1) / 2, gy: -0.15, gr: Math.atan2(ux, uz) }); }
   });
@@ -392,7 +397,7 @@ function signStep(s, dt) {
 }
 function isleBuy(s) {
   delete state.isle.paid[s.key]; [s.g, s.ring, s.ghost].forEach((m) => sc.remove(m)); signs.splice(signs.indexOf(s), 1);
-  if (s.kind === 'area') areaRise(s.A); else if (!peopleBuy(s)) bridgeBuild(s.A, false);
+  if (s.kind === 'area') areaRise(s.A); else if (s.kind === 'lift') { loopBuy(s); liftOwn(s.A); } else if (!peopleBuy(s)) bridgeBuild(s.A, false);
   signs.forEach(drawSign); save();
 }
 
@@ -493,6 +498,7 @@ function nodeHit(n, side) {
   if (n.kind !== 'bush' && n.kind !== 'grass') splash(sx, 0.6, sz, 3);
   if (n.hp > 0.01) return;
   dropOut(n); n.t = sleepRegrow(n);
+  if (n.gate) { mineGateOpen(n); return; }
   if (n.kind === 'planks') { n.st = 'gone'; n.main.visible = false; Snd.play('thud', { gain: 0.5 }); ruinOpen(n.ruin); return; }
   if (n.kind === 'tree') { n.st = 'fall'; n.fall = 0; n.stump.visible = true; Snd.play('thud', { gain: 0.5 }); }
   else if (LOW[n.kind]) { n.st = 'gone'; n.main.scale.setScalar(n.full * LOW[n.kind]); Snd.play(n.kind === 'grass' ? 'swish' : 'stamp', { gain: 0.4 }); }

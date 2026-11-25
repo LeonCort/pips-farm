@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261125203025">
+<meta name="app-ver" content="20261125205104">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1148,7 +1148,7 @@ const SHOW_YARD = { m0: 1, m1: 1 };
 const SHOW_T = { tier: 0 }; /* the asset yard asks for a tree or rock of a given tier */
 const SAVE_KEY = SHOW ? 'pip-isle-show' : 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip looks) is shared with the farm */
 const HERE = 'isle';
-const MAP_V = 'areas-1'; /* the map's version: a save made for another map starts over */
+const MAP_V = 'areas-2'; /* the map's version: a save made for another map starts over */
 const GS = 4; /* one square, in world units; an area is 3 by 3 squares (12 by 12) */
 const GI0 = -9, GWN = 19; /* squares from -9 to 9 along x (i) and along z (j) */
 const gIdx = (i, j) => (i - GI0) * GWN + (j - GI0);
@@ -1165,14 +1165,18 @@ const AREAS = [
   { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 } },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, berry: 12, stone: 10 }, ruin: [0.4, 0, 0.2] },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14 } },
-  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, bridge: { from: 'm1', x0: -17.4, z0: -16, x1: -22.6, z1: -16 } },
+  /* the stone island has no bridge: the only way there is the mine's tunnel under the sea, and the lift at its end (cave.js) */
+  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.4, 0] },
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3] },
   { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 } },
   /* the winter island, east of the orchard, over a bridge */
   { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 34, berry: 16, stone: 20 }, bridge: { from: 'm2', x0: 17.4, z0: -16, x1: 22.6, z1: -16 } },
   { id: 'w1', i: 6, j: -9, biome: 'snow', cost: { log: 40, stone: 30, crystal: 8 }, ruin: [-2.5, 1.5, 0] },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
-  { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 }
+  { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 },
+  /* the mine runs on west under the sea: a gallery behind rubble, then the lift room behind a rockfall */
+  { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1 },
+  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1 }
 ];
 const AREA_BY = {}; AREAS.forEach((a) => { AREA_BY[a.id] = a; a.cx = (a.i + 1) * GS; a.cz = (a.j + 1) * GS; });
 /* what each biome looks like: a tint over the grass */
@@ -1186,7 +1190,7 @@ const HAS = {}; /* areas owned */
 try { if (/[?&]new=1/.test(location.search)) localStorage.removeItem(SAVE_KEY); } catch (e) {}
 function areaSquares(a, f) { for (let i = a.i; i < a.i + 3; i++) for (let j = a.j; j < a.j + 3; j++) f(i, j); }
 function areaMark(a) { HAS[a.id] = 1; areaSquares(a, (i, j) => { WALK[gIdx(i, j)] = 1; LAND[gIdx(i, j)] = 1; }); }
-AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.cave) LAND[gIdx(i, j)] = 1; }); });
+AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.cave || a.lift) LAND[gIdx(i, j)] = 1; }); });
 if (SHOW) try { const s = fresh(), I = s.isle; AREAS.forEach((a) => { if (!a.cave) I.areas[a.id] = 1; }); I.ruins = { h3: 1, s1: 1, w1: 1 }; I.folk = { smith: 3, baker: 3, mason: 3, knitter: 3, miner: 3 };
   I.mon = { harbor: 1, windmill: 1, lighthouse: 1, tower: 1 }; I.keys = { rope: 2, map: 2, icepick: 2 }; I.done = 1; I.bld = { tent: 1, fire: 1, tool: 3, dog: 2, torch: 1, coat: 1, boots: 1 }; I.tools.pick = 1; I.seen = { torch: 1, coat: 1, boots: 1 };
   localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {}
@@ -2300,7 +2304,8 @@ function areaClear(x, z) {
   if (roadKind(x, z) || roadKind(x + 0.9, z) || roadKind(x - 0.9, z) || roadKind(x, z + 0.9) || roadKind(x, z - 0.9) || campNear(x, z, 1.5) || Math.hypot(x - FORGE.x + 0.4, z - FORGE.z) < 2.6 || Math.hypot(x - OVEN.x + 0.3, z - OVEN.z) < 2.5 || Math.hypot(x - WELL.x, z - WELL.z) < 2.4) return false; /* the settlement's streets and plots */
   for (const a of AREAS) { if (a.chest && Math.hypot(x - a.cx, z - a.cz) < 1.4) return false;
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
-    if (a.cave && Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4) return false;
+    if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
+    if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
   if (Math.max(Math.abs(x), Math.abs(z)) < 6 && Math.max(Math.abs(x), Math.abs(z)) > 4.6) return false; /* the start area's shore, where its signs stand */
@@ -2323,6 +2328,7 @@ function areaFill(A, fresh) {
   if (A.ruin) makeRuin(A, fresh);
   if (A.stairs) stairsBuild(A, fresh);
   if (A.cave) caveBuild(A);
+  if (A.lift) liftTopBuild(A, fresh);
   areaDecor(A);
 }
 /* little things that make each biome look like itself (one mesh per area, nothing to gather): flowers on grass, pebbles on stone */
@@ -2466,6 +2472,7 @@ function signWants() {
   AREAS.forEach((A) => {
     if (HAS[A.id] || (rising && rising.area === A.id) || (building && building.A === A)) return;
     if (A.bridge) { if (HAS[A.bridge.from]) want.set('b:' + A.id, { kind: 'bridge', A }); return; }
+    if (A.lift) { if (mineS().g2) want.set('l:' + A.id, { kind: 'lift', A }); return; } /* the lift at the end of the mine (cave.js) */
     /* the owned square touching this area that is nearest its middle: the sign stands there, by the shared edge */
     let best = null, bd = 1e9;
     areaSquares(A, (i, j) => DIRS.forEach(([a, b]) => { const ni = i - a, nj = j - b; if (!owned(ni, nj) || used.has(ni + ',' + nj)) return; const d = Math.hypot(ni * GS - A.cx, nj * GS - A.cz); if (d < bd - 0.01) { bd = d; best = [ni, nj, a, b]; } }));
@@ -2482,6 +2489,8 @@ function isleSigns() {
     const A = w.A;
     if (w.kind === 'area') { const [ni, nj, a, b] = w.at, x = ni * GS + a * (GS / 2 - 0.85) + (b ? 0.9 : 0), z = nj * GS + b * (GS / 2 - 0.85) + (a ? 0.9 : 0);
       signMake({ key, kind: 'area', A, cost: A.cost, x, z, ghostGeo: areaGhostGeo, ghostTex, gx: A.cx, gz: A.cz }); }
+    else if (w.kind === 'lift') { const q = new T.PlaneGeometry(1.5, 1.5, 2, 2); q.rotateX(-Math.PI / 2);
+      signMake({ key, kind: 'lift', A, cost: A.cost, x: LIFT.low.x + 1.45, z: LIFT.low.z - 1.0, ghostGeo: q, ghostTex: ghostRound, gx: LIFT.low.x, gz: LIFT.low.z, gy: 0.05 }); }
     else if (!peopleSignMake(w, key)) { const B = A.bridge, L = Math.hypot(B.x1 - B.x0, B.z1 - B.z0), ux = (B.x1 - B.x0) / L, uz = (B.z1 - B.z0) / L, q = new T.PlaneGeometry(1.7, L, 2, 8); q.rotateX(-Math.PI / 2);
       signMake({ key, kind: 'bridge', A, cost: A.cost, x: B.x0 - ux * 0.6 - uz * 1.5, z: B.z0 - uz * 0.6 + ux * 1.5, ghostGeo: q, ghostTex, gx: (B.x0 + B.x1) / 2, gz: (B.z0 + B.z1) / 2, gy: -0.15, gr: Math.atan2(ux, uz) }); }
   });
@@ -2512,7 +2521,7 @@ function signStep(s, dt) {
 }
 function isleBuy(s) {
   delete state.isle.paid[s.key]; [s.g, s.ring, s.ghost].forEach((m) => sc.remove(m)); signs.splice(signs.indexOf(s), 1);
-  if (s.kind === 'area') areaRise(s.A); else if (!peopleBuy(s)) bridgeBuild(s.A, false);
+  if (s.kind === 'area') areaRise(s.A); else if (s.kind === 'lift') { loopBuy(s); liftOwn(s.A); } else if (!peopleBuy(s)) bridgeBuild(s.A, false);
   signs.forEach(drawSign); save();
 }
 
@@ -2613,6 +2622,7 @@ function nodeHit(n, side) {
   if (n.kind !== 'bush' && n.kind !== 'grass') splash(sx, 0.6, sz, 3);
   if (n.hp > 0.01) return;
   dropOut(n); n.t = sleepRegrow(n);
+  if (n.gate) { mineGateOpen(n); return; }
   if (n.kind === 'planks') { n.st = 'gone'; n.main.visible = false; Snd.play('thud', { gain: 0.5 }); ruinOpen(n.ruin); return; }
   if (n.kind === 'tree') { n.st = 'fall'; n.fall = 0; n.stump.visible = true; Snd.play('thud', { gain: 0.5 }); }
   else if (LOW[n.kind]) { n.st = 'gone'; n.main.scale.setScalar(n.full * LOW[n.kind]); Snd.play(n.kind === 'grass' ? 'swish' : 'stamp', { gain: 0.4 }); }
@@ -3374,7 +3384,47 @@ const CRYSTAL_GEO = (() => {
   const b = ico(0.22, 0, 1610); b.scale(1.3, 0.5, 1.2); b.translate(0, 0.05, 0); L.push(fac(b, '#6a625a', 1610));
   return merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), MAT, new T.Group()).geometry;
 })();
-let inCave = false, caveT = null, caveRoof = null, caveA = null;
+let inCave = false, caveT = null, caveA = null;
+const caveRoofs = [];
+/* ---- the mine (Leon, 2026-11-25: "a full mine that takes you to another island") ----
+   The cave is the first of three rooms in a row under the sea: the entrance hall (cave), the west gallery (cave2) behind
+   a heap of rubble, and the lift room (cave3) behind a rockfall that only the copper pickaxe breaks. The lift at the far
+   end is the only way to the stone island: its sign takes the island's price (and the map, loop.js), then the lift runs
+   both ways. state.isle.mine.g1 / g2: 1 once that heap is broken through (it does not come back). */
+const MINE_GATES = [{ id: 'g1', x: 6, tier: 1 }, { id: 'g2', x: -6, tier: 2 }];
+const LIFT = { low: { x: -15.2, z: 31.7 }, lowOut: { x: -13.8, z: 33.1 }, top: null, topOut: null, lowMat: null, topMat: null };
+function mineS() { return state.isle.mine || (state.isle.mine = {}); }
+/* nothing grows in the doorways between the rooms, or round the lift */
+function mineKeep(a, x, z) { return (Math.abs(z - a.cz) < 1.6 && Math.abs(x - a.cx) > 3.3) || (a.id === 'cave3' && Math.hypot(x - LIFT.low.x, z - LIFT.low.z - 0.5) < 2.6); }
+function mineGateOpen(n) {
+  mineS()[n.gate] = 1; n.dead = 1; n.st = 'gone'; if (work && work.n === n) work = null;
+  burst(n.x, 1.2, n.z, 12); Snd.play('thud', { gain: 0.6 }); Snd.play('success', { gain: 0.45, f: 'E6' }, 0.15); xpGain(10); isleSigns(); save();
+}
+/* a mine lift: four posts, a cross beam with a wheel and a rope, and a plank floor */
+function liftModel(x, z, seed) {
+  const g = new T.Group(); g.position.set(x, 0, z); sc.add(g); const L = []; let q;
+  [[-0.62, -0.5], [0.62, -0.5], [-0.62, 0.5], [0.62, 0.5]].forEach(([px, pz], k) => { q = new T.BoxGeometry(0.14, 2.3, 0.14); q.translate(px, 1.15, pz); L.push(fac(q, (cx, cy, cz, i) => shadeY('#8a5f3c', cy, 0, 2.3, i + k, 0.45), seed + k)); });
+  [-0.5, 0.5].forEach((pz, k) => { q = new T.BoxGeometry(1.5, 0.14, 0.14); q.translate(0, 2.3, pz); L.push(fac(q, (cx, cy, cz, i) => tone('#7a5230', i, 0.3), seed + 6 + k)); });
+  q = new T.BoxGeometry(0.14, 0.14, 1.14); q.translate(0, 2.38, 0); L.push(fac(q, () => new T.Color('#6e4426'), seed + 9));
+  q = new T.CylinderGeometry(0.26, 0.26, 0.1, 14); q.rotateZ(Math.PI / 2); q.translate(0, 2.62, 0); L.push(fac(q, (cx, cy, cz, i) => tone('#4a4f57', i, 0.3), seed + 10));
+  q = new T.CylinderGeometry(0.025, 0.025, 2.2, 5); q.translate(0, 1.4, 0.12); L.push(fac(q, () => new T.Color('#e0bf86'), seed + 11));
+  for (let k = 0; k < 4; k++) { q = new T.BoxGeometry(0.27, 0.07, 1.0); q.translate(-0.42 + k * 0.28, 0.2, 0); L.push(fac(q, (cx, cy, cz, i) => tone(['#c0935f', '#b08454', '#c99f6c'][k % 3], i, 0.25), seed + 12 + k)); }
+  [-0.5, 0.5].forEach((pz, k) => { q = new T.BoxGeometry(1.2, 0.06, 0.06); q.translate(0, 0.8, pz); L.push(fac(q, () => new T.Color('#8a5f3c'), seed + 18 + k)); });
+  merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g);
+  const hole = new T.Mesh(new T.PlaneGeometry(1.1, 0.9), new T.MeshBasicMaterial({ color: '#1d1824' })); hole.rotation.x = -Math.PI / 2; hole.position.y = 0.04; g.add(hole);
+  return g;
+}
+/* the lift's head on the stone island: the same frame, and a mat that takes Pip back down */
+function liftTopBuild(A, fresh) {
+  if (LIFT.top) return; const x = A.cx + A.lift[0], z = A.cz + A.lift[1];
+  LIFT.top = { x, z, g: liftModel(x, z - 0.35, 2700) }; LIFT.topOut = { x: x - 1.5, z: z + 0.9 };
+  const M = LIFT.topMat = stairMat('down', x, z + 0.95); M.ok = () => !inCave && !!HAS[A.id] && gearDark(); M.to = () => LIFT.lowOut; M.cave = true;
+  lookFoot(x, z - 0.35, 0.95, 0.8);
+}
+function liftOwn(A) {
+  areaMark(A); state.isle.areas[A.id] = 1; xpGain(10); burst(LIFT.low.x, 1.6, LIFT.low.z, 14);
+  Snd.play('success', { gain: 0.5 }); Snd.play('sparkle', { gain: 0.4 }); isleSigns(); save();
+}
 const CAVE_IN = { x: 0, z: 0 }, CAVE_OUT = { x: 0, z: 0 };
 /* little glowing mushrooms and dark pebbles on the cave floor */
 function caveDecor(A, L, base) {
@@ -3384,24 +3434,30 @@ function caveDecor(A, L, base) {
 }
 /* the cave's walls, the hill top seen from outside, and the stairs back up */
 function caveBuild(A) {
-  caveA = A; const L = [], R = [];
-  const ring = (x, z, k) => { const h = 1.7 + hash(k, 5) * 1.5, r = 0.75 + hash(k, 6) * 0.35, q = ico(r, 1, 2200 + k); q.scale(1, h / r * 0.62, 1); jit(q, 0.06, 2200 + k); q.translate(x, h * 0.42, z);
+  const main = A.id === 'cave', dW = A.id !== 'cave3', dE = !main; if (main) caveA = A; const L = [], R = [];
+  const ring = (x, z, k, low) => { const h = (1.7 + hash(k, 5) * 1.5) * (low ? 0.55 : 1), r = 0.75 + hash(k, 6) * 0.35, q = ico(r, 1, 2200 + k); q.scale(1, h / r * 0.62, 1); jit(q, 0.06, 2200 + k); q.translate(x, h * 0.42, z);
     L.push(fac(q, (cx, cy, cz, i) => shadeY(hash(i, k) > 0.85 ? '#6f665c' : '#857a6e', cy, 0, h, i, 0.5), 2200 + k)); };
   let k = 0; const E = 5.7;
-  for (let t = -E; t <= E + 0.01; t += 0.95) { ring(A.cx + t, A.cz - E, k++); ring(A.cx - E, A.cz + t, k++); ring(A.cx + E, A.cz + t, k++); if (Math.abs(t) > 1.4) ring(A.cx + t, A.cz + E, k++); }
+  /* a doorway is left in the wall toward the next room (west, east), and those walls are low so they hide less; only the entrance hall has the gap for the stairs (south) */
+  for (let t = -E; t <= E + 0.01; t += 0.95) { ring(A.cx + t, A.cz - E, k++); if (!(dW && Math.abs(t) < 1.5)) ring(A.cx - E, A.cz + t, k, dW); k++; if (!(dE && Math.abs(t) < 1.5)) ring(A.cx + E, A.cz + t, k, dE); k++; if (!main || Math.abs(t) > 1.4) ring(A.cx + t, A.cz + E, k++); }
   merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), MAT);
+  if (main) {
   /* the stairs up: steps rising to the south, under a hole of daylight */
   const sx = A.cx, sz = A.cz + 4.6;
   for (let s = 0; s < 6; s++) { const q = new T.BoxGeometry(1.4, 0.18 + s * 0.18, 0.32); q.translate(sx, (0.18 + s * 0.18) / 2, sz + s * 0.3); R.push(fac(q, (cx, cy, cz, i) => tone('#a69c8a', i + s, 0.5), 2300 + s)); }
   merged(R.map((q) => (q.index ? q.toNonIndexed() : q)), MAT);
   const shaft = new T.Mesh(new T.CylinderGeometry(0.55, 0.95, 2.6, 14, 1, true), new T.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: 0.12, depthWrite: false, side: T.DoubleSide })); shaft.position.set(sx, 1.9, sz + 1.1); sc.add(shaft);
   CAVE_IN.x = sx; CAVE_IN.z = sz - 2.1; /* where Pip comes out in the cave */
-  caveA.mat = stairMat('up', sx, sz - 0.9);
+  const M = caveA.mat = stairMat('up', sx, sz - 0.9); M.ok = () => inCave; M.to = () => CAVE_OUT; M.cave = false;
+  }
+  /* the heaps that shut the doorways, until Pip breaks through */
+  if (A.id === 'cave2') MINE_GATES.forEach((G, q) => { if (mineS()[G.id]) return; const n = makeNode('boulder', G.x, A.cz, 2600 + q); n.gate = G.id; n.tier = G.tier; n.full *= 1.55; n.main.scale.setScalar(n.full); n.hp = nodeHits(n) * 1.5; });
+  if (A.id === 'cave3') { LIFT.g = liftModel(LIFT.low.x, LIFT.low.z, 2650); const Q = LIFT.lowMat = stairMat('up', LIFT.low.x, LIFT.low.z + 1.3); Q.ok = () => inCave && !!HAS.s0; Q.to = () => LIFT.topOut; Q.cave = false; }
   /* the hill top, seen from outside */
   const H = []; const top = new T.SphereGeometry(7.4, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2); top.scale(1, 0.42, 1); jit(top, 0.22, 2400); top.translate(A.cx, 0, A.cz);
   H.push(fac(top, (cx, cy, cz, i) => (cy > 2.0 ? tone('#8fbf5a', i, 0.6) : shadeY('#9a8f80', cy, 0, 2.2, i, 0.5)), 2400));
   for (let q = 0; q < 6; q++) { const a = q / 6 * 6.28 + 0.4, b = ico(1.0 + hash(q, 2) * 0.6, 1, 2410 + q); b.scale(1, 0.8, 1); jit(b, 0.08, 2410 + q); b.translate(A.cx + Math.cos(a) * 5.6, 0.5, A.cz + Math.sin(a) * 5.6); H.push(fac(b, (cx, cy, cz, i) => shadeY('#8a8074', cy, 0, 1.6, i, 0.5), 2410 + q)); }
-  caveRoof = merged(H.map((q) => (q.index ? q.toNonIndexed() : q)), MAT);
+  caveRoofs.push(merged(H.map((q) => (q.index ? q.toNonIndexed() : q)), MAT));
 }
 /* a round mat with a stairs picture: 'down' into the cave, 'up' out of it; a gold arc fills while Pip stands on it */
 function stairMat(dir, x, z) {
@@ -3424,22 +3480,24 @@ function stairsBuild(A, fresh) {
   for (let k = 0; k < 6; k++) { const a = k / 6 * 6.28, b = ico(0.16 + hash(k, 8) * 0.1, 0, 2510 + k); b.scale(1.2, 0.6, 1); b.translate(Math.cos(a) * 0.95, 0.06, Math.sin(a) * 1.0 - 0.15); L.push(fac(b, tone('#a9a090', k, 0.6), 2510 + k)); }
   merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g);
   stairsDown = stairMat('down', x, z + 1.15); stairsDown.g = g; CAVE_OUT.x = x; CAVE_OUT.z = z + 2.25;
+  stairsDown.ok = () => !inCave && gearDark(); stairsDown.to = () => CAVE_IN; stairsDown.cave = true; /* down needs the torch (gear.js) */
   if (fresh) { g.scale.setScalar(0.01); stairsDown.pop = 0.001; }
 }
 /* the dark edges of the screen in the cave, and the black fade on the way through */
 const caveDark = (() => { const d = document.createElement('div'); d.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:2;opacity:0;transition:opacity .6s;background:radial-gradient(ellipse 62% 58% at 50% 52%,rgba(20,14,30,0) 35%,rgba(20,14,30,.55) 75%,rgba(12,8,20,.85) 100%)'; document.body.appendChild(d); return d; })();
 const caveFade = (() => { const d = document.createElement('div'); d.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:30;opacity:0;background:#0d0a12'; document.body.appendChild(d); return d; })();
-function caveGo(down) {
-  caveT = { t: 0, down, moved: false }; Snd.play(down ? 'whoosh' : 'pop', { gain: 0.35, f: down ? 300 : 520 }); work = null;
+function caveGo(M) {
+  caveT = { t: 0, to: M.to(), cave: M.cave, moved: false }; Snd.play(M.cave ? 'whoosh' : 'pop', { gain: 0.35, f: M.cave ? 300 : 520 }); work = null;
 }
 function caveStep(dt) {
   if (stairsDown && stairsDown.pop) { stairsDown.pop = Math.min(1, stairsDown.pop + dt * 1.5); stairsDown.g.scale.setScalar(stairsDown.pop); if (stairsDown.pop >= 1) stairsDown.pop = 0; }
-  if (caveRoof) caveRoof.visible = !inCave;
+  caveRoofs.forEach((r) => { r.visible = !inCave; });
+  for (let k = nodes.length - 1; k >= 0; k--) if (nodes[k].dead) { sc.remove(nodes[k].g); nodes.splice(k, 1); } /* a heap broken through is gone for good */
   if (inCave) { streaks.visible = ringMesh.visible = dropPts.visible = pudMesh.visible = false; } /* no rain under the hill */
   if (caveT) {
     const C = caveT; C.t += dt; caveFade.style.opacity = String(C.t < 0.45 ? C.t / 0.45 : Math.max(0, 1 - (C.t - 0.65) / 0.45));
     target.copy(pip.position);
-    if (!C.moved && C.t >= 0.5) { C.moved = true; inCave = C.down; const p = inCave ? CAVE_IN : CAVE_OUT;
+    if (!C.moved && C.t >= 0.5) { C.moved = true; inCave = C.cave; const p = C.to;
       pip.position.set(p.x, 0, p.z); target.copy(pip.position); camFocus.copy(pip.position); if (typeof lastP !== 'undefined') lastP.copy(pip.position);
       if (typeof dog !== 'undefined' && dog.g) dog.g.position.set(p.x - 0.8, 0, p.z + 0.4);
       caveDark.style.opacity = inCave ? '1' : '0'; if (!inCave) isleBoxStep(); }
@@ -3447,12 +3505,17 @@ function caveStep(dt) {
     return;
   }
   /* inside, Pip stays off the walls */
-  if (inCave && caveA) { pip.position.x = clamp(pip.position.x, caveA.cx - 4.9, caveA.cx + 4.9); pip.position.z = clamp(pip.position.z, caveA.cz - 4.9, caveA.cz + 4.2); }
-  [stairsDown, caveA && caveA.mat].forEach((M) => {
+  if (inCave && caveA) { const S = mineS(), Z = caveA.cz, pp = pip.position, lo = S.g2 ? -16.9 : S.g1 ? -5.0 : 7.0; /* as far west as the heaps are broken */
+    pp.x = clamp(pp.x, lo, caveA.cx + 4.9); pp.z = clamp(pp.z, Z - 4.9, Z + (pp.x > 7.1 ? 4.2 : 4.9));
+    /* the walls between the rooms: only the doorway lets Pip through */
+    [6, -6].forEach((wx) => { const dx = pp.x - wx, dz = pp.z - Z; if (Math.abs(dx) < 1.1 && Math.abs(dz) > 0.85) { if (Math.abs(dz) < 1.7) pp.z = Z + Math.sign(dz) * 0.85; else pp.x = wx + Math.sign(dx || 1) * 1.1; } });
+    const lx = pp.x - LIFT.low.x, lz = pp.z - LIFT.low.z, ld = Math.hypot(lx, lz); if (ld < 0.95 && ld > 1e-4) { pp.x = LIFT.low.x + lx / ld * 0.95; pp.z = LIFT.low.z + lz / ld * 0.95; } }
+  if (!inCave && LIFT.top) { const pp = pip.position, lx = pp.x - LIFT.top.x, lz = pp.z - LIFT.top.z + 0.35, ld = Math.hypot(lx, lz); if (ld < 0.95 && ld > 1e-4) { pp.x = LIFT.top.x + lx / ld * 0.95; pp.z = LIFT.top.z - 0.35 + lz / ld * 0.95; } }
+  [stairsDown, caveA && caveA.mat, LIFT.lowMat, LIFT.topMat].forEach((M) => {
     if (!M) return; const d = Math.hypot(pip.position.x - M.x, pip.position.z - M.z), still = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) < 0.3;
-    const on = d < M.R && still && !enSleep && (M.dir === 'down' ? !inCave && gearDark() : inCave); /* down needs the torch (gear.js) */
+    const on = d < M.R && still && !enSleep && M.ok();
     M.w = on ? Math.min(1, M.w + dt / 0.6) : Math.max(0, M.w - dt * 3); M.fg.setDrawRange(0, 6 * Math.round(40 * M.w));
-    if (M.w >= 1) { M.w = 0; M.fg.setDrawRange(0, 0); caveGo(M.dir === 'down'); }
+    if (M.w >= 1) { M.w = 0; M.fg.setDrawRange(0, 0); caveGo(M); }
   });
 }
 /* ---------- springs (Leon's idea list, 2026-11-23: "fountains coming up") ----------
@@ -6863,7 +6926,7 @@ Object.keys(GEAR).forEach((k) => { BLD[k] = { max: 2, cost: [null, null, GEAR[k]
 const gearHas = (k) => bldLv(k) >= 2;
 const gearKeys = () => Object.keys(GEAR).filter((k) => gearHas(k) || (state.isle.seen && state.isle.seen[k]));
 const GE = { bub: null, cool: {}, webs: [], bees: null, light: null, flame: null, smoke: [] };
-const WEB_AT = ['s0', 'w0']; /* the bridges that start webbed */
+const WEB_AT = ['w0']; /* the bridges that start webbed */
 const BEES_AT = 'm2'; /* the cottage the bees guard */
 
 function gearIcon(x, t) {
@@ -7149,7 +7212,7 @@ function lookStep() {
    state.isle.folk.<id>: 0 not found, 1 found (wants their request), 2 moved home (house plot), 3 house built.
    state.isle.mon.<id>: 1 built. state.isle.keys.<k>: 1 held, 2 used. state.isle.done: 1 after the party. */
 const LP = { folk: {}, mon: {}, mats: [], lockSp: {}, keyEl: null, trv: null, fade: null, hop: null, fw: [], partyT: 0, armed: {} };
-const LOOP_KEY = { m0: 'rope', s0: 'map', w0: 'icepick' }; /* the bridge that needs it */
+const LOOP_KEY = { m0: 'rope', s0: 'map', w0: 'icepick' }; /* the bridge that needs it (s0: the mine's lift) */
 const LOOP_FOLK = {
   mason: { kind: 'fox', ruin: 's1', want: { stone: 20, log: 10 }, house: { log: 22, stone: 16 }, key: 'icepick', roof: ['#6f7f94', '#62728a', '#7d8ca0', '#58677c'], badge: 'chisel' },
   knitter: { kind: 'bunny', ruin: 'w1', want: { berry: 16, crystal: 3 }, house: { log: 26, stone: 16 }, roof: ['#c9708a', '#b8617b', '#d68299', '#a85570'], badge: 'yarn' },
@@ -7161,7 +7224,7 @@ const LOOP_MON = {
   lighthouse: { isle: 'stone', need: () => HAS.s2 && (folk().mason || 0) >= 2, area: 's2', cost: { stone: 50, log: 20, crystal: 6 } },
   tower: { isle: 'winter', need: () => HAS.w1 && (folk().knitter || 0) >= 2, area: 'w1', cost: { crystal: 15, stone: 30, log: 30 } }
 };
-const ISLE_OF = (id) => (!id ? null : id === 'cave' ? 'cave' : { h: 'home', m: 'meadow', s: 'stone', w: 'winter' }[id[0]]);
+const ISLE_OF = (id) => (!id ? null : /^cave/.test(id) ? 'cave' : { h: 'home', m: 'meadow', s: 'stone', w: 'winter' }[id[0]]);
 const ISLE_PIC = { home: 'camp', meadow: 'windmill', stone: 'lighthouse', winter: 'tower' };
 const ISLE_MON = { meadow: 'windmill', stone: 'lighthouse', winter: 'tower', home: 'harbor' };
 const lkeys = () => state.isle.keys || (state.isle.keys = {});
@@ -7370,7 +7433,7 @@ function keyHud() {
 }
 /* the bridge sign waits for its key: the bubble shows what is missing */
 function loopSignShut(s) {
-  if (s.kind !== 'bridge' || !LOOP_KEY[s.A.id]) return false; const k = LOOP_KEY[s.A.id];
+  if ((s.kind !== 'bridge' && s.kind !== 'lift') || !LOOP_KEY[s.A.id]) return false; const k = LOOP_KEY[s.A.id];
   if (lkeys()[k]) return false;
   gearHint(k); return true;
 }
@@ -7397,7 +7460,7 @@ function loopSignMake(w, key) {
 function loopBuy(s) {
   const id = s.who;
   if (s.pic) sc.remove(s.pic);
-  if (s.kind === 'bridge') { const k = LOOP_KEY[s.A.id]; if (k && lkeys()[k] === 1) { lkeys()[k] = 2; keyHud(); } return false; }
+  if (s.kind === 'bridge' || s.kind === 'lift') { const k = LOOP_KEY[s.A.id]; if (k && lkeys()[k] === 1) { lkeys()[k] = 2; keyHud(); } return false; }
   if (LOOP_FOLK[id] && s.kind === 'person') { folk()[id] = 2; LP.folk[id].move = { t: 0 }; Snd.play('success', { gain: 0.5, f: 'E6' }); burst(LP.folk[id].g.position.x, 1.5, LP.folk[id].g.position.z, 10); xpGain(10); return true; }
   if (LOOP_FOLK[id] && s.kind === 'plot') { folk()[id] = 3; loopHouse(id, true); LP.folk[id].hop = 1; Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.15); xpGain(20);
     if (LOOP_FOLK[id].key) keyGive(LOOP_FOLK[id].key, HOUSES[id].x, HOUSES[id].z + 1.4); villageSync(true); return true; }
@@ -7488,7 +7551,7 @@ function loopStep(dt) {
   /* monument signs carry a picture of what they build */
   signs.forEach((s) => { if (s.pic) s.pic.position.y = 2.0 + (reduced ? 0 : Math.sin(time * 2 + s.seed) * 0.08); });
   /* the key that a bridge needs, floating over its sign while missing */
-  signs.forEach((s) => { if (s.kind !== 'bridge') return; const k = LOOP_KEY[s.A.id], need = k && !lkeys()[k]; let sp = LP.lockSp[s.key];
+  signs.forEach((s) => { if (s.kind !== 'bridge' && s.kind !== 'lift') return; const k = LOOP_KEY[s.A.id], need = k && !lkeys()[k]; let sp = LP.lockSp[s.key];
     if (need && !sp) { sp = LP.lockSp[s.key] = isleSprite(loopLockBubble(k), 0.95); sc.add(sp); }
     if (sp) { sp.visible = need; sp.position.set(s.x, 3.25 + (reduced ? 0 : Math.sin(time * 2 + s.seed) * 0.06), s.z); s.sm.visible = s.sm.visible && !need; } });
   Object.keys(LP.lockSp).forEach((k) => { if (!signs.some((s) => s.key === k)) { sc.remove(LP.lockSp[k]); delete LP.lockSp[k]; } });
@@ -7967,7 +8030,7 @@ function mapDraw() {
   /* what grows there */
   AREAS.forEach((A) => { if (A.cave) return; const [px, pz] = mapXY(A.cx - 4.1, A.cz - 4.2); x.globalAlpha = HAS[A.id] ? 1 : 0.55; isleIcon(x, MAP_RES[A.biome], px, pz, 0.8); x.globalAlpha = 1; });
   /* the cave hill */
-  { const A = AREA_BY.cave, [px, pz] = mapXY(A.cx, A.cz); x.beginPath(); x.ellipse(px, pz, 5.6 * S, 5.2 * S, 0, 0, 7); x.fillStyle = '#8a8074'; x.fill(); x.lineWidth = 3; x.strokeStyle = 'rgba(58,36,20,.5)'; x.stroke();
+  { const A = AREA_BY.cave, [px, pz] = mapXY(A.cx, A.cz), [wx] = mapXY(AREA_BY.cave3.cx, A.cz); x.beginPath(); x.roundRect(wx - 5.6 * S, pz - 5.2 * S, px - wx + 11.2 * S, 10.4 * S, 5.2 * S); x.fillStyle = '#8a8074'; x.fill(); x.lineWidth = 3; x.strokeStyle = 'rgba(58,36,20,.5)'; x.stroke();
     x.beginPath(); x.ellipse(px - 8, pz - 10, 3.6 * S, 3.2 * S, 0, 0, 7); x.fillStyle = '#9c9184'; x.fill(); isleIcon(x, 'crystal', px - 3.2 * S, pz - 2.6 * S, 0.8); }
   /* bridges */
   AREAS.forEach((A) => { const B = A.bridge; if (!B) return; const [ax, az] = mapXY(B.x0, B.z0), [bx, bz] = mapXY(B.x1, B.z1);

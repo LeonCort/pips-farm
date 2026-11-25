@@ -14,7 +14,7 @@ Object.keys(GEAR).forEach((k) => { BLD[k] = { max: 2, cost: [null, null, GEAR[k]
 const gearHas = (k) => bldLv(k) >= 2;
 const gearKeys = () => Object.keys(GEAR).filter((k) => gearHas(k) || (state.isle.seen && state.isle.seen[k]));
 const GE = { bub: null, cool: {}, webs: [], bees: null, light: null, flame: null, smoke: [] };
-const WEB_AT = ['s0', 'w0']; /* the bridges that start webbed */
+const WEB_AT = ['w0']; /* the bridges that start webbed */
 const BEES_AT = 'm2'; /* the cottage the bees guard */
 
 function gearIcon(x, t) {

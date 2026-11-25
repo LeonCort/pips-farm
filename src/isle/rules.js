@@ -9,7 +9,7 @@ const SHOW_YARD = { m0: 1, m1: 1 };
 const SHOW_T = { tier: 0 }; /* the asset yard asks for a tree or rock of a given tier */
 const SAVE_KEY = SHOW ? 'pip-isle-show' : 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip looks) is shared with the farm */
 const HERE = 'isle';
-const MAP_V = 'areas-1'; /* the map's version: a save made for another map starts over */
+const MAP_V = 'areas-2'; /* the map's version: a save made for another map starts over */
 const GS = 4; /* one square, in world units; an area is 3 by 3 squares (12 by 12) */
 const GI0 = -9, GWN = 19; /* squares from -9 to 9 along x (i) and along z (j) */
 const gIdx = (i, j) => (i - GI0) * GWN + (j - GI0);
@@ -26,14 +26,18 @@ const AREAS = [
   { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 } },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, berry: 12, stone: 10 }, ruin: [0.4, 0, 0.2] },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14 } },
-  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, bridge: { from: 'm1', x0: -17.4, z0: -16, x1: -22.6, z1: -16 } },
+  /* the stone island has no bridge: the only way there is the mine's tunnel under the sea, and the lift at its end (cave.js) */
+  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.4, 0] },
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3] },
   { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 } },
   /* the winter island, east of the orchard, over a bridge */
   { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 34, berry: 16, stone: 20 }, bridge: { from: 'm2', x0: 17.4, z0: -16, x1: 22.6, z1: -16 } },
   { id: 'w1', i: 6, j: -9, biome: 'snow', cost: { log: 40, stone: 30, crystal: 8 }, ruin: [-2.5, 1.5, 0] },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
-  { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 }
+  { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 },
+  /* the mine runs on west under the sea: a gallery behind rubble, then the lift room behind a rockfall */
+  { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1 },
+  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1 }
 ];
 const AREA_BY = {}; AREAS.forEach((a) => { AREA_BY[a.id] = a; a.cx = (a.i + 1) * GS; a.cz = (a.j + 1) * GS; });
 /* what each biome looks like: a tint over the grass */
@@ -47,7 +51,7 @@ const HAS = {}; /* areas owned */
 try { if (/[?&]new=1/.test(location.search)) localStorage.removeItem(SAVE_KEY); } catch (e) {}
 function areaSquares(a, f) { for (let i = a.i; i < a.i + 3; i++) for (let j = a.j; j < a.j + 3; j++) f(i, j); }
 function areaMark(a) { HAS[a.id] = 1; areaSquares(a, (i, j) => { WALK[gIdx(i, j)] = 1; LAND[gIdx(i, j)] = 1; }); }
-AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.cave) LAND[gIdx(i, j)] = 1; }); });
+AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.cave || a.lift) LAND[gIdx(i, j)] = 1; }); });
 if (SHOW) try { const s = fresh(), I = s.isle; AREAS.forEach((a) => { if (!a.cave) I.areas[a.id] = 1; }); I.ruins = { h3: 1, s1: 1, w1: 1 }; I.folk = { smith: 3, baker: 3, mason: 3, knitter: 3, miner: 3 };
   I.mon = { harbor: 1, windmill: 1, lighthouse: 1, tower: 1 }; I.keys = { rope: 2, map: 2, icepick: 2 }; I.done = 1; I.bld = { tent: 1, fire: 1, tool: 3, dog: 2, torch: 1, coat: 1, boots: 1 }; I.tools.pick = 1; I.seen = { torch: 1, coat: 1, boots: 1 };
   localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {}
