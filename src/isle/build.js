@@ -97,6 +97,7 @@ function bldBuild() {
     + '.bldMenu .row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;max-width:100%}'
     + '.bldCard{background:var(--paper);border:4px solid #6e4426;border-radius:24px;box-shadow:0 6px 0 rgba(34,48,60,.3);padding:12px 14px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;width:220px}'
     + '.bldCard .pic{display:flex;align-items:center;gap:6px}.bldCard .pic canvas{width:110px;height:110px}.bldCard .eff canvas{width:56px;height:56px}'
+    + '.bldCard .how{width:200px;height:64px;background:#fffaf0;border:2px solid #c9b38a;border-radius:14px}'
     + '.bldCard .dots{display:flex;gap:6px}.bldCard .dots b{width:16px;height:16px;border-radius:50%;border:3px solid var(--ink);background:#e6d9bd}.bldCard .dots b.on{background:#f2c23c}'
     + '.bldCard .cost{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.bldCard .cost span{display:flex;align-items:center;gap:2px;padding:2px 8px 2px 2px;border-radius:999px;border:2px solid var(--ink);font:700 20px Fredoka,sans-serif;background:#fff}'
     + '.bldCard .cost span.ok{color:#3f8a3a}.bldCard .cost img{width:28px;height:28px}'
@@ -141,12 +142,32 @@ function bldEff(k, lv) {
   else { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
   return c;
 }
+/* what the next level changes, as "now -> then" in pictures (Leon 2026-11-25, playtest: it was not clear what the tent,
+   the fire and the raincoat do). Tent: a longer energy bar. Fire: energy comes back faster while resting. Gear: the
+   trouble with a tired Pip, then the gear with a happy Pip. */
+function bldHow(k, lv, next) {
+  if (k !== 'tent' && k !== 'fire' && !GEAR[k]) return null; if (lv >= BLD[k].max) return null;
+  const c = document.createElement('canvas'); c.width = 400; c.height = 128; const x = c.getContext('2d'); x.lineJoin = x.lineCap = 'round';
+  const arrow = () => { x.beginPath(); x.moveTo(178, 64); x.lineTo(214, 64); x.moveTo(202, 50); x.lineTo(218, 64); x.lineTo(202, 78); x.lineWidth = 9; x.strokeStyle = '#6e4426'; x.stroke(); };
+  const bar = (x0, w, full) => { x.beginPath(); x.roundRect(x0, 46, w, 36, 12); x.fillStyle = '#7cc85a'; x.fill(); x.lineWidth = 5; x.strokeStyle = PAL.ink; x.stroke(); if (full < w) { x.beginPath(); x.roundRect(x0 + full, 49, w - full, 30, 9); x.fillStyle = '#b9ee96'; x.fill(); } };
+  const face = (cx, glad) => { x.beginPath(); x.arc(cx, 70, 30, 0, 7); x.fillStyle = '#f6d3b0'; x.fill(); x.lineWidth = 5; x.strokeStyle = PAL.ink; x.stroke();
+    x.beginPath(); x.arc(cx, 62, 31, Math.PI, 0); x.closePath(); x.fillStyle = '#f2a13c'; x.fill(); x.stroke(); x.beginPath(); x.arc(cx, 28, 7, 0, 7); x.fill(); x.stroke(); /* Pip's orange hat */
+    x.fillStyle = PAL.ink; [-11, 11].forEach((d) => { x.beginPath(); x.arc(cx + d, 72, 3.6, 0, 7); x.fill(); });
+    x.beginPath(); if (glad) x.arc(cx, 78, 12, 0.15 * Math.PI, 0.85 * Math.PI); else x.arc(cx, 96, 10, 1.2 * Math.PI, 1.8 * Math.PI); x.lineWidth = 4.5; x.stroke();
+    if (!glad) { x.beginPath(); x.moveTo(cx + 30, 52); x.quadraticCurveTo(cx + 42, 70, cx + 32, 74); x.quadraticCurveTo(cx + 22, 70, cx + 30, 52); x.fillStyle = '#7fd3ef'; x.fill(); x.lineWidth = 3; x.stroke(); } };
+  arrow();
+  if (k === 'tent') { const E = [0, 100, 130, 160], w0 = E[lv] * 0.66, w1 = E[next] * 0.66; isleIcon(x, 'bolt', 30, 64, 1.5); bar(56, w0, w0); isleIcon(x, 'bolt', 254, 64, 1.5); bar(280, w1, w0); }
+  else if (k === 'fire') { const ups = (x0, n) => { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(x0 + q * 26, 78); x.lineTo(x0 + 11 + q * 26, 50); x.lineTo(x0 + 22 + q * 26, 78); x.lineWidth = 8; x.strokeStyle = q < n ? '#4f9a3a' : '#e0d6c0'; x.stroke(); } };
+    isleIcon(x, 'fire', 34, 62, 1.25); isleIcon(x, 'bolt', 76, 64, 1.1); ups(98, lv); isleIcon(x, 'fire', 256, 62, 1.25); isleIcon(x, 'bolt', 298, 64, 1.1); ups(320, next); }
+  else { const e = GEAR[k].eff; isleIcon(x, e[e.length - 1], 44, 64, 1.5); face(124, false); isleIcon(x, k, 270, 64, 1.5); face(346, true); }
+  return c;
+}
 function bldFill() {
   const row = BM.row; if (!row) return; row.textContent = '';
   (BM.keys || bldKeys()).forEach((k) => {
     const B = BLD[k], lv = bldLv(k), next = Math.min(B.max, lv + 1), c = B.cost[lv + 1];
     const card = document.createElement('div'); card.className = 'bldCard'; BM[k] = card;
-    const pic = document.createElement('div'); pic.className = 'pic'; pic.appendChild(bldPic(B.pic[next], 128)); const eff = document.createElement('div'); eff.className = 'eff'; eff.appendChild(bldEff(k, next)); pic.appendChild(eff); card.appendChild(pic);
+    const pic = document.createElement('div'); pic.className = 'pic'; pic.appendChild(bldPic(B.pic[next], 128)); const eff = document.createElement('div'); eff.className = 'eff'; eff.appendChild(bldEff(k, next)); pic.appendChild(eff); card.appendChild(pic); const how = bldHow(k, lv, next); if (how) { how.className = 'how'; card.appendChild(how); }
     const dots = document.createElement('div'); dots.className = 'dots'; for (let q = 1; q <= B.max; q++) { const d = document.createElement('b'); if (q <= lv) d.className = 'on'; dots.appendChild(d); } card.appendChild(dots);
     if (c) {
       const cost = document.createElement('div'); cost.className = 'cost'; Object.keys(c).forEach((t) => { const s = document.createElement('span'); if (haveN(t) >= c[t]) s.className = 'ok'; s.appendChild(bldIco(t)); s.appendChild(document.createTextNode(String(c[t]))); cost.appendChild(s); }); card.appendChild(cost);

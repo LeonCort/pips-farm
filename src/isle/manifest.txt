@@ -48,6 +48,8 @@ look.js
 loop.js
 hamlets.js
 finds.js
+tall.js
+mesa.js
 props.js
 map.js
 spots.js
