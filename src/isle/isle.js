@@ -184,7 +184,7 @@ function areaClear(x, z) {
   for (const a of AREAS) { if (a.chest && Math.hypot(x - a.cx, z - a.cz) < 1.4) return false;
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
-    if (findKeep(a, x, z) || tallKeep(a, x, z)) return false;
+    if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z)) return false;
     if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
@@ -204,7 +204,7 @@ function areaFill(A, fresh) {
     const n = Math.sin(x * 0.45 + base * 0.13) + Math.cos(z * 0.41 - base * 0.07), k = LAYOUT[A.biome](x, z, hash(sd, 3), n); if (!k) continue;
     const nd = makeNode(k, x, z, sd); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); }
   }
-  findFill(A, fresh); tallFill(A, fresh);
+  findFill(A, fresh); tallFill(A, fresh); mesaFill(A, fresh);
   if (A.chest && !state.isle.chests[A.id]) makeChest(A.cx, A.cz - 0.4, A.chest, A.id);
   if (A.ruin) makeRuin(A, fresh);
   if (A.stairs) stairsBuild(A, fresh);
@@ -519,7 +519,7 @@ function isleStep(dt) {
   isleRiseStep(dt); bridgeStep(dt); isleBoxStep();
   /* keep Pip and the touch point on land, and out of trees and rocks */
   const v = tmpV.set(px, 0, pz); wClamp(v); pip.position.x = v.x; pip.position.z = v.z;
-  nodes.forEach((n) => { if (Math.abs(n.x - pip.position.x) > 3 || Math.abs(n.z - pip.position.z) > 3) return; const r = n.kind === 'tree' ? NODE_R.tree : n.kind === 'grass' ? 0.2 : n.st === 'ready' || n.st === 'grow' ? NODE_R[n.kind] * (n.kind === 'bush' ? 1 : n.main.scale.x / n.full) : 0.2;
+  nodes.forEach((n) => { if (Math.abs(n.x - pip.position.x) > 3 || Math.abs(n.z - pip.position.z) > 3 || !mesaLevel(n)) return; const r = n.kind === 'tree' ? NODE_R.tree : n.kind === 'grass' ? 0.2 : n.st === 'ready' || n.st === 'grow' ? NODE_R[n.kind] * (n.kind === 'bush' ? 1 : n.main.scale.x / n.full) : 0.2;
     if (n.box && n.st === 'ready') { tallPush(n); return; } /* tall grass is a wall, not a round thing (tall.js) */
     const dx = pip.position.x - n.x, dz = pip.position.z - n.z, d = Math.hypot(dx, dz); if (d < r && d > 1e-4) { pip.position.x = n.x + dx / d * r; pip.position.z = n.z + dz / d * r; }
     const tx = target.x - n.x, tz = target.z - n.z, td = Math.hypot(tx, tz); if (td < r) { const k = td > 1e-4 ? (r + 0.05) / td : 0; target.x = n.x + (k ? tx * k : r + 0.05); target.z = n.z + (k ? tz * k : 0); } });
@@ -527,7 +527,7 @@ function isleStep(dt) {
   /* work the nearest ready thing within reach */
   hitT -= dt; giveT -= dt; pickHintT -= dt;
   let best = null, bd = 9;
-  nodes.forEach((n) => { if (n.st !== 'ready') return; const d = Math.hypot(pip.position.x - n.x, pip.position.z - n.z) - NODE_R[n.kind]; if (d < 0.75 && d < bd) { bd = d; best = n; } });
+  nodes.forEach((n) => { if (n.st !== 'ready' || !mesaLevel(n)) return; const d = Math.hypot(pip.position.x - n.x, pip.position.z - n.z) - NODE_R[n.kind]; if (d < 0.75 && d < bd) { bd = d; best = n; } });
   if (best && gated(best)) { if (pickHintT <= 0 && hitT <= 0) { pickHintT = 2.5; tierBounce(best); } best = null; } /* too weak a tool: it bounces off, and shows the tool it needs */
   if (best && canWork(best) && hitT <= 0 && !enSleep) {
     if (enHas(best.kind)) { hitT = best.kind === 'bush' || best.kind === 'grass' || best.kind === 'shroom' ? 0.5 : 0.55; workStart(best); enUse(best.kind); }
@@ -546,7 +546,7 @@ function isleStep(dt) {
 function isleBoxStep() { const A = areaAt(pip.position.x, pip.position.z); if (A && HAS[A.id] && !A.cave) { const b = ISLAND.box; b.x0 = A.cx - 5.4; b.x1 = A.cx + 5.4; b.z0 = A.cz - 5.4; b.z1 = A.cz + 5.4; } }
 /* a picture over a rock that needs the pickaxe */
 const hintSp = isleSprite(isleBubble('pick'), 0.8); hintSp.visible = false; sc.add(hintSp);
-function isleHint(n) { hintSp.material.map = isleBubble(gateIcon(n)); hintSp.position.set(n.x, (HP_H[n.kind] || 1.2) + 0.75, n.z); hintSp.visible = true; hintSp.t = 1.8; Snd.play('blip', { gain: 0.2, f: 420 }); }
+function isleHint(n) { hintSp.material.map = isleBubble(gateIcon(n)); hintSp.position.set(n.x, n.g.position.y + (HP_H[n.kind] || 1.2) + 0.75, n.z); hintSp.visible = true; hintSp.t = 1.8; Snd.play('blip', { gain: 0.2, f: 420 }); }
 
 /* the guide arrow: to a chest, to a sign once the backpack is full, and to a tree right at the start */
 function isleGoal() {
@@ -698,7 +698,7 @@ function hpShow(n) { if (hpBar.n !== n) hpBar.shown = 1; hpBar.n = n; hpBar.t = 
 function hpStep(dt) {
   const b = hpBar; if (!b.sp.visible || !b.n) return;
   b.t -= dt; b.shown += (b.goal - b.shown) * Math.min(1, dt * 10); hpDraw(b.shown);
-  b.sp.position.set(b.n.x, HP_H[b.n.kind] * (b.n.kind === 'tree' ? b.n.full : 1), b.n.z);
+  b.sp.position.set(b.n.x, b.n.g.position.y + HP_H[b.n.kind] * (b.n.kind === 'tree' ? b.n.full : 1), b.n.z);
   b.sp.material.opacity = Math.min(1, b.t * 3);
   if (b.t <= 0 || (b.n.st !== 'ready' && b.shown < 0.02 && b.t < 1.6)) { b.sp.visible = false; b.n = null; }
 }

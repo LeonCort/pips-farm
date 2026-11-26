@@ -57,12 +57,12 @@ function findNode(n, g) {
 /* the find goes straight to the store, and a picture with its number floats up where it was */
 function findGot(n) {
   const [t, c] = YIELD[n.kind]; state.isle.store[t] = (state.isle.store[t] || 0) + c; xpGain(XP_FOR[n.kind]);
-  const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, c), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(n.x, 1.5, n.z); sc.add(sp); FD.floats.push({ sp, t: 0 });
-  Snd.play('sparkle', { gain: 0.45 }); burst(n.x, 1.0, n.z, 6); bldBadge(); save();
+  const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, c), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(n.x, n.g.position.y + 1.5, n.z); sc.add(sp); FD.floats.push({ sp, t: 0, y: n.g.position.y });
+  Snd.play('sparkle', { gain: 0.45 }); burst(n.x, n.g.position.y + 1.0, n.z, 6); bldBadge(); save();
 }
 function findStep(dt) {
   for (let k = FD.floats.length - 1; k >= 0; k--) { const G = FD.floats[k]; G.t += dt;
-    G.sp.position.y = 1.5 + Math.min(1, G.t / 0.5) * 0.7 + G.t * 0.12; G.sp.material.opacity = G.t > 1.4 ? Math.max(0, 1 - (G.t - 1.4) * 2.5) : 1;
+    G.sp.position.y = G.y + 1.5 + Math.min(1, G.t / 0.5) * 0.7 + G.t * 0.12; G.sp.material.opacity = G.t > 1.4 ? Math.max(0, 1 - (G.t - 1.4) * 2.5) : 1;
     if (G.t > 1.8) { sc.remove(G.sp); G.sp.material.map.dispose(); FD.floats.splice(k, 1); } }
 }
 /* the finds an area holds, at fixed spots (rules.js) */
