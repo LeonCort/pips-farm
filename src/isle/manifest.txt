@@ -50,6 +50,7 @@ hamlets.js
 finds.js
 tall.js
 mesa.js
+ice.js
 props.js
 map.js
 spots.js
