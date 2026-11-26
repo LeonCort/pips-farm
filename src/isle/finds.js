@@ -8,7 +8,7 @@
    price on the card that needs it. Where they stand is set by hand, per area (rules.js: finds). They come back after sleeping. */
 /* FINDS and FIND_NODE are in rules.js: pictures are drawn before this file is read */
 const FD = { floats: [] };
-Object.keys(FIND_NODE).forEach((k) => { const F = FIND_NODE[k], hand = k === 'hive';
+Object.keys(FIND_NODE).forEach((k) => { const F = FIND_NODE[k], hand = !!F.hand;
   YIELD[k] = [F.t, F.n]; HITS[k] = hand ? 3 : 8; REGROW[k] = [1e9, 0]; LOW[k] = hand ? 0.02 : 0.35; NODE_R[k] = hand ? 0.4 : 0.55; TREASURE[k] = ['coin', 0];
   XP_FOR[k] = 6; HP_H[k] = hand ? 1.25 : 1.3; EN_COST[k] = 2; if (hand) HAND[k] = 1; else { NEED[k] = 'pick'; PICKY[k] = 1; } });
 
@@ -20,6 +20,8 @@ function findIcon(x, t) {
     x.beginPath(); x.moveTo(-18, 8); x.lineTo(-14, -8); x.lineTo(0, -15); x.lineTo(16, -8); x.lineTo(19, 8); x.lineTo(4, 15); x.closePath(); blob(c[0]);
     x.beginPath(); x.moveTo(-14, -8); x.lineTo(-2, 0); x.lineTo(16, -8); x.moveTo(-2, 0); x.lineTo(4, 15); x.lineWidth = 2; x.strokeStyle = c[2]; x.stroke();
     x.fillStyle = c[1]; x.beginPath(); x.moveTo(-8, -7); x.lineTo(0, -11); x.lineTo(4, -8); x.lineTo(-3, -4); x.closePath(); x.fill(); }
+  else if (t === 'reed') { [[-10, 0.12], [0, -0.05], [10, -0.2]].forEach(([a, r]) => { x.save(); x.translate(a, 0); x.rotate(r); x.beginPath(); x.moveTo(0, 22); x.lineTo(0, -6); x.lineWidth = 6; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3; x.strokeStyle = '#7fae4f'; x.stroke(); x.strokeStyle = PAL.ink;
+      x.beginPath(); x.roundRect(-4.5, -22, 9, 18, 4.5); x.fillStyle = '#8a5a34'; x.fill(); x.stroke(); x.restore(); }); }
   else if (t === 'glow') { x.beginPath(); for (let q = 0; q < 8; q++) { const r = q % 2 ? 7 : 22, a = q / 8 * Math.PI * 2 - Math.PI / 2; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.closePath(); blob('#ffe07a');
     x.beginPath(); x.moveTo(0, -22); x.lineTo(0, 22); x.moveTo(-22, 0); x.lineTo(22, 0); x.lineWidth = 1.6; x.strokeStyle = '#f2a13c'; x.stroke(); x.fillStyle = '#ffffff'; x.beginPath(); x.arc(-3, -4, 3, 0, 7); x.fill(); }
 }
@@ -34,6 +36,14 @@ function findGeo(k) {
   } else if (k === 'hiveBase') { /* an old stump the bees moved into */
     q = new T.CylinderGeometry(0.27, 0.34, 0.46, 9); jit(q, 0.02, 2820); q.translate(0, 0.23, 0); L.push(fac(q, (cx, cy, cz, f) => (cy > 0.44 ? tone('#e7c48f', f, 0.3) : shadeY('#8a5f3c', cy, 0, 0.46, f, 0.5)), 2820));
     [0.9, 2.6, 4.4].forEach((a, i) => { q = ico(0.11, 0, 2822 + i); q.scale(1.5, 0.6, 1); q.translate(Math.cos(a) * 0.34, 0.05, Math.sin(a) * 0.34); L.push(fac(q, () => tone('#74a857', i, 0.5), 2822 + i)); });
+  } else if (k === 'reeds') { /* cattails: tall stalks with brown heads, and long leaves */
+    [[0, 0, 1.25, 0, 0], [0.16, 0.05, 1.05, 0.12, 0.05], [-0.15, 0.08, 1.12, -0.1, 0.06], [0.05, -0.16, 0.95, 0.03, -0.12], [-0.08, -0.12, 1.18, -0.05, -0.08], [0.2, -0.1, 0.88, 0.16, -0.06], [-0.22, -0.04, 0.92, -0.17, 0]].forEach(([x, z, h, rz, rx], i) => {
+      q = new T.CylinderGeometry(0.016, 0.022, h, 5); q.translate(0, h / 2, 0); q.rotateZ(-rz); q.rotateX(rx); q.translate(x, 0, z); L.push(fac(q, (cx, cy, cz, f) => shadeY('#7fae4f', cy, 0, 1.2, f, 0.3), 2860 + i));
+      q = new T.CylinderGeometry(0.05, 0.05, 0.24, 7); q.translate(0, h - 0.2, 0); q.rotateZ(-rz); q.rotateX(rx); q.translate(x, 0, z); L.push(fac(q, (cx, cy, cz, f) => tone('#8a5a34', f, 0.4), 2870 + i)); });
+    [0.4, 1.7, 2.9, 4.1, 5.3].forEach((a, i) => { q = new T.ConeGeometry(0.05, 0.75, 3); q.scale(1, 1, 0.3); q.translate(0, 0.37, 0); q.rotateZ(0.45); q.rotateY(a); q.translate(Math.cos(a) * 0.1, 0, -Math.sin(a) * 0.1); L.push(fac(q, (cx, cy, cz, f) => shadeY('#5f9a45', cy, 0, 0.7, f, 0.4), 2880 + i)); });
+  } else if (k === 'reedsBase') { /* the cut stubs left in the mud */
+    [[0, 0], [0.16, 0.05], [-0.15, 0.08], [0.05, -0.16], [-0.08, -0.12]].forEach(([x, z], i) => { q = new T.CylinderGeometry(0.02, 0.024, 0.14, 5); q.translate(x, 0.07, z); L.push(fac(q, '#6f9a45', 2890 + i)); });
+    q = ico(0.3, 1, 2896); q.scale(1.2, 0.12, 1.1); q.translate(0, 0.01, 0); L.push(fac(q, (cx, cy, cz, f) => tone('#6b5a3c', f, 0.4), 2896));
   } else if (k === 'glow') { /* a star crystal: tall pale-gold spikes */
     [[0, 0, 0.78, 0, 0], [0.2, 0.08, 0.5, 0.45, 0.2], [-0.2, 0.04, 0.55, -0.4, -0.2], [0.02, -0.2, 0.42, 0.1, -0.5], [-0.08, 0.2, 0.36, -0.15, 0.5]].forEach(([x, z, h, rz, rx], i) => { q = new T.OctahedronGeometry(0.13, 0); q.scale(1, h / 0.13 * 0.5, 1); q.translate(0, h * 0.45, 0); q.rotateZ(rz); q.rotateX(rx); q.translate(x, 0, z);
       L.push(fac(q, (cx, cy, cz, f) => new T.Color(f % 3 === 0 ? '#ffffff' : i % 2 ? '#ffd76a' : '#fff3b0'), 2830 + i)); });
@@ -51,8 +61,8 @@ function findNode(n, g) {
   const k = n.kind;
   if (k === 'glow') { findGlowMat = findGlowMat || (() => { const m = crystalMat.clone(); m.emissive = new T.Color('#c9962a'); m.emissiveIntensity = 0.75; return m; })(); n.main = new T.Mesh(findGeo(k), findGlowMat); }
   else { n.main = new T.Mesh(findGeo(k), MAT); n.main.castShadow = true; n.main.receiveShadow = true; }
-  n.full = k === 'hive' ? 1 : 0.95 + hash(n.seed, 4) * 0.2; n.main.scale.setScalar(n.full); g.add(n.main);
-  if (k === 'hive') { const b = new T.Mesh(findGeo('hiveBase'), MAT); b.castShadow = true; b.receiveShadow = true; g.add(b); }
+  n.full = k === 'reeds' ? 1.3 : FIND_NODE[k].hand ? 1 : 0.95 + hash(n.seed, 4) * 0.2; n.main.scale.setScalar(n.full); g.add(n.main);
+  if (k === 'hive' || k === 'reeds') { const b = new T.Mesh(findGeo(k + 'Base'), MAT); b.castShadow = true; b.receiveShadow = true; g.add(b); }
 }
 /* the find goes straight to the store, and a picture with its number floats up where it was */
 function findGot(n) {
