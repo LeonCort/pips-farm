@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261127175146">
+<meta name="app-ver" content="20261127180519">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -3660,6 +3660,7 @@ const heatHaze = (() => { const d = document.createElement('div'); d.style.cssTe
 function zoneStep() {
   const A = inCave ? null : areaAt(pip.position.x, pip.position.z), z = inCave ? 'spring' : A && HAS[A.id] ? ZONE_SEASON[A.biome] || 'spring' : null; /* on a bridge: keep the season Pip came from */
   if (z && z !== zoneSeason) { zoneSeason = z; const w = ZONE_WX[z]; if (state.wx && state.wx.k !== w[0]) wxSet(w[0], w[1]); }
+  if (A && HAS[A.id] && wonderCalm(A) && state.wx && state.wx.k !== 'clear') wxSet('clear', 150); /* a finished wonder keeps its island's sky clear (wonders.js) */
   heatHaze.style.opacity = zoneSeason === 'summer' && !isNight && !inCave ? '1' : '0';
 }
 /* ---------- things that only come at certain times (Leon's idea list, 2026-11-23) ----------
@@ -6324,7 +6325,7 @@ function peopleGoal() {
 
 let anvilIn = false, hamT = 0;
 function peopleStep(dt) {
-  bakerStep(dt); loopStep(dt); hamStep(dt); findStep(dt); mesaStep(dt); iceStep(dt); raftStep(dt); tideStep(dt); emberStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
+  bakerStep(dt); loopStep(dt); hamStep(dt); findStep(dt); mesaStep(dt); iceStep(dt); raftStep(dt); tideStep(dt); emberStep(dt); wonderStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
   if (!SM.g) return;
   const F = folk(), g = SM.g, pp = pip.position;
   /* she steps out of the cottage */
@@ -7134,7 +7135,7 @@ function torchLight() {
 const gearWet = () => raining() && !inCave && !gearHas('coat');
 const gearEnMul = () => (gearWet() ? 2 : 1); /* rain without a coat: every job costs twice (isle.js enUse) */
 const gearRain = () => gearHas('coat'); /* the yellow slicker only shows once Pip owns the coat (rain.js) */
-const gearSnow = () => !inCave && zoneSeason === 'winter' && !gearHas('boots') && (() => { const A = areaAt(pip.position.x, pip.position.z); return !!A && A.biome === 'snow'; })();
+const gearSnow = () => !inCave && zoneSeason === 'winter' && !gearHas('boots') && !mons().tower && (() => { const A = areaAt(pip.position.x, pip.position.z); return !!A && A.biome === 'snow'; })();
 const gearSlow = () => (state.isle && GE.ready && gearSnow() ? 0.5 : 1); /* deep snow: half speed without boots (rules.js speed) */
 function gearInit() { const I = state.isle; I.seen = I.seen || {}; I.webs = I.webs || {}; I.calm = I.calm || {}; GE.ready = 1; webSync(); torchLight(); }
 function gearStep(dt) {
@@ -7537,7 +7538,7 @@ function loopBuy(s) {
   if (LOOP_FOLK[id] && s.kind === 'person') { folk()[id] = 2; LP.folk[id].move = { t: 0 }; Snd.play('success', { gain: 0.5, f: 'E6' }); burst(LP.folk[id].g.position.x, 1.5, LP.folk[id].g.position.z, 10); xpGain(10); return true; }
   if (LOOP_FOLK[id] && s.kind === 'plot') { folk()[id] = 3; loopHouse(id, true); LP.folk[id].hop = 1; Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.15); xpGain(20);
     if (LOOP_FOLK[id].key) keyGive(LOOP_FOLK[id].key, HOUSES[id].x, HOUSES[id].z + 1.4); villageSync(true); return true; }
-  if (s.kind === 'mon') { mons()[id] = 1; monMake(id, true); matMake('camp'); xpGain(40); Snd.play('success', { gain: 0.55, f: 'C6' }); Snd.play('sparkle', { gain: 0.5 }, 0.2); Snd.play('success', { gain: 0.45, f: 'G6' }, 0.5); save(); return true; }
+  if (s.kind === 'mon') { mons()[id] = 1; monMake(id, true); wonderNow(id); matMake('camp'); xpGain(40); Snd.play('success', { gain: 0.55, f: 'C6' }); Snd.play('sparkle', { gain: 0.5 }, 0.2); Snd.play('success', { gain: 0.45, f: 'G6' }, 0.5); save(); return true; }
   return false;
 }
 function loopGoal() {
@@ -7861,6 +7862,7 @@ function tallSpots(A) {
   return out;
 }
 function tallFill(A, fresh) {
+  if (mons().windmill) return; /* the windmill's wind has laid the meadow's tall grass flat (wonders.js) */
   const C = tallCuts(); tallSpots(A).forEach(([x, z, k, hx, hz]) => { const id = A.id + ':' + k; if (C[id]) return;
     const n = makeNode('tall', x, z, AREAS.indexOf(A) * 997 + 1200 + k); n.cut = id; n.box = [hx + 0.03, hz + 0.03]; if (fresh) { n.pop = 0.001; n.g.scale.setScalar(0.01); } });
 }
@@ -8236,6 +8238,36 @@ function emberStep(dt) {
     splash(mx, 0.2, mz, 10); burst(mx, 1.0, mz, 8); Snd.play('whoosh', { gain: 0.5, f: 200 }); Snd.play('success', { gain: 0.45 }); xpGain(12); bldBadge(); save(); });
   if (!inRing) EM.hold = Math.max(0, EM.hold - dt);
   Object.keys(EM.slabs).forEach((k) => { const S = EM.slabs[k]; if (S.userData.p > 0 && S.userData.p < 1) { S.userData.p = Math.min(1, S.userData.p + dt * 2.5); S.scale.y = S.userData.p; } });
+}
+/* ---------- wonders change their island (Leon, 2026-11-25: "wonders that do more than fast travel ... transform it") ----------
+   A finished monument is felt over its whole island, not just at its own spot:
+     the windmill   its wind lays the meadow's tall grass flat (every belt is open for good), and the meadow bursts into flower;
+     the lighthouse the rain over the stone island stops: clear skies there from then on;
+     the star tower its warmth stops the snowfall on the winter island and melts the deep snow, so Pip walks at full speed
+                    there even without boots.
+   The harbour stays as it is (home has nothing to mend). The new islands have no wonder yet. */
+const WD = { bloom: {}, pop: [] };
+const wonderCalm = (A) => (/^s\d/.test(A.id) && !!mons().lighthouse) || (/^w\d/.test(A.id) && !!mons().tower);
+/* the moment a wonder is finished */
+function wonderNow(id) {
+  if (id === 'windmill') nodes.forEach((n) => { if (n.kind !== 'tall' || n.dead) return; n.dead = 1; n.st = 'gone'; if (work && work.n === n) work = null; if (Math.hypot(n.x - pip.position.x, n.z - pip.position.z) < 16) for (let k = 0; k < 2; k++) smokePuff(n.x + (Math.random() - 0.5) * 0.7, 0.4 + Math.random() * 0.8, n.z + (Math.random() - 0.5) * 0.7, k ? '#e9d27a' : '#a9cf62'); });
+  if (id === 'tower' || id === 'lighthouse') { const S = LOOP_SITES[id]; for (let k = 0; k < 10; k++) smokePuff(S.x + (Math.random() - 0.5) * 3, 0.5 + Math.random() * 2, S.z + (Math.random() - 0.5) * 3, '#ffffff'); }
+  WD.anim = id === 'windmill';
+}
+/* the meadow in flower: a carpet of blossoms over each meadow square Pip owns */
+function wonderBloom(A, anim) {
+  const L = [], base = AREAS.indexOf(A) * 173, COLS = ['#ffffff', '#f6d24a', '#f29ab8', '#b89cf0', '#ff8a5c', '#ef6f6c', '#8fd0f0'];
+  for (let k = 0; k < 230; k++) { const x = A.cx + (hash(k, 811 + base) - 0.5) * 11.2, z = A.cz + (hash(k, 812 + base) - 0.5) * 11.2; if (roadKind(x, z) || campNear(x, z, 1.2) || nodes.some((q) => Math.abs(q.x - x) < 0.5 && Math.abs(q.z - z) < 0.5)) continue;
+    const col = COLS[Math.floor(hash(k, 813 + base) * COLS.length)], h = 0.14 + hash(k, 814) * 0.16;
+    const st = new T.CylinderGeometry(0.012, 0.015, h, 3); st.translate(x, h / 2, z); L.push(fac(st, '#5d8a3a', 8100));
+    const pe = ico(0.085, 1, 8200 + k); pe.scale(1, 0.34, 1); pe.rotateX(0.35); pe.translate(x, h, z); L.push(fac(pe, col, 8200 + k));
+    const ce = ico(0.034, 0, 8300 + k); ce.translate(x, h + 0.028, z + 0.014); L.push(fac(ce, col === '#f6d24a' ? '#e58a2c' : '#f6d24a', 8300)); }
+  const g = new T.Group(); sc.add(g); const m = merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g); if (m && m.isMesh) { m.castShadow = false; m.receiveShadow = true; }
+  WD.bloom[A.id] = g; if (anim) { g.scale.y = 0.01; WD.pop.push({ g, p: 0.001 }); }
+}
+function wonderStep(dt) {
+  if (mons().windmill) AREAS.forEach((A) => { if (/^m\d/.test(A.id) && HAS[A.id] && !WD.bloom[A.id] && !rising) wonderBloom(A, !!WD.anim); });
+  for (let k = WD.pop.length - 1; k >= 0; k--) { const P = WD.pop[k]; P.p = Math.min(1, P.p + dt * 0.8); P.g.scale.y = P.p * P.p * (3 - 2 * P.p); if (P.p >= 1) WD.pop.splice(k, 1); }
 }
 /* ---------- props rebuilt for the highest graphics level (Leon, 2026-11-25): the chest, the boat, the old cottage
    and the two tents. They were a handful of flat boxes; now they are made of boards, stones, cloth panels and shingles
@@ -8913,7 +8945,7 @@ if (uSnow > 0.003) {
 function snxMap() {
   const W = SNX.W, d = SNX.map, b = SNX.box, feet = LOOK.all.concat(LOOK.feet).filter((f) => !f[5]);
   for (let j = 0; j < W; j++) for (let i = 0; i < W; i++) { const x = b.x + (i + 0.5) / W * b.z, z = b.y + (j + 0.5) / W * b.w, A = areaAt(x, z), on = A && HAS[A.id] && A.biome === 'snow' && !A.cave, o = (j * W + i) * 4;
-    let deep = on; if (deep) for (const f of feet) { const u = (x - f[0]) / (f[2] + 0.25), v = (z - f[1]) / (f[3] + 0.25); if (u * u + v * v < 1) { deep = false; break; } }
+    let deep = on && !mons().tower; /* the star tower's warmth has melted the deep snow (wonders.js) */ if (deep) for (const f of feet) { const u = (x - f[0]) / (f[2] + 0.25), v = (z - f[1]) / (f[3] + 0.25); if (u * u + v * v < 1) { deep = false; break; } }
     d[o] = on ? 255 : 0; d[o + 1] = deep ? 255 : 0; d[o + 2] = 0; d[o + 3] = 255; }
   SNX.tex.needsUpdate = true; if (typeof grMask === 'function' && typeof GR !== 'undefined' && GR.tex) grMask();
 }
@@ -8931,7 +8963,7 @@ function snxKeep(g) { if (g && !g.userData.snx) { g.userData.snx = 1; g.traverse
 function snxStep(dt) {
   const pp = pip.position, W = SNX.TW, c = SNX.TS / W, d = SNX.trail;
   SNX.u.uSnow.value = inCave ? 0 : 1;
-  SNX.mapT -= dt; if (SNX.mapT <= 0) { SNX.mapT = 1.5; const k = Object.keys(HAS).length + ':' + (LOOK.all.length + LOOK.feet.length); if (k !== SNX.key) { SNX.key = k; snxMap(); } }
+  SNX.mapT -= dt; if (SNX.mapT <= 0) { SNX.mapT = 1.5; const k = Object.keys(HAS).length + ':' + (LOOK.all.length + LOOK.feet.length) + (mons().tower ? 't' : ''); if (k !== SNX.key) { SNX.key = k; snxMap(); } }
   const near = !inCave && (snxAt(pp.x, pp.z) || snxAt(pp.x + 13, pp.z) || snxAt(pp.x - 13, pp.z) || snxAt(pp.x, pp.z + 13) || snxAt(pp.x, pp.z - 13) || snxAt(pp.x + 9, pp.z + 9) || snxAt(pp.x - 9, pp.z - 9) || snxAt(pp.x + 9, pp.z - 9) || snxAt(pp.x - 9, pp.z + 9));
   SNX.mesh.visible = near; if (!near) return;
   SNX.mesh.position.set(Math.round(pp.x * 3) / 3, 0, Math.round(pp.z * 3) / 3); SNX.lu.uSlC.value.copy(pp);

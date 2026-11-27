@@ -10,5 +10,6 @@ const heatHaze = (() => { const d = document.createElement('div'); d.style.cssTe
 function zoneStep() {
   const A = inCave ? null : areaAt(pip.position.x, pip.position.z), z = inCave ? 'spring' : A && HAS[A.id] ? ZONE_SEASON[A.biome] || 'spring' : null; /* on a bridge: keep the season Pip came from */
   if (z && z !== zoneSeason) { zoneSeason = z; const w = ZONE_WX[z]; if (state.wx && state.wx.k !== w[0]) wxSet(w[0], w[1]); }
+  if (A && HAS[A.id] && wonderCalm(A) && state.wx && state.wx.k !== 'clear') wxSet('clear', 150); /* a finished wonder keeps its island's sky clear (wonders.js) */
   heatHaze.style.opacity = zoneSeason === 'summer' && !isNight && !inCave ? '1' : '0';
 }
