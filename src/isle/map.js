@@ -67,7 +67,7 @@ function mapDraw() {
     if (F >= 2) { const q = homeAt[v.id] || HOUSES[v.id]; wx = q.x; wz = q.z + (homeAt[v.id] ? 0 : 1.2); }
     else if (v.id === 'miner') { wx = CAVE_FRIEND.x; wz = CAVE_FRIEND.z; }
     else { const A = AREA_BY[hide[v.id]]; wx = A.cx + A.ruin[0]; wz = A.cz + A.ruin[1]; }
-    const [px, pz] = mapXY(wx, wz); if (F) mapBadge(x, px, pz, 27); boardFace(x, v, px, pz + (F ? 3 : 0), F ? 0.5 : 0.62, F ? 3 : 0); });
+    const [px, pz] = mapXY(wx, wz); if (F) mapBadge(x, px, pz, 27); boardFace(x, v, px, pz + (F ? 3 : 0), F ? 0.5 : 0.62, F ? 3 : 0); if (F === 2 && LOOP_FOLK[v.id]) { mapBadge(x, px + 24, pz - 22, 15, '#f4b23a'); isleIcon(x, 'hammer', px + 24, pz - 22, 0.5); } /* a house to build here */ });
   /* something to pay for here */
   signs.forEach((s) => { if (s.A || s.x == null) return; const [px, pz] = mapXY(s.x, s.z); x.beginPath(); x.arc(px, pz, 11, 0, 7); x.fillStyle = '#f4b23a'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#6e4426'; x.stroke(); x.beginPath(); x.arc(px, pz, 4, 0, 7); x.fillStyle = '#fff6e4'; x.fill(); });
   /* where Pip is */

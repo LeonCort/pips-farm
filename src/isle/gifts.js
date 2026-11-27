@@ -4,10 +4,10 @@
    own colour, with a round tag over it showing who it is from (a friend's face, or the village's wonder) and a heart.
    Pip walks into a box to open it: it bursts, and what was inside floats up and goes into the crate.
    A box left unopened grows a little each morning, up to five mornings' worth (state.isle.gifts[id] = { n, c }). */
-const GIFTERS = ['mason', 'miner', 'fisher', 'diver', 'glass', 'windmill', 'lighthouse', 'tower'];
+const GIFTERS = ['mason', 'knitter', 'miner', 'fisher', 'diver', 'glass', 'windmill', 'lighthouse', 'tower'];
 /* what a friend with a house sends (the villages' gifts are HAM_DEF.give, times the village's size) */
-const GIFT_FOLK = { mason: { stone: 4 }, miner: { crystal: 2 }, fisher: { reed: 2 }, diver: { pearl: 1 }, glass: { ember: 1 } };
-const GIFT_AT = (k) => [1.9 + k * 0.53, 0.95 + (k % 2) * 0.16]; /* one row along the lawn's edge */
+const GIFT_FOLK = { mason: { stone: 4 }, knitter: { coin: 3 }, miner: { crystal: 2 }, fisher: { reed: 2 }, diver: { pearl: 1 }, glass: { ember: 1 } };
+const GIFT_AT = (k) => [1.85 + k * 0.48, 0.95 + (k % 2) * 0.18]; /* one row along the lawn's edge */
 const GF = { box: {}, tex: {} };
 const gifts = () => state.isle.gifts || (state.isle.gifts = {});
 function giftNear(x, z, r) { return x > 1.6 - r * 0.4 && x < 5.9 + r * 0.4 && z > 0.6 - r * 0.4 && z < 1.5 + r * 0.4; }
@@ -41,7 +41,30 @@ function giftSync(anim) { GIFTERS.forEach((id) => { const o = gifts()[id]; if (o
 function giftWake() {
   Object.keys(GIFT_FOLK).forEach((id) => { if (housed(id)) giftAdd(id, GIFT_FOLK[id], 1); });
   Object.keys(HAM_DEF).forEach((id) => { if (mons()[id]) giftAdd(id, HAM_DEF[id].give, hamLv(id)); });
+  Object.keys(LOOP_FOLK).forEach((id) => { if (loopF(id) === 2 && LP.folk[id]) LP.folk[id].arr = 30; }); /* a new day: the arrow points at a friend's empty plot again for a while */
   giftSync(true); save();
+}
+/* the promise: while a friend waits on an empty plot, a bubble over them shows what a house there will send every morning
+   (a house, an arrow, a present and the thing in it), so building it is worth more than the look of it */
+function giftPromise(id) {
+  const c = document.createElement('canvas'); c.width = 288; c.height = 128; const x = c.getContext('2d'), t = Object.keys(GIFT_FOLK[id])[0];
+  x.beginPath(); x.roundRect(6, 8, 276, 100, 50); x.fillStyle = '#fff6e4'; x.fill(); x.lineWidth = 6; x.strokeStyle = '#6e4426'; x.stroke();
+  x.beginPath(); x.moveTo(126, 106); x.lineTo(144, 124); x.lineTo(162, 106); x.closePath(); x.fill(); x.beginPath(); x.moveTo(126, 107); x.lineTo(144, 124); x.lineTo(162, 107); x.stroke();
+  x.lineJoin = 'round'; x.lineWidth = 5;
+  /* a little house */
+  x.save(); x.translate(60, 60); x.beginPath(); x.rect(-20, -4, 40, 28); x.fillStyle = '#f0dcb4'; x.fill(); x.stroke(); x.beginPath(); x.moveTo(-28, -2); x.lineTo(0, -30); x.lineTo(28, -2); x.closePath(); x.fillStyle = '#d9623c'; x.fill(); x.stroke(); x.fillStyle = '#6e4426'; x.fillRect(-6, 6, 12, 18); x.restore();
+  /* the arrow */
+  x.strokeStyle = '#6e4426'; x.lineCap = 'round'; x.lineWidth = 7; x.beginPath(); x.moveTo(108, 58); x.lineTo(140, 58); x.moveTo(130, 46); x.lineTo(142, 58); x.lineTo(130, 70); x.stroke();
+  /* a present, and what is in it */
+  x.lineWidth = 5; x.save(); x.translate(184, 62); x.beginPath(); x.rect(-20, -12, 40, 34); x.fillStyle = giftColor(id); x.fill(); x.stroke(); x.fillStyle = '#fff0c8'; x.fillRect(-5, -12, 10, 34); x.beginPath(); x.rect(-23, -20, 46, 12); x.fillStyle = giftColor(id); x.fill(); x.stroke();
+  x.fillStyle = '#ffd76a'; [-1, 1].forEach((q) => { x.beginPath(); x.ellipse(q * 9, -26, 9, 6, q * 0.5, 0, 7); x.fill(); x.stroke(); }); x.restore();
+  isleIcon(x, t, 240, 60, 1.05);
+  const sp = isleSprite(new T.CanvasTexture(c), 1); sp.scale.set(1.9, 0.845, 1); sp.visible = false; sc.add(sp); return sp;
+}
+function giftPromiseStep() {
+  Object.keys(GIFT_FOLK).forEach((id) => { const P = LP.folk[id]; if (!P) return; const on = loopF(id) === 2 && P.g.visible && !P.move && !inCave;
+    if (!on) { if (P.promise) P.promise.visible = false; return; }
+    const sp = P.promise || (P.promise = giftPromise(id)); sp.visible = true; sp.position.set(P.g.position.x, 2.65 + (reduced ? 0 : Math.sin(time * 2 + id.length) * 0.06), P.g.position.z); });
 }
 function giftOpen(B) {
   const o = gifts()[B.id], [bx, bz] = [B.g.position.x, B.g.position.z]; delete gifts()[B.id]; B.out = 0.001;
@@ -50,7 +73,7 @@ function giftOpen(B) {
   invDirty = true; burst(bx, 0.7, bz, 14); Snd.play('success', { gain: 0.45 }); Snd.play('sparkle', { gain: 0.45 }); bldBadge(); save();
 }
 function giftStep(dt) {
-  const pp = pip.position;
+  const pp = pip.position; giftPromiseStep();
   Object.keys(GF.box).forEach((id) => { const B = GF.box[id], g = B.g, o = gifts()[id], big = 1 + 0.09 * ((o ? o.n : 1) - 1);
     if (B.out) { B.out += dt; const u = B.out / 0.32; g.scale.setScalar(Math.max(0.01, u < 0.35 ? 1 + u : 1.35 * (1 - (u - 0.35) / 0.65)) * big); if (u >= 1) { sc.remove(g); delete GF.box[id]; } return; }
     if (B.pop < 1) { B.pop += dt * (B.pop < 0 ? 1 : 2.4); if (B.pop < 0) return; if (!g.visible) { g.visible = true; burst(g.position.x, 0.5, g.position.z, 5); Snd.play('pop', { gain: 0.35, f: 560 + GIFTERS.indexOf(id) * 40 }); }
