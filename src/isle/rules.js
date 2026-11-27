@@ -24,7 +24,7 @@ const AREAS = [
   { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 10, stone: 4, berry: 4 } },
   { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag', ruin: [2.3, 1.0, -0.25], stairs: [-2.6, 2.2] },
   { id: 'm0', chest: { coin: 8, berry: 6 }, i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, finds: [['hive', -3.6, -2.0], ['hive', 3.7, -3.5], ['hive', 4.3, 4.9]], tall: [[-5.4, 1.5, 5.4, 3.9]], bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
-  { id: 'm1', chest: { coin: 10, berry: 8 }, i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', -2.0, -3.4], ['hive', -3.0, 2.6]], tall: [[1.5, -5.4, 3.9, 5.4]] },
+  { id: 'm1', chest: { coin: 10, berry: 8 }, chestAt: [-0.4, 3.4], i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', -2.0, -3.4], ['hive', -3.0, 2.6]], tall: [[1.5, -5.4, 3.9, 5.4]] },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, berry: 12, stone: 10 }, ruin: [0.4, 0, 0.2] },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14 }, tall: [[-5.4, 1.5, 5.4, 3.9]] },
   { id: 'm4', chest: { coin: 15, honey: 2 }, chestAt: [3.2, 2.6], i: -4, j: -8, biome: 'meadow', cost: { log: 30, berry: 20, stone: 14 }, finds: [['hive', 3.4, -3.6], ['hive', -3.8, 3.2]], tall: [[1.4, -5.4, 5.4, -1.6]], ponds: [[-1.6, 0.6, 2.0]] },
@@ -34,7 +34,7 @@ const AREAS = [
   { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 }, finds: [['iron', -3.2, -2.2]] },
   /* the islands grew (Leon, 2026-11-27: every island at least five squares): the stone island runs on west */
   { id: 's3', chest: { coin: 18, iron: 2 }, chestAt: [-2.6, -0.6], i: -11, j: -5, biome: 'stone', cost: { stone: 40, log: 26, berry: 16 }, mesas: [{ id: 's3a', dx: 2.4, dz: 2.6, w: 4.8, d: 4.2, h: 1.3, finds: [['iron', -0.9, 0.2], ['iron', 1.0, -0.3]] }], finds: [['iron', -3.6, -3.4]] },
-  { id: 's4', chest: { coin: 22, crystal: 5 }, chestAt: [-2.8, -0.4], i: -11, j: -8, biome: 'clay', cost: { stone: 50, log: 30, crystal: 6 }, finds: [['iron', 3.0, -2.6], ['iron', -3.4, 2.8], ['iron', -2.2, -3.6]], ponds: [[0.6, 0.8, 1.7]] },
+  { id: 's4', chest: { coin: 22, crystal: 5 }, chestAt: [3.6, 2.4], i: -11, j: -8, biome: 'clay', cost: { stone: 50, log: 30, crystal: 6 }, finds: [['iron', 3.0, -2.6], ['iron', -3.4, 2.8], ['iron', -2.2, -3.6]], ponds: [[0.6, 0.8, 1.7]] },
   /* the winter island, east of the orchard, over a bridge */
   { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 34, berry: 16, stone: 20 }, bridge: { from: 'm2', x0: 17.4, z0: -16, x1: 22.6, z1: -16 },
     ice: { dx: 0.5, dz: -0.4, nx: 7, nz: 6, stop: [[0, 2], [6, 2], [3, 0], [3, 5], [0, 3], [1, 4], [4, 3]], gem: [[3, 2]] } },
@@ -46,7 +46,7 @@ const AREAS = [
      runs through the first square from north to south: the only way over is the pole raft. The second has a pond. */
   { id: 'r0', i: -5, j: 2, biome: 'marsh', cost: { log: 30, stone: 18, berry: 14 }, holes: [[1, 0], [1, 1], [1, 2]], finds: [['reeds', -4.7, -3.4], ['reeds', -3.1, -0.4], ['reeds', -4.8, 1.6]], bridge: { from: 'h2', x0: -5.4, z0: 16.6, x1: -10.6, z1: 16.6 } },
   { id: 'r1', i: -8, j: 2, biome: 'marsh', cost: { log: 36, stone: 24, crystal: 4 }, holes: [[1, 1]], ruin: [4.3, -3.0, 0.1], finds: [['reeds', -2.7, -1.6], ['reeds', 2.8, 1.2], ['reeds', 0.8, 3.0], ['reeds', -1.2, -3.1]] },
-  { id: 'r2', chest: { coin: 18, reed: 3 }, chestAt: [-3.6, -3.6], i: -8, j: 5, biome: 'marsh', cost: { log: 40, stone: 26, berry: 18 }, holes: [[1, 1]], finds: [['reeds', -2.6, 0.4], ['reeds', 2.7, -0.6], ['reeds', 0.3, 2.8]] },
+  { id: 'r2', chest: { coin: 18, reed: 3 }, chestAt: [3.6, -3.6], i: -8, j: 5, biome: 'marsh', cost: { log: 40, stone: 26, berry: 18 }, holes: [[1, 1]], finds: [['reeds', -2.6, 0.4], ['reeds', 2.7, -0.6], ['reeds', 0.3, 2.8]] },
   { id: 'r3', chest: { coin: 22, crystal: 4 }, chestAt: [2.8, 0.2], i: -11, j: 2, biome: 'marsh', cost: { log: 46, stone: 30, crystal: 6 }, holes: [[0, 1]], finds: [['reeds', -1.4, -1.8], ['reeds', -1.2, 2.2]] },
   { id: 'r4', chest: { coin: 28, reed: 4 }, chestAt: [-3.4, -3.4], i: -11, j: 5, biome: 'marsh', cost: { log: 52, stone: 34, reed: 4 }, holes: [[1, 1], [2, 2]], finds: [['reeds', -2.7, 0.2], ['reeds', 0.2, -2.7], ['reeds', 2.6, 1.4], ['reeds', 1.0, 2.8]] },
   /* the coral beach, east of the village green over a bridge (coral.js). Its second square is an islet across a strait:
@@ -144,7 +144,9 @@ function coastMake() {
     (a.mesas || []).forEach((m) => { if (!m.par) P(m.dx, m.dz, Math.hypot(m.w, m.d) / 2 + 0.8); }); if (a.ice) P(a.ice.dx, a.ice.dz, Math.hypot(a.ice.nx, a.ice.nz) / 2 + 1.2); });
   SHORTS.forEach((S) => { const b = S.bridge; K.push([b.x0, b.z0, 3], [b.x1, b.z1, 3]); });
   K.push([FERRY.x - 1.5, FERRY.z, 4], [TENT.x, TENT.z, 2.2], [RAFT.e[0], RAFT.e[1], 3.4], [RAFT.w[0], RAFT.w[1], 3.4], [EMBER.cone[0], EMBER.cone[1], EMBER.cone[2] + 2]); EMBER.lava.forEach((L) => L.forEach((q) => K.push([q[0], q[1], 2.2]))); EMBER.cross.forEach((c) => K.push([c.ring[0], c.ring[1], 2]));
+  Object.values(DOCKS).forEach((D) => K.push([D.x, D.z, 2.6]));
   Object.values(LOOP_SITES).forEach((m) => K.push([m.x, m.z, 2.6], [m.x + m.sx, m.z + m.sz, 1.2], [m.x + m.mx, m.z + m.mz, 1.4])); Object.values(HAMLET_AT).forEach((H) => { H.h.forEach((h) => K.push([h[0], h[1], 1.7])); K.push([H.crate[0], H.crate[1], 2]); });
+  TRAILS.forEach((L) => { for (let k = 0; k + 1 < L.length; k++) { const m = Math.max(1, Math.ceil(Math.hypot(L[k + 1][0] - L[k][0], L[k + 1][1] - L[k][1]) / 1.2)); for (let j = 0; j <= m; j++) K.push([L[k][0] + (L[k + 1][0] - L[k][0]) * j / m, L[k][1] + (L[k + 1][1] - L[k][1]) * j / m, 1.1]); } });
   const at = (i, j) => (gIn(i, j) ? AREA_AT[gIdx(i, j)] : -1);
   for (let q = 0; q < n; q++) for (let p = 0; p < n; p++) {
     const x = COAST.x0 + p * st, z = COAST.x0 + q * st, ci = gCell(x), cj = gCell(z); let A0 = -1, d0 = 9;
@@ -180,6 +182,7 @@ function walkSdf(x, z) {
   d = Math.min(d, segD(x, z, FERRY.x, FERRY.z, FERRY.x - 3.0, FERRY.z) - 0.55); /* the farm boat's dock: its pad is out on the planks (ferry.js) */
   for (const a of AREAS) if (a.bridge && HAS[a.id] && (!a.bridge.tide || TIDE.low)) { const b = a.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
   for (const S of SHORTS) if (S.on) { const b = S.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
+  for (const k in DOCK_ON) { const D = DOCKS[k]; d = Math.min(d, segD(x, z, D.x - D.out[0] * 0.5, D.z - D.out[1] * 0.5, D.x + D.out[0] * 1.55, D.z + D.out[1] * 1.55) - 0.5); } /* out along a dock's planks */
   if (HAS.r0) { d = Math.min(d, segD(x, z, RAFT.e[0] + 1.5, RAFT.e[1], RAFT.e[0] + 0.5, RAFT.e[1]) - 0.6, segD(x, z, RAFT.w[0] - 1.5, RAFT.w[1], RAFT.w[0] - 0.5, RAFT.w[1]) - 0.6); /* the raft's two jetties, and the raft while it lies still */
     if (RAFT.on) d = Math.min(d, Math.hypot(x - RAFT.x, z - RAFT.z) - 0.85); }
   if (HAS.e0 && x > 21 && z > 21) d = Math.max(d, -emberLava(x, z) - 0.2, EMBER.cone[2] - Math.hypot(x - EMBER.cone[0], z - EMBER.cone[1]) - 0.2); /* lava and the volcano are no ground to walk on */
@@ -193,11 +196,13 @@ function wClamp(v) {
   if (s >= -0.2 && typeof pip !== 'undefined' && pip) { const px = pip.position.x, pz = pip.position.z; for (let k = 0; k < 12 && s >= -0.2; k++) { v.x += (px - v.x) * 0.35; v.z += (pz - v.z) * 0.35; s = walkSdf(v.x, v.z); } }
   return v;
 }
-const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 1.95, walk: 1.5, maskW: 2048, maskH: 2048, detW: 3072, detH: 3072, detN: 5, sea: 232, ring: { rx: 3, rz: 3, w: 0 }, /* no ring road: w 0 (pets still wander round it) */ roads: [[0, -1.9, 0, -5.9, 0.5, 1], [-1.9, 0, -3.1, -1.5, 0.38, 1], [1.4, -1.4, 2.7, -1.7, 0.36, 1],
+const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 1.95, walk: 1.5, maskW: 2048, maskH: 2048, detW: 3072, detH: 3072, detN: 5, sea: 232, maskSoft: 1, ring: { rx: 3, rz: 3, w: 0 }, /* no ring road: w 0 (pets still wander round it) */ roads: [[0, -1.9, 0, -5.9, 0.5, 1], [-1.9, 0, -3.1, -1.5, 0.38, 1], [1.4, -1.4, 2.7, -1.7, 0.36, 1],
     /* the settlement fills the whole first island (Leon, 2026-11-25): an east street to the smithy (h1), a south street to the bakery (h2), two cross streets that meet at the village green (h3) */
     [1.9, 0, 6, 0, 0.5, 1], [6, 0, 8.4, 2.2, 0.5, 1], [8.4, 2.2, 16.2, 2.2, 0.5, 1], [0, 1.9, 0, 6, 0.5, 1], [0, 6, 1.2, 8, 0.5, 1], [1.2, 8, 1.2, 16.2, 0.5, 1],
     [7.5, 1.5, 7.5, 11, 0.45, 1], [1.0, 7.5, 16.2, 7.5, 0.45, 1], [7.5, 7.5, 7.51, 7.5, 1.7, 2], [15.3, 2.2, 15.3, -0.7, 0.36, 1], [1.2, 15.1, -1.2, 15.1, 0.36, 1]],
-  roadOk: (x, z) => { const i = gCell(x), j = gCell(z); return !!WALK[gIdx(i, j)]; }, /* a road shows only on land that is owned */ trees: [],
+  roadOk: (x, z) => { const i = gCell(x), j = gCell(z); return !!WALK[gIdx(i, j)]; },
+  /* the settlement's streets show on owned land; an island's trails show on any of its land, risen or not (what has not risen lies under the sea), so nothing needs painting again when a square rises */
+  roadShow: (x, z) => { const A = areaAt(x, z); return A && !A.cave && A.id[0] !== 'h' ? landSdf(x, z) < -0.06 : isleD(x, z) < 0.99 && !!WALK[gIdx(gCell(x), gCell(z))]; }, /* a road shows only on land that is owned */ trees: [],
   box: { x0: -5.4, x1: 5.4, z0: -5.4, z1: 5.4 }, /* pets keep inside this (the area Pip is in) */
   d: (x, z) => 1 + drawSdf(x, z) / 6, clamp: wClamp,
   gw: 124, gh: 124, gx: 0, gz: 0, /* the ground covers the whole world, the cave hill too */
@@ -224,22 +229,66 @@ const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2
 /* the island villages (hamlets.js): once an island's monument stands, a few houses and neighbours move in beside it.
    Each house is [x, z, turn]; the crate is where the village stacks what it gathers. Nothing grows on these plots. */
 const HAMLET_AT = {
-  windmill: { h: [[-3.4, -31.6, 0.25], [-4.0, -28.2, 0.35], [-0.9, -32.6, 0.1]], crate: [-1.7, -29.7], more: [[-1.5, -27], [-3.5, -25.5], [0.5, -25.5], [2.5, -27]] },
-  lighthouse: { h: [[-25.0, -7.6, -0.25], [-24.4, -4.2, -0.35], [-28.3, -8.0, -0.05]], crate: [-26.6, -5.5], more: [[-29.5, -5.5], [-26.5, -2.5], [-23.5, -2], [-31, -7.5]] },
-  tower: { h: [[24.3, -35.6, 0.25], [32.0, -30.4, -0.3], [28.2, -28.2, 0.0]], crate: [29.4, -30.9], more: [[30.5, -28.5], [27, -33.5], [26, -27.5], [32.5, -27]] }
+  windmill: { h: [[-3.8, -31.0], [2.8, -24.4], [3.6, -21.8]], crate: [-1.7, -29.7], more: [[-5.6, -24.6], [10.2, -16.2], [-13.6, -22.6], [-12.6, -32.6]] },
+  lighthouse: { h: [[-24.4, -8.8], [-30.6, -8.6], [-23.8, -6.2]], crate: [-26.6, -5.5], more: [[-29.4, -14.8], [-23.6, -24.2], [-36.6, -21], [-43.6, -22.8]] },
+  tower: { h: [[31.6, -26.6], [25.4, -34.4], [28.6, -26.4]], crate: [29.4, -30.9], more: [[41.6, -17], [40.4, -28.6], [36, -36.4], [41.6, -41]] }
 };
+/* ---------- trails (Leon, 2026-11-27: "creating paths and making it more interesting and explorationable") ----------
+   Every island has dirt trails that wind from where Pip arrives, past its wonder, out to its far squares. The village's
+   cottages stand along them, spread over the whole island: the first three near the wonder, the later ones a square or
+   two further out each time the village grows. Each trail is a row of points; it is drawn on any land of its island
+   that has risen (ISLAND.roadShow), so a trail that runs off into the sea says: there is more land that way. */
+const TRAILS = [
+  /* meadow: the main street from the bridge to the windmill, west to the stone shortcut, east to the winter bridge, a loop through the pond square */
+  [[0, -10.8], [1.4, -13.5], [1.6, -18], [0.4, -22.5], [-1, -26], [-0.5, -27.6]],
+  [[1.2, -19.6], [-3, -20.6], [-7, -19.4], [-11.5, -17.6], [-15, -16], [-16.8, -13]],
+  [[1.6, -18.4], [5.6, -17.4], [9, -18.6], [13, -17.4], [17.2, -16]],
+  [[-1, -26], [-5.5, -26.9], [-8.2, -28.2], [-10.6, -30.8], [-14.2, -31]],
+  [[-11.5, -17.6], [-11.6, -21], [-10.9, -24], [-10.7, -26.6], [-8.2, -28.2]],
+  [[-0.5, -27.6], [0.2, -31], [0.4, -33.6]],
+  /* stone: from the lift south to the lighthouse, north to the ruin, west round the mesas to the far squares */
+  [[-25.9, -16], [-26, -11.8], [-27.4, -7.6], [-29.4, -4.6]],
+  [[-25.9, -16.4], [-26, -21], [-25.4, -25.6], [-25.6, -30.6]],
+  [[-26, -12], [-30.5, -11.6], [-33.6, -13.4], [-35, -17.4], [-38.6, -18.2], [-40.8, -21.4], [-41.6, -24.2], [-42.6, -27.2], [-41.6, -30.4], [-39.4, -31.6]],
+  [[-29.4, -4.6], [-29.2, -1], [-31, 0.6], [-33.6, 0.5]],
+  /* winter: round the frozen lake to the tower, along the south shore to the far squares, and a link between the two */
+  [[23.2, -16.2], [23.4, -21], [23.8, -25.6], [26.4, -28.2], [29.4, -28.2], [32.2, -29.8], [34.5, -31.2], [37.6, -32.2]], [[27.8, -28.2], [27.4, -31.6], [27.6, -33.8], [28.8, -36.4], [29.4, -37.6]],
+  [[23.2, -16.2], [27, -15.3], [32, -15.5], [36, -17], [38.4, -18.8], [37.6, -23], [38, -28], [37.6, -32.2], [38.4, -38.5], [39, -43]],
+  /* marsh: the east bank down to the raft, the west bank past the ruin, and on round the ponds */
+  [[-10.8, 16.4], [-10.8, 13], [-10.8, 9.6], [-12.2, 7.5], [-13.3, 7.6]], [[-11.4, 8.4], [-11.6, 6.4]],
+  [[-18.7, 16.4], [-20, 16.9], [-21.8, 15.6], [-22.2, 12], [-21.9, 9.4], [-23, 7.2], [-28, 7.4], [-32, 8], [-34.5, 8.4], [-39, 7.8], [-43, 7.8]],
+  [[-32, 8], [-32.6, 13], [-32.4, 19], [-32.6, 24], [-31, 28], [-27, 28.6], [-24, 27.5]],
+  [[-34.5, 8.4], [-35, 14], [-36.4, 17], [-36.6, 20.5], [-40, 19.6], [-42, 19.6]],
+  /* coral: from the bridge to the stepping stones and the ember bridge, east past the bell to the lagoon; the islet's own trail */
+  [[22.8, 7.5], [25, 8.2], [27.6, 8], [27.2, 12], [27.8, 16.8]],
+  [[31.6, 8.4], [31.8, 6.4]], [[27.6, 8], [32, 8.4], [36, 9.4], [40, 8.8], [42.4, 9.8], [45, 12.6], [47.5, 14.6], [50, 16], [53.2, 16.2]],
+  [[28, 1], [27.4, -2.4], [28.6, -5]], [[27.8, -0.4], [32, -0.8], [36, -1.6], [37.8, -3.2], [37.4, -7], [40, -8.4]],
+  /* ember: to the first lava ring; between the two streams; then the ash fields behind the second */
+  [[28, 22.8], [26.4, 24.4], [25.6, 25.5]], [[25.6, 29], [26.4, 30.8], [27.9, 31.3]],
+  [[31.4, 31.7], [32.2, 30], [34.4, 29.6], [37, 30], [41, 30.4], [45, 29.4], [48.5, 28.6], [50.4, 28]],
+  [[34.4, 29.8], [34.2, 33], [32.8, 35.4], [31, 37.6], [30.2, 38.4]], [[32.8, 35.4], [36, 35.2], [39.6, 36.2], [43, 38.6], [43.6, 41]]
+];
+TRAILS.forEach((L) => { for (let k = 0; k + 1 < L.length; k++) ISLAND.roads.push([L[k][0], L[k][1], L[k + 1][0], L[k + 1][1], 0.4, 1, 1]); });
+/* how far a point is from the nearest trail, and the nearest point on one */
+function trailNear(x, z) { let bd = 1e9, bp = null; for (const L of TRAILS) for (let k = 0; k + 1 < L.length; k++) { const ax = L[k][0], az = L[k][1], dx = L[k + 1][0] - ax, dz = L[k + 1][1] - az, t = clamp(((x - ax) * dx + (z - az) * dz) / (dx * dx + dz * dz), 0, 1), px = ax + dx * t, pz = az + dz * t, d = Math.hypot(x - px, z - pz); if (d < bd) { bd = d; bp = [px, pz, dx, dz]; } } return { d: bd, p: bp }; }
+/* each cottage turns its door to the trail it stands by */
+Object.values(HAMLET_AT).forEach((A) => A.h.concat(A.more).forEach((h) => { const q = trailNear(h[0], h[1]).p; h[2] = Math.atan2(q[0] - h[0], q[1] - h[1]); }));
 /* a village grows in three sizes (Leon's list, 2026-11-27): `more` holds the plots of the four later cottages, two per size,
-   each turned to face the crate. The village's own upgrade ring lies in front of its crate. */
+   each on a square further from the wonder. The village's own upgrade ring lies in front of its crate. */
 const HAM_KEY = {};
-Object.keys(HAMLET_AT).forEach((id) => { const A = HAMLET_AT[id]; A.more.forEach((m) => { A.h.push([m[0], m[1], Math.atan2(A.crate[0] - m[0], A.crate[1] - m[1])]); }); HAM_KEY['ham_' + id] = id; });
+Object.keys(HAMLET_AT).forEach((id) => { const A = HAMLET_AT[id]; A.more.forEach((m) => { A.h.push(m); }); HAM_KEY['ham_' + id] = id; });
 const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to the farm leaves (ferry.js) */
+/* the docks the island boat sails between (docks.js): where the planks leave the shore, the way they run (out), and the
+   way the boat sails off (go: along the shore, the channels between the islands are narrow) */
+const DOCKS = { camp: { x: -6, z: -4.4, out: [-1, 0], go: [0, -1] }, windmill: { x: 0.4, z: -34, out: [0, -1], go: [1, 0] }, lighthouse: { x: -34, z: 0.5, out: [-1, 0], go: [0, -1] }, tower: { x: 29.4, z: -38, out: [0, -1], go: [-1, 0] },
+  sluice: { x: -11.6, z: 6, out: [0, -1], go: [-1, 0] }, bell: { x: 31.8, z: 6, out: [0, -1], go: [1, 0] }, hearth: { x: 22, z: 33.0, out: [-1, 0], go: [0, 1] } }, DOCK_ON = {};
 const TRAVEL_HOME = { x: 2.7, z: 2.6 }, CAVE_FRIEND = { x: 8.8, z: 29.2 };
 const SPOT_AT = { tent: [-4.5, -1.5], fire: [-1.75, 0.75], dog: [-0.75, -2.7], gear: [-2.9, 2.9] }; /* gear has its bench in the start square: rain comes before the smithy does (Leon 2026-11-25, playtest) */ /* the upgrade rings in the camp (spots.js) */
 Object.keys(HAMLET_AT).forEach((id) => { const c = HAMLET_AT[id].crate; SPOT_AT['ham_' + id] = [c[0], c[1] + 1.3]; });
 const KENNEL = { x: -1.3, z: -3.7 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
   isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0, sickle: 0, shovel: 0 }, chests: {}, ruins: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
-const speed = () => (3.2 + 0.45 * state.lv.speed + 0.2 * xpRun()) * gearSlow(); /* deep snow without boots (gear.js) */
+const speed = () => (3.2 + 0.45 * state.lv.speed + 0.2 * xpRun()) * gearSlow() * scootFast(); /* deep snow without boots (gear.js) */
 const cap = () => (state.isle && state.isle.tools.bag ? 10 : 6) + (state.isle ? dogBags() + 2 * xpBag() : 0); /* + the dog's saddlebags (isledog.js) */
 const UPS = [{ id: 'speed', base: 10, g: 1.8, max: 8 }, { id: 'bag', base: 15, g: 1.8, max: 8 }];
 const upCost = (u) => Math.round(u.base * Math.pow(u.g, state.lv[u.id]));

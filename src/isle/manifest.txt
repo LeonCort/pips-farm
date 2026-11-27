@@ -63,10 +63,12 @@ props.js
 map.js
 spots.js
 ferry.js
+docks.js
 show.js
 snowfx.js
 ../engine/input.js
 ../engine/loop.js
 step.js
 ../engine/loop-end.js
+cursor.js
 start.js

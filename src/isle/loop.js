@@ -263,24 +263,13 @@ function monMake(id, anim) {
   LP.mon[id] = M; if (anim) { g.scale.setScalar(0.01); M.pop = 0.001; burst(S.x, 2, S.z, 16); }
   if (id !== 'belfry') matMake(id);
 }
-/* ---- travel mats: a round mat with a boat; standing on it fills a gold ring, then the island pictures open ---- */
-function matMake(id) {
-  if (LP.mats.find((m) => m.id === id)) return; const P = id === 'camp' ? TRAVEL_HOME : { x: LOOP_SITES[id].x + LOOP_SITES[id].mx, z: LOOP_SITES[id].z + LOOP_SITES[id].mz };
-  const R = 0.6, c = document.createElement('canvas'); c.width = c.height = 256; const q = c.getContext('2d');
-  q.fillStyle = '#2f6f96'; q.beginPath(); q.arc(128, 128, 124, 0, 7); q.fill(); q.lineWidth = 8; q.strokeStyle = '#e8f4fb'; q.setLineDash([18, 14]); q.beginPath(); q.arc(128, 128, 108, 0, 7); q.stroke(); q.setLineDash([]);
-  isleIcon(q, 'travel', 128, 128, 3.2);
-  const pad = new T.Mesh(new T.CircleGeometry(R, 40), new T.MeshBasicMaterial({ map: new T.CanvasTexture(c), transparent: true })); pad.rotation.x = -Math.PI / 2; pad.position.set(P.x, 0.05, P.z); sc.add(pad);
-  const fg = new T.RingGeometry(R - 0.02, R + 0.1, 40, 1, Math.PI / 2, -Math.PI * 2), f = new T.Mesh(fg, new T.MeshBasicMaterial({ color: '#f4b23a', side: T.DoubleSide })); f.rotation.x = -Math.PI / 2; f.position.set(P.x, 0.06, P.z); sc.add(f); fg.setDrawRange(0, 0);
-  /* a little post with a boat flag, so it can be found from afar */
-  const L = []; let g2 = new T.CylinderGeometry(0.04, 0.05, 1.3, 6); g2.translate(P.x + 0.7, 0.65, P.z - 0.3); L.push(fac(g2, (cx, cy) => shadeY('#8a5f3c', cy, 0, 1.4, 1, 0.4), 4900));
-  g2 = new T.BoxGeometry(0.46, 0.3, 0.04); g2.translate(P.x + 0.95, 1.15, P.z - 0.3); L.push(fac(g2, () => new T.Color('#5aa7d6'), 4901)); const post = merged(L, MAT);
-  const fl = new T.Sprite(new T.SpriteMaterial({ map: isleBubble('travel'), transparent: true, depthWrite: false })); fl.scale.set(0.5, 0.5, 1); fl.position.set(P.x + 0.95, 1.16, P.z - 0.27); sc.add(fl);
-  LP.mats.push({ id, x: P.x, z: P.z, pad, f, fg, t: 0, post, fl }); LP.armed[id] = Math.hypot(pip.position.x - P.x, pip.position.z - P.z) > 1.0;
-}
+/* ---- travelling: each wonder has a dock with a boat (docks.js); the camp gets its own with the first wonder. Standing
+   on a dock's ring opens the pictures of the other docks ---- */
+function matMake(id) { dockMake(id); }
 const travelTo = () => { const L = [{ id: 'camp', isle: 'home', pic: 'camp' }]; Object.keys(LOOP_MON).forEach((m) => { if (mons()[m] && m !== 'harbor' && m !== 'belfry') L.push({ id: m, isle: LOOP_MON[m].isle, pic: m }); }); return L; };
 function travelOpen(fromId) {
   if (LP.trv && !LP.trv.hidden) return false; const xu = document.querySelector('.xpUp'); if ((xu && !xu.hidden) || document.querySelector('.party')) return false; /* a new star's card first */
-  const here = ISLE_OF((areaAt(pip.position.x, pip.position.z) || {}).id), list = travelTo().filter((d) => d.isle !== here); if (!list.length) return false;
+  const here = fromId === 'camp' ? 'home' : (LOOP_MON[fromId] || {}).isle, list = travelTo().filter((d) => d.isle !== here && d.id !== fromId && DK.d[d.id]); /* Pip stands out on the planks, so the dock says which island this is */ if (!list.length) return false;
   if (!LP.trv) { const m = document.createElement('div'); m.className = 'trvMenu'; m.hidden = true; document.body.appendChild(m); LP.trv = m; m.addEventListener('click', (e) => { if (e.target === m) { m.hidden = true; } }); }
   const m = LP.trv; m.innerHTML = ''; const row = document.createElement('div'); row.className = 'row'; m.appendChild(row);
   list.forEach((d) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'trvBtn'; const cv = document.createElement('canvas'); cv.width = cv.height = 220; const x = cv.getContext('2d');
@@ -289,12 +278,7 @@ function travelOpen(fromId) {
   const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '✕'; x.addEventListener('click', (e) => { e.stopPropagation(); m.hidden = true; }); m.appendChild(x);
   m.hidden = false; Snd.play('pop', { gain: 0.3, f: 560 }); return true;
 }
-function travelGo(id) {
-  const P = id === 'camp' ? TRAVEL_HOME : { x: LOOP_SITES[id].x + LOOP_SITES[id].mx, z: LOOP_SITES[id].z + LOOP_SITES[id].mz };
-  LP.hop = { t: 0, x: P.x, z: P.z + 1.1, moved: false, id }; work = null; Snd.play('whoosh', { gain: 0.45, f: 360 });
-  if (!LP.fade) { const f = document.createElement('div'); f.style.cssText = 'position:fixed;inset:0;background:#e8f4fb;opacity:0;pointer-events:none;transition:opacity .35s;z-index:30'; document.body.appendChild(f); LP.fade = f; }
-  LP.fade.style.opacity = '1';
-}
+function travelGo(id) { dockGo(id); }
 
 /* ---- keys: a picture in the corner while held; the bridge that needs one shows it in a locked bubble ---- */
 function keyGive(k, x, z) {
@@ -353,7 +337,7 @@ function loopGoal() {
 }
 function loopRuinOpen(R) { Object.keys(LOOP_FOLK).forEach((id) => { if (LOOP_FOLK[id].ruin === R.A.id && !loopF(id)) { folk()[id] = 1; LP.folk[id].wait = 2.2; } }); }
 /* the friends' houses and the monuments keep Pip outside */
-function loopNear(x, z, r) { return Object.keys(HOUSES).some((k) => Math.hypot(HOUSES[k].x - x, HOUSES[k].z - z) < r + 0.6) || Object.keys(LOOP_SITES).some((k) => Math.hypot(LOOP_SITES[k].x - x, LOOP_SITES[k].z - z) < r + 0.9) || Object.keys(LOOP_SITES).some((k) => Math.hypot(LOOP_SITES[k].x + LOOP_SITES[k].mx - x, LOOP_SITES[k].z + LOOP_SITES[k].mz - z) < r * 0.5 + 0.7 || Math.hypot(LOOP_SITES[k].x + LOOP_SITES[k].sx - x, LOOP_SITES[k].z + LOOP_SITES[k].sz - z) < r * 0.5 + 0.6) || Math.hypot(TRAVEL_HOME.x - x, TRAVEL_HOME.z - z) < r; }
+function loopNear(x, z, r) { return Object.keys(HOUSES).some((k) => Math.hypot(HOUSES[k].x - x, HOUSES[k].z - z) < r + 0.6) || Object.keys(LOOP_SITES).some((k) => Math.hypot(LOOP_SITES[k].x - x, LOOP_SITES[k].z - z) < r + 0.9) || Object.keys(DOCKS).some((k) => Math.hypot(DOCKS[k].x - x, DOCKS[k].z - z) < r + 0.9) || Object.keys(LOOP_SITES).some((k) => Math.hypot(LOOP_SITES[k].x + LOOP_SITES[k].mx - x, LOOP_SITES[k].z + LOOP_SITES[k].mz - z) < r * 0.5 + 0.7 || Math.hypot(LOOP_SITES[k].x + LOOP_SITES[k].sx - x, LOOP_SITES[k].z + LOOP_SITES[k].sz - z) < r * 0.5 + 0.6) || Math.hypot(TRAVEL_HOME.x - x, TRAVEL_HOME.z - z) < r; }
 
 function loopInit() {
   const I = state.isle; I.mon = I.mon || {}; I.keys = I.keys || {}; const F = folk();
@@ -436,16 +420,6 @@ function loopStep(dt) {
   Object.keys(LP.lockSp).forEach((k) => { if (!signs.some((s) => s.key === k)) { sc.remove(LP.lockSp[k]); delete LP.lockSp[k]; } });
   /* a gift flying up out of a new house: the key */
   if (LP.gift) { const G = LP.gift; G.t += dt; const u = Math.min(1, G.t / 1.1); G.sp.position.lerp(tmpV.set(pp.x, 2.3 + Math.sin(u * Math.PI) * 1.2, pp.z), Math.min(1, dt * 4)); G.sp.material.opacity = G.t > 1.8 ? Math.max(0, 1 - (G.t - 1.8) * 3) : 1; if (G.t > 2.2) { sc.remove(G.sp); LP.gift = null; } }
-  /* travel mats */
-  LP.mats.forEach((M) => { const d = Math.hypot(pp.x - M.x, pp.z - M.z);
-    if (d > 1.0) LP.armed[M.id] = true;
-    const on = d < 0.55 && LP.armed[M.id] && !LP.hop && !enSleep && travelTo().filter((q) => q.isle !== ISLE_OF((areaAt(pp.x, pp.z) || {}).id)).length > 0;
-    M.t = on ? M.t + dt : 0; M.fg.setDrawRange(0, Math.floor(Math.min(1, M.t / 0.9) * 240) * 6);
-    if (M.t >= 0.9) { M.t = 0; if (travelOpen(M.id)) LP.armed[M.id] = false; } });
-  if (LP.hop) { const H = LP.hop; H.t += dt;
-    if (H.t > 0.4 && !H.moved) { H.moved = true; pp.set(H.x, 0, H.z); target.set(H.x, 0, H.z); camFocus.set(H.x, 0, H.z); if (typeof dog !== 'undefined' && dog && dog.g) dog.g.position.set(H.x - 0.8, 0, H.z + 0.4); Object.keys(LP.armed).forEach((k) => { LP.armed[k] = false; }); }
-    if (H.t > 0.55 && LP.fade) LP.fade.style.opacity = '0';
-    if (H.t > 1.0) { LP.hop = null; Snd.play('sparkle', { gain: 0.35 }); burst(pp.x, 1.2, pp.z, 6); } }
   /* the party */
   if (!I.done && loopAllDone() && !LP.partyWait) { LP.partyWait = 2.5; }
   if (LP.partyWait) { LP.partyWait -= dt; if (LP.partyWait <= 0) { LP.partyWait = 0; I.done = 1; save(); LP.partyT = 22; partyCard(); Snd.play('success', { gain: 0.55, f: 'C6' }); Snd.play('success', { gain: 0.5, f: 'E6' }, 0.25); Snd.play('success', { gain: 0.5, f: 'G6' }, 0.5); } }

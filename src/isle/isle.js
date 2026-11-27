@@ -63,7 +63,7 @@ function isleIcon(x, t, cx, cy, s) {
   else if (t === 'pie' || t === 'oven') bakeryIcon(x, t);
   else if (/^axe/.test(t)) tiersIcon(x, t);
   else if (t === 'dog' || t === 'fetch' || t === 'dig' || t === 'paw') dogIcon(x, t);
-  else if (['torch', 'coat', 'boots', 'lantern', 'web', 'bees', 'dark', 'rain', 'snowDeep'].indexOf(t) >= 0) gearIcon(x, t);
+  else if (['torch', 'coat', 'boots', 'lantern', 'scooter', 'trail', 'web', 'bees', 'dark', 'rain', 'snowDeep'].indexOf(t) >= 0) gearIcon(x, t);
   else loopIcon(x, t);
   x.restore();
 }
@@ -375,6 +375,23 @@ function signMake(o) {
 }
 /* which signs there should be: an area next to owned land gets a sign at the edge (the whole 3 by 3 block shows dashed in
    the sea), and an area across the water gets a bridge sign once the area its bridge starts from is owned */
+/* can Pip walk here, and on from here? Rock tables are walls from the ground, and the wandering coast can cut a strip
+   of shore off behind one. A flood over a 0.4 m grid: a place counts as reachable when it opens onto 48 m2 of ground. */
+const walkFree = (x, z, pad) => walkSdf(x, z) < -0.3 - pad && !MS.list.some((m) => !m.par && mesaIn(m, x, z, 0.35 + pad));
+function reachOk(x, z) {
+  if (!walkFree(x, z, 0)) return false; const seen = new Set(['0,0']), Q = [[0, 0]];
+  for (let k = 0; k < Q.length; k++) { if (Q.length >= 300) return true; const [i, j] = Q[k];
+    for (const [a, b] of DIRS) { const key = (i + a) + ',' + (j + b); if (seen.has(key)) continue; seen.add(key); if (walkFree(x + (i + a) * 0.4, z + (j + b) * 0.4, 0)) Q.push([i + a, j + b]); } }
+  return Q.length >= 300;
+}
+/* where on an owned square a sign for the next area can stand: by the shared edge, a step to the side or further in if need be */
+function signSpot([ni, nj, a, b]) {
+  for (const inn of [0.85, 1.4, 2.0]) for (const lat of [0.9, -0.9, 0, 1.6, -1.6]) { const x = ni * GS + a * (GS / 2 - inn) + (b ? lat : 0), z = nj * GS + b * (GS / 2 - inn) + (a ? lat : 0);
+    if (!walkFree(x, z, 0.25) || MS.list.some((m) => !m.par && mesaIn(m, x, z, 0.9))) continue;
+    if (nodes.some((n) => !n.mesa && Math.hypot(n.x - x, n.z - z) < 0.8) || chests.some((c) => Math.hypot(c.x - x, c.z - z) < 1.3) || signs.some((s) => Math.hypot(s.x - x, s.z - z) < 1.6)) continue;
+    if (reachOk(x, z)) return [x, z]; }
+  return null;
+}
 function signWants() {
   const want = new Map(), used = new Set();
   AREAS.forEach((A) => {
@@ -382,8 +399,12 @@ function signWants() {
     if (A.bridge) { if (HAS[A.bridge.from]) want.set('b:' + A.id, { kind: 'bridge', A }); return; }
     if (A.lift) { if (mineS().g2) want.set('l:' + A.id, { kind: 'lift', A }); return; } /* the lift at the end of the mine (cave.js) */
     /* the owned square touching this area that is nearest its middle: the sign stands there, by the shared edge */
-    let best = null, bd = 1e9;
-    areaSquares(A, (i, j) => DIRS.forEach(([a, b]) => { const ni = i - a, nj = j - b; if (!owned(ni, nj) || used.has(ni + ',' + nj)) return; const d = Math.hypot(ni * GS - A.cx, nj * GS - A.cz); if (d < bd - 0.01) { bd = d; best = [ni, nj, a, b]; } }));
+    const old = signs.find((s) => s.key === 'a:' + A.id); if (old && old.at) { used.add(old.at[0] + ',' + old.at[1]); want.set(old.key, { kind: 'area', A, at: old.at }); return; }
+    const C = []; areaSquares(A, (i, j) => DIRS.forEach(([a, b]) => { const ni = i - a, nj = j - b; if (!owned(ni, nj) || used.has(ni + ',' + nj)) return; C.push([ni, nj, a, b, Math.hypot(ni * GS - A.cx, nj * GS - A.cz)]); }));
+    C.sort((p, q) => p[4] - q[4]);
+    /* the nearest square where the sign can be walked to (Leon, 2026-11-27: "ensure all unlock points are accessible"): not behind a rock table, in a pond or on a cut-off strip of shore */
+    let best = null; for (const c of C) { const at = signSpot(c); if (at) { best = [c[0], c[1], c[2], c[3], at[0], at[1]]; break; } }
+    if (!best && C[0]) best = C[0].slice(0, 4);
     if (best) { used.add(best[0] + ',' + best[1]); want.set('a:' + A.id, { kind: 'area', A, at: best }); }
   });
   peopleWants(want);
@@ -395,8 +416,8 @@ function isleSigns() {
   for (let k = signs.length - 1; k >= 0; k--) { const s = signs[k]; if (!want.has(s.key)) { [s.g, s.ring, s.ghost, s.pic].forEach((m) => m && sc.remove(m)); signs.splice(k, 1); } else want.delete(s.key); }
   want.forEach((w, key) => {
     const A = w.A;
-    if (w.kind === 'area') { const [ni, nj, a, b] = w.at, x = ni * GS + a * (GS / 2 - 0.85) + (b ? 0.9 : 0), z = nj * GS + b * (GS / 2 - 0.85) + (a ? 0.9 : 0);
-      signMake({ key, kind: 'area', A, cost: A.cost, x, z, ghostGeo: areaGhostGeo, ghostTex, gx: A.cx, gz: A.cz }); }
+    if (w.kind === 'area') { const [ni, nj, a, b] = w.at, x = w.at[4] != null ? w.at[4] : ni * GS + a * (GS / 2 - 0.85) + (b ? 0.9 : 0), z = w.at[4] != null ? w.at[5] : nj * GS + b * (GS / 2 - 0.85) + (a ? 0.9 : 0);
+      signMake({ key, kind: 'area', at: w.at, A, cost: A.cost, x, z, ghostGeo: areaGhostGeo, ghostTex, gx: A.cx, gz: A.cz }); }
     else if (w.kind === 'lift') { const q = new T.PlaneGeometry(1.5, 1.5, 2, 2); q.rotateX(-Math.PI / 2);
       signMake({ key, kind: 'lift', A, cost: A.cost, x: LIFT.low.x + 1.45, z: LIFT.low.z - 1.0, ghostGeo: q, ghostTex: ghostRound, gx: LIFT.low.x, gz: LIFT.low.z, gy: 0.05 }); }
     else if (!peopleSignMake(w, key)) { const B = A.bridge, L = Math.hypot(B.x1 - B.x0, B.z1 - B.z0), ux = (B.x1 - B.x0) / L, uz = (B.z1 - B.z0) / L, q = new T.PlaneGeometry(1.7, L, 2, 8); q.rotateX(-Math.PI / 2);

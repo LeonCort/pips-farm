@@ -30,6 +30,41 @@ function wearPip() {
   if (WEAR.glow) { const n = typeof nightAmt === 'number' ? nightAmt : 0; WEAR.glow.material.color.set(n > 0.3 || inCave ? '#ffd98a' : '#b8ae96'); WEAR.glow.scale.setScalar(n > 0.3 && !reduced ? 1 + Math.sin(time * 9) * 0.06 : 1); }
   if (WEAR.flame && W.torch.visible) { WEAR.flame.scale.set(1 + Math.sin(time * 17) * 0.12, 1 + Math.sin(time * 13) * 0.18, 1 + Math.cos(time * 15) * 0.12); WEAR.flame.rotation.y = time * 3; }
 }
+/* the scooter (gear.js): Pip hops on after a few steps of walking and rolls, half as fast again, and faster still along a
+   trail or a street. It is put away in the mine, in deep snow without boots, and whenever Pip stops to work. */
+const SCO = { g: null, on: 0, wh: [] };
+const scootFast = () => (SCO.on > 0.5 ? (roadKind(pip.position.x, pip.position.z) ? 1.8 : 1.45) : 1);
+function scootStep() {
+  const ride = gearHas('scooter') && !inCave && !enSleep && !work && pipWalk > 0.7 && !gearSnow() && !ferryBusy() && !inHouse;
+  SCO.on = ride ? Math.min(1, SCO.on + 0.06) : Math.max(0, SCO.on - 0.12);
+  if (!SCO.g) { if (!ride) return;
+    SCO.g = wearPart((L, g) => { let q = new T.BoxGeometry(0.24, 0.045, 0.78, 1, 1, 3); q.translate(0, 0.1, -0.04); L.push(fac(q, (cx, cy, cz, i) => tone('#e0503c', i, 0.25), 9301));
+      q = new T.BoxGeometry(0.18, 0.012, 0.4); q.translate(0, 0.128, -0.1); L.push(fac(q, '#4a4038', 9302)); /* the grip tape */
+      q = new T.CylinderGeometry(0.03, 0.03, 0.78, 6); q.rotateX(0.16); q.translate(0, 0.47, 0.33); L.push(fac(q, '#b9c1c9', 9303));
+      q = new T.CylinderGeometry(0.032, 0.032, 0.62, 6); q.rotateZ(Math.PI / 2); q.translate(0, 0.86, 0.39); L.push(fac(q, '#4a4f57', 9304));
+      [-0.26, 0.26].forEach((dx, k) => { q = new T.CylinderGeometry(0.045, 0.045, 0.11, 6); q.rotateZ(Math.PI / 2); q.translate(dx * 1.02, 0.86, 0.39); L.push(fac(q, '#e0503c', 9305 + k)); });
+      /* a pennant on a tall whip at the back, so the scooter shows from every side and over the grass */
+      q = new T.CylinderGeometry(0.016, 0.022, 2.1, 5); q.rotateX(-0.12); q.translate(0, 1.15, -0.44); L.push(fac(q, '#e6d9c0', 9320));
+      q = new T.ConeGeometry(0.17, 0.44, 3); q.rotateZ(-Math.PI / 2); q.scale(1, 1, 0.15); q.translate(0.22, 2.05, -0.56); L.push(fac(q.toNonIndexed(), '#f29a2e', 9321));
+      [0.3, -0.4].forEach((dz, k) => { const w = new T.CylinderGeometry(0.1, 0.1, 0.07, 12); w.rotateZ(Math.PI / 2); const m = new T.Mesh(fac(w.toNonIndexed(), (cx, cy, cz, i) => (Math.hypot(cy, cz) < 0.05 ? new T.Color('#e0503c') : tone(i % 4 < 2 ? '#fff6e4' : '#e6d9c0', i, 0.2)), 9310 + k), MAT); m.position.set(0, 0.1, dz); m.userData.noBatch = 1; m.castShadow = true; g.add(m); SCO.wh.push(m); }); }); }
+  if (SCO.g.parent !== pip) pip.add(SCO.g);
+  const s = SCO.on * SCO.on * (3 - 2 * SCO.on); SCO.g.visible = s > 0.02; SCO.g.scale.setScalar(Math.max(0.01, s)); SCO.g.position.y = (1 - s) * 0.5;
+  if (SCO.g.visible) SCO.wh.forEach((w) => { w.rotation.x += speed() * 0.016 / 0.1; });
+}
+/* Pip behind a tree or a house (Leon, 2026-11-27: "if the player is hidden from the camera we should show a silhouette so
+   the player always knows where they are"): a pale cut-out of Pip that is drawn only where something stands in front. It
+   is a picture held a little toward the camera from Pip, tested against what is already drawn the other way round
+   (drawn where it is BEHIND something), so Pip's own body never sets it off. */
+const SIL = { sp: null };
+function silStep() {
+  if (!SIL.sp) { const c = document.createElement('canvas'); c.width = 128; c.height = 176; const x = c.getContext('2d'); x.lineJoin = 'round'; x.lineWidth = 7; x.strokeStyle = 'rgba(34,48,60,.9)'; x.fillStyle = 'rgba(255,246,228,.9)';
+    x.beginPath(); x.roundRect(36, 86, 56, 62, 20); x.fill(); x.stroke(); x.beginPath(); x.roundRect(42, 140, 18, 28, 8); x.fill(); x.stroke(); x.beginPath(); x.roundRect(68, 140, 18, 28, 8); x.fill(); x.stroke();
+    x.beginPath(); x.arc(64, 56, 36, 0, 7); x.fill(); x.stroke(); x.beginPath(); x.arc(64, 50, 36, Math.PI, 0); x.closePath(); x.fillStyle = 'rgba(242,154,46,.9)'; x.fill(); x.stroke();
+    const m = new T.SpriteMaterial({ map: new T.CanvasTexture(c), transparent: true, opacity: 0.85, depthFunc: T.GreaterDepth, depthWrite: false, fog: false });
+    SIL.sp = new T.Sprite(m); SIL.sp.scale.set(0.95, 1.3, 1); SIL.sp.renderOrder = 999; sc.add(SIL.sp); }
+  const p = pip.position, dx = cam.position.x - p.x, dy = cam.position.y - (p.y + 0.72), dz = cam.position.z - p.z, l = Math.hypot(dx, dy, dz) || 1, k = 0.75;
+  SIL.sp.visible = !inHouse && !enSleep && pip.visible; SIL.sp.position.set(p.x + dx / l * k, p.y + 0.72 + dy / l * k, p.z + dz / l * k);
+}
 function wearPet() {
   const W = WEAR.pet; if (!dog || !dog.g) return;
   if (!W.scarf) {
@@ -44,4 +79,4 @@ function wearPet() {
   const lv = dogLv(), on = state.pet !== 'none', par = dog.body || dog.g;
   [['scarf', 2], ['spade', 3], ['medal', 4]].forEach(([k, need]) => { const g = W[k], want = on && lv >= need; if (want && g.parent !== par) par.add(g); g.visible = want; });
 }
-function wearStep() { wearPip(); wearPet(); }
+function wearStep() { wearPip(); wearPet(); scootStep(); silStep(); }
