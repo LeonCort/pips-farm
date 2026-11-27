@@ -5,7 +5,7 @@
    (the smith makes them: people.js). A weaker tool bounces off, and a bubble shows the tool it needs. A better tool hits
    harder, pulls the drops in from further away, and the crystal tools hit the thing next to it too.
    Things grow back after Pip has slept in the tent, not on a timer. */
-const BIOME_TIER = { home: 1, rocks: 1, berry: 1, meadow: 1, orchard: 2, stone: 2, clay: 2, cave: 2, snow: 3 };
+const BIOME_TIER = { home: 1, rocks: 1, berry: 1, meadow: 1, orchard: 2, stone: 2, clay: 2, cave: 2, marsh: 2, coral: 3, snow: 3 };
 const TIER_MUL = [1, 1, 2.5, 5, 10]; /* how big the pile is */
 const HIT_MUL = [1, 1, 1.5, 2, 2.5]; /* how many more hits it takes, with the right tool */
 const HAND = { bush: 1, planks: 1, shroom: 1 }; /* always open: picked by hand, or a door's old boards */

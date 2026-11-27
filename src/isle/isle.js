@@ -175,6 +175,8 @@ const LAYOUT = {
   stone: (x, z, h, n) => (n > 0.8 ? (h > 0.45 ? 'boulder' : null) : n < -0.9 ? (h > 0.4 ? 'rock' : null) : h > 0.83 ? 'boulder' : h > 0.76 ? 'tree' : h > 0.5 ? 'rock' : null),
   snow: (x, z, h, n) => (n > 0.5 ? (h > 0.3 ? 'tree' : null) : n < -0.9 ? (h > 0.45 ? 'crystal' : null) : h > 0.7 ? 'rock' : h > 0.55 ? 'boulder' : h > 0.42 ? 'tree' : null),
   cave: (x, z, h, n) => (n > 0.6 ? (h > 0.4 ? 'crystal' : null) : n < -0.8 ? (h > 0.5 ? 'boulder' : null) : h > 0.62 ? 'rock' : h > 0.5 ? 'crystal' : null),
+  coral: (x, z, h, n) => (n > 0.7 ? (h > 0.4 ? 'rock' : null) : n < -0.9 ? (h > 0.5 ? 'crystal' : null) : h > 0.86 ? 'boulder' : h > 0.72 ? 'tree' : h > 0.58 ? 'bush' : null),
+  marsh: (x, z, h, n) => (n > 0.3 ? (h > 0.3 ? 'tree' : null) : n < -0.8 ? (h > 0.35 ? 'bush' : null) : h > 0.82 ? 'rock' : h > 0.58 ? 'bush' : h > 0.42 ? 'tree' : null),
   clay: (x, z, h, n) => (n > 0.2 ? (h > 0.35 ? (h > 0.72 ? 'boulder' : 'rock') : null) : h > 0.9 ? 'crystal' : h > 0.75 ? 'boulder' : h > 0.5 ? 'rock' : h > 0.4 ? 'tree' : null)
 };
 /* spots that must stay clear: the camp, each chest, both ends of each bridge, and where signs stand */
@@ -184,7 +186,7 @@ function areaClear(x, z) {
   for (const a of AREAS) { if (a.chest && Math.hypot(x - a.cx, z - a.cz) < 1.4) return false;
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
-    if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || iceKeep(a, x, z)) return false;
+    if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z)) return false;
     if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
@@ -200,11 +202,11 @@ function areaFill(A, fresh) {
   const SP = 2.05, base = AREAS.indexOf(A) * 997; let c = 0;
   for (let gx = A.cx - 5.2; gx <= A.cx + 5.3; gx += SP) for (let gz = A.cz - 5.2; gz <= A.cz + 5.3; gz += SP) {
     const sd = base + c++, x = gx + (hash(sd, 1) - 0.5) * SP * 0.75, z = gz + (hash(sd, 2) - 0.5) * SP * 0.75;
-    if (Math.abs(x - A.cx) > 5.0 || Math.abs(z - A.cz) > 5.0 || !areaClear(x, z)) continue;
+    if (Math.abs(x - A.cx) > 5.0 || Math.abs(z - A.cz) > 5.0 || !areaClear(x, z) || (A.holes && drawSdf(x, z) > -0.9)) continue;
     const n = Math.sin(x * 0.45 + base * 0.13) + Math.cos(z * 0.41 - base * 0.07), k = LAYOUT[A.biome](x, z, hash(sd, 3), n); if (!k) continue;
     const nd = makeNode(k, x, z, sd); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); }
   }
-  findFill(A, fresh); tallFill(A, fresh); mesaFill(A, fresh); iceFill(A, fresh);
+  findFill(A, fresh); tallFill(A, fresh); mesaFill(A, fresh); iceFill(A, fresh); marshFill(A, fresh); coralFill(A, fresh);
   if (A.chest && !state.isle.chests[A.id]) makeChest(A.cx, A.cz - 0.4, A.chest, A.id);
   if (A.ruin) makeRuin(A, fresh);
   if (A.stairs) stairsBuild(A, fresh);
@@ -245,6 +247,8 @@ function areaDecor(A) {
     for (let k = 0; k < 24; k++) { const p = spot(k, 98, 11.4); if (!p) continue; const r = 0.07 + hash(k, 99) * 0.08, q = ico(r, 1, 2450 + k); q.scale(1.2, 0.6, 1); q.translate(p[0], r * 0.3, p[1]); L.push(fac(q, '#b9c7d6', 2450 + k)); }
   }
   if (b === 'cave') caveDecor(A, L, base);
+  if (b === 'marsh') marshDecor(A, L, base);
+  if (b === 'coral') coralDecor(A, L, base);
   if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; m.receiveShadow = true; }
 }
 const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL, FERRY].some((o) => Math.hypot(o.x - x, o.z - z) < r) || loopNear(x, z, r) || spotNear(x, z, r) || hamNear(x, z, r); /* the camp's buildings, the friends' houses, the monuments */
@@ -421,6 +425,7 @@ const BPOST_GEO = (() => { const L = []; let q = new T.CylinderGeometry(0.075, 0
   return fac(mergeGeos(L), (cx, cy, cz, i) => cy > 0.17 && cy < 0.28 && Math.hypot(cx, cz) > 0.08 ? tone('#ead9b0', i, 0.3) : shadeY(PAL.trunk, cy, -1.1, 0.5, i, 0.4), 1802); })();
 function bridgeMesh(A) {
   const B = A.bridge, L = Math.hypot(B.x1 - B.x0, B.z1 - B.z0), ux = (B.x1 - B.x0) / L, uz = (B.z1 - B.z0) / L, g = new T.Group(); g.position.set(B.x0, 0, B.z0); g.rotation.y = Math.atan2(ux, uz); sc.add(g);
+  if (B.tide) return (A.bm = coralStones(g, L)); /* stepping stones that the tide covers (coral.js) */
   const n = Math.ceil(L / 0.42), planks = [];
   for (let k = 0; k < n; k++) { const m = new T.Mesh(PLANK_GEOS[Math.floor(hash(k, 7) * 3)], MAT); m.position.set((hash(k, 3) - 0.5) * 0.06, 0.04, 0.21 + k * 0.42); m.rotation.y = (hash(k, 4) - 0.5) * 0.05; m.receiveShadow = true; m.castShadow = true; g.add(m); planks.push(m); }
   const rails = new T.Group(); g.add(rails);

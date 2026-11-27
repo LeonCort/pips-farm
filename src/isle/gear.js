@@ -8,7 +8,7 @@
 const GEAR = {
   torch: { cost: { honey: 3, log: 8, coin: 6 }, eff: ['web', 'bees', 'dark'] },
   coat: { cost: { berry: 14, log: 6, coin: 12 }, eff: ['rain'] },
-  boots: { cost: { log: 16, stone: 10, coin: 18 }, eff: ['snowDeep'] }
+  boots: { cost: { reed: 4, log: 16, coin: 18 }, eff: ['snowDeep'] }
 };
 Object.keys(GEAR).forEach((k) => { BLD[k] = { max: 2, cost: [null, null, GEAR[k].cost], pic: [null, k, k] }; });
 const gearHas = (k) => bldLv(k) >= 2;

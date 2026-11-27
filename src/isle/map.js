@@ -8,8 +8,8 @@
    - a red marker that pulses where Pip stands.
    Tap anywhere to close. The map is a canvas drawn when it opens: it costs nothing while it is shut. */
 const MP = { btn: null, el: null, cv: null, pip: null, S: 16, x0: -35, z0: -39, w: 70, h: 78 };
-const MAP_COL = { home: '#9fd36a', rocks: '#b7c888', berry: '#86cc68', meadow: '#c4e56e', orchard: '#d9df78', stone: '#b9b7ab', clay: '#cfa880', snow: '#f4f8fd', cave: '#8a8074' };
-const MAP_RES = { home: 'log', rocks: 'stone', berry: 'berry', meadow: 'berry', orchard: 'log', stone: 'stone', clay: 'stone', snow: 'crystal', cave: 'crystal' };
+const MAP_COL = { home: '#9fd36a', rocks: '#b7c888', berry: '#86cc68', meadow: '#c4e56e', orchard: '#d9df78', stone: '#b9b7ab', clay: '#cfa880', snow: '#f4f8fd', cave: '#8a8074', marsh: '#8fbf6c', coral: '#f3e3b0' };
+const MAP_RES = { home: 'log', rocks: 'stone', berry: 'berry', meadow: 'berry', orchard: 'log', stone: 'stone', clay: 'stone', snow: 'crystal', cave: 'crystal', marsh: 'log', coral: 'crystal' };
 function mapXY(x, z) { return [(x - MP.x0) * MP.S, (z - MP.z0) * MP.S]; }
 /* the button's picture: a folded map with an island and a red pin */
 function mapPic(px) {
@@ -34,6 +34,8 @@ function mapDraw() {
   AREAS.forEach((A) => { if (A.cave || !HAS[A.id]) return; sq(A, 0.55, 2.4); x.lineWidth = 3; x.strokeStyle = 'rgba(58,36,20,.5)'; x.stroke(); });
   AREAS.forEach((A) => { if (A.cave || !HAS[A.id]) return; sq(A, 0.55, 2.4); x.fillStyle = BIOME_BEACH[A.biome] || '#f0dfae'; x.fill(); });
   AREAS.forEach((A) => { if (A.cave || !HAS[A.id]) return; sq(A, 0.08, 1.6); x.fillStyle = MAP_COL[A.biome]; x.fill(); });
+  /* water inside an area: the marsh's channel and pond */
+  AREAS.forEach((A) => { if (!A.holes || !HAS[A.id]) return; A.holes.forEach(([a, b]) => { const [px, pz] = mapXY((A.i + a) * GS - 1.5, (A.j + b) * GS - (A.holes.length > 1 ? 2.6 : 1.5)); x.beginPath(); x.roundRect(px, pz, 3 * S, (A.holes.length > 1 ? 5.2 : 3) * S, 1.2 * S); x.fillStyle = '#6fbfe0'; x.fill(); }); });
   /* land Pip does not own yet */
   AREAS.forEach((A) => { if (A.cave || HAS[A.id]) return; sq(A, -0.35, 1.6); x.fillStyle = buy[A.id] ? 'rgba(255,246,228,.5)' : 'rgba(255,255,255,.22)'; x.fill();
     x.setLineDash([14, 12]); x.lineWidth = buy[A.id] ? 6 : 3; x.strokeStyle = buy[A.id] ? '#f4b23a' : 'rgba(255,255,255,.75)'; x.stroke(); x.setLineDash([]);
