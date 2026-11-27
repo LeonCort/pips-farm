@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261127180519">
+<meta name="app-ver" content="20261127182136">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2815,12 +2815,19 @@ function invBuild() {
     + '.inv img{width:40px;height:40px}.inv b{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;min-width:1.4ch;text-align:center}'
     + '.inv b.bump{animation:bump .25s ease-out}.inv .it.wig{animation:invWig .32s ease-out}'
     + '@keyframes invWig{0%{transform:none}25%{transform:rotate(-9deg) scale(1.16)}55%{transform:rotate(7deg) scale(1.08)}80%{transform:rotate(-3deg) scale(1.03)}100%{transform:none}}'
-    + '.invfly{position:fixed;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;pointer-events:none;z-index:6;will-change:transform;filter:drop-shadow(0 3px 0 rgba(34,48,60,.25))}@media (max-width:520px){.inv img{width:30px;height:30px}.inv b{font-size:22px}.inv .it{padding:3px 10px 3px 4px}}';
+    + '.invfly{position:fixed;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;pointer-events:none;z-index:6;will-change:transform;filter:drop-shadow(0 3px 0 rgba(34,48,60,.25))}.inv.invf{top:calc(max(12px,env(safe-area-inset-top,0px)) + 64px);left:calc(max(16px,env(safe-area-inset-left,0px)) + 204px);gap:6px}.inv.invf .it{padding:2px 10px 2px 4px;border-width:2.5px}.inv.invf img{width:30px;height:30px}.inv.invf b{font-size:21px}'
+    + '@media (max-width:520px){.inv.invf{top:calc(max(12px,env(safe-area-inset-top,0px)) + 51px);left:calc(max(16px,env(safe-area-inset-left,0px)) + 158px);gap:3px}.inv.invf img{width:22px;height:22px}.inv.invf b{font-size:16px}.inv.invf .it{padding:1px 6px 1px 2px}.inv img{width:30px;height:30px}.inv b{font-size:22px}.inv .it{padding:3px 10px 3px 4px}}';
   document.head.appendChild(st);
   KINDS.concat(['coin']).forEach((t) => { const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), t, 32, 32, 1.25);
     const it = document.createElement('div'); it.className = 'it'; INV['p' + t] = it; const img = document.createElement('img'); img.alt = ''; img.src = c.toDataURL(); INV['i' + t] = img.src; INV['m' + t] = img; const b = document.createElement('b'); b.textContent = '0';
     it.appendChild(img); it.appendChild(b); el.appendChild(it); INV[t] = b; });
   document.body.appendChild(el); INV.el = el;
+  /* the special finds (honey, copper, ...) in a smaller row beside the energy bar: each shows once Pip has had one */
+  const fd = document.createElement('div'); fd.className = 'inv invf'; fd.setAttribute('role', 'status'); fd.setAttribute('aria-label', 'Special finds');
+  FINDS.forEach((t) => { const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), t, 32, 32, 1.25);
+    const it = document.createElement('div'); it.className = 'it'; it.style.display = 'none'; INV['p' + t] = it; const img = document.createElement('img'); img.alt = ''; img.src = c.toDataURL(); INV['i' + t] = img.src; const b = document.createElement('b'); b.textContent = '0';
+    it.appendChild(img); it.appendChild(b); fd.appendChild(it); INV[t] = b; });
+  document.body.appendChild(fd); INV.fd = fd;
 }
 /* a gathered piece flies from where it landed up to its counter; the counter wiggles as each one arrives (Leon) */
 const invFlies = [];
@@ -2843,7 +2850,10 @@ function invWig(t) { const it = INV['p' + t]; if (!it) return; it.classList.remo
 function invStep() {
   if (!INV.el) return;
   const K = KINDS.concat(['coin']), v = K.map((t) => storeN(t) + carry.count(t) + invFlies.filter((f) => f.t === t).length * 0), key = v.join(',') + (state.isle.store.hay != null ? 'h' : '') + (state.isle.store.crystal != null ? 'c' : '') + invFlies.map((f) => f.t[0]).join('');
-  if (key === invLast) return; invLast = key;
+  if (ENB.el && INV.fd && !INV.fdAt) { const r = ENB.el.getBoundingClientRect(); if (r.width) { INV.fd.style.left = Math.round(r.right + 8) + 'px'; INV.fdAt = 1; } } /* the finds row starts where the energy bar ends */
+  const fv = FINDS.map((t) => state.isle.store[t] || 0), fk = state.isle.fk || (state.isle.fk = {});
+  if (key + '|' + fv.join(',') === invLast) return; invLast = key + '|' + fv.join(',');
+  FINDS.forEach((t, k) => { if (fv[k] && !fk[t]) fk[t] = 1; INV['p' + t].style.display = fk[t] ? '' : 'none'; const b = INV[t]; if (b.textContent !== String(fv[k])) { b.textContent = fv[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); invWig(t); } });
   K.forEach((t, k) => { if (VALUABLE[t]) INV['p' + t].style.display = v[k] ? '' : 'none'; else if (t === 'crystal') INV['p' + t].style.display = state.isle.store[t] != null || invFlies.some((f) => f.t === t) ? '' : 'none'; const b = INV[t]; if (b.textContent !== String(v[k])) { b.textContent = v[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); } });
 }
 
@@ -3199,7 +3209,7 @@ function bldBuild() {
     + '.bldCard .how{width:200px;height:64px;background:#fffaf0;border:2px solid #c9b38a;border-radius:14px}'
     + '.bldCard .dots{display:flex;gap:6px}.bldCard .dots b{width:16px;height:16px;border-radius:50%;border:3px solid var(--ink);background:#e6d9bd}.bldCard .dots b.on{background:#f2c23c}'
     + '.bldCard .cost{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.bldCard .cost span{display:flex;align-items:center;gap:2px;padding:2px 8px 2px 2px;border-radius:999px;border:2px solid var(--ink);font:700 20px Fredoka,sans-serif;background:#fff}'
-    + '.bldCard .cost span.ok{color:#3f8a3a}.bldCard .cost img{width:28px;height:28px}'
+    + '.bldCard .cost span i{font-style:normal;color:#c2543a}.bldCard .cost span.ok,.bldCard .cost span.ok i{color:#3f8a3a}.bldCard .cost span.tap{cursor:pointer;box-shadow:0 0 0 3px #f4b23a;animation:costTap 1.4s ease-in-out infinite}@keyframes costTap{50%{box-shadow:0 0 0 6px rgba(244,178,58,.35)}}.bldCard .cost img{width:28px;height:28px}'
     + '.bldCard .go{width:100%;height:64px;border-radius:18px;border:3px solid var(--ink);background:#cfc6b4;box-shadow:0 4px 0 rgba(34,48,60,.3);padding:4px;opacity:.6}.bldCard .go canvas{height:100%}'
     + '.bldCard .go.can{background:#74a857;opacity:1;animation:ready 1.4s ease-in-out infinite}.bldCard .go:active{transform:translateY(3px)}.bldCard .done{font-size:44px;line-height:64px}'
     + '.bldMenu{flex-direction:column;gap:16px}.bldMenu .x{width:64px;height:64px;border-radius:50%;border:3px solid var(--ink);background:var(--paper);font:700 34px Fredoka,sans-serif}'
@@ -3269,7 +3279,11 @@ function bldFill() {
     const pic = document.createElement('div'); pic.className = 'pic'; pic.appendChild(bldPic(B.pic[next], 128)); const eff = document.createElement('div'); eff.className = 'eff'; eff.appendChild(bldEff(k, next)); pic.appendChild(eff); card.appendChild(pic); const how = bldHow(k, lv, next); if (how) { how.className = 'how'; card.appendChild(how); }
     const dots = document.createElement('div'); dots.className = 'dots'; for (let q = 1; q <= B.max; q++) { const d = document.createElement('b'); if (q <= lv) d.className = 'on'; dots.appendChild(d); } card.appendChild(dots);
     if (c) {
-      const cost = document.createElement('div'); cost.className = 'cost'; Object.keys(c).forEach((t) => { const s = document.createElement('span'); if (haveN(t) >= c[t]) s.className = 'ok'; s.appendChild(bldIco(t)); s.appendChild(document.createTextNode(String(c[t]))); cost.appendChild(s); }); card.appendChild(cost);
+      const cost = document.createElement('div'); cost.className = 'cost'; Object.keys(c).forEach((t) => { const s = document.createElement('span'), ok = haveN(t) >= c[t]; s.className = ok ? 'ok' : 'lack'; s.appendChild(bldIco(t));
+        /* Leon, 2026-11-27: show how many Pip has of each, not only green or not; a missing one opens the map where it is found */
+        const h = document.createElement('i'); h.textContent = String(Math.min(haveN(t), c[t])); s.appendChild(h); s.appendChild(document.createTextNode('/' + c[t]));
+        if (!ok && mapHintSpots(t).length) { s.classList.add('tap'); s.addEventListener('click', (e) => { e.stopPropagation(); mapOpen(t); }); }
+        cost.appendChild(s); }); card.appendChild(cost);
       const go = document.createElement('button'); go.type = 'button'; go.className = 'go' + (bldCan(k) ? ' can' : ''); go.setAttribute('aria-label', 'Bygg'); go.appendChild(bldPic('hammer', 96));
       go.addEventListener('click', (e) => { e.stopPropagation(); bldUp(k); }); card.appendChild(go);
     } else { const d = document.createElement('div'); d.className = 'done'; d.textContent = '⭐'; card.appendChild(d); }
@@ -3278,7 +3292,9 @@ function bldFill() {
 }
 function bldUp(k) {
   const c = BLD[k].cost[bldLv(k) + 1]; if (!c) return;
-  if (!bldCan(k)) { const card = BM[k]; card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); Snd.play('blip', { gain: 0.2, f: 260 }); return; }
+  if (!bldCan(k)) { const card = BM[k]; card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); Snd.play('blip', { gain: 0.2, f: 260 });
+    const miss = Object.keys(c).filter((t) => haveN(t) < c[t] && mapHintSpots(t).length); miss.sort((a, b) => (FINDS.indexOf(b) >= 0) - (FINDS.indexOf(a) >= 0)); /* the grey hammer shows the way to what is missing, the special find first */
+    if (miss.length) setTimeout(() => mapOpen(miss[0]), 420); return; }
   Object.keys(c).forEach((t) => { spendN(t, c[t]).forEach((m) => { fly(m, () => pip.localToWorld(tmpV.set(0, 2.2, 0)), () => sc.remove(m), 0.3); }); });
   state.isle.bld[k] = bldLv(k) + 1; save();
   if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(TENT.x, 1.2, TENT.z, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
@@ -3464,13 +3480,21 @@ const caveRoofs = [];
    a heap of rubble, and the lift room (cave3) behind a rockfall that only the copper pickaxe breaks. The lift at the far
    end is the only way to the stone island: its sign takes the island's price (and the map, loop.js), then the lift runs
    both ways. state.isle.mine.g1 / g2: 1 once that heap is broken through (it does not come back). */
+const RUBBLE_GEO = (() => {
+  const L = []; let q;
+  for (let k = 0; k < 22; k++) { const row = k < 10 ? 0 : k < 17 ? 1 : k < 21 ? 2 : 3, cnt = [10, 7, 4, 1][row], j = k - [0, 10, 17, 21][row], r = 0.3 - row * 0.02 + hash(k, 2650) * 0.1;
+    q = ico(r, 0, 2650 + k, 0.12); q.scale(1.1, 0.8, 1); q.translate((hash(k, 2651) - 0.5) * (0.7 - row * 0.15), 0.2 + row * 0.38, ((j + 0.5) / cnt - 0.5) * (3.1 - row * 0.75) + (hash(k, 2652) - 0.5) * 0.15);
+    L.push(fac(q, (cx, cy, cz, i) => tone(['#cdbfa8', '#b8a78e', '#d9cdb8', '#a89880'][k % 4], i, 0.35), 2650 + k)); }
+  [[-0.5, 0.55], [0.5, -0.5]].forEach(([rx, side], k) => { [-1, 1].forEach((f) => { q = new T.BoxGeometry(0.09, 0.2, 2.5); q.rotateX(rx * f * 0.8); q.translate(side * 0.62, 0.85, 0); L.push(fac(q, (cx, cy, cz, i) => tone(f > 0 ? '#c99f6c' : '#b08454', i, 0.3), 2680 + k * 2 + (f > 0 ? 1 : 0))); }); });
+  return merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT, new T.Group()).geometry;
+})();
 const MINE_GATES = [{ id: 'g1', x: 6, tier: 1 }, { id: 'g2', x: -6, tier: 2 }];
 const LIFT = { low: { x: -15.2, z: 31.7 }, lowOut: { x: -13.8, z: 33.1 }, top: null, topOut: null, lowMat: null, topMat: null };
 function mineS() { return state.isle.mine || (state.isle.mine = {}); }
 /* nothing grows in the doorways between the rooms, or round the lift */
 function mineKeep(a, x, z) { return (Math.abs(z - a.cz) < 1.6 && Math.abs(x - a.cx) > 3.3) || (a.id === 'cave3' && Math.hypot(x - LIFT.low.x, z - LIFT.low.z - 0.5) < 2.6); }
 function mineGateOpen(n) {
-  mineS()[n.gate] = 1; n.dead = 1; n.st = 'gone'; if (work && work.n === n) work = null;
+  mineS()[n.gate] = 1; if (n.tag) { n.g.remove(n.tag); n.tag = null; } n.dead = 1; n.st = 'gone'; if (work && work.n === n) work = null;
   burst(n.x, 1.2, n.z, 12); Snd.play('thud', { gain: 0.6 }); Snd.play('success', { gain: 0.45, f: 'E6' }, 0.15); xpGain(10); isleSigns(); save();
 }
 /* a mine lift: four posts, a cross beam with a wheel and a rope, and a plank floor */
@@ -3524,7 +3548,11 @@ function caveBuild(A) {
   const M = caveA.mat = stairMat('up', sx, sz - 0.9); M.ok = () => inCave; M.to = () => CAVE_OUT; M.cave = false;
   }
   /* the heaps that shut the doorways, until Pip breaks through */
-  if (A.id === 'cave2') MINE_GATES.forEach((G, q) => { if (mineS()[G.id]) return; const n = makeNode('boulder', G.x, A.cz, 2600 + q); n.gate = G.id; n.tier = G.tier; n.full *= 1.55; n.main.scale.setScalar(n.full); n.hp = nodeHits(n) * 1.5; });
+  if (A.id === 'cave2') MINE_GATES.forEach((G, q) => { if (mineS()[G.id]) return; const n = makeNode('boulder', G.x, A.cz, 2600 + q); n.gate = G.id; n.tier = G.tier; n.g.rotation.y = 0;
+    /* Leon, 2026-11-27: the heap looked like a big boulder nobody can break. Now it is a pile of loose stones behind a plank
+       barrier, and the pickaxe that opens it always floats over it */
+    n.main.geometry = RUBBLE_GEO; n.full = 1; n.main.scale.setScalar(1); n.hp = nodeHits(n) * (G.tier > 1 ? 1.5 : 1);
+    n.tag = isleSprite(isleBubble('pick' + (G.tier > 1 ? G.tier : '')), 0.95); n.tag.position.set(0, 2.55, 0); n.g.add(n.tag); });
   if (A.id === 'cave3') { LIFT.g = liftModel(LIFT.low.x, LIFT.low.z, 2650); const Q = LIFT.lowMat = stairMat('up', LIFT.low.x, LIFT.low.z + 1.3); Q.ok = () => inCave && !!HAS.s0; Q.to = () => LIFT.topOut; Q.cave = false; }
   /* the hill top, seen from outside */
   const H = []; const top = new T.SphereGeometry(7.4, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2); top.scale(1, 0.42, 1); jit(top, 0.22, 2400); top.translate(A.cx, 0, A.cz);
@@ -7830,7 +7858,7 @@ function findNode(n, g) {
 function findGot(n) {
   const [t, c] = YIELD[n.kind]; state.isle.store[t] = (state.isle.store[t] || 0) + c; xpGain(XP_FOR[n.kind]);
   const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, c), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(n.x, n.g.position.y + 1.5, n.z); sc.add(sp); FD.floats.push({ sp, t: 0, y: n.g.position.y });
-  Snd.play('sparkle', { gain: 0.45 }); burst(n.x, n.g.position.y + 1.0, n.z, 6); bldBadge(); save();
+  invDirty = true; Snd.play('sparkle', { gain: 0.45 }); burst(n.x, n.g.position.y + 1.0, n.z, 6); bldBadge(); save();
 }
 function findStep(dt) {
   for (let k = FD.floats.length - 1; k >= 0; k--) { const G = FD.floats[k]; G.t += dt;
@@ -8588,7 +8616,7 @@ function propKennel(g) {
      the stairs to the cave, the boat to the farm;
    - a red marker that pulses where Pip stands.
    Tap anywhere to close. The map is a canvas drawn when it opens: it costs nothing while it is shut. */
-const MP = { btn: null, el: null, cv: null, pip: null, S: 16, x0: -35, z0: -39, w: 70, h: 78 };
+const MP = { hint: null, hints: [], btn: null, el: null, cv: null, pip: null, S: 16, x0: -35, z0: -39, w: 70, h: 78 };
 const MAP_COL = { home: '#9fd36a', rocks: '#b7c888', berry: '#86cc68', meadow: '#c4e56e', orchard: '#d9df78', stone: '#b9b7ab', clay: '#cfa880', snow: '#f4f8fd', cave: '#8a8074', marsh: '#8fbf6c', coral: '#f3e3b0', ember: '#7a675c' };
 const MAP_RES = { home: 'log', rocks: 'stone', berry: 'berry', meadow: 'berry', orchard: 'log', stone: 'stone', clay: 'stone', snow: 'crystal', cave: 'crystal', marsh: 'log', coral: 'crystal', ember: 'crystal' };
 function mapXY(x, z) { return [(x - MP.x0) * MP.S, (z - MP.z0) * MP.S]; }
@@ -8631,6 +8659,9 @@ function mapDraw() {
     if (HAS[A.id]) { x.lineCap = 'butt'; x.lineWidth = 26; x.strokeStyle = '#6e4426'; x.beginPath(); x.moveTo(ax, az); x.lineTo(bx, bz); x.stroke(); x.lineWidth = 19; x.strokeStyle = '#c99f6c'; x.setLineDash([9, 3]); x.stroke(); x.setLineDash([]); x.lineCap = 'round'; }
     else if (HAS[B.from]) { x.lineWidth = 8; x.strokeStyle = '#f4b23a'; x.setLineDash([12, 12]); x.beginPath(); x.moveTo(ax, az); x.lineTo(bx, bz); x.stroke(); x.setLineDash([]);
       const k = LOOP_KEY[A.id], mx = (ax + bx) / 2, mz = (az + bz) / 2; if (k) { mapBadge(x, mx, mz, 30); isleIcon(x, k, mx, mz, 1.0); if (!lkeys()[k]) isleIcon(x, 'lock', mx + 22, mz + 20, 0.6); } } });
+  /* the special finds: a small picture where each one is found */
+  AREAS.forEach((A) => { const seen = {}; (A.finds || []).forEach((f) => { const t = FIND_NODE[f[0]].t; if (seen[t]) return; seen[t] = 1; const [px, pz] = A.cave ? mapXY(A.cx, A.cz + 2.2) : mapXY(A.cx + 4.0, A.cz - 4.2);
+    x.globalAlpha = A.cave || HAS[A.id] ? 1 : 0.6; mapBadge(x, px, pz, 19); isleIcon(x, t, px, pz, 0.62); x.globalAlpha = 1; }); });
   /* the stairs down, the boat to the farm, the camp */
   if (HAS.h3 && stairsDown) { const [px, pz] = mapXY(stairsDown.x, stairsDown.z); mapBadge(x, px, pz, 24, '#3b3348'); isleIcon(x, 'stairsDown', px, pz + 2, 0.75); }
   { const [px, pz] = mapXY(FERRY.x - 2.6, FERRY.z); isleIcon(x, 'travel', px, pz, 0.9); }
@@ -8650,8 +8681,22 @@ function mapDraw() {
   /* where Pip is */
   const P = inCave ? [AREA_BY.cave.cx, AREA_BY.cave.cz] : [pip.position.x, pip.position.z], [qx, qz] = mapXY(P[0], P[1]);
   MP.pip.style.left = (qx / W * 100) + '%'; MP.pip.style.top = (qz / H * 100) + '%';
+  /* the hint: big bouncing pictures where the missing thing is found, with the gear it takes beside it */
+  MP.hints.forEach((el) => el.remove()); MP.hints = [];
+  if (MP.hint) mapHintSpots(MP.hint).forEach((q, k) => { const [px, pz] = mapXY(q.x, q.z), el = document.createElement('div'); el.className = 'mapHint'; el.style.left = (px / W * 100) + '%'; el.style.top = (pz / H * 100) + '%'; el.style.animationDelay = (k * 0.15) + 's';
+    const b = document.createElement('span'); b.appendChild(bldIco(q.t)); el.appendChild(b); if (q.need) { const n = document.createElement('span'); n.className = 'need'; n.appendChild(bldIco(q.need)); el.appendChild(n); }
+    MP.cv.parentNode.appendChild(el); MP.hints.push(el); });
 }
-function mapOpen() { if (!MP.el.hidden) return; if (enSleep || rising || LP.hop) return; if (BM.menu && !BM.menu.hidden) BM.menu.hidden = true; mapDraw(); MP.el.hidden = false; work = null; target.copy(pip.position); Snd.play('pop', { gain: 0.3, f: 520 }); }
+/* where a thing is found: the areas with that find (and the gear Pip still lacks to get it), or the owned land that grows it */
+function mapHintSpots(t) {
+  const out = [];
+  if (FINDS.indexOf(t) >= 0) { AREAS.forEach((A) => { const f = (A.finds || []).find((q) => FIND_NODE[q[0]].t === t); if (!f) return; const F = FIND_NODE[f[0]];
+      const need = A.cave && !gearHas('torch') ? 'torch' : !F.hand && toolTier() < F.tier ? 'pick' + F.tier : null; out.push({ t, x: A.cx, z: A.cz, need }); });
+    if (out.some((q) => AREA_BY.cave2 && Math.abs(q.z - AREA_BY.cave2.cz) < 1) && !inCave && HAS.h3 && stairsDown) out.push({ t: 'stairsDown', x: stairsDown.x, z: stairsDown.z, need: null }); }
+  else if (KINDS.indexOf(t) >= 0) AREAS.forEach((A) => { if (!A.cave && HAS[A.id] && MAP_RES[A.biome] === t) out.push({ t, x: A.cx, z: A.cz, need: null }); });
+  return out;
+}
+function mapOpen(hint) { if (!MP.el || !MP.el.hidden) return; MP.hint = typeof hint === 'string' ? hint : null; if (enSleep || rising || LP.hop) return; if (BM.menu && !BM.menu.hidden) BM.menu.hidden = true; mapDraw(); MP.el.hidden = false; work = null; target.copy(pip.position); Snd.play('pop', { gain: 0.3, f: 520 }); }
 function mapShut() { if (MP.el.hidden) return; MP.el.hidden = true; Snd.play('pop', { gain: 0.25, f: 380 }); }
 function mapInit() {
   if (MP.btn || SHOW) return;
@@ -8663,6 +8708,8 @@ function mapInit() {
     + '.mapPip{position:absolute;width:0;height:0;pointer-events:none}.mapPip::before{content:"";position:absolute;left:-13px;top:-13px;width:26px;height:26px;border-radius:50%;background:#e2483d;border:4px solid #fff6e4;box-sizing:border-box;box-shadow:0 0 0 3px #3a2414}'
     + '.mapPip::after{content:"";position:absolute;left:-13px;top:-13px;width:26px;height:26px;border-radius:50%;border:4px solid #e2483d;box-sizing:border-box;animation:mapPulse 1.3s ease-out infinite}'
     + '@keyframes mapPulse{from{transform:scale(1);opacity:.9}to{transform:scale(3.4);opacity:0}}@media (prefers-reduced-motion: reduce){.mapPip::after{animation:none;transform:scale(1.8);opacity:.5}}'
+    + '.mapHint{position:absolute;width:0;height:0;pointer-events:none;animation:mapHop .9s ease-in-out infinite}.mapHint span{position:absolute;left:-34px;top:-34px;width:68px;height:68px;border-radius:50%;background:#fff6e4;border:5px solid #f4b23a;box-sizing:border-box;box-shadow:0 0 0 3px #6e4426,0 0 0 12px rgba(244,178,58,.4);display:flex;align-items:center;justify-content:center}'
+    + '.mapHint span img{width:50px;height:50px}.mapHint span.need{left:22px;top:-50px;width:44px;height:44px;border-color:#e2483d;box-shadow:0 0 0 3px #6e4426}.mapHint span.need img{width:32px;height:32px}@keyframes mapHop{50%{transform:translateY(-9px)}}@media (prefers-reduced-motion: reduce){.mapHint{animation:none}}'
     + '.mapMenu .x{flex:none;width:64px;height:64px;border-radius:50%;border:3px solid var(--ink);background:var(--paper);font:700 34px Fredoka,sans-serif;align-self:flex-start}';
   document.head.appendChild(st);
   const b = document.createElement('button'); b.type = 'button'; b.className = 'bldBtn mapBtn'; b.setAttribute('aria-label', 'Karta'); b.appendChild(mapPic(96)); document.body.appendChild(b); MP.btn = b;

@@ -659,12 +659,19 @@ function invBuild() {
     + '.inv img{width:40px;height:40px}.inv b{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;min-width:1.4ch;text-align:center}'
     + '.inv b.bump{animation:bump .25s ease-out}.inv .it.wig{animation:invWig .32s ease-out}'
     + '@keyframes invWig{0%{transform:none}25%{transform:rotate(-9deg) scale(1.16)}55%{transform:rotate(7deg) scale(1.08)}80%{transform:rotate(-3deg) scale(1.03)}100%{transform:none}}'
-    + '.invfly{position:fixed;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;pointer-events:none;z-index:6;will-change:transform;filter:drop-shadow(0 3px 0 rgba(34,48,60,.25))}@media (max-width:520px){.inv img{width:30px;height:30px}.inv b{font-size:22px}.inv .it{padding:3px 10px 3px 4px}}';
+    + '.invfly{position:fixed;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;pointer-events:none;z-index:6;will-change:transform;filter:drop-shadow(0 3px 0 rgba(34,48,60,.25))}.inv.invf{top:calc(max(12px,env(safe-area-inset-top,0px)) + 64px);left:calc(max(16px,env(safe-area-inset-left,0px)) + 204px);gap:6px}.inv.invf .it{padding:2px 10px 2px 4px;border-width:2.5px}.inv.invf img{width:30px;height:30px}.inv.invf b{font-size:21px}'
+    + '@media (max-width:520px){.inv.invf{top:calc(max(12px,env(safe-area-inset-top,0px)) + 51px);left:calc(max(16px,env(safe-area-inset-left,0px)) + 158px);gap:3px}.inv.invf img{width:22px;height:22px}.inv.invf b{font-size:16px}.inv.invf .it{padding:1px 6px 1px 2px}.inv img{width:30px;height:30px}.inv b{font-size:22px}.inv .it{padding:3px 10px 3px 4px}}';
   document.head.appendChild(st);
   KINDS.concat(['coin']).forEach((t) => { const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), t, 32, 32, 1.25);
     const it = document.createElement('div'); it.className = 'it'; INV['p' + t] = it; const img = document.createElement('img'); img.alt = ''; img.src = c.toDataURL(); INV['i' + t] = img.src; INV['m' + t] = img; const b = document.createElement('b'); b.textContent = '0';
     it.appendChild(img); it.appendChild(b); el.appendChild(it); INV[t] = b; });
   document.body.appendChild(el); INV.el = el;
+  /* the special finds (honey, copper, ...) in a smaller row beside the energy bar: each shows once Pip has had one */
+  const fd = document.createElement('div'); fd.className = 'inv invf'; fd.setAttribute('role', 'status'); fd.setAttribute('aria-label', 'Special finds');
+  FINDS.forEach((t) => { const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), t, 32, 32, 1.25);
+    const it = document.createElement('div'); it.className = 'it'; it.style.display = 'none'; INV['p' + t] = it; const img = document.createElement('img'); img.alt = ''; img.src = c.toDataURL(); INV['i' + t] = img.src; const b = document.createElement('b'); b.textContent = '0';
+    it.appendChild(img); it.appendChild(b); fd.appendChild(it); INV[t] = b; });
+  document.body.appendChild(fd); INV.fd = fd;
 }
 /* a gathered piece flies from where it landed up to its counter; the counter wiggles as each one arrives (Leon) */
 const invFlies = [];
@@ -687,7 +694,10 @@ function invWig(t) { const it = INV['p' + t]; if (!it) return; it.classList.remo
 function invStep() {
   if (!INV.el) return;
   const K = KINDS.concat(['coin']), v = K.map((t) => storeN(t) + carry.count(t) + invFlies.filter((f) => f.t === t).length * 0), key = v.join(',') + (state.isle.store.hay != null ? 'h' : '') + (state.isle.store.crystal != null ? 'c' : '') + invFlies.map((f) => f.t[0]).join('');
-  if (key === invLast) return; invLast = key;
+  if (ENB.el && INV.fd && !INV.fdAt) { const r = ENB.el.getBoundingClientRect(); if (r.width) { INV.fd.style.left = Math.round(r.right + 8) + 'px'; INV.fdAt = 1; } } /* the finds row starts where the energy bar ends */
+  const fv = FINDS.map((t) => state.isle.store[t] || 0), fk = state.isle.fk || (state.isle.fk = {});
+  if (key + '|' + fv.join(',') === invLast) return; invLast = key + '|' + fv.join(',');
+  FINDS.forEach((t, k) => { if (fv[k] && !fk[t]) fk[t] = 1; INV['p' + t].style.display = fk[t] ? '' : 'none'; const b = INV[t]; if (b.textContent !== String(fv[k])) { b.textContent = fv[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); invWig(t); } });
   K.forEach((t, k) => { if (VALUABLE[t]) INV['p' + t].style.display = v[k] ? '' : 'none'; else if (t === 'crystal') INV['p' + t].style.display = state.isle.store[t] != null || invFlies.some((f) => f.t === t) ? '' : 'none'; const b = INV[t]; if (b.textContent !== String(v[k])) { b.textContent = v[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); } });
 }
 

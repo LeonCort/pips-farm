@@ -7,7 +7,7 @@
      the stairs to the cave, the boat to the farm;
    - a red marker that pulses where Pip stands.
    Tap anywhere to close. The map is a canvas drawn when it opens: it costs nothing while it is shut. */
-const MP = { btn: null, el: null, cv: null, pip: null, S: 16, x0: -35, z0: -39, w: 70, h: 78 };
+const MP = { hint: null, hints: [], btn: null, el: null, cv: null, pip: null, S: 16, x0: -35, z0: -39, w: 70, h: 78 };
 const MAP_COL = { home: '#9fd36a', rocks: '#b7c888', berry: '#86cc68', meadow: '#c4e56e', orchard: '#d9df78', stone: '#b9b7ab', clay: '#cfa880', snow: '#f4f8fd', cave: '#8a8074', marsh: '#8fbf6c', coral: '#f3e3b0', ember: '#7a675c' };
 const MAP_RES = { home: 'log', rocks: 'stone', berry: 'berry', meadow: 'berry', orchard: 'log', stone: 'stone', clay: 'stone', snow: 'crystal', cave: 'crystal', marsh: 'log', coral: 'crystal', ember: 'crystal' };
 function mapXY(x, z) { return [(x - MP.x0) * MP.S, (z - MP.z0) * MP.S]; }
@@ -50,6 +50,9 @@ function mapDraw() {
     if (HAS[A.id]) { x.lineCap = 'butt'; x.lineWidth = 26; x.strokeStyle = '#6e4426'; x.beginPath(); x.moveTo(ax, az); x.lineTo(bx, bz); x.stroke(); x.lineWidth = 19; x.strokeStyle = '#c99f6c'; x.setLineDash([9, 3]); x.stroke(); x.setLineDash([]); x.lineCap = 'round'; }
     else if (HAS[B.from]) { x.lineWidth = 8; x.strokeStyle = '#f4b23a'; x.setLineDash([12, 12]); x.beginPath(); x.moveTo(ax, az); x.lineTo(bx, bz); x.stroke(); x.setLineDash([]);
       const k = LOOP_KEY[A.id], mx = (ax + bx) / 2, mz = (az + bz) / 2; if (k) { mapBadge(x, mx, mz, 30); isleIcon(x, k, mx, mz, 1.0); if (!lkeys()[k]) isleIcon(x, 'lock', mx + 22, mz + 20, 0.6); } } });
+  /* the special finds: a small picture where each one is found */
+  AREAS.forEach((A) => { const seen = {}; (A.finds || []).forEach((f) => { const t = FIND_NODE[f[0]].t; if (seen[t]) return; seen[t] = 1; const [px, pz] = A.cave ? mapXY(A.cx, A.cz + 2.2) : mapXY(A.cx + 4.0, A.cz - 4.2);
+    x.globalAlpha = A.cave || HAS[A.id] ? 1 : 0.6; mapBadge(x, px, pz, 19); isleIcon(x, t, px, pz, 0.62); x.globalAlpha = 1; }); });
   /* the stairs down, the boat to the farm, the camp */
   if (HAS.h3 && stairsDown) { const [px, pz] = mapXY(stairsDown.x, stairsDown.z); mapBadge(x, px, pz, 24, '#3b3348'); isleIcon(x, 'stairsDown', px, pz + 2, 0.75); }
   { const [px, pz] = mapXY(FERRY.x - 2.6, FERRY.z); isleIcon(x, 'travel', px, pz, 0.9); }
@@ -69,8 +72,22 @@ function mapDraw() {
   /* where Pip is */
   const P = inCave ? [AREA_BY.cave.cx, AREA_BY.cave.cz] : [pip.position.x, pip.position.z], [qx, qz] = mapXY(P[0], P[1]);
   MP.pip.style.left = (qx / W * 100) + '%'; MP.pip.style.top = (qz / H * 100) + '%';
+  /* the hint: big bouncing pictures where the missing thing is found, with the gear it takes beside it */
+  MP.hints.forEach((el) => el.remove()); MP.hints = [];
+  if (MP.hint) mapHintSpots(MP.hint).forEach((q, k) => { const [px, pz] = mapXY(q.x, q.z), el = document.createElement('div'); el.className = 'mapHint'; el.style.left = (px / W * 100) + '%'; el.style.top = (pz / H * 100) + '%'; el.style.animationDelay = (k * 0.15) + 's';
+    const b = document.createElement('span'); b.appendChild(bldIco(q.t)); el.appendChild(b); if (q.need) { const n = document.createElement('span'); n.className = 'need'; n.appendChild(bldIco(q.need)); el.appendChild(n); }
+    MP.cv.parentNode.appendChild(el); MP.hints.push(el); });
 }
-function mapOpen() { if (!MP.el.hidden) return; if (enSleep || rising || LP.hop) return; if (BM.menu && !BM.menu.hidden) BM.menu.hidden = true; mapDraw(); MP.el.hidden = false; work = null; target.copy(pip.position); Snd.play('pop', { gain: 0.3, f: 520 }); }
+/* where a thing is found: the areas with that find (and the gear Pip still lacks to get it), or the owned land that grows it */
+function mapHintSpots(t) {
+  const out = [];
+  if (FINDS.indexOf(t) >= 0) { AREAS.forEach((A) => { const f = (A.finds || []).find((q) => FIND_NODE[q[0]].t === t); if (!f) return; const F = FIND_NODE[f[0]];
+      const need = A.cave && !gearHas('torch') ? 'torch' : !F.hand && toolTier() < F.tier ? 'pick' + F.tier : null; out.push({ t, x: A.cx, z: A.cz, need }); });
+    if (out.some((q) => AREA_BY.cave2 && Math.abs(q.z - AREA_BY.cave2.cz) < 1) && !inCave && HAS.h3 && stairsDown) out.push({ t: 'stairsDown', x: stairsDown.x, z: stairsDown.z, need: null }); }
+  else if (KINDS.indexOf(t) >= 0) AREAS.forEach((A) => { if (!A.cave && HAS[A.id] && MAP_RES[A.biome] === t) out.push({ t, x: A.cx, z: A.cz, need: null }); });
+  return out;
+}
+function mapOpen(hint) { if (!MP.el || !MP.el.hidden) return; MP.hint = typeof hint === 'string' ? hint : null; if (enSleep || rising || LP.hop) return; if (BM.menu && !BM.menu.hidden) BM.menu.hidden = true; mapDraw(); MP.el.hidden = false; work = null; target.copy(pip.position); Snd.play('pop', { gain: 0.3, f: 520 }); }
 function mapShut() { if (MP.el.hidden) return; MP.el.hidden = true; Snd.play('pop', { gain: 0.25, f: 380 }); }
 function mapInit() {
   if (MP.btn || SHOW) return;
@@ -82,6 +99,8 @@ function mapInit() {
     + '.mapPip{position:absolute;width:0;height:0;pointer-events:none}.mapPip::before{content:"";position:absolute;left:-13px;top:-13px;width:26px;height:26px;border-radius:50%;background:#e2483d;border:4px solid #fff6e4;box-sizing:border-box;box-shadow:0 0 0 3px #3a2414}'
     + '.mapPip::after{content:"";position:absolute;left:-13px;top:-13px;width:26px;height:26px;border-radius:50%;border:4px solid #e2483d;box-sizing:border-box;animation:mapPulse 1.3s ease-out infinite}'
     + '@keyframes mapPulse{from{transform:scale(1);opacity:.9}to{transform:scale(3.4);opacity:0}}@media (prefers-reduced-motion: reduce){.mapPip::after{animation:none;transform:scale(1.8);opacity:.5}}'
+    + '.mapHint{position:absolute;width:0;height:0;pointer-events:none;animation:mapHop .9s ease-in-out infinite}.mapHint span{position:absolute;left:-34px;top:-34px;width:68px;height:68px;border-radius:50%;background:#fff6e4;border:5px solid #f4b23a;box-sizing:border-box;box-shadow:0 0 0 3px #6e4426,0 0 0 12px rgba(244,178,58,.4);display:flex;align-items:center;justify-content:center}'
+    + '.mapHint span img{width:50px;height:50px}.mapHint span.need{left:22px;top:-50px;width:44px;height:44px;border-color:#e2483d;box-shadow:0 0 0 3px #6e4426}.mapHint span.need img{width:32px;height:32px}@keyframes mapHop{50%{transform:translateY(-9px)}}@media (prefers-reduced-motion: reduce){.mapHint{animation:none}}'
     + '.mapMenu .x{flex:none;width:64px;height:64px;border-radius:50%;border:3px solid var(--ink);background:var(--paper);font:700 34px Fredoka,sans-serif;align-self:flex-start}';
   document.head.appendChild(st);
   const b = document.createElement('button'); b.type = 'button'; b.className = 'bldBtn mapBtn'; b.setAttribute('aria-label', 'Karta'); b.appendChild(mapPic(96)); document.body.appendChild(b); MP.btn = b;

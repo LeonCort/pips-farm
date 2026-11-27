@@ -100,7 +100,7 @@ function bldBuild() {
     + '.bldCard .how{width:200px;height:64px;background:#fffaf0;border:2px solid #c9b38a;border-radius:14px}'
     + '.bldCard .dots{display:flex;gap:6px}.bldCard .dots b{width:16px;height:16px;border-radius:50%;border:3px solid var(--ink);background:#e6d9bd}.bldCard .dots b.on{background:#f2c23c}'
     + '.bldCard .cost{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.bldCard .cost span{display:flex;align-items:center;gap:2px;padding:2px 8px 2px 2px;border-radius:999px;border:2px solid var(--ink);font:700 20px Fredoka,sans-serif;background:#fff}'
-    + '.bldCard .cost span.ok{color:#3f8a3a}.bldCard .cost img{width:28px;height:28px}'
+    + '.bldCard .cost span i{font-style:normal;color:#c2543a}.bldCard .cost span.ok,.bldCard .cost span.ok i{color:#3f8a3a}.bldCard .cost span.tap{cursor:pointer;box-shadow:0 0 0 3px #f4b23a;animation:costTap 1.4s ease-in-out infinite}@keyframes costTap{50%{box-shadow:0 0 0 6px rgba(244,178,58,.35)}}.bldCard .cost img{width:28px;height:28px}'
     + '.bldCard .go{width:100%;height:64px;border-radius:18px;border:3px solid var(--ink);background:#cfc6b4;box-shadow:0 4px 0 rgba(34,48,60,.3);padding:4px;opacity:.6}.bldCard .go canvas{height:100%}'
     + '.bldCard .go.can{background:#74a857;opacity:1;animation:ready 1.4s ease-in-out infinite}.bldCard .go:active{transform:translateY(3px)}.bldCard .done{font-size:44px;line-height:64px}'
     + '.bldMenu{flex-direction:column;gap:16px}.bldMenu .x{width:64px;height:64px;border-radius:50%;border:3px solid var(--ink);background:var(--paper);font:700 34px Fredoka,sans-serif}'
@@ -170,7 +170,11 @@ function bldFill() {
     const pic = document.createElement('div'); pic.className = 'pic'; pic.appendChild(bldPic(B.pic[next], 128)); const eff = document.createElement('div'); eff.className = 'eff'; eff.appendChild(bldEff(k, next)); pic.appendChild(eff); card.appendChild(pic); const how = bldHow(k, lv, next); if (how) { how.className = 'how'; card.appendChild(how); }
     const dots = document.createElement('div'); dots.className = 'dots'; for (let q = 1; q <= B.max; q++) { const d = document.createElement('b'); if (q <= lv) d.className = 'on'; dots.appendChild(d); } card.appendChild(dots);
     if (c) {
-      const cost = document.createElement('div'); cost.className = 'cost'; Object.keys(c).forEach((t) => { const s = document.createElement('span'); if (haveN(t) >= c[t]) s.className = 'ok'; s.appendChild(bldIco(t)); s.appendChild(document.createTextNode(String(c[t]))); cost.appendChild(s); }); card.appendChild(cost);
+      const cost = document.createElement('div'); cost.className = 'cost'; Object.keys(c).forEach((t) => { const s = document.createElement('span'), ok = haveN(t) >= c[t]; s.className = ok ? 'ok' : 'lack'; s.appendChild(bldIco(t));
+        /* Leon, 2026-11-27: show how many Pip has of each, not only green or not; a missing one opens the map where it is found */
+        const h = document.createElement('i'); h.textContent = String(Math.min(haveN(t), c[t])); s.appendChild(h); s.appendChild(document.createTextNode('/' + c[t]));
+        if (!ok && mapHintSpots(t).length) { s.classList.add('tap'); s.addEventListener('click', (e) => { e.stopPropagation(); mapOpen(t); }); }
+        cost.appendChild(s); }); card.appendChild(cost);
       const go = document.createElement('button'); go.type = 'button'; go.className = 'go' + (bldCan(k) ? ' can' : ''); go.setAttribute('aria-label', 'Bygg'); go.appendChild(bldPic('hammer', 96));
       go.addEventListener('click', (e) => { e.stopPropagation(); bldUp(k); }); card.appendChild(go);
     } else { const d = document.createElement('div'); d.className = 'done'; d.textContent = '⭐'; card.appendChild(d); }
@@ -179,7 +183,9 @@ function bldFill() {
 }
 function bldUp(k) {
   const c = BLD[k].cost[bldLv(k) + 1]; if (!c) return;
-  if (!bldCan(k)) { const card = BM[k]; card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); Snd.play('blip', { gain: 0.2, f: 260 }); return; }
+  if (!bldCan(k)) { const card = BM[k]; card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); Snd.play('blip', { gain: 0.2, f: 260 });
+    const miss = Object.keys(c).filter((t) => haveN(t) < c[t] && mapHintSpots(t).length); miss.sort((a, b) => (FINDS.indexOf(b) >= 0) - (FINDS.indexOf(a) >= 0)); /* the grey hammer shows the way to what is missing, the special find first */
+    if (miss.length) setTimeout(() => mapOpen(miss[0]), 420); return; }
   Object.keys(c).forEach((t) => { spendN(t, c[t]).forEach((m) => { fly(m, () => pip.localToWorld(tmpV.set(0, 2.2, 0)), () => sc.remove(m), 0.3); }); });
   state.isle.bld[k] = bldLv(k) + 1; save();
   if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(TENT.x, 1.2, TENT.z, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
