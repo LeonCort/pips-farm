@@ -18,7 +18,13 @@ const LOOP_KEY = { m0: 'rope', s0: 'map', w0: 'icepick' }; /* the bridge that ne
 const LOOP_FOLK = {
   mason: { kind: 'fox', ruin: 's1', want: { stone: 20, log: 10 }, house: { log: 22, stone: 16 }, key: 'icepick', roof: ['#6f7f94', '#62728a', '#7d8ca0', '#58677c'], badge: 'chisel' },
   knitter: { kind: 'bunny', ruin: 'w1', want: { berry: 16, crystal: 3 }, house: { log: 26, stone: 16 }, roof: ['#c9708a', '#b8617b', '#d68299', '#a85570'], badge: 'yarn' },
-  miner: { kind: 'frog', cave: 1, want: { crystal: 8 }, house: { log: 26, stone: 20 }, roof: ['#6f8f4a', '#638240', '#7d9c56', '#577238'], badge: 'crystal' }
+  miner: { kind: 'frog', cave: 1, want: { crystal: 8 }, house: { log: 26, stone: 20 }, roof: ['#6f8f4a', '#638240', '#7d9c56', '#577238'], badge: 'crystal' },
+  /* Leon, 2026-11-27: "something key in every island". The marsh, the coral beach and the volcano each hide a friend
+     too, and the ending waits for all of them: the fisher (a duck in a straw hat), the pearl diver (a bear in a sailor's
+     cap) and the glassblower (a fox with goggles). Each wants what only their own island has. */
+  fisher: { kind: 'duck', ruin: 'r1', want: { reed: 6, berry: 20 }, house: { log: 30, stone: 20 }, roof: ['#7fae5a', '#6f9e4c', '#8dbb68', '#628c42'], badge: 'reed' },
+  diver: { kind: 'bear', ruin: 'c1', want: { pearl: 4, stone: 24 }, house: { log: 34, stone: 24 }, roof: ['#4f9fc4', '#438fb4', '#5eaed2', '#3a7fa2'], badge: 'pearl' },
+  glass: { kind: 'fox', ruin: 'e0', want: { ember: 3, crystal: 10 }, house: { log: 40, stone: 30 }, roof: ['#d9703a', '#c9612f', '#e58248', '#b85426'], badge: 'ember' }
 };
 const LOOP_MON = {
   harbor: { isle: 'home', need: () => ['h0', 'h1', 'h2', 'h3'].every((a) => HAS[a]) && (folk().smith || 0) >= 3, area: 'h2', cost: { log: 30, stone: 20 } },
@@ -83,6 +89,14 @@ function loopFolkModel(id) {
     q = new T.BoxGeometry(0.08, 0.22, 0.04); q.translate(0.1, 0.5, 0.17); L.push(fac(q, (cx, cy, cz, i) => new T.Color(i % 4 < 2 ? '#e9849e' : '#fff6e4'), 4111)); }
   if (id === 'miner') { q = new T.SphereGeometry(0.2, 14, 7, 0, Math.PI * 2, 0, Math.PI / 2); q.scale(1, 0.7, 1); q.translate(0, 0.86, 0); L.push(fac(q, () => new T.Color('#f2c23c'), 4120));
     q = new T.CylinderGeometry(0.24, 0.24, 0.025, 16); q.translate(0, 0.86, 0); L.push(fac(q, () => new T.Color('#d9a520'), 4121)); }
+  if (id === 'fisher') { q = new T.CylinderGeometry(0.34, 0.36, 0.03, 16); q.translate(0, 0.88, 0); L.push(fac(q, (cx, cy, cz, i) => tone('#e8cf7a', i, 0.4), 4130));
+    q = new T.ConeGeometry(0.2, 0.2, 14); q.translate(0, 0.99, 0); L.push(fac(q, (cx, cy, cz, i) => tone('#dcc068', i, 0.4), 4131)); q = new T.CylinderGeometry(0.2, 0.2, 0.04, 14); q.translate(0, 0.91, 0); L.push(fac(q, () => new T.Color('#c9573f'), 4132));
+    q = new T.CylinderGeometry(0.015, 0.02, 1.2, 5); q.rotateZ(-0.5); q.translate(0.42, 0.75, 0.1); L.push(fac(q, () => new T.Color('#8a5f3c'), 4133)); }
+  if (id === 'diver') { q = new T.CylinderGeometry(0.2, 0.2, 0.1, 14); q.translate(0, 0.9, 0); L.push(fac(q, () => new T.Color('#fbf8f0'), 4140)); q = new T.CylinderGeometry(0.205, 0.205, 0.04, 14); q.translate(0, 0.87, 0); L.push(fac(q, () => new T.Color('#2f6f9a'), 4141));
+    q = new T.TorusGeometry(0.15, 0.045, 6, 14); q.rotateX(Math.PI / 2); q.translate(0, 0.6, 0); L.push(fac(q, (cx, cy, cz, i) => new T.Color(i % 4 < 2 ? '#2f6f9a' : '#fbf8f0'), 4142)); }
+  if (id === 'glass') { q = new T.TorusGeometry(0.2, 0.03, 5, 16); q.rotateX(Math.PI / 2); q.translate(0, 0.84, 0); L.push(fac(q, () => new T.Color('#4a3a2e'), 4150));
+    [-0.08, 0.08].forEach((dx, k) => { q = new T.CylinderGeometry(0.065, 0.065, 0.05, 10); q.rotateX(Math.PI / 2); q.translate(dx, 0.86, 0.19); L.push(fac(q, () => new T.Color('#7fd3ef'), 4151 + k)); });
+    q = new T.CylinderGeometry(0.2, 0.25, 0.4, 12, 1, true, -1.1, 2.2); q.translate(0, 0.38, 0.03); L.push(fac(q, (cx, cy, cz, i) => shadeY('#6e4a36', cy, 0.15, 0.6, i, 0.4), 4153)); }
   const ap = new T.Group(); ap.scale.setScalar(1.3); if (L.length) merged(L, MAT, ap); g.add(ap);
   if (id === 'miner') { const lamp = new T.Mesh(new T.SphereGeometry(0.05, 8, 6), new T.MeshBasicMaterial({ color: '#fff3c4' })); lamp.position.set(0, 1.2, 0.2); g.add(lamp); }
   sc.add(g); return g;
@@ -92,7 +106,7 @@ function loopSpot(id) {
   const D = LOOP_FOLK[id], F = loopF(id), H = HOUSES[id];
   if (F <= 1) { if (D.cave) return [CAVE_FRIEND.x, CAVE_FRIEND.z];
     const R = ruins.find((r) => r.A.id === D.ruin); if (R) { const c = Math.cos(R.rot), s = Math.sin(R.rot); return [R.x + s * 1.75 + c * 0.95, R.z + c * 1.75 - s * 0.95]; } return [0, 0]; }
-  if (!HAS.h1) { LP.folk[id].away = 1; return [-1.2 + Object.keys(LOOP_FOLK).indexOf(id) * 0.7, 1.9]; } /* the street is still under the sea: wait by the fire */
+  if (!HAS[H.area || 'h1']) { LP.folk[id].away = 1; return [-1.2 + Object.keys(LOOP_FOLK).indexOf(id) * 0.7, 1.9]; } /* the street is still under the sea: wait by the fire */
   LP.folk[id].away = 0; return [H.x + 0.95, H.z + 1.45];
 }
 function loopPlace(id) { const P = LP.folk[id], [x, z] = loopSpot(id); P.g.position.set(x, 0, z); P.g.rotation.y = 0; }
@@ -244,7 +258,7 @@ function loopSignShut(s) {
 function loopWants(want) {
   Object.keys(LOOP_FOLK).forEach((id) => { const P = LP.folk[id], F = loopF(id); if (!P) return;
     if (F === 1 && P.g.visible && !P.wait && !P.move) want.set('p:' + id, { kind: 'person', who: id });
-    if (F === 2 && !P.move && HAS.h1) want.set('f:' + id, { kind: 'plot', who: id }); });
+    if (F === 2 && !P.move && HAS[HOUSES[id].area || 'h1']) want.set('f:' + id, { kind: 'plot', who: id }); });
   Object.keys(LOOP_MON).forEach((id) => { if (!mons()[id] && LOOP_MON[id].need()) want.set('m:' + id, { kind: 'mon', who: id }); });
 }
 const loopGhost = {};
@@ -333,7 +347,7 @@ function loopStep(dt) {
       if (M.t < 1.0) g.position.y = Math.abs(Math.sin(M.t * Math.PI * 2)) * 0.35;
       else if (M.t < 1.35) { g.scale.setScalar(Math.max(0.01, 1 - (M.t - 1.0) / 0.35)); if (!M.puff) { M.puff = 1; Snd.play('whoosh', { gain: 0.4 }); burst(g.position.x, 0.8, g.position.z, 6); } }
       else { P.move = null; g.position.y = 0; loopPlace(id); P.pop = 0.001; g.scale.setScalar(0.01); P.arr = 25; Snd.play('pop', { gain: 0.4, f: 640 }); burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); save(); } }
-    if (P.away && HAS.h1 && F >= 2 && !P.move && !rising) { loopPlace(id); P.pop = 0.001; g.scale.setScalar(0.01); P.arr = 25; isleSigns(); }
+    if (P.away && HAS[HOUSES[id].area || 'h1'] && F >= 2 && !P.move && !rising) { loopPlace(id); P.pop = 0.001; g.scale.setScalar(0.01); P.arr = 25; isleSigns(); }
     P.arr = Math.max(0, P.arr - dt);
     if (!g.visible || P.move) return;
     P.hop = Math.max(0, P.hop - dt * 1.6); g.position.y = P.hop > 0 ? Math.abs(Math.sin(P.hop * Math.PI * 3)) * 0.3 : (LP.partyT > 0 && F >= 3 ? Math.abs(Math.sin(time * 6 + id.length)) * 0.25 : 0);

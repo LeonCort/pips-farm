@@ -21,7 +21,7 @@ function emberFill(A, fresh) {
   if (A.id !== 'e0' || EM.g) return;
   Object.assign(EMBER.cool, emberCool());
   /* what grows here is set out by hand: a little by the bridge, the rich ground between the two streams */
-  [['crystal', 23.4, 24.4], ['rock', 25.4, 23.3], ['rock', 23.0, 26.2], ['crystal', 23.2, 31.5], ['crystal', 24.8, 30.0], ['boulder', 26.7, 29.7], ['crystal', 25.0, 32.6], ['crystal', 27.2, 32.4], ['rock', 23.0, 33.3], ['boulder', 26.4, 33.5], ['crystal', 28.6, 29.2]]
+  [['crystal', 23.4, 24.4], ['rock', 25.4, 23.3], ['rock', 23.0, 26.2], ['crystal', 22.9, 30.4], ['crystal', 24.8, 30.0], ['boulder', 26.7, 29.7], ['crystal', 27.6, 31.2], ['crystal', 27.2, 32.4], ['rock', 22.6, 33.9], ['boulder', 27.6, 33.9], ['crystal', 28.6, 29.2]]
     .forEach(([k, x, z], q) => { const n = makeNode(k, x, z, 7400 + q); if (fresh) { n.pop = 0.001; n.g.scale.setScalar(0.01); } });
   const g = EM.g = new T.Group(); sc.add(g); const L = []; let q;
   /* the lava: a glowing ribbon down each stream, its picture sliding slowly toward the sea */

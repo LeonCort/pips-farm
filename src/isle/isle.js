@@ -696,7 +696,7 @@ function invWig(t) { const it = INV['p' + t]; if (!it) return; it.classList.remo
 function invStep() {
   if (!INV.el) return;
   const K = KINDS.concat(['coin']), v = K.map((t) => storeN(t) + carry.count(t) + invFlies.filter((f) => f.t === t).length * 0), key = v.join(',') + (state.isle.store.hay != null ? 'h' : '') + (state.isle.store.crystal != null ? 'c' : '') + invFlies.map((f) => f.t[0]).join('');
-  if (ENB.el && INV.fd && !INV.fdAt) { const r = ENB.el.getBoundingClientRect(); if (r.width) { INV.fd.style.left = Math.round(r.right + 8) + 'px'; INV.fdAt = 1; } } /* the finds row starts where the energy bar ends */
+  if (ENB.el && INV.fd && (INV.fdN = (INV.fdN || 0) + 1) % 30 === 1) { const r = ENB.el.getBoundingClientRect(), at = Math.round(r.right + 8); if (r.width && at !== INV.fdAt) { INV.fd.style.left = at + 'px'; INV.fdAt = at; } } /* the finds row starts where the energy bar ends */
   const fv = FINDS.map((t) => state.isle.store[t] || 0), fk = state.isle.fk || (state.isle.fk = {});
   if (key + '|' + fv.join(',') === invLast) return; invLast = key + '|' + fv.join(',');
   FINDS.forEach((t, k) => { if (fv[k] && !fk[t]) fk[t] = 1; INV['p' + t].style.display = fk[t] ? '' : 'none'; const b = INV[t]; if (b.textContent !== String(fv[k])) { b.textContent = fv[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); invWig(t); } });

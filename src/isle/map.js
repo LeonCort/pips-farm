@@ -61,7 +61,7 @@ function mapDraw() {
   Object.keys(LOOP_SITES).forEach((id) => { const st = LOOP_SITES[id], [px, pz] = mapXY(st.x, st.z), up = !!mons()[id]; x.globalAlpha = up ? 1 : 0.4; mapBadge(x, px, pz, 34, up ? '#fff6e4' : '#e9e2d2'); isleIcon(x, id, px, pz, 1.2); x.globalAlpha = 1;
     if (up) isleIcon(x, 'star', px + 26, pz - 26, 0.6); });
   /* the friends: a face where each one is now, a "?" where one still hides */
-  const hide = { smith: 'h3', baker: 'm2', mason: 's1', knitter: 'w1' }, homeAt = { smith: SMITH_AT, baker: BAKER_AT };
+  const hide = { smith: 'h3', baker: 'm2', mason: 's1', knitter: 'w1', fisher: 'r1', diver: 'c1', glass: 'e0' }, homeAt = { smith: SMITH_AT, baker: BAKER_AT };
   VILLAGERS.forEach((v) => { const F = folk()[v.id] || 0; let wx, wz;
     if (F >= 2) { const q = homeAt[v.id] || HOUSES[v.id]; wx = q.x; wz = q.z + (homeAt[v.id] ? 0 : 1.2); }
     else if (v.id === 'miner') { wx = CAVE_FRIEND.x; wz = CAVE_FRIEND.z; }
