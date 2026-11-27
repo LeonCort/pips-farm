@@ -96,8 +96,9 @@ function buildAvatar() {
   if (hs === 'lockar') for (let k = 0; k < 9; k++) { const a = k / 9 * Math.PI * 2; part(fac(ico(0.1, 0, 12 + k), hc, 41 + k), pb, Math.cos(a) * 0.24, 1.6 + Math.sin(k * 1.7) * 0.03, Math.sin(a) * 0.2 - 0.04); }
   { const hg = new T.Group(); hg.position.set(0, 1.3, 0); hg.scale.setScalar(1.16); const L = pb.children.slice(h0); L.forEach((m) => { pb.remove(m); m.position.y -= 1.3; hg.add(m); }); pb.add(hg); }
   /* the basket on Pip's back, where carried things stack */
-  g = new T.BoxGeometry(0.44, 0.08, 0.3); part(fac(g, PAL.trunk, 8), pb, 0, 0.82, -0.34);
-  [-0.17, 0.17].forEach((x) => { const s = new T.BoxGeometry(0.04, 0.4, 0.04); part(fac(s, PAL.trunk, 9), pb, x, 0.98, -0.17); });
+  if (typeof NO_BASKET === 'undefined') {
+    g = new T.BoxGeometry(0.44, 0.08, 0.3); part(fac(g, PAL.trunk, 8), pb, 0, 0.82, -0.34);
+    [-0.17, 0.17].forEach((x) => { const s = new T.BoxGeometry(0.04, 0.4, 0.04); part(fac(s, PAL.trunk, 9), pb, x, 0.98, -0.17); }); }
 }
 buildAvatar();
 const carry = new Pile(pip, (i, m) => { let y = 0.72; for (let k = 0; k < i; k++) y += ITEM_H[carry.items[k].userData.type]; return [0, y, -0.32]; });

@@ -17,6 +17,7 @@ const gIn = (i, j) => i >= GI0 && i < GI0 + GWN && j >= GI0 && j < GI0 + GWN;
 const gCell = (x) => Math.round(x / GS);
 /* the areas: i, j = the square at the low corner of the 3 by 3 block. start: land from the beginning. bridge: reached over a
    bridge from another area (x0, z0 to x1, z1), and drawn from the start so it can be seen across the water. chest: a tool inside. */
+const NO_BASKET = true; /* nothing is carried on the island: Pip has no carrying frame on the back (engine/pip2.js) */
 const AREAS = [
   { id: 'h0', i: -1, j: -1, biome: 'home', start: 1 },
   { id: 'h1', i: 2, j: -1, biome: 'rocks', cost: { log: 8, berry: 3 }, chest: 'pick' },
