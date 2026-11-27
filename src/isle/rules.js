@@ -34,7 +34,9 @@ const AREAS = [
   { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 }, finds: [['iron', -3.2, -2.2]] },
   /* the islands grew (Leon, 2026-11-27: every island at least five squares): the stone island runs on west */
   { id: 's3', chest: { coin: 18, iron: 2 }, chestAt: [-2.6, -0.6], i: -11, j: -5, biome: 'stone', cost: { stone: 40, log: 26, berry: 16 }, mesas: [{ id: 's3a', dx: 2.4, dz: 2.6, w: 4.8, d: 4.2, h: 1.3, finds: [['iron', -0.9, 0.2], ['iron', 1.0, -0.3]] }], finds: [['iron', -3.6, -3.4]] },
-  { id: 's4', chest: { coin: 22, crystal: 5 }, chestAt: [3.6, 2.4], i: -11, j: -8, biome: 'clay', cost: { stone: 50, log: 30, crystal: 6 }, finds: [['iron', 3.0, -2.6], ['iron', -3.4, 2.8], ['iron', -2.2, -3.6]], ponds: [[0.6, 0.8, 1.7]] },
+  { id: 's4', chest: { coin: 22, crystal: 5 }, chestAt: [3.6, 2.4], i: -11, j: -8, biome: 'clay', cost: { stone: 50, log: 30, crystal: 6 }, finds: [['iron', 3.0, -2.6], ['iron', -3.4, 2.8]], ponds: [[0.6, 0.8, 1.7]],
+    /* the High Table (mesa.js): the tallest rock on the island, its ladder broken. A rope ladder of marsh reed opens it: the island's sealed place, for the visit after the marsh */
+    mesas: [{ id: 's4a', dx: -2.9, dz: -2.7, w: 4.8, d: 4.0, h: 2.3, seal: { reed: 6, log: 14 }, chest: [{ coin: 40, iron: 4 }, -1.3, -0.9], finds: [['iron', 1.2, -0.6], ['iron', 0.3, 0.9], ['iron', -1.2, 0.8]] }] },
   /* the winter island, east of the orchard, over a bridge */
   { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 34, berry: 16, stone: 20 }, bridge: { from: 'm2', x0: 17.4, z0: -16, x1: 22.6, z1: -16 },
     ice: { dx: 0.5, dz: -0.4, nx: 7, nz: 6, stop: [[0, 2], [6, 2], [3, 0], [3, 5], [0, 3], [1, 4], [4, 3]], gem: [[3, 2]] } },
@@ -252,7 +254,7 @@ const TRAILS = [
   /* stone: from the lift south to the lighthouse, north to the ruin, west round the mesas to the far squares */
   [[-25.9, -16], [-26, -11.8], [-27.4, -7.6], [-29.4, -4.6]],
   [[-25.9, -16.4], [-26, -21], [-25.4, -25.6], [-25.6, -30.6]],
-  [[-26, -12], [-30.5, -11.6], [-33.6, -13.4], [-35, -17.4], [-38.6, -18.2], [-40.8, -21.4], [-41.6, -24.2], [-42.6, -27.2], [-41.6, -30.4], [-39.4, -31.6]],
+  [[-26, -12], [-30.5, -11.6], [-33.6, -13.4], [-35, -17.4], [-38.6, -18.2], [-40.8, -21.4], [-41.6, -24.2], [-42.8, -27.5]], /* ends at the foot of the High Table's ladder */
   [[-29.4, -4.6], [-29.2, -1], [-31, 0.6], [-33.6, 0.5]],
   /* winter: round the frozen lake to the tower, along the south shore to the far squares, and a link between the two */
   [[23.2, -16.2], [23.4, -21], [23.8, -25.6], [26.4, -28.2], [29.4, -28.2], [32.2, -29.8], [34.5, -31.2], [37.6, -32.2]], [[27.8, -28.2], [27.4, -31.6], [27.6, -33.8], [28.8, -36.4], [29.4, -37.6]],

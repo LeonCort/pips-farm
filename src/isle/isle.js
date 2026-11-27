@@ -294,7 +294,7 @@ function makeChest(x, z, tool, idx) {
 }
 function chestStep(c, dt) {
   if (c.pop > 0 && c.pop < 1) { c.pop = Math.min(1, c.pop + dt * 2.2); const s = c.pop < 0.7 ? c.pop / 0.7 * 1.15 : 1.15 - (c.pop - 0.7) / 0.3 * 0.15; c.g.scale.setScalar(s); }
-  if (!c.open && Math.hypot(pip.position.x - c.x, pip.position.z - (c.z + 0.85)) < 0.9) {
+  if (!c.open && (c.mesa || null) === MS.on && Math.hypot(pip.position.x - c.x, pip.position.z - (c.z + 0.85)) < 0.9) {
     c.open = 0.001; state.isle.chests[c.idx] = 1;
     if (typeof c.tool === 'string') { state.isle.tools[c.tool] = 1; c.sp.visible = true; }
     else { /* a treasure: what is inside floats up as counted pictures and goes straight to the counter */
@@ -407,7 +407,7 @@ function signWants() {
     if (!best && C[0]) best = C[0].slice(0, 4);
     if (best) { used.add(best[0] + ',' + best[1]); want.set('a:' + A.id, { kind: 'area', A, at: best }); }
   });
-  peopleWants(want);
+  peopleWants(want); sealWants(want);
   return want;
 }
 const areaGhostGeo = (() => { const g = new T.PlaneGeometry(GS * 3 - 0.6, GS * 3 - 0.6, 12, 12); g.rotateX(-Math.PI / 2); return g; })();
@@ -420,6 +420,7 @@ function isleSigns() {
       signMake({ key, kind: 'area', at: w.at, A, cost: A.cost, x, z, ghostGeo: areaGhostGeo, ghostTex, gx: A.cx, gz: A.cz }); }
     else if (w.kind === 'lift') { const q = new T.PlaneGeometry(1.5, 1.5, 2, 2); q.rotateX(-Math.PI / 2);
       signMake({ key, kind: 'lift', A, cost: A.cost, x: LIFT.low.x + 1.45, z: LIFT.low.z - 1.0, ghostGeo: q, ghostTex: ghostRound, gx: LIFT.low.x, gz: LIFT.low.z, gy: 0.05 }); }
+    else if (w.kind === 'seal') { const m = w.m, z = m.z + m.d / 2 + 1.0, x = m.x + m.lx + (walkSdf(m.x + m.lx + 1.1, z) < walkSdf(m.x + m.lx - 1.1, z) ? 1.1 : -1.1); signMake({ key, kind: 'seal', m, A: null, cost: m.seal, x, z, ghostGeo: tinyGeo, ghostTex, gx: x, gz: z, gy: -5 }); }
     else if (!peopleSignMake(w, key)) { const B = A.bridge, L = Math.hypot(B.x1 - B.x0, B.z1 - B.z0), ux = (B.x1 - B.x0) / L, uz = (B.z1 - B.z0) / L, q = new T.PlaneGeometry(1.7, L, 2, 8); q.rotateX(-Math.PI / 2);
       signMake({ key, kind: 'bridge', A, cost: A.cost, x: B.x0 - ux * 0.6 - uz * 1.5, z: B.z0 - uz * 0.6 + ux * 1.5, ghostGeo: q, ghostTex, gx: (B.x0 + B.x1) / 2, gz: (B.z0 + B.z1) / 2, gy: -0.15, gr: Math.atan2(ux, uz) }); }
   });
@@ -452,7 +453,7 @@ function signStep(s, dt) {
 }
 function isleBuy(s) {
   delete state.isle.paid[s.key]; [s.g, s.ring, s.ghost].forEach((m) => sc.remove(m)); signs.splice(signs.indexOf(s), 1);
-  if (s.kind === 'area') areaRise(s.A); else if (s.kind === 'lift') { loopBuy(s); liftOwn(s.A); } else if (!peopleBuy(s)) bridgeBuild(s.A, false);
+  if (s.kind === 'area') areaRise(s.A); else if (s.kind === 'lift') { loopBuy(s); liftOwn(s.A); } else if (s.kind === 'seal') sealOpen(s.m); else if (!peopleBuy(s)) bridgeBuild(s.A, false);
   signs.forEach(drawSign); save();
 }
 
