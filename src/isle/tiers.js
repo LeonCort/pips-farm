@@ -20,11 +20,13 @@ function nodeTier(kind, x, z) {
 }
 const nodeHits = (n) => HITS[n.kind] * HIT_MUL[n.tier || 1];
 /* (finds give their own fixed number: finds.js) */
-const tierYield = (n) => Math.max(1, Math.round(YIELD[n.kind][1] * TIER_MUL[n.tier || 1]));
+/* the backpack from the chest: one more piece out of every tree, stone and bush (it used to hold coins) */
+const bagMore = (n) => (state.isle.tools.bag && ['log', 'stone', 'berry'].indexOf(YIELD[n.kind][0]) >= 0 ? 1 : 0);
+const tierYield = (n) => Math.max(1, Math.round(YIELD[n.kind][1] * TIER_MUL[n.tier || 1])) + bagMore(n);
 function gated(n) { return gearGate(n) || toolKind(n.kind) && ((NEED[n.kind] && !hasTool(n.kind)) || toolTier() < (n.tier || 1)); }
 function gateIcon(n) { if (gearGate(n)) return 'torch'; if (NEED[n.kind] && !hasTool(n.kind)) return 'pick'; const t = n.tier || 1; return (NEED[n.kind] ? 'pick' : 'axe') + (t > 1 ? t : ''); }
 function tierPow(n) { return toolKind(n.kind) ? 1 + 1.5 * Math.max(0, toolTier() - (n.tier || 1)) : 1; }
-const dropReach = () => (toolTier() >= 2 ? 4.5 : 2.2);
+const dropReach = () => (toolTier() >= 2 ? 4.5 : 2.2) + 0.7 * xpBag(); /* the level-up pick that was a bigger backpack now reaches further */
 /* a tier-2 or tier-3 thing looks bigger: an old oak, a tall winter pine, a big crystal */
 function tierInit(n) {
   n.tier = SHOW_T.tier || nodeTier(n.kind, n.x, n.z); n.hp = nodeHits(n);

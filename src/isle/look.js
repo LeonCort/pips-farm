@@ -33,7 +33,7 @@ const LOOK = { solid: [], flames: [], feet: [], all: [] };
     LOOK.solid.push([x, z, 0.45]); }
   const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = true; m.receiveShadow = true;
   LOOK.solid.forEach(([x, z, r]) => lookFoot(x, z, r));
-  lookFoot(TENT.x, TENT.z, 1.15); lookFoot(KENNEL.x, KENNEL.z, 0.6); lookFoot(STORE.x, STORE.z, 0.75);
+  lookFoot(TENT.x, TENT.z, 1.15); lookFoot(KENNEL.x, KENNEL.z, 0.6); lookFoot(STORE.x, STORE.z, 1.25, 0.8);
 }
 /* ---------- building kit (2026-11-25): walls of separate stones, plank boards and shingle rows, so buildings hold up
    at the highest graphics level instead of being flat boxes. Everything is plain geometry in the one merged mesh. ---------- */
@@ -84,7 +84,7 @@ function kitFlame(parent, x, y, z, s) {
 function lookFoot(x, z, rx, rz, k) { LOOK.feet.push([x, z, rx, rz == null ? rx : rz, k]); }
 function lookGround() {
   if (typeof GU === 'undefined' || !GU.detC) return;
-  if (!LOOK.rings) { LOOK.rings = 1; [[TENT_RING.x, TENT_RING.z, 0.72], [STORE.x, STORE.z + 0.95, 0.85], [ANVIL_RING.x, ANVIL_RING.z, 0.68], [OVEN_RING.x, OVEN_RING.z, 0.68]].forEach(([x, z, r]) => lookFoot(x, z, r, r, 0)); } /* no tall grass through the mats and rings */
+  if (!LOOK.rings) { LOOK.rings = 1; [[TENT_RING.x, TENT_RING.z, 0.72], [ANVIL_RING.x, ANVIL_RING.z, 0.68], [OVEN_RING.x, OVEN_RING.z, 0.68]].forEach(([x, z, r]) => lookFoot(x, z, r, r, 0)); } /* no tall grass through the mats and rings */
   nodes.forEach((n) => { if (n.shade || n.kind === 'shroom') return; n.shade = 1; const r = { tree: 0.95, rock: 0.6, boulder: 0.9, bush: 0.6, crystal: 0.6 }[n.kind]; if (r) LOOK.feet.push([n.x, n.z, r, r, 0.3, 1]); });
   if (!LOOK.feet.length) return;
   groundShade(LOOK.feet.filter((f) => f[4] !== 0).map(([x, z, rx, rz, k]) => [x, z, rx + 0.35, rz + 0.35, k == null ? 0.42 : k]));

@@ -48,7 +48,8 @@ function isleIcon(x, t, cx, cy, s) {
   else if (t === 'perkEn') { isleIcon(x, 'bolt', -10, 0, 1); x.lineWidth = 3; x.strokeStyle = PAL.ink; for (let q = 0; q < 3; q++) { x.beginPath(); x.roundRect(6, 10 - q * 11, 18, 8, 3); x.fillStyle = '#7cc85a'; x.fill(); x.stroke(); } x.beginPath(); x.moveTo(15, -30); x.lineTo(15, -18); x.moveTo(9, -24); x.lineTo(21, -24); x.lineWidth = 4; x.strokeStyle = '#3f8a3a'; x.stroke(); }
   else if (t === 'perkHit') { isleIcon(x, 'pick', -4, 4, 0.9); x.lineWidth = 3.5; x.strokeStyle = '#f2a13c'; x.beginPath(); [[14, -18, 22, -26], [18, -8, 28, -10], [8, -22, 10, -32]].forEach(([a, b, c, d]) => { x.moveTo(a, b); x.lineTo(c, d); }); x.stroke(); }
   else if (t === 'perkRun') { isleIcon(x, 'boots', 4, 0, 0.95); x.lineWidth = 4; x.strokeStyle = '#f2a13c'; x.beginPath(); [[-30, -12, -16], [-32, 0, -14], [-30, 12, -16]].forEach(([a, b, c]) => { x.moveTo(a, b); x.lineTo(c, b); }); x.stroke(); }
-  else if (t === 'perkBag') { isleIcon(x, 'bag', -4, 2, 1.05); x.beginPath(); x.arc(18, -18, 11, 0, 7); x.fillStyle = '#7cc85a'; x.fill(); x.lineWidth = 3; x.strokeStyle = PAL.ink; x.stroke(); x.beginPath(); x.moveTo(18, -24); x.lineTo(18, -12); x.moveTo(12, -18); x.lineTo(24, -18); x.lineWidth = 3.5; x.strokeStyle = '#fff6e4'; x.stroke(); }
+  else if (t === 'perkBag') { /* a magnet: things come to Pip from further away */ x.lineCap = 'butt'; const U = () => { x.beginPath(); x.moveTo(-17, -14); x.lineTo(-17, 2); x.arc(-4, 2, 13, Math.PI, 0, true); x.lineTo(9, -14); };
+    U(); x.lineWidth = 17; x.strokeStyle = PAL.ink; x.stroke(); U(); x.lineWidth = 11; x.strokeStyle = '#e0503c'; x.stroke(); [-17, 9].forEach((px) => { x.fillStyle = '#d9dde2'; x.fillRect(px - 5.5, -16, 11, 8); }); x.lineCap = 'round'; x.beginPath(); x.arc(18, -18, 11, 0, 7); x.fillStyle = '#7cc85a'; x.fill(); x.lineWidth = 3; x.strokeStyle = PAL.ink; x.stroke(); x.beginPath(); x.moveTo(18, -24); x.lineTo(18, -12); x.moveTo(12, -18); x.lineTo(24, -18); x.lineWidth = 3.5; x.strokeStyle = '#fff6e4'; x.stroke(); }
   else if (t === 'perkLuck') { isleIcon(x, 'clover', -4, -2, 0.95); x.font = '700 14px Fredoka, sans-serif'; x.lineWidth = 4; x.strokeStyle = PAL.ink; x.fillStyle = '#fff6e4'; x.strokeText('x2', 8, 24); x.fillText('x2', 8, 24); }
   else if (t === 'fire') { x.fillStyle = '#a9b2bb'; [[-14, 14], [-5, 17], [5, 17], [14, 14]].forEach(([a, b]) => { x.beginPath(); x.ellipse(a, b, 6, 4, 0, 0, 7); x.fill(); x.stroke(); });
     x.beginPath(); x.moveTo(0, -22); x.quadraticCurveTo(16, -4, 10, 12); x.lineTo(-10, 12); x.quadraticCurveTo(-16, -4, 0, -22); x.closePath(); blob('#f2a13c'); x.beginPath(); x.moveTo(0, -6); x.quadraticCurveTo(8, 4, 4, 12); x.lineTo(-4, 12); x.quadraticCurveTo(-8, 4, 0, -6); x.closePath(); x.fillStyle = '#ffe07a'; x.fill(); }
@@ -501,7 +502,7 @@ function dropOut(n) {
 }
 /* treasure: now and then something valuable pops out too. Valuables go in the backpack; building things go straight to the counter. */
 const TREASURE = { crystal: ['coin', 0.35], planks: ['coin', 0], tree: ['coin', 0.1], rock: ['coin', 0.15], bush: ['coin', 0.08], boulder: ['coin', 0.3] }; /* coins buy the smith's and the baker's upgrades */
-const VALUABLE = { coin: 1 };
+const VALUABLE = {}; /* nothing rides on Pip's back any more (Leon, 2026-11-27): coins fly into the counter like the rest */
 function dropStep(d, dt) {
   if (d.land === 0) { d.vy -= 14 * dt; d.m.position.x += d.vx * dt; d.m.position.z += d.vz * dt; d.m.position.y += d.vy * dt; d.m.rotation.y += dt * 6;
     if (d.m.position.y <= 0.06) { d.m.position.y = 0.06; d.land = 1; const v = tmpV.set(d.m.position.x, 0, d.m.position.z); wClamp(v); d.m.position.x = v.x; d.m.position.z = v.z; } return false; }
@@ -633,43 +634,50 @@ const storeN = (t) => (state.isle && state.isle.store ? state.isle.store[t] || 0
 const haveN = (t) => storeN(t) + carry.count(t);
 /* pay n of a kind: from the backpack first, then the crate; returns the meshes taken off Pip's back (the caller may fly them) */
 function spendN(t, n) { const out = []; for (let k = 0; k < n; k++) { const m = carry.take(t); if (m) out.push(m); else state.isle.store[t] = storeN(t) - 1; } invDirty = true; return out; }
+/* the storage yard (Leon, 2026-11-27: "instead of a storage box, a storage area that grows with how much you have; no
+   need to label things"). A low plank deck by the camp with a pile for each thing Pip owns: stacked logs at the back,
+   and berries, crystals, coins and stones in front. Each pile grows with the number in the counter, fast at first and
+   slower later, until it is as big as it gets (YARD_FULL). Nothing is carried here any more: everything Pip picks up,
+   coins too, flies straight into the counter. */
+const YARD_FULL = { log: 300, stone: 300, berry: 200, crystal: 60, coin: 150 };
+const yardSpots = (t) => { const P = [];
+  if (t === 'log') { [-0.52, -0.06].forEach((x, b) => { for (let r = 0; r < 4; r++) for (let k = 0; k < 4 - r; k++) P.push([x, 0.2 + r * 0.155, -0.3 + (k - (3 - r) / 2) * 0.178, 0, 1.05, b * 10 + r]); }); P.sort((a, b) => a[5] % 10 - b[5] % 10 || a[5] - b[5]); }
+  else if (t === 'coin') { for (let k = 0; k < 30; k++) { const c = k % 6, h = Math.floor(k / 6); P.push([0.42 + (c % 3) * 0.2 - 0.2 + (hash(c, 31) - 0.5) * 0.03, 0.115 + h * 0.052, 0.36 + Math.floor(c / 3) * 0.2 - 0.1, hash(k, 32) * 6.28, 0.78, 0]); } }
+  else { const [cx, cz, n, sc0, dy, per] = { stone: [0.62, -0.26, 16, 1.0, 0.13, 6], berry: [-0.72, 0.34, 16, 1.25, 0.1, 6], crystal: [-0.12, 0.38, 9, 1.0, 0.0, 9] }[t];
+    for (let k = 0; k < n; k++) { const L = Math.floor(k / per), q = k % per, a = q / per * 6.283 + L * 0.9, r = (t === 'crystal' ? 0.08 + 0.13 * hash(k, 35) : 0.2 - L * 0.07) * (q || t === 'crystal' ? 1 : 0.4);
+      P.push([cx + Math.cos(a) * r, 0.115 + L * dy, cz + Math.sin(a) * r * 0.85, hash(k, 33) * 6.28, sc0 * (0.85 + hash(k, 34) * 0.3), 0]); } }
+  return P; };
 const storeG = (() => {
-  const g = new T.Group(); g.position.set(STORE.x, 0, STORE.z); sc.add(g); const L = [];
-  /* a sturdy plank crate: uneven boards with gaps, corner posts with caps, iron straps, rope handles, and two sacks leaning on it */
-  let q = new T.BoxGeometry(1.3, 0.12, 0.9); q.translate(0, 0.06, 0); L.push(fac(q, '#6f5038', 1600));
-  [[0, 0.45, 1.3, 0.08, 0], [0, -0.45, 1.3, 0.08, 0], [0.65, 0, 0.9, 0.08, 1], [-0.65, 0, 0.9, 0.08, 1]].forEach(([x, z, w, d, side], k) => { for (let r = 0; r < 3; r++) {
-    q = new T.BoxGeometry(w - 0.02, 0.15, d, 5, 1, 1); jit(q, 0.008, 1601 + k * 3 + r); if (side) q.rotateY(Math.PI / 2); q.rotateZ((hash(k, r) - 0.5) * 0.03); q.translate(x, 0.15 + r * 0.175, z);
-    const base = ['#cf9a60', '#c08a52', '#d6a56c'][(k + r) % 3]; L.push(fac(q, (cx, cy, cz, i) => shadeY(base, cy, 0, 0.62, Math.round((side ? cz : cx) * 7) + r, 0.3), 1601 + k * 3 + r)); } });
-  [[-0.64, -0.44], [0.64, -0.44], [-0.64, 0.44], [0.64, 0.44]].forEach(([x, z], k) => { q = new T.BoxGeometry(0.13, 0.66, 0.13, 1, 3, 1); jit(q, 0.006, 1620 + k); q.translate(x, 0.33, z); L.push(fac(q, (cx, cy, cz, i) => shadeY('#7d5e4e', cy, 0, 0.7, i, 0.35), 1620 + k));
-    q = new T.BoxGeometry(0.17, 0.04, 0.17); q.translate(x, 0.675, z); L.push(fac(q, '#5a4336', 1624 + k)); });
-  [-0.35, 0.35].forEach((x, k) => { q = new T.BoxGeometry(0.07, 0.56, 0.02); q.translate(x, 0.33, 0.495); L.push(fac(q, '#555c66', 1630 + k)); [0.12, 0.5].forEach((y, j) => { const n = new T.SphereGeometry(0.018, 6, 4); n.translate(x, y, 0.51); L.push(fac(n, '#2f343b', 1632 + k * 2 + j)); }); });
-  [-1, 1].forEach((s2, k) => { q = new T.TorusGeometry(0.1, 0.018, 5, 10, Math.PI); q.rotateZ(Math.PI); q.rotateY(Math.PI / 2); q.translate(s2 * 0.7, 0.44, 0); L.push(fac(q, '#ead9b0', 1640 + k)); });
-  [[-0.92, 0.2, 0.2], [-0.86, -0.2, 0.17]].forEach(([x, z, r], k) => { q = ico(r, 2, 1650 + k, 0.012); q.scale(1, 1.25, 0.9); q.translate(x, r * 1.1, z); L.push(fac(q, (cx, cy, cz, i) => shadeY(k ? '#d9c39a' : '#e3d0a8', cy, 0, 0.5, i, 0.2), 1650 + k));
+  const g = new T.Group(); g.position.set(STORE.x, 0, STORE.z); sc.add(g); const L = []; let q;
+  /* the deck: bearers and uneven planks */
+  [-0.5, 0, 0.5].forEach((z, k) => { q = new T.BoxGeometry(2.3, 0.07, 0.12); q.translate(0, 0.035, z); L.push(fac(q, '#6f5038', 1600 + k)); });
+  for (let k = 0; k < 8; k++) { q = new T.BoxGeometry(0.28, 0.045, 1.3 + hash(k, 1603) * 0.08, 1, 1, 4); jit(q, 0.006, 1604 + k); q.rotateY((hash(k, 1605) - 0.5) * 0.03); q.translate(-1.05 + k * 0.3, 0.092, (hash(k, 1606) - 0.5) * 0.04);
+    const base = ['#cf9a60', '#c08a52', '#d6a56c'][k % 3]; L.push(fac(q, (cx, cy, cz, i) => tone(base, Math.round(cz * 6) + k, 0.3), 1604 + k)); }
+  /* two stakes that hold the log stack, and two sacks leaning on the deck */
+  [-0.82, 0.24].forEach((x, k) => [-0.66, 0.06].forEach((z, n) => { q = new T.CylinderGeometry(0.035, 0.045, 0.75, 6); q.translate(x, 0.45, z); L.push(fac(q, (cx, cy, cz, i) => shadeY('#7d5e4e', cy, 0, 0.8, i, 0.35), 1620 + k * 2 + n)); }));
+  [[-1.32, 0.2, 0.2], [-1.26, -0.2, 0.17]].forEach(([x, z, r], k) => { q = ico(r, 2, 1650 + k, 0.012); q.scale(1, 1.25, 0.9); q.translate(x, r * 1.1, z); L.push(fac(q, (cx, cy, cz, i) => shadeY(k ? '#d9c39a' : '#e3d0a8', cy, 0, 0.5, i, 0.2), 1650 + k));
     q = new T.TorusGeometry(r * 0.42, 0.016, 5, 10); q.rotateX(Math.PI / 2); q.translate(x, r * 2.2, z); L.push(fac(q, '#a8743f', 1654 + k)); q = ico(r * 0.4, 1, 1656 + k); q.scale(1, 0.7, 1); q.translate(x, r * 2.35, z); L.push(fac(q, '#d9c39a', 1656 + k)); });
   L.forEach((g2, k) => { if (g2.index) L[k] = g2.toNonIndexed(); });
   merged(L, MAT, g);
-  /* what is inside: a few logs, stones and berries show once there are some */
-  const fill = { log: [], stone: [], berry: [] };
-  [['log', [[-0.3, -0.15], [-0.3, 0.12], [-0.05, -0.02]]], ['stone', [[0.25, -0.2], [0.42, 0.05], [0.2, 0.15]]], ['berry', [[0.0, 0.25], [0.15, 0.3], [-0.15, 0.3]]]].forEach(([t, P]) => P.forEach(([x, z], k) => {
-    const m = itemModel(t); m.position.set(x, 0.42, z); m.rotation.y = k; m.visible = false; g.add(m); fill[t].push(m); }));
-  /* a picture board: the crate with a log, a stone and berries on it, so a child knows what it is */
-  const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x = c.getContext('2d'); paperBox(x, 256, 96);
-  ['log', 'stone', 'berry'].forEach((t, k) => isleIcon(x, t, 60 + k * 68, 46, 1.0));
-  const sp = isleSprite(new T.CanvasTexture(c), 1); sp.scale.set(1.5, 0.56, 1); sp.position.set(0, 1.35, 0); g.add(sp);
-  const ring = ropeRing(0.62, 0.78); ring.rotation.x = -Math.PI / 2; ring.position.set(STORE.x, 0.035, STORE.z + 0.95); sc.add(ring);
-  return { g, fill, sp };
+  /* the piles: one instanced mesh per kind, showing as many pieces as the number in the counter calls for */
+  const pile = {}, M4 = new T.Matrix4(), Q4 = new T.Quaternion(), E4 = new T.Euler(), V4 = new T.Vector3(), S4 = new T.Vector3();
+  Object.keys(YARD_FULL).forEach((t) => { const P = yardSpots(t), m = new T.InstancedMesh(itemGeo(t), MAT, P.length); m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false;
+    P.forEach(([x, y, z, ry, sc0], k) => { E4.set(0, ry, 0); Q4.setFromEuler(E4); m.setMatrixAt(k, M4.compose(V4.set(x, y, z), Q4, S4.set(sc0, sc0, sc0))); });
+    m.instanceMatrix.needsUpdate = true; m.count = 0; g.add(m); pile[t] = { m, n: P.length, at: P, shown: 0, pop: 0 }; });
+  return { g, pile };
 })();
+const yardCount = (t, n) => (n <= 0 ? 0 : Math.min(storeG.pile[t].n, Math.max(1, Math.round(storeG.pile[t].n * Math.sqrt(Math.min(1, n / YARD_FULL[t]))))));
 let storeT = 0;
 function storeStep2(dt) {
-  /* Pip can't walk through the crate */
+  /* Pip can't walk through the yard */
   const dx = pip.position.x - STORE.x, dz = pip.position.z - STORE.z;
-  if (Math.abs(dx) < 0.85 && Math.abs(dz) < 0.65) { if (0.85 - Math.abs(dx) < 0.65 - Math.abs(dz)) pip.position.x = STORE.x + Math.sign(dx || 1) * 0.85; else pip.position.z = STORE.z + Math.sign(dz || 1) * 0.65; }
-  storeT -= dt;
-  if (storeT <= 0 && carry.count() && Math.hypot(pip.position.x - STORE.x, pip.position.z - (STORE.z + 0.95)) < 0.8) {
-    storeT = 0.12; const m = carry.take(); const t = m.userData.type;
-    fly(m, () => storeG.g.localToWorld(tmpV.set(0, 0.5, 0)), () => { sc.remove(m); state.isle.store[t] = storeN(t) + 1; invDirty = true; invWig(t); Snd.play('tock', { gain: 0.35, f: 380 + (storeN(t) % 8) * 30 }); }, 0.26);
-  }
-  ['log', 'stone', 'berry'].forEach((t) => storeG.fill[t].forEach((m, k) => { m.visible = storeN(t) > k * 4; }));
+  if (Math.abs(dx) < 1.3 && Math.abs(dz) < 0.82) { if (1.3 - Math.abs(dx) < 0.82 - Math.abs(dz)) pip.position.x = STORE.x + Math.sign(dx || 1) * 1.3; else pip.position.z = STORE.z + Math.sign(dz || 1) * 0.82; }
+  storeT -= dt; if (storeT > 0) return; storeT = 0.25;
+  /* anything still on Pip's back from an old save goes into the counter */
+  while (carry.count()) { const m = carry.take(), t = m.userData.type; if (m.parent) m.parent.remove(m); state.isle.store[t] = storeN(t) + 1; invDirty = true; }
+  Object.keys(storeG.pile).forEach((t) => { const P = storeG.pile[t], want = yardCount(t, storeN(t)); if (want === P.shown) return;
+    if (want > P.shown && P.shown && Math.hypot(dx, dz) < 9) { burst(STORE.x + P.at[want - 1][0], P.at[want - 1][1] + 0.2, STORE.z + P.at[want - 1][2], 3); Snd.play('tock', { gain: 0.18, f: 420 + want * 12 }); }
+    P.shown = want; P.m.count = want; });
 }
 
 /* ---- the counter at the top: how many of each Pip has (crate and backpack together), pictures and numbers ---- */
