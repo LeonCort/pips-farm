@@ -47,6 +47,7 @@ gear.js
 look.js
 loop.js
 hamlets.js
+gifts.js
 finds.js
 tall.js
 mesa.js

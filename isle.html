@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261127195426">
+<meta name="app-ver" content="20261127200855">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2436,7 +2436,7 @@ function areaDecor(A) {
   if (b === 'ember') emberDecor(A, L, base);
   if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; m.receiveShadow = true; }
 }
-const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL, FERRY].some((o) => Math.hypot(o.x - x, o.z - z) < r) || loopNear(x, z, r) || spotNear(x, z, r) || hamNear(x, z, r); /* the camp's buildings, the friends' houses, the monuments */
+const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL, FERRY].some((o) => Math.hypot(o.x - x, o.z - z) < r) || loopNear(x, z, r) || spotNear(x, z, r) || hamNear(x, z, r) || giftNear(x, z, r); /* the camp's buildings, the friends' houses, the monuments */
 const walkSdfArea = (A, x, z) => Math.abs(x - A.cx) > 5.55 || Math.abs(z - A.cz) > 5.55; /* keep the dressing off the cliff edge */
 /* the camp in the start area: a campfire and a little tent */
 const campFlame = (() => {
@@ -2779,7 +2779,7 @@ function isleInit() {
   AREAS.forEach((A) => { if (HAS[A.id] && A.bridge) bridgeBuild(A, true); if (HAS[A.id] || drawn(A.i, A.j)) areaFill(A, false); });
   nodes.forEach((n) => { n.pop = 0; n.g.scale.setScalar(1); });
   chests.forEach((c) => { c.pop = 1; c.g.scale.setScalar(1); });
-  I.store = I.store || { log: 0, stone: 0, berry: 0 }; tierMigrate(I); if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit(); xpBuild(); peopleInit(); gearInit(); mapInit(); spotInit();
+  I.store = I.store || { log: 0, stone: 0, berry: 0 }; tierMigrate(I); if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit(); xpBuild(); peopleInit(); gearInit(); mapInit(); spotInit(); giftSync(false);
   isleSigns();
   pip.position.set(0, 0, 0.4); target.copy(pip.position); camFocus.copy(pip.position);
   dog.g.position.set(-1.2, 0, -0.6); petsInit();
@@ -3130,7 +3130,7 @@ function sleepGrow() {
     if (n.kind === 'tree' && n.stump) n.stump.visible = false;
     if (n.kind === 'bush' && n.berries) { n.berries.visible = true; n.berries.children.forEach((b) => b.scale.setScalar(0.02)); } });
 }
-function tierWake() { dogWake(); villageWake(); hamWake(); nodes.forEach((n) => { if (n.kind !== 'planks' && (n.st === 'gone' || n.st === 'grow' || n.st === 'fall')) nodeGrown(n); }); }
+function tierWake() { dogWake(); villageWake(); hamWake(); giftWake(); nodes.forEach((n) => { if (n.kind !== 'planks' && (n.st === 'gone' || n.st === 'grow' || n.st === 'fall')) nodeGrown(n); }); }
 /* old saves: gems are crystals now; hay, clay, ore and pies are gone */
 function tierMigrate(I) {
   const S = I.store; if (S.gem) S.crystal = (S.crystal || 0) + S.gem;
@@ -6399,7 +6399,7 @@ function peopleGoal() {
 
 let anvilIn = false, hamT = 0;
 function peopleStep(dt) {
-  bakerStep(dt); loopStep(dt); hamStep(dt); findStep(dt); mesaStep(dt); iceStep(dt); raftStep(dt); tideStep(dt); emberStep(dt); wonderStep(dt); nightStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
+  bakerStep(dt); loopStep(dt); hamStep(dt); giftStep(dt); findStep(dt); mesaStep(dt); iceStep(dt); raftStep(dt); tideStep(dt); emberStep(dt); wonderStep(dt); nightStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
   if (!SM.g) return;
   const F = folk(), g = SM.g, pp = pip.position;
   /* she steps out of the cottage */
@@ -6811,11 +6811,8 @@ function crystLamp(x, z, L, g, seed) {
   const glow = new T.Sprite(new T.SpriteMaterial({ map: softTex(32, 32), color: '#9fe6ff', transparent: true, opacity: 0, depthWrite: false })); glow.position.set(x, 1.35, z); glow.scale.set(1.5, 1.5, 1); g.add(glow);
   VG.clamps = VG.clamps || []; VG.clamps.push(glow);
 }
-/* every morning the mason leaves stones and the miner crystals by their doors */
-function villageWake() {
-  [['mason', 'stone', 4], ['miner', 'crystal', 2]].forEach(([id, t, n]) => { if (!housed(id)) return; const H = HOUSES[id];
-    for (let k = 0; k < n; k++) { const m = itemModel(t), a = 0.6 + k * 0.5; m.position.set(H.x + 0.3, 0.5, H.z + 1.0); sc.add(m); drops.push({ m, t, vx: Math.sin(a) * 1.2, vz: Math.cos(a) * 1.2, vy: 2.6, land: 0, wait: 0.2 }); } });
-}
+/* every morning the friends with a house send a present to the camp (gifts.js) */
+function villageWake() {}
 function villageSync(anim) {
   const key = Object.keys(VILLAGE).filter((k) => VILLAGE[k].ok()).join(',') + '|' + VILLAGERS.map((v) => (state.isle.folk || {})[v.id] || 0).join('');
   if (key === VG.key) return; VG.key = key; boardDraw();
@@ -7930,14 +7927,8 @@ function hamGiftTex(t, n) {
   x.font = '700 50px Fredoka, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#22303c'; x.fillText('+' + n, 146, 58);
   return new T.CanvasTexture(c);
 }
-function hamWake() {
-  const sum = {}; Object.keys(HAM_DEF).forEach((id) => { if (!mons()[id]) return; const G = HAM_DEF[id].give, lv = hamLv(id); Object.keys(G).forEach((t) => { sum[t] = (sum[t] || 0) + G[t] * lv; }); });
-  const kinds = Object.keys(sum); if (!kinds.length) return;
-  kinds.forEach((t, k) => { state.isle.store[t] = (state.isle.store[t] || 0) + sum[t];
-    const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, sum[t]), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.visible = false; sp.position.set(STORE.x, 1.2, STORE.z); sc.add(sp);
-    HAM.gifts.push({ sp, t: -0.9 - k * 0.75 }); });
-  save();
-}
+/* the morning gift now comes as a present box by the camp (gifts.js) */
+function hamWake() {}
 function hamStep(dt) {
   HAM.t -= dt; if (HAM.t <= 0) { HAM.t = 0.6; hamSync(true); }
   for (let k = HAM.pops.length - 1; k >= 0; k--) { const p = HAM.pops[k]; p.t += dt; if (p.t < 0) continue;
@@ -7961,6 +7952,66 @@ function hamStep(dt) {
     /* cottages and the crate are solid */
     A.h.slice(0, V.houses.length).forEach((h) => { const dx = pp.x - h[0], dz = pp.z - h[1], d = Math.hypot(dx, dz); if (d < 0.95 && d > 1e-4) { pp.x = h[0] + dx / d * 0.95; pp.z = h[1] + dz / d * 0.95; } });
     const dx = pp.x - A.crate[0], dz = pp.z - A.crate[1], d = Math.hypot(dx, dz); if (d < 0.55 && d > 1e-4) { pp.x = A.crate[0] + dx / d * 0.55; pp.z = A.crate[1] + dz / d * 0.55; } });
+}
+/* Pips Island: morning presents (Leon, 2026-11-27).
+   What the friends and the villages give each morning used to land by a door on some far street, or slip silently into the
+   crate. Now every giver sends a wrapped present to the lawn across the path from the camp's crate: a box in the giver's
+   own colour, with a round tag over it showing who it is from (a friend's face, or the village's wonder) and a heart.
+   Pip walks into a box to open it: it bursts, and what was inside floats up and goes into the crate.
+   A box left unopened grows a little each morning, up to five mornings' worth (state.isle.gifts[id] = { n, c }). */
+const GIFTERS = ['mason', 'miner', 'fisher', 'diver', 'glass', 'windmill', 'lighthouse', 'tower'];
+/* what a friend with a house sends (the villages' gifts are HAM_DEF.give, times the village's size) */
+const GIFT_FOLK = { mason: { stone: 4 }, miner: { crystal: 2 }, fisher: { reed: 2 }, diver: { pearl: 1 }, glass: { ember: 1 } };
+const GIFT_AT = (k) => [1.9 + k * 0.53, 0.95 + (k % 2) * 0.16]; /* one row along the lawn's edge */
+const GF = { box: {}, tex: {} };
+const gifts = () => state.isle.gifts || (state.isle.gifts = {});
+function giftNear(x, z, r) { return x > 1.6 - r * 0.4 && x < 5.9 + r * 0.4 && z > 0.6 - r * 0.4 && z < 1.5 + r * 0.4; }
+function giftAdd(id, G, mul) {
+  const o = gifts()[id] || (gifts()[id] = { n: 0, c: {} }); if (o.n >= 5) return;
+  o.n++; Object.keys(G).forEach((t) => { o.c[t] = (o.c[t] || 0) + G[t] * (mul || 1); });
+}
+function giftColor(id) { const v = VILLAGERS.find((q) => q.id === id); return v ? v.head : HAM_DEF[id].roof[0]; }
+function giftTag(id) {
+  if (GF.tex[id]) return GF.tex[id];
+  const c = document.createElement('canvas'); c.width = c.height = 160; const x = c.getContext('2d');
+  x.beginPath(); x.arc(76, 80, 62, 0, 7); x.fillStyle = '#fff6e4'; x.fill(); x.lineWidth = 6; x.strokeStyle = '#6e4426'; x.stroke();
+  const v = VILLAGERS.find((q) => q.id === id); if (v) boardFace(x, v, 76, 92, 0.95, 3); else isleIcon(x, id, 76, 82, 2.0);
+  /* the heart: thank you */
+  x.save(); x.translate(128, 36); x.beginPath(); x.moveTo(0, 20); x.bezierCurveTo(-34, -4, -16, -30, 0, -10); x.bezierCurveTo(16, -30, 34, -4, 0, 20); x.closePath(); x.fillStyle = '#e8506a'; x.fill(); x.lineWidth = 5; x.strokeStyle = '#fff6e4'; x.stroke(); x.lineWidth = 2.5; x.strokeStyle = '#6e4426'; x.stroke(); x.restore();
+  return (GF.tex[id] = new T.CanvasTexture(c));
+}
+function giftMake(id, anim) {
+  const k = GIFTERS.indexOf(id), [bx, bz] = GIFT_AT(k), g = new T.Group(); g.position.set(bx, 0, bz); g.rotation.y = (hash(k, 8801) - 0.5) * 0.7; sc.add(g);
+  const col = giftColor(id), L = []; let q = new T.BoxGeometry(0.46, 0.36, 0.46); q.translate(0, 0.18, 0); L.push(fac(q, (cx, cy, cz, i) => shadeY(col, cy, 0, 0.5, i, 0.35), 8810 + k));
+  q = new T.BoxGeometry(0.52, 0.1, 0.52); q.translate(0, 0.4, 0); L.push(fac(q, (cx, cy, cz, i) => tone(col, i, 0.25), 8820 + k));
+  [[0.1, 0.475, 0.535], [0.535, 0.475, 0.1]].forEach(([w, h, d], n) => { q = new T.BoxGeometry(w, h, d); q.translate(0, 0.2375, 0); L.push(fac(q, '#fff0c8', 8830 + n)); });
+  [-1, 1].forEach((s, n) => { q = new T.SphereGeometry(0.085, 8, 6); q.scale(1.3, 0.8, 0.7); q.rotateZ(s * 0.5); q.translate(s * 0.1, 0.53, 0); L.push(fac(q, '#ffd76a', 8840 + n)); });
+  q = new T.SphereGeometry(0.05, 7, 5); q.translate(0, 0.5, 0); L.push(fac(q, '#f4b23a', 8845));
+  merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g).castShadow = true;
+  const tag = isleSprite(giftTag(id), 0.62); tag.position.set(0, 1.12, 0); g.add(tag);
+  const B = GF.box[id] = { id, g, tag, pop: anim ? -0.5 - k * 0.3 : 1, out: 0 }; if (anim) g.visible = false; return B;
+}
+/* the boxes follow what waits in the save */
+function giftSync(anim) { GIFTERS.forEach((id) => { const o = gifts()[id]; if (o && o.n && !GF.box[id]) giftMake(id, anim); }); }
+function giftWake() {
+  Object.keys(GIFT_FOLK).forEach((id) => { if (housed(id)) giftAdd(id, GIFT_FOLK[id], 1); });
+  Object.keys(HAM_DEF).forEach((id) => { if (mons()[id]) giftAdd(id, HAM_DEF[id].give, hamLv(id)); });
+  giftSync(true); save();
+}
+function giftOpen(B) {
+  const o = gifts()[B.id], [bx, bz] = [B.g.position.x, B.g.position.z]; delete gifts()[B.id]; B.out = 0.001;
+  Object.keys(o.c).forEach((t, k) => { state.isle.store[t] = (state.isle.store[t] || 0) + o.c[t];
+    const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, o.c[t]), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(bx, 1.5 + k * 0.8, bz); sc.add(sp); FD.floats.push({ sp, t: 0, y: k * 0.8 }); });
+  invDirty = true; burst(bx, 0.7, bz, 14); Snd.play('success', { gain: 0.45 }); Snd.play('sparkle', { gain: 0.45 }); bldBadge(); save();
+}
+function giftStep(dt) {
+  const pp = pip.position;
+  Object.keys(GF.box).forEach((id) => { const B = GF.box[id], g = B.g, o = gifts()[id], big = 1 + 0.09 * ((o ? o.n : 1) - 1);
+    if (B.out) { B.out += dt; const u = B.out / 0.32; g.scale.setScalar(Math.max(0.01, u < 0.35 ? 1 + u : 1.35 * (1 - (u - 0.35) / 0.65)) * big); if (u >= 1) { sc.remove(g); delete GF.box[id]; } return; }
+    if (B.pop < 1) { B.pop += dt * (B.pop < 0 ? 1 : 2.4); if (B.pop < 0) return; if (!g.visible) { g.visible = true; burst(g.position.x, 0.5, g.position.z, 5); Snd.play('pop', { gain: 0.35, f: 560 + GIFTERS.indexOf(id) * 40 }); }
+      const u = Math.min(1, B.pop); g.scale.setScalar(Math.max(0.01, u < 0.7 ? u / 0.7 * 1.15 : 1.15 - (u - 0.7) / 0.3 * 0.15) * big); return; }
+    g.scale.setScalar(big); B.tag.position.y = 1.12 + (reduced ? 0 : Math.sin(time * 2.2 + GIFTERS.indexOf(id) * 1.3) * 0.05);
+    if (o && !enSleep && !inCave && Math.hypot(pp.x - g.position.x, pp.z - g.position.z) < 0.46) giftOpen(B); });
 }
 /* ---------- special finds (Leon, 2026-11-25: "special finds for gear unlocking") ----------
    Four things that only turn up in one place each, and that a piece of gear or a tool level needs:

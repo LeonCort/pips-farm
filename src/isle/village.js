@@ -184,11 +184,8 @@ function crystLamp(x, z, L, g, seed) {
   const glow = new T.Sprite(new T.SpriteMaterial({ map: softTex(32, 32), color: '#9fe6ff', transparent: true, opacity: 0, depthWrite: false })); glow.position.set(x, 1.35, z); glow.scale.set(1.5, 1.5, 1); g.add(glow);
   VG.clamps = VG.clamps || []; VG.clamps.push(glow);
 }
-/* every morning the mason leaves stones and the miner crystals by their doors */
-function villageWake() {
-  [['mason', 'stone', 4], ['miner', 'crystal', 2]].forEach(([id, t, n]) => { if (!housed(id)) return; const H = HOUSES[id];
-    for (let k = 0; k < n; k++) { const m = itemModel(t), a = 0.6 + k * 0.5; m.position.set(H.x + 0.3, 0.5, H.z + 1.0); sc.add(m); drops.push({ m, t, vx: Math.sin(a) * 1.2, vz: Math.cos(a) * 1.2, vy: 2.6, land: 0, wait: 0.2 }); } });
-}
+/* every morning the friends with a house send a present to the camp (gifts.js) */
+function villageWake() {}
 function villageSync(anim) {
   const key = Object.keys(VILLAGE).filter((k) => VILLAGE[k].ok()).join(',') + '|' + VILLAGERS.map((v) => (state.isle.folk || {})[v.id] || 0).join('');
   if (key === VG.key) return; VG.key = key; boardDraw();
