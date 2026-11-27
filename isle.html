@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261127172412">
+<meta name="app-ver" content="20261127182136">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1181,6 +1181,9 @@ const AREAS = [
      the way there is a row of stepping stones that the tide covers and bares again (bridge.tide) */
   { id: 'c0', i: 6, j: 2, biome: 'coral', cost: { log: 44, stone: 30, crystal: 6 }, finds: [['clam', 3.6, 3.8], ['clam', -3.8, 2.6]], bridge: { from: 'h3', x0: 17.4, z0: 7.5, x1: 22.6, z1: 7.5 } },
   { id: 'c1', i: 6, j: -2, biome: 'coral', cost: { stone: 40, log: 30, crystal: 10 }, finds: [['clam', -3.5, -3.0], ['clam', 3.4, -2.2], ['clam', 0.5, -4.2], ['clam', -2.6, 1.8]], bridge: { from: 'c0', x0: 28, z0: 6.6, x1: 28, z1: 1.4, tide: 1 } },
+  /* the ember island, south of the coral beach over a bridge that costs pearls (ember.js): one square under a volcano,
+     cut in three by two streams of lava (EMBER below) */
+  { id: 'e0', i: 6, j: 6, biome: 'ember', cost: { pearl: 4, log: 50, stone: 40 }, finds: [['cinder', 4.6, 0.6], ['cinder', 4.9, 3.4], ['cinder', 3.6, 5.0]], bridge: { from: 'c0', x0: 28, z0: 17.4, x1: 28, z1: 22.6 } },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
   { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 },
   /* the mine runs on west under the sea: a gallery behind rubble, then the lift room behind a rockfall */
@@ -1188,16 +1191,26 @@ const AREAS = [
   { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, finds: [['glow', 2.6, -3.6], ['glow', -0.8, -4.1], ['glow', 3.5, 3.4]] }
 ];
 /* the special finds (finds.js): what each find node gives, how many, and the tool level it needs */
-const FINDS = ['honey', 'copper', 'iron', 'glow', 'reed', 'pearl'];
-const FIND_NODE = { hive: { t: 'honey', n: 1, tier: 1 }, copper: { t: 'copper', n: 2, tier: 1 }, iron: { t: 'iron', n: 2, tier: 2 }, glow: { t: 'glow', n: 1, tier: 3 }, reeds: { t: 'reed', n: 2, tier: 1, hand: 1 }, clam: { t: 'pearl', n: 1, tier: 1, hand: 1 } };
+const FINDS = ['honey', 'copper', 'iron', 'glow', 'reed', 'pearl', 'ember'];
+const FIND_NODE = { hive: { t: 'honey', n: 1, tier: 1 }, copper: { t: 'copper', n: 2, tier: 1 }, iron: { t: 'iron', n: 2, tier: 2 }, glow: { t: 'glow', n: 1, tier: 3 }, reeds: { t: 'reed', n: 2, tier: 1, hand: 1 }, clam: { t: 'pearl', n: 1, tier: 1, hand: 1 }, cinder: { t: 'ember', n: 1, tier: 3 } };
+/* the ember island (ember.js): the volcano in its corner, the two lava streams (the points each runs through), and where
+   each can be cooled into a crossing (a, b: the ends of the slab; ring: where Pip stands to cool it; n: crystals it takes) */
+const EMBER = { cone: [32.2, 23.8, 2.4], lava: [[[30.6, 25.6], [27.2, 27.2], [24, 27.6], [21.4, 29.8]], [[32.0, 26.2], [30.2, 29.5], [29.6, 34.6]]],
+  cross: [{ id: 'a', a: [25.6, 26.3], b: [25.6, 28.5], ring: [25.6, 25.75], n: 6 }, { id: 'b', a: [28.9, 31.4], b: [31.1, 31.7], ring: [28.3, 31.35], n: 10 }], cool: {} };
+/* how far a point is from the nearest lava (below 0: in it), not counting where a cooled slab lies */
+function emberLava(x, z) {
+  for (const c of EMBER.cross) if (EMBER.cool[c.id] && segD(x, z, c.a[0], c.a[1], c.b[0], c.b[1]) < 0.8) return 1;
+  let d = 9; for (const L of EMBER.lava) for (let k = 0; k + 1 < L.length; k++) d = Math.min(d, segD(x, z, L[k][0], L[k][1], L[k + 1][0], L[k + 1][1]) - 0.75);
+  return d;
+}
 const TIDE = { low: true, u: 0 }; /* the coral beach's tide (coral.js): low = the stepping stones are bare */
 FIND_NODE.hive.hand = 1;
 /* the marsh raft (marsh.js): where it lies at the east bank and at the west bank, and where it is now (on: lying still, so Pip may step on) */
 const RAFT = { e: [-14.95, 7.6], w: [-17.05, 16.4], x: -14.95, z: 7.6, on: true };
 const AREA_BY = {}; AREAS.forEach((a) => { AREA_BY[a.id] = a; a.cx = (a.i + 1) * GS; a.cz = (a.j + 1) * GS; });
 /* what each biome looks like: a tint over the grass */
-const BIOME_BEACH = { coral: '#f6e7bd', marsh: '#8f8259', snow: '#c9dcf2', stone: '#a9a79c', clay: '#b9906e', cave: '#5d5249' }; /* the rim and the cliff under each island */
-const BIOME_TINT = { home: null, rocks: ['#c9c58f', 0.18], berry: ['#7fbf5a', 0.15], meadow: ['#b4e05e', 0.24], orchard: ['#d7e07a', 0.2], stone: ['#9fa592', 0.5], clay: ['#c9a27a', 0.38], cave: ['#5d5249', 0.82], snow: ['#cfe0f6', 1], marsh: ['#5f8f4c', 0.5], coral: ['#f1dfae', 0.92] };
+const BIOME_BEACH = { ember: '#4a403a', coral: '#f6e7bd', marsh: '#8f8259', snow: '#c9dcf2', stone: '#a9a79c', clay: '#b9906e', cave: '#5d5249' }; /* the rim and the cliff under each island */
+const BIOME_TINT = { home: null, rocks: ['#c9c58f', 0.18], berry: ['#7fbf5a', 0.15], meadow: ['#b4e05e', 0.24], orchard: ['#d7e07a', 0.2], stone: ['#9fa592', 0.5], clay: ['#c9a27a', 0.38], cave: ['#5d5249', 0.82], snow: ['#cfe0f6', 1], marsh: ['#5f8f4c', 0.5], coral: ['#f1dfae', 0.92], ember: ['#403936', 0.93] };
 /* the land: WALK = squares Pip may walk on (areas owned), LAND = squares drawn as land (owned, plus each island's first area
    so it can be seen across the sea). Both are read from the save right away, because the ground is drawn before the game starts. */
 const WALK = new Uint8Array(GWN * GWN), LAND = new Uint8Array(GWN * GWN), AREA_AT = new Int16Array(GWN * GWN).fill(-1);
@@ -1235,6 +1248,7 @@ function walkSdf(x, z) {
   for (const a of AREAS) if (a.bridge && HAS[a.id] && (!a.bridge.tide || TIDE.low)) { const b = a.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
   if (HAS.r0) { d = Math.min(d, segD(x, z, RAFT.e[0] + 1.5, RAFT.e[1], RAFT.e[0] + 0.5, RAFT.e[1]) - 0.6, segD(x, z, RAFT.w[0] - 1.5, RAFT.w[1], RAFT.w[0] - 0.5, RAFT.w[1]) - 0.6); /* the raft's two jetties, and the raft while it lies still */
     if (RAFT.on) d = Math.min(d, Math.hypot(x - RAFT.x, z - RAFT.z) - 0.85); }
+  if (HAS.e0 && x > 21 && z > 21) d = Math.max(d, -emberLava(x, z) - 0.2, EMBER.cone[2] - Math.hypot(x - EMBER.cone[0], z - EMBER.cone[1]) - 0.2); /* lava and the volcano are no ground to walk on */
   return d;
 }
 /* keep a point where Pip may walk: slide it down the slope of walkSdf; if that finds nothing, pull it back toward Pip */
@@ -2317,6 +2331,7 @@ const LAYOUT = {
   stone: (x, z, h, n) => (n > 0.8 ? (h > 0.45 ? 'boulder' : null) : n < -0.9 ? (h > 0.4 ? 'rock' : null) : h > 0.83 ? 'boulder' : h > 0.76 ? 'tree' : h > 0.5 ? 'rock' : null),
   snow: (x, z, h, n) => (n > 0.5 ? (h > 0.3 ? 'tree' : null) : n < -0.9 ? (h > 0.45 ? 'crystal' : null) : h > 0.7 ? 'rock' : h > 0.55 ? 'boulder' : h > 0.42 ? 'tree' : null),
   cave: (x, z, h, n) => (n > 0.6 ? (h > 0.4 ? 'crystal' : null) : n < -0.8 ? (h > 0.5 ? 'boulder' : null) : h > 0.62 ? 'rock' : h > 0.5 ? 'crystal' : null),
+  ember: () => null, /* set out by hand between the lava streams (ember.js) */
   coral: (x, z, h, n) => (n > 0.7 ? (h > 0.4 ? 'rock' : null) : n < -0.9 ? (h > 0.5 ? 'crystal' : null) : h > 0.86 ? 'boulder' : h > 0.72 ? 'tree' : h > 0.58 ? 'bush' : null),
   marsh: (x, z, h, n) => (n > 0.3 ? (h > 0.3 ? 'tree' : null) : n < -0.8 ? (h > 0.35 ? 'bush' : null) : h > 0.82 ? 'rock' : h > 0.58 ? 'bush' : h > 0.42 ? 'tree' : null),
   clay: (x, z, h, n) => (n > 0.2 ? (h > 0.35 ? (h > 0.72 ? 'boulder' : 'rock') : null) : h > 0.9 ? 'crystal' : h > 0.75 ? 'boulder' : h > 0.5 ? 'rock' : h > 0.4 ? 'tree' : null)
@@ -2328,7 +2343,7 @@ function areaClear(x, z) {
   for (const a of AREAS) { if (a.chest && Math.hypot(x - a.cx, z - a.cz) < 1.4) return false;
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
-    if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z)) return false;
+    if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z) || emberKeep(a, x, z)) return false;
     if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
@@ -2348,7 +2363,7 @@ function areaFill(A, fresh) {
     const n = Math.sin(x * 0.45 + base * 0.13) + Math.cos(z * 0.41 - base * 0.07), k = LAYOUT[A.biome](x, z, hash(sd, 3), n); if (!k) continue;
     const nd = makeNode(k, x, z, sd); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); }
   }
-  findFill(A, fresh); tallFill(A, fresh); mesaFill(A, fresh); iceFill(A, fresh); marshFill(A, fresh); coralFill(A, fresh);
+  findFill(A, fresh); tallFill(A, fresh); mesaFill(A, fresh); iceFill(A, fresh); marshFill(A, fresh); coralFill(A, fresh); emberFill(A, fresh);
   if (A.chest && !state.isle.chests[A.id]) makeChest(A.cx, A.cz - 0.4, A.chest, A.id);
   if (A.ruin) makeRuin(A, fresh);
   if (A.stairs) stairsBuild(A, fresh);
@@ -2391,6 +2406,7 @@ function areaDecor(A) {
   if (b === 'cave') caveDecor(A, L, base);
   if (b === 'marsh') marshDecor(A, L, base);
   if (b === 'coral') coralDecor(A, L, base);
+  if (b === 'ember') emberDecor(A, L, base);
   if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; m.receiveShadow = true; }
 }
 const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL, FERRY].some((o) => Math.hypot(o.x - x, o.z - z) < r) || loopNear(x, z, r) || spotNear(x, z, r) || hamNear(x, z, r); /* the camp's buildings, the friends' houses, the monuments */
@@ -2453,7 +2469,7 @@ const BOARD_GEO = (() => { const L = [];
   return fac(mergeGeos(L), (cx, cy, cz, i) => cz > 0.1 ? new T.Color('#4a4038') : cz < 0.05 ? tone('#8a6a4a', i, 0.3) : shadeY(cy > 0.98 ? '#ecca94' : '#e0b87c', cy, 0.7, 1.25, i, 0.25), 1501); })();
 /* a sign's price: a home square costs by how many squares are bought; a bridge or a bonus piece has its own price */
 const signCost = (s) => s.cost;
-const costKinds = (s) => KINDS.filter((t) => signCost(s)[t] > 0);
+const costKinds = (s) => KINDS.concat(FINDS).filter((t) => signCost(s)[t] > 0); /* a price may ask for a find too (the ember bridge: pearls) */
 function signPaid(s) { return state.isle.paid[s.key] || (state.isle.paid[s.key] = {}); }
 const paidN = (s, t) => signPaid(s)[t] || 0;
 function drawSign(s) {
@@ -2524,7 +2540,7 @@ function isleSigns() {
   signs.forEach(drawSign);
 }
 function signNeed(s, t) { return (signCost(s)[t] || 0) - paidN(s, t) - (s.fly[t] || 0); }
-function signFull(s) { const c = signCost(s); return KINDS.every((t) => paidN(s, t) >= (c[t] || 0)); }
+function signFull(s) { const c = signCost(s); return KINDS.concat(FINDS).every((t) => paidN(s, t) >= (c[t] || 0)); }
 function signStep(s, dt) {
   s.bump = Math.max(0, s.bump - dt * 4); s.payT -= dt;
   /* open (big, with the progress) while pieces are flying in, small again a moment after */
@@ -2537,6 +2553,8 @@ function signStep(s, dt) {
   if (rising || building || giveT > 0 || Math.hypot(pip.position.x - s.x, pip.position.z - s.z) > 0.85) return;
   if (loopSignShut(s)) return; /* the bridge needs its key first (loop.js) */
   if (gearSignShut(s)) return; /* a spider web over the bridge (gear.js) */
+  { const f = FINDS.find((q) => haveN(q) > 0 && signNeed(s, q) > 0); /* a find has no piece to fly: it is counted straight onto the sign */
+    if (f) { spendN(f, 1); signPaid(s)[f] = paidN(s, f) + 1; giveT = 0.18; s.payT = 1.2; s.bump = 1; drawSign(s); Snd.play('tock', { gain: 0.4, f: 620 + paidN(s, f) * 40 }); save(); if (signFull(s) && !rising && !building) isleBuy(s); return; } }
   const t = KINDS.concat(['coin']).find((q) => haveN(q) > 0 && signNeed(s, q) > 0); if (!t) return;
   /* from the counter: the piece appears over Pip's head and flies on to the sign */
   /* big prices are paid in handfuls, so no sign takes more than about three seconds to fill (Leon, 2026-11-25) */
@@ -2797,12 +2815,19 @@ function invBuild() {
     + '.inv img{width:40px;height:40px}.inv b{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;min-width:1.4ch;text-align:center}'
     + '.inv b.bump{animation:bump .25s ease-out}.inv .it.wig{animation:invWig .32s ease-out}'
     + '@keyframes invWig{0%{transform:none}25%{transform:rotate(-9deg) scale(1.16)}55%{transform:rotate(7deg) scale(1.08)}80%{transform:rotate(-3deg) scale(1.03)}100%{transform:none}}'
-    + '.invfly{position:fixed;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;pointer-events:none;z-index:6;will-change:transform;filter:drop-shadow(0 3px 0 rgba(34,48,60,.25))}@media (max-width:520px){.inv img{width:30px;height:30px}.inv b{font-size:22px}.inv .it{padding:3px 10px 3px 4px}}';
+    + '.invfly{position:fixed;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;pointer-events:none;z-index:6;will-change:transform;filter:drop-shadow(0 3px 0 rgba(34,48,60,.25))}.inv.invf{top:calc(max(12px,env(safe-area-inset-top,0px)) + 64px);left:calc(max(16px,env(safe-area-inset-left,0px)) + 204px);gap:6px}.inv.invf .it{padding:2px 10px 2px 4px;border-width:2.5px}.inv.invf img{width:30px;height:30px}.inv.invf b{font-size:21px}'
+    + '@media (max-width:520px){.inv.invf{top:calc(max(12px,env(safe-area-inset-top,0px)) + 51px);left:calc(max(16px,env(safe-area-inset-left,0px)) + 158px);gap:3px}.inv.invf img{width:22px;height:22px}.inv.invf b{font-size:16px}.inv.invf .it{padding:1px 6px 1px 2px}.inv img{width:30px;height:30px}.inv b{font-size:22px}.inv .it{padding:3px 10px 3px 4px}}';
   document.head.appendChild(st);
   KINDS.concat(['coin']).forEach((t) => { const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), t, 32, 32, 1.25);
     const it = document.createElement('div'); it.className = 'it'; INV['p' + t] = it; const img = document.createElement('img'); img.alt = ''; img.src = c.toDataURL(); INV['i' + t] = img.src; INV['m' + t] = img; const b = document.createElement('b'); b.textContent = '0';
     it.appendChild(img); it.appendChild(b); el.appendChild(it); INV[t] = b; });
   document.body.appendChild(el); INV.el = el;
+  /* the special finds (honey, copper, ...) in a smaller row beside the energy bar: each shows once Pip has had one */
+  const fd = document.createElement('div'); fd.className = 'inv invf'; fd.setAttribute('role', 'status'); fd.setAttribute('aria-label', 'Special finds');
+  FINDS.forEach((t) => { const c = document.createElement('canvas'); c.width = c.height = 64; isleIcon(c.getContext('2d'), t, 32, 32, 1.25);
+    const it = document.createElement('div'); it.className = 'it'; it.style.display = 'none'; INV['p' + t] = it; const img = document.createElement('img'); img.alt = ''; img.src = c.toDataURL(); INV['i' + t] = img.src; const b = document.createElement('b'); b.textContent = '0';
+    it.appendChild(img); it.appendChild(b); fd.appendChild(it); INV[t] = b; });
+  document.body.appendChild(fd); INV.fd = fd;
 }
 /* a gathered piece flies from where it landed up to its counter; the counter wiggles as each one arrives (Leon) */
 const invFlies = [];
@@ -2825,7 +2850,10 @@ function invWig(t) { const it = INV['p' + t]; if (!it) return; it.classList.remo
 function invStep() {
   if (!INV.el) return;
   const K = KINDS.concat(['coin']), v = K.map((t) => storeN(t) + carry.count(t) + invFlies.filter((f) => f.t === t).length * 0), key = v.join(',') + (state.isle.store.hay != null ? 'h' : '') + (state.isle.store.crystal != null ? 'c' : '') + invFlies.map((f) => f.t[0]).join('');
-  if (key === invLast) return; invLast = key;
+  if (ENB.el && INV.fd && !INV.fdAt) { const r = ENB.el.getBoundingClientRect(); if (r.width) { INV.fd.style.left = Math.round(r.right + 8) + 'px'; INV.fdAt = 1; } } /* the finds row starts where the energy bar ends */
+  const fv = FINDS.map((t) => state.isle.store[t] || 0), fk = state.isle.fk || (state.isle.fk = {});
+  if (key + '|' + fv.join(',') === invLast) return; invLast = key + '|' + fv.join(',');
+  FINDS.forEach((t, k) => { if (fv[k] && !fk[t]) fk[t] = 1; INV['p' + t].style.display = fk[t] ? '' : 'none'; const b = INV[t]; if (b.textContent !== String(fv[k])) { b.textContent = fv[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); invWig(t); } });
   K.forEach((t, k) => { if (VALUABLE[t]) INV['p' + t].style.display = v[k] ? '' : 'none'; else if (t === 'crystal') INV['p' + t].style.display = state.isle.store[t] != null || invFlies.some((f) => f.t === t) ? '' : 'none'; const b = INV[t]; if (b.textContent !== String(v[k])) { b.textContent = v[k]; b.classList.remove('bump'); void b.offsetWidth; b.classList.add('bump'); } });
 }
 
@@ -3014,7 +3042,7 @@ function enSleepStart() {
    (the smith makes them: people.js). A weaker tool bounces off, and a bubble shows the tool it needs. A better tool hits
    harder, pulls the drops in from further away, and the crystal tools hit the thing next to it too.
    Things grow back after Pip has slept in the tent, not on a timer. */
-const BIOME_TIER = { home: 1, rocks: 1, berry: 1, meadow: 1, orchard: 2, stone: 2, clay: 2, cave: 2, marsh: 2, coral: 3, snow: 3 };
+const BIOME_TIER = { home: 1, rocks: 1, berry: 1, meadow: 1, orchard: 2, stone: 2, clay: 2, cave: 2, marsh: 2, coral: 3, ember: 4, snow: 3 };
 const TIER_MUL = [1, 1, 2.5, 5, 10]; /* how big the pile is */
 const HIT_MUL = [1, 1, 1.5, 2, 2.5]; /* how many more hits it takes, with the right tool */
 const HAND = { bush: 1, planks: 1, shroom: 1 }; /* always open: picked by hand, or a door's old boards */
@@ -3181,7 +3209,7 @@ function bldBuild() {
     + '.bldCard .how{width:200px;height:64px;background:#fffaf0;border:2px solid #c9b38a;border-radius:14px}'
     + '.bldCard .dots{display:flex;gap:6px}.bldCard .dots b{width:16px;height:16px;border-radius:50%;border:3px solid var(--ink);background:#e6d9bd}.bldCard .dots b.on{background:#f2c23c}'
     + '.bldCard .cost{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.bldCard .cost span{display:flex;align-items:center;gap:2px;padding:2px 8px 2px 2px;border-radius:999px;border:2px solid var(--ink);font:700 20px Fredoka,sans-serif;background:#fff}'
-    + '.bldCard .cost span.ok{color:#3f8a3a}.bldCard .cost img{width:28px;height:28px}'
+    + '.bldCard .cost span i{font-style:normal;color:#c2543a}.bldCard .cost span.ok,.bldCard .cost span.ok i{color:#3f8a3a}.bldCard .cost span.tap{cursor:pointer;box-shadow:0 0 0 3px #f4b23a;animation:costTap 1.4s ease-in-out infinite}@keyframes costTap{50%{box-shadow:0 0 0 6px rgba(244,178,58,.35)}}.bldCard .cost img{width:28px;height:28px}'
     + '.bldCard .go{width:100%;height:64px;border-radius:18px;border:3px solid var(--ink);background:#cfc6b4;box-shadow:0 4px 0 rgba(34,48,60,.3);padding:4px;opacity:.6}.bldCard .go canvas{height:100%}'
     + '.bldCard .go.can{background:#74a857;opacity:1;animation:ready 1.4s ease-in-out infinite}.bldCard .go:active{transform:translateY(3px)}.bldCard .done{font-size:44px;line-height:64px}'
     + '.bldMenu{flex-direction:column;gap:16px}.bldMenu .x{width:64px;height:64px;border-radius:50%;border:3px solid var(--ink);background:var(--paper);font:700 34px Fredoka,sans-serif}'
@@ -3251,7 +3279,11 @@ function bldFill() {
     const pic = document.createElement('div'); pic.className = 'pic'; pic.appendChild(bldPic(B.pic[next], 128)); const eff = document.createElement('div'); eff.className = 'eff'; eff.appendChild(bldEff(k, next)); pic.appendChild(eff); card.appendChild(pic); const how = bldHow(k, lv, next); if (how) { how.className = 'how'; card.appendChild(how); }
     const dots = document.createElement('div'); dots.className = 'dots'; for (let q = 1; q <= B.max; q++) { const d = document.createElement('b'); if (q <= lv) d.className = 'on'; dots.appendChild(d); } card.appendChild(dots);
     if (c) {
-      const cost = document.createElement('div'); cost.className = 'cost'; Object.keys(c).forEach((t) => { const s = document.createElement('span'); if (haveN(t) >= c[t]) s.className = 'ok'; s.appendChild(bldIco(t)); s.appendChild(document.createTextNode(String(c[t]))); cost.appendChild(s); }); card.appendChild(cost);
+      const cost = document.createElement('div'); cost.className = 'cost'; Object.keys(c).forEach((t) => { const s = document.createElement('span'), ok = haveN(t) >= c[t]; s.className = ok ? 'ok' : 'lack'; s.appendChild(bldIco(t));
+        /* Leon, 2026-11-27: show how many Pip has of each, not only green or not; a missing one opens the map where it is found */
+        const h = document.createElement('i'); h.textContent = String(Math.min(haveN(t), c[t])); s.appendChild(h); s.appendChild(document.createTextNode('/' + c[t]));
+        if (!ok && mapHintSpots(t).length) { s.classList.add('tap'); s.addEventListener('click', (e) => { e.stopPropagation(); mapOpen(t); }); }
+        cost.appendChild(s); }); card.appendChild(cost);
       const go = document.createElement('button'); go.type = 'button'; go.className = 'go' + (bldCan(k) ? ' can' : ''); go.setAttribute('aria-label', 'Bygg'); go.appendChild(bldPic('hammer', 96));
       go.addEventListener('click', (e) => { e.stopPropagation(); bldUp(k); }); card.appendChild(go);
     } else { const d = document.createElement('div'); d.className = 'done'; d.textContent = '⭐'; card.appendChild(d); }
@@ -3260,7 +3292,9 @@ function bldFill() {
 }
 function bldUp(k) {
   const c = BLD[k].cost[bldLv(k) + 1]; if (!c) return;
-  if (!bldCan(k)) { const card = BM[k]; card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); Snd.play('blip', { gain: 0.2, f: 260 }); return; }
+  if (!bldCan(k)) { const card = BM[k]; card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake'); Snd.play('blip', { gain: 0.2, f: 260 });
+    const miss = Object.keys(c).filter((t) => haveN(t) < c[t] && mapHintSpots(t).length); miss.sort((a, b) => (FINDS.indexOf(b) >= 0) - (FINDS.indexOf(a) >= 0)); /* the grey hammer shows the way to what is missing, the special find first */
+    if (miss.length) setTimeout(() => mapOpen(miss[0]), 420); return; }
   Object.keys(c).forEach((t) => { spendN(t, c[t]).forEach((m) => { fly(m, () => pip.localToWorld(tmpV.set(0, 2.2, 0)), () => sc.remove(m), 0.3); }); });
   state.isle.bld[k] = bldLv(k) + 1; save();
   if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(TENT.x, 1.2, TENT.z, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
@@ -3446,13 +3480,21 @@ const caveRoofs = [];
    a heap of rubble, and the lift room (cave3) behind a rockfall that only the copper pickaxe breaks. The lift at the far
    end is the only way to the stone island: its sign takes the island's price (and the map, loop.js), then the lift runs
    both ways. state.isle.mine.g1 / g2: 1 once that heap is broken through (it does not come back). */
+const RUBBLE_GEO = (() => {
+  const L = []; let q;
+  for (let k = 0; k < 22; k++) { const row = k < 10 ? 0 : k < 17 ? 1 : k < 21 ? 2 : 3, cnt = [10, 7, 4, 1][row], j = k - [0, 10, 17, 21][row], r = 0.3 - row * 0.02 + hash(k, 2650) * 0.1;
+    q = ico(r, 0, 2650 + k, 0.12); q.scale(1.1, 0.8, 1); q.translate((hash(k, 2651) - 0.5) * (0.7 - row * 0.15), 0.2 + row * 0.38, ((j + 0.5) / cnt - 0.5) * (3.1 - row * 0.75) + (hash(k, 2652) - 0.5) * 0.15);
+    L.push(fac(q, (cx, cy, cz, i) => tone(['#cdbfa8', '#b8a78e', '#d9cdb8', '#a89880'][k % 4], i, 0.35), 2650 + k)); }
+  [[-0.5, 0.55], [0.5, -0.5]].forEach(([rx, side], k) => { [-1, 1].forEach((f) => { q = new T.BoxGeometry(0.09, 0.2, 2.5); q.rotateX(rx * f * 0.8); q.translate(side * 0.62, 0.85, 0); L.push(fac(q, (cx, cy, cz, i) => tone(f > 0 ? '#c99f6c' : '#b08454', i, 0.3), 2680 + k * 2 + (f > 0 ? 1 : 0))); }); });
+  return merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT, new T.Group()).geometry;
+})();
 const MINE_GATES = [{ id: 'g1', x: 6, tier: 1 }, { id: 'g2', x: -6, tier: 2 }];
 const LIFT = { low: { x: -15.2, z: 31.7 }, lowOut: { x: -13.8, z: 33.1 }, top: null, topOut: null, lowMat: null, topMat: null };
 function mineS() { return state.isle.mine || (state.isle.mine = {}); }
 /* nothing grows in the doorways between the rooms, or round the lift */
 function mineKeep(a, x, z) { return (Math.abs(z - a.cz) < 1.6 && Math.abs(x - a.cx) > 3.3) || (a.id === 'cave3' && Math.hypot(x - LIFT.low.x, z - LIFT.low.z - 0.5) < 2.6); }
 function mineGateOpen(n) {
-  mineS()[n.gate] = 1; n.dead = 1; n.st = 'gone'; if (work && work.n === n) work = null;
+  mineS()[n.gate] = 1; if (n.tag) { n.g.remove(n.tag); n.tag = null; } n.dead = 1; n.st = 'gone'; if (work && work.n === n) work = null;
   burst(n.x, 1.2, n.z, 12); Snd.play('thud', { gain: 0.6 }); Snd.play('success', { gain: 0.45, f: 'E6' }, 0.15); xpGain(10); isleSigns(); save();
 }
 /* a mine lift: four posts, a cross beam with a wheel and a rope, and a plank floor */
@@ -3506,7 +3548,11 @@ function caveBuild(A) {
   const M = caveA.mat = stairMat('up', sx, sz - 0.9); M.ok = () => inCave; M.to = () => CAVE_OUT; M.cave = false;
   }
   /* the heaps that shut the doorways, until Pip breaks through */
-  if (A.id === 'cave2') MINE_GATES.forEach((G, q) => { if (mineS()[G.id]) return; const n = makeNode('boulder', G.x, A.cz, 2600 + q); n.gate = G.id; n.tier = G.tier; n.full *= 1.55; n.main.scale.setScalar(n.full); n.hp = nodeHits(n) * 1.5; });
+  if (A.id === 'cave2') MINE_GATES.forEach((G, q) => { if (mineS()[G.id]) return; const n = makeNode('boulder', G.x, A.cz, 2600 + q); n.gate = G.id; n.tier = G.tier; n.g.rotation.y = 0;
+    /* Leon, 2026-11-27: the heap looked like a big boulder nobody can break. Now it is a pile of loose stones behind a plank
+       barrier, and the pickaxe that opens it always floats over it */
+    n.main.geometry = RUBBLE_GEO; n.full = 1; n.main.scale.setScalar(1); n.hp = nodeHits(n) * (G.tier > 1 ? 1.5 : 1);
+    n.tag = isleSprite(isleBubble('pick' + (G.tier > 1 ? G.tier : '')), 0.95); n.tag.position.set(0, 2.55, 0); n.g.add(n.tag); });
   if (A.id === 'cave3') { LIFT.g = liftModel(LIFT.low.x, LIFT.low.z, 2650); const Q = LIFT.lowMat = stairMat('up', LIFT.low.x, LIFT.low.z + 1.3); Q.ok = () => inCave && !!HAS.s0; Q.to = () => LIFT.topOut; Q.cave = false; }
   /* the hill top, seen from outside */
   const H = []; const top = new T.SphereGeometry(7.4, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2); top.scale(1, 0.42, 1); jit(top, 0.22, 2400); top.translate(A.cx, 0, A.cz);
@@ -3634,7 +3680,7 @@ function springCoin(S, k) {
    On the island the seasons do not follow the calendar: each island has its own. Home is spring (mild), the meadow
    island is summer (hot sun, a warm shimmer), the stone island is autumn (rain), and the far island over the orchard
    bridge is winter (snow). Walking onto an island turns the season and its weather; the season dial shows where Pip is. */
-const ZONE_SEASON = { home: 'spring', rocks: 'spring', berry: 'spring', cave: 'spring', marsh: 'spring', coral: 'summer', meadow: 'summer', orchard: 'summer', stone: 'autumn', clay: 'autumn', snow: 'winter' };
+const ZONE_SEASON = { home: 'spring', rocks: 'spring', berry: 'spring', cave: 'spring', marsh: 'spring', coral: 'summer', ember: 'summer', meadow: 'summer', orchard: 'summer', stone: 'autumn', clay: 'autumn', snow: 'winter' };
 const ZONE_WX = { spring: ['clear', 120], summer: ['clear', 150], autumn: ['rain', 100], winter: ['snow', 100] };
 let zoneSeason = 'spring';
 ISLAND.seasonAt = () => zoneSeason;
@@ -3642,6 +3688,7 @@ const heatHaze = (() => { const d = document.createElement('div'); d.style.cssTe
 function zoneStep() {
   const A = inCave ? null : areaAt(pip.position.x, pip.position.z), z = inCave ? 'spring' : A && HAS[A.id] ? ZONE_SEASON[A.biome] || 'spring' : null; /* on a bridge: keep the season Pip came from */
   if (z && z !== zoneSeason) { zoneSeason = z; const w = ZONE_WX[z]; if (state.wx && state.wx.k !== w[0]) wxSet(w[0], w[1]); }
+  if (A && HAS[A.id] && wonderCalm(A) && state.wx && state.wx.k !== 'clear') wxSet('clear', 150); /* a finished wonder keeps its island's sky clear (wonders.js) */
   heatHaze.style.opacity = zoneSeason === 'summer' && !isNight && !inCave ? '1' : '0';
 }
 /* ---------- things that only come at certain times (Leon's idea list, 2026-11-23) ----------
@@ -6306,7 +6353,7 @@ function peopleGoal() {
 
 let anvilIn = false, hamT = 0;
 function peopleStep(dt) {
-  bakerStep(dt); loopStep(dt); hamStep(dt); findStep(dt); mesaStep(dt); iceStep(dt); raftStep(dt); tideStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
+  bakerStep(dt); loopStep(dt); hamStep(dt); findStep(dt); mesaStep(dt); iceStep(dt); raftStep(dt); tideStep(dt); emberStep(dt); wonderStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
   if (!SM.g) return;
   const F = folk(), g = SM.g, pp = pip.position;
   /* she steps out of the cottage */
@@ -7116,7 +7163,7 @@ function torchLight() {
 const gearWet = () => raining() && !inCave && !gearHas('coat');
 const gearEnMul = () => (gearWet() ? 2 : 1); /* rain without a coat: every job costs twice (isle.js enUse) */
 const gearRain = () => gearHas('coat'); /* the yellow slicker only shows once Pip owns the coat (rain.js) */
-const gearSnow = () => !inCave && zoneSeason === 'winter' && !gearHas('boots') && (() => { const A = areaAt(pip.position.x, pip.position.z); return !!A && A.biome === 'snow'; })();
+const gearSnow = () => !inCave && zoneSeason === 'winter' && !gearHas('boots') && !mons().tower && (() => { const A = areaAt(pip.position.x, pip.position.z); return !!A && A.biome === 'snow'; })();
 const gearSlow = () => (state.isle && GE.ready && gearSnow() ? 0.5 : 1); /* deep snow: half speed without boots (rules.js speed) */
 function gearInit() { const I = state.isle; I.seen = I.seen || {}; I.webs = I.webs || {}; I.calm = I.calm || {}; GE.ready = 1; webSync(); torchLight(); }
 function gearStep(dt) {
@@ -7519,7 +7566,7 @@ function loopBuy(s) {
   if (LOOP_FOLK[id] && s.kind === 'person') { folk()[id] = 2; LP.folk[id].move = { t: 0 }; Snd.play('success', { gain: 0.5, f: 'E6' }); burst(LP.folk[id].g.position.x, 1.5, LP.folk[id].g.position.z, 10); xpGain(10); return true; }
   if (LOOP_FOLK[id] && s.kind === 'plot') { folk()[id] = 3; loopHouse(id, true); LP.folk[id].hop = 1; Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.15); xpGain(20);
     if (LOOP_FOLK[id].key) keyGive(LOOP_FOLK[id].key, HOUSES[id].x, HOUSES[id].z + 1.4); villageSync(true); return true; }
-  if (s.kind === 'mon') { mons()[id] = 1; monMake(id, true); matMake('camp'); xpGain(40); Snd.play('success', { gain: 0.55, f: 'C6' }); Snd.play('sparkle', { gain: 0.5 }, 0.2); Snd.play('success', { gain: 0.45, f: 'G6' }, 0.5); save(); return true; }
+  if (s.kind === 'mon') { mons()[id] = 1; monMake(id, true); wonderNow(id); matMake('camp'); xpGain(40); Snd.play('success', { gain: 0.55, f: 'C6' }); Snd.play('sparkle', { gain: 0.5 }, 0.2); Snd.play('success', { gain: 0.45, f: 'G6' }, 0.5); save(); return true; }
   return false;
 }
 function loopGoal() {
@@ -7758,6 +7805,8 @@ function findIcon(x, t) {
       x.beginPath(); x.roundRect(-4.5, -22, 9, 18, 4.5); x.fillStyle = '#8a5a34'; x.fill(); x.stroke(); x.restore(); }); }
   else if (t === 'pearl') { x.beginPath(); x.moveTo(-22, 0); x.quadraticCurveTo(-18, 20, 0, 20); x.quadraticCurveTo(18, 20, 22, 0); x.closePath(); blob('#f3b8c8'); x.beginPath(); x.moveTo(-22, -2); x.quadraticCurveTo(-16, -22, 0, -20); x.quadraticCurveTo(16, -22, 22, -2); x.closePath(); blob('#f9d3dd');
     x.beginPath(); x.arc(0, 1, 9, 0, 7); blob('#ffffff'); x.fillStyle = '#dfe9f5'; x.beginPath(); x.arc(2, 3, 4, 0, 7); x.fill(); }
+  else if (t === 'ember') { x.beginPath(); x.moveTo(-18, 10); x.lineTo(-15, -8); x.lineTo(-2, -16); x.lineTo(15, -9); x.lineTo(19, 9); x.lineTo(3, 16); x.closePath(); blob('#4a4038');
+    x.beginPath(); x.moveTo(-10, 6); x.lineTo(-4, -4); x.lineTo(3, 3); x.lineTo(10, -6); x.lineWidth = 5; x.strokeStyle = '#ff8a3c'; x.stroke(); x.lineWidth = 2; x.strokeStyle = '#ffe07a'; x.stroke(); }
   else if (t === 'glow') { x.beginPath(); for (let q = 0; q < 8; q++) { const r = q % 2 ? 7 : 22, a = q / 8 * Math.PI * 2 - Math.PI / 2; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.closePath(); blob('#ffe07a');
     x.beginPath(); x.moveTo(0, -22); x.lineTo(0, 22); x.moveTo(-22, 0); x.lineTo(22, 0); x.lineWidth = 1.6; x.strokeStyle = '#f2a13c'; x.stroke(); x.fillStyle = '#ffffff'; x.beginPath(); x.arc(-3, -4, 3, 0, 7); x.fill(); }
 }
@@ -7789,8 +7838,8 @@ function findGeo(k) {
     [[0, 0, 0.78, 0, 0], [0.2, 0.08, 0.5, 0.45, 0.2], [-0.2, 0.04, 0.55, -0.4, -0.2], [0.02, -0.2, 0.42, 0.1, -0.5], [-0.08, 0.2, 0.36, -0.15, 0.5]].forEach(([x, z, h, rz, rx], i) => { q = new T.OctahedronGeometry(0.13, 0); q.scale(1, h / 0.13 * 0.5, 1); q.translate(0, h * 0.45, 0); q.rotateZ(rz); q.rotateX(rx); q.translate(x, 0, z);
       L.push(fac(q, (cx, cy, cz, f) => new T.Color(f % 3 === 0 ? '#ffffff' : i % 2 ? '#ffd76a' : '#fff3b0'), 2830 + i)); });
     q = ico(0.22, 0, 2836); q.scale(1.3, 0.5, 1.2); q.translate(0, 0.05, 0); L.push(fac(q, '#6a625a', 2836));
-  } else { /* a vein: a dark rock shot through with metal, and nuggets sitting on it */
-    const c = k === 'copper' ? ['#e8914a', '#f6b987'] : ['#a9c4e6', '#eef5fc'];
+  } else { /* a vein: a dark rock shot through with metal, and nuggets sitting on it (the ember rock: with glowing cracks) */
+    const c = k === 'copper' ? ['#e8914a', '#f6b987'] : k === 'cinder' ? ['#ff8a3c', '#ffd76a'] : ['#a9c4e6', '#eef5fc'];
     q = ico(0.52, 1, 2840, 0.07); q.scale(1.15, 0.78, 1); q.translate(0, 0.3, 0); L.push(fac(q, (cx, cy, cz, f) => (f % 4 === 0 ? tone(c[0], f, 0.4) : shadeY('#474d57', cy, 0, 0.7, f, 0.5)), k === 'copper' ? 2840 : 2841));
     [[0.3, 0.52, 0.18], [-0.26, 0.56, -0.1], [0.02, 0.68, 0.02], [-0.36, 0.3, 0.3], [0.42, 0.26, -0.26], [0.1, 0.4, 0.44]].forEach(([x, y, z], i) => { q = ico(0.13 + (i % 3) * 0.03, 0, 2850 + i); q.translate(x, y, z); L.push(fac(q, (cx, cy, cz, f) => new T.Color(c[f % 2]), 2850 + i)); });
   }
@@ -7809,7 +7858,7 @@ function findNode(n, g) {
 function findGot(n) {
   const [t, c] = YIELD[n.kind]; state.isle.store[t] = (state.isle.store[t] || 0) + c; xpGain(XP_FOR[n.kind]);
   const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, c), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(n.x, n.g.position.y + 1.5, n.z); sc.add(sp); FD.floats.push({ sp, t: 0, y: n.g.position.y });
-  Snd.play('sparkle', { gain: 0.45 }); burst(n.x, n.g.position.y + 1.0, n.z, 6); bldBadge(); save();
+  invDirty = true; Snd.play('sparkle', { gain: 0.45 }); burst(n.x, n.g.position.y + 1.0, n.z, 6); bldBadge(); save();
 }
 function findStep(dt) {
   for (let k = FD.floats.length - 1; k >= 0; k--) { const G = FD.floats[k]; G.t += dt;
@@ -7841,6 +7890,7 @@ function tallSpots(A) {
   return out;
 }
 function tallFill(A, fresh) {
+  if (mons().windmill) return; /* the windmill's wind has laid the meadow's tall grass flat (wonders.js) */
   const C = tallCuts(); tallSpots(A).forEach(([x, z, k, hx, hz]) => { const id = A.id + ':' + k; if (C[id]) return;
     const n = makeNode('tall', x, z, AREAS.indexOf(A) * 997 + 1200 + k); n.cut = id; n.box = [hx + 0.03, hz + 0.03]; if (fresh) { n.pop = 0.001; n.g.scale.setScalar(0.01); } });
 }
@@ -8137,6 +8187,115 @@ function tideStep(dt) {
       if (typeof dog !== 'undefined' && dog && dog.g) dog.g.position.set(CR.hop.to[0] + 0.6, 0, CR.hop.to[1] + (near ? 0.5 : -0.5)); } }
   if (CR.was !== TIDE.low && Math.hypot(pp.x - B.x0, pp.z - B.z0) < 9) { splash(B.x0 + (B.x1 - B.x0) * 0.5, -0.3, B.z0 + (B.z1 - B.z0) * 0.5, 6); Snd.play(TIDE.low ? 'sparkle' : 'whoosh', { gain: 0.25, f: 300 }); }
   CR.was = TIDE.low;
+}
+/* ---------- the ember island and its lava (Leon, 2026-11-25: each island should differ in how Pip gets about) ----------
+   The last island: one square of black rock under a small volcano. Two streams of lava run from the crater to the sea
+   and cut the square in three; lava is no ground to walk on. The way on is to cool it: at each stream a rope ring lies
+   on the near bank with a picture of the crystals it takes. Stand in it with enough crystals and they are thrown in,
+   the lava there hisses and sets into a slab of dark stone, and Pip can cross from then on (state.isle.cool).
+   The middle part is the richest ground in the game (level 4). The far part holds the ember rocks: the island's own
+   find (finds.js), for the lantern. The shape of it all is in rules.js (EMBER), because the walking rules need it. */
+const EM = { g: null, lava: [], slabs: {}, rings: {}, tex: {}, smoke: 0, hot: 0, hold: 0 };
+const emberCool = () => state.isle.cool || (state.isle.cool = {});
+function emberTex(n, can) {
+  const key = n + (can ? '!' : ''); if (EM.tex[key]) return EM.tex[key];
+  const c = document.createElement('canvas'); c.width = 224; c.height = 128; const x = c.getContext('2d');
+  x.beginPath(); x.roundRect(6, 6, 212, 92, 30); x.fillStyle = can ? '#f3ffe6' : '#fff6e4'; x.fill(); x.lineWidth = can ? 7 : 5; x.strokeStyle = can ? '#4f8a3a' : '#6e4426'; x.stroke();
+  x.beginPath(); x.moveTo(98, 96); x.lineTo(112, 122); x.lineTo(126, 96); x.fillStyle = can ? '#f3ffe6' : '#fff6e4'; x.fill();
+  isleIcon(x, 'crystal', 62, 52, 1.5); x.font = '800 58px "Baloo 2", system-ui, sans-serif'; x.textBaseline = 'middle'; x.fillStyle = can ? '#3f8a3a' : PAL.ink; x.fillText(String(n), 108, 56);
+  return (EM.tex[key] = new T.CanvasTexture(c));
+}
+/* points along a stream, every third of a metre (cut fine so the ribbon bends with the curved world) */
+function emberPath(P) { const out = []; for (let k = 0; k + 1 < P.length; k++) { const L = Math.hypot(P[k + 1][0] - P[k][0], P[k + 1][1] - P[k][1]), n = Math.ceil(L / 0.33); for (let q = k ? 1 : 0; q <= n; q++) out.push([P[k][0] + (P[k + 1][0] - P[k][0]) * q / n, P[k][1] + (P[k + 1][1] - P[k][1]) * q / n]); } return out; }
+function emberFill(A, fresh) {
+  if (A.id !== 'e0' || EM.g) return;
+  Object.assign(EMBER.cool, emberCool());
+  /* what grows here is set out by hand: a little by the bridge, the rich ground between the two streams */
+  [['crystal', 23.4, 24.4], ['rock', 25.4, 23.3], ['rock', 23.0, 26.2], ['crystal', 23.2, 31.5], ['crystal', 24.8, 30.0], ['boulder', 26.7, 29.7], ['crystal', 25.0, 32.6], ['crystal', 27.2, 32.4], ['rock', 23.0, 33.3], ['boulder', 26.4, 33.5], ['crystal', 28.6, 29.2]]
+    .forEach(([k, x, z], q) => { const n = makeNode(k, x, z, 7400 + q); if (fresh) { n.pop = 0.001; n.g.scale.setScalar(0.01); } });
+  const g = EM.g = new T.Group(); sc.add(g); const L = []; let q;
+  /* the lava: a glowing ribbon down each stream, its picture sliding slowly toward the sea */
+  const c = document.createElement('canvas'); c.width = 64; c.height = 256; const x = c.getContext('2d'); x.fillStyle = '#ff7a1c'; x.fillRect(0, 0, 64, 256);
+  for (let k = 0; k < 60; k++) { x.fillStyle = ['#ffb23a', '#ffd76a', '#e8520f', '#ff9a2a'][k % 4]; x.globalAlpha = 0.75; x.beginPath(); x.ellipse(hash(k, 7001) * 64, hash(k, 7002) * 256, 4 + hash(k, 7003) * 9, 8 + hash(k, 7004) * 22, 0, 0, 7); x.fill(); }
+  x.globalAlpha = 0.55; x.fillStyle = '#5a2412'; for (let k = 0; k < 16; k++) { x.beginPath(); x.ellipse(hash(k, 7011) * 64, hash(k, 7012) * 256, 3 + hash(k, 7013) * 5, 5 + hash(k, 7014) * 10, 0, 0, 7); x.fill(); }
+  const tex = new T.CanvasTexture(c); tex.wrapS = tex.wrapT = T.RepeatWrapping; EM.lavaTex = tex; const lm = new T.MeshBasicMaterial({ map: tex, side: T.DoubleSide }); lm.userData = { noSnow: 1 };
+  EMBER.lava.forEach((P, s) => { const pts = emberPath(P), pos = [], uv = [], idx = [];
+    pts.forEach((p, k) => { const a = pts[Math.max(0, k - 1)], b = pts[Math.min(pts.length - 1, k + 1)], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, nx = -(b[1] - a[1]) / l, nz = (b[0] - a[0]) / l, w = 0.62 + Math.sin(k * 0.7 + s) * 0.07;
+      pos.push(p[0] + nx * w, 0.075, p[1] + nz * w, p[0] - nx * w, 0.075, p[1] - nz * w); uv.push(0, k * 0.11, 1, k * 0.11); if (k) { const o = k * 2; idx.push(o - 2, o - 1, o, o, o - 1, o + 1); }
+      /* a crust of dark rock along both banks */
+      if (k % 2 === 0) [1, -1].forEach((sd, j) => { const r = 0.16 + hash(k, 7020 + s + j) * 0.12, e = ico(r, 0, 7030 + k + j * 100 + s * 300); e.scale(1.3, 0.7, 1.1); e.translate(p[0] + nx * sd * (w + 0.1), 0.03, p[1] + nz * sd * (w + 0.1)); L.push(fac(e, (cx, cy, cz, i) => tone(i % 5 === 0 ? '#7a3a22' : '#3a322e', i + k, 0.4), 7030 + k)); }); });
+    const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
+    const m = new T.Mesh(geo, lm); g.add(m); EM.lava.push(m); pts.forEach((p, k) => { if (k % 3 === 0) lookFoot(p[0], p[1], 0.9, 0.9); }); });
+  /* the volcano: a blunt cone of dark rock with a glowing crater */
+  const [vx, vz, vr] = EMBER.cone;
+  q = new T.CylinderGeometry(0.95, vr + 0.15, 2.7, 11, 3); jit(q, 0.16, 7100); q.translate(vx, 1.3, vz); L.push(fac(q, (cx, cy, cz, i) => (cy > 2.3 ? tone('#7a3a22', i, 0.4) : shadeY(i % 7 === 0 ? '#5a4038' : '#3d3531', cy, 0, 2.7, i, 0.4)), 7100));
+  for (let k = 0; k < 9; k++) { const a = k / 9 * 6.283, r = ico(0.35 + hash(k, 7110) * 0.3, 1, 7111 + k); r.scale(1.2, 0.8, 1); r.translate(vx + Math.cos(a) * (vr - 0.1), 0.15, vz + Math.sin(a) * (vr - 0.1)); L.push(fac(r, (cx, cy, cz, i) => shadeY('#453c37', cy, 0, 0.6, i, 0.4), 7111 + k)); }
+  const cr = new T.Mesh(new T.CircleGeometry(0.86, 14), lm); cr.rotation.x = -Math.PI / 2; cr.position.set(vx, 2.6, vz); g.add(cr);
+  lookFoot(vx, vz, vr + 0.4, vr + 0.4);
+  const bm = merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g); if (bm && bm.isMesh) { bm.castShadow = true; bm.receiveShadow = true; }
+  /* each crossing: the slab that the lava sets into, and the ring to stand in while it is still hot */
+  EMBER.cross.forEach((C, s) => { const S = [], dx = C.b[0] - C.a[0], dz = C.b[1] - C.a[1];
+    for (let k = 0; k < 6; k++) { const u = (k + 0.5) / 6, e = new T.CylinderGeometry(0.5, 0.56, 0.16, 8); jit(e, 0.03, 7200 + k + s * 10); e.rotateY(hash(k, 7201 + s) * 6); e.translate(C.a[0] + dx * u + (k % 2 ? 0.28 : -0.28) * (dz / Math.hypot(dx, dz)), 0.05, C.a[1] + dz * u - (k % 2 ? 0.28 : -0.28) * (dx / Math.hypot(dx, dz))); S.push(fac(e, (cx, cy, cz, i) => tone(cy > 0.1 ? (i % 4 === 0 ? '#6a6460' : '#58524e') : '#3a3431', i + k, 0.3), 7200 + k)); }
+    const sg = new T.Group(); g.add(sg); const sm = merged(S.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, sg); if (sm && sm.isMesh) { sm.castShadow = true; sm.receiveShadow = true; } sg.visible = !!EMBER.cool[C.id]; EM.slabs[C.id] = sg;
+    if (!EMBER.cool[C.id]) { const ring = ropeRing(0.42, 0.56); ring.rotation.x = -Math.PI / 2; ring.position.set(C.ring[0], 0.035, C.ring[1]); sc.add(ring); const sp = isleSprite(emberTex(C.n, false), 1); sp.scale.set(1.3, 0.74, 1); sp.position.set(C.ring[0], 1.75, C.ring[1]); sc.add(sp); EM.rings[C.id] = { ring, sp, can: false }; lookFoot(C.ring[0], C.ring[1], 0.7, 0.7); } });
+}
+const emberKeep = (a, x, z) => a.id === 'e0' && (emberLava(x, z) < 0.3 || Math.hypot(x - EMBER.cone[0], z - EMBER.cone[1]) < EMBER.cone[2] + 0.5 || EMBER.cross.some((C) => Math.hypot(x - C.ring[0], z - C.ring[1]) < 1.1 || segD(x, z, C.a[0], C.a[1], C.b[0], C.b[1]) < 1.25));
+/* black pebbles and cinders, and a few that still glow */
+function emberDecor(A, L, base) {
+  for (let k = 0; k < 150; k++) { const x = A.cx + (hash(k, 501 + base) - 0.5) * 11.4, z = A.cz + (hash(k, 502 + base) - 0.5) * 11.4; if (emberLava(x, z) < 0.2 || Math.hypot(x - EMBER.cone[0], z - EMBER.cone[1]) < EMBER.cone[2] + 0.2 || nodes.some((q) => Math.abs(q.x - x) < 0.55 && Math.abs(q.z - z) < 0.55)) continue;
+    const r = 0.05 + hash(k, 503) * 0.1, q = ico(r, 1, 7300 + k, r * 0.1); q.scale(1.25, 0.6, 1); q.rotateY(hash(k, 504) * 6); q.translate(x, r * 0.3, z); L.push(fac(q, (cx, cy, cz, i) => (k % 9 === 0 ? tone('#e8641f', i, 0.5) : shadeY('#2f2a27', cy, 0, 0.12, i + k, 0.5)), 7300 + k)); }
+}
+function emberStep(dt) {
+  if (!EM.g) return; const pp = pip.position;
+  if (EM.lavaTex && !reduced) EM.lavaTex.offset.y = -time * 0.07;
+  if (!reduced) { EM.smoke -= dt; if (EM.smoke <= 0 && Math.hypot(pp.x - EMBER.cone[0], pp.z - EMBER.cone[1]) < 22) { EM.smoke = 0.55; smokePuff(EMBER.cone[0] + (Math.random() - 0.5) * 0.6, 2.8, EMBER.cone[1] + (Math.random() - 0.5) * 0.6, '#5d5651'); } }
+  if (!HAS.e0 || inCave) return;
+  /* too hot to step on: a puff where Pip's feet meet the lava */
+  if (!reduced && emberLava(pp.x, pp.z) < 0.28 && Math.hypot(target.x - pp.x, target.z - pp.z) > 0.15) { EM.hot -= dt; if (EM.hot <= 0) { EM.hot = 0.3; smokePuff(pp.x + (Math.random() - 0.5) * 0.3, 0.15, pp.z + (Math.random() - 0.5) * 0.3, '#ffffff'); } }
+  let inRing = false;
+  EMBER.cross.forEach((C) => { const R = EM.rings[C.id]; if (!R) return; const can = haveN('crystal') >= C.n;
+    if (can !== R.can) { R.can = can; R.sp.material.map = emberTex(C.n, can); }
+    R.sp.position.y = 1.75 + (reduced ? 0 : Math.sin(time * (can ? 4 : 2)) * (can ? 0.09 : 0.04));
+    if (Math.hypot(pp.x - C.ring[0], pp.z - C.ring[1]) > 0.55 || enSleep) return; inRing = true;
+    if (!can) { if (EM.hold <= 0) { EM.hold = 1.5; Snd.play('blip', { gain: 0.2, f: 300 }); } return; }
+    EM.hold += dt; if (EM.hold < 0.5) return; EM.hold = 0;
+    /* the crystals go in, the lava hisses and sets */
+    spendN('crystal', C.n).forEach((m) => { if (m.parent) m.parent.remove(m); }); emberCool()[C.id] = 1; EMBER.cool[C.id] = 1; sc.remove(R.ring); sc.remove(R.sp); delete EM.rings[C.id];
+    const S = EM.slabs[C.id]; S.visible = true; S.scale.y = 0.01; S.userData.p = 0.001; const mx = (C.a[0] + C.b[0]) / 2, mz = (C.a[1] + C.b[1]) / 2;
+    for (let k = 0; k < 9; k++) smokePuff(C.a[0] + (C.b[0] - C.a[0]) * Math.random() + (Math.random() - 0.5) * 0.8, 0.2 + Math.random() * 0.5, C.a[1] + (C.b[1] - C.a[1]) * Math.random() + (Math.random() - 0.5) * 0.8, '#ffffff');
+    splash(mx, 0.2, mz, 10); burst(mx, 1.0, mz, 8); Snd.play('whoosh', { gain: 0.5, f: 200 }); Snd.play('success', { gain: 0.45 }); xpGain(12); bldBadge(); save(); });
+  if (!inRing) EM.hold = Math.max(0, EM.hold - dt);
+  Object.keys(EM.slabs).forEach((k) => { const S = EM.slabs[k]; if (S.userData.p > 0 && S.userData.p < 1) { S.userData.p = Math.min(1, S.userData.p + dt * 2.5); S.scale.y = S.userData.p; } });
+}
+/* ---------- wonders change their island (Leon, 2026-11-25: "wonders that do more than fast travel ... transform it") ----------
+   A finished monument is felt over its whole island, not just at its own spot:
+     the windmill   its wind lays the meadow's tall grass flat (every belt is open for good), and the meadow bursts into flower;
+     the lighthouse the rain over the stone island stops: clear skies there from then on;
+     the star tower its warmth stops the snowfall on the winter island and melts the deep snow, so Pip walks at full speed
+                    there even without boots.
+   The harbour stays as it is (home has nothing to mend). The new islands have no wonder yet. */
+const WD = { bloom: {}, pop: [] };
+const wonderCalm = (A) => (/^s\d/.test(A.id) && !!mons().lighthouse) || (/^w\d/.test(A.id) && !!mons().tower);
+/* the moment a wonder is finished */
+function wonderNow(id) {
+  if (id === 'windmill') nodes.forEach((n) => { if (n.kind !== 'tall' || n.dead) return; n.dead = 1; n.st = 'gone'; if (work && work.n === n) work = null; if (Math.hypot(n.x - pip.position.x, n.z - pip.position.z) < 16) for (let k = 0; k < 2; k++) smokePuff(n.x + (Math.random() - 0.5) * 0.7, 0.4 + Math.random() * 0.8, n.z + (Math.random() - 0.5) * 0.7, k ? '#e9d27a' : '#a9cf62'); });
+  if (id === 'tower' || id === 'lighthouse') { const S = LOOP_SITES[id]; for (let k = 0; k < 10; k++) smokePuff(S.x + (Math.random() - 0.5) * 3, 0.5 + Math.random() * 2, S.z + (Math.random() - 0.5) * 3, '#ffffff'); }
+  WD.anim = id === 'windmill';
+}
+/* the meadow in flower: a carpet of blossoms over each meadow square Pip owns */
+function wonderBloom(A, anim) {
+  const L = [], base = AREAS.indexOf(A) * 173, COLS = ['#ffffff', '#f6d24a', '#f29ab8', '#b89cf0', '#ff8a5c', '#ef6f6c', '#8fd0f0'];
+  for (let k = 0; k < 230; k++) { const x = A.cx + (hash(k, 811 + base) - 0.5) * 11.2, z = A.cz + (hash(k, 812 + base) - 0.5) * 11.2; if (roadKind(x, z) || campNear(x, z, 1.2) || nodes.some((q) => Math.abs(q.x - x) < 0.5 && Math.abs(q.z - z) < 0.5)) continue;
+    const col = COLS[Math.floor(hash(k, 813 + base) * COLS.length)], h = 0.14 + hash(k, 814) * 0.16;
+    const st = new T.CylinderGeometry(0.012, 0.015, h, 3); st.translate(x, h / 2, z); L.push(fac(st, '#5d8a3a', 8100));
+    const pe = ico(0.085, 1, 8200 + k); pe.scale(1, 0.34, 1); pe.rotateX(0.35); pe.translate(x, h, z); L.push(fac(pe, col, 8200 + k));
+    const ce = ico(0.034, 0, 8300 + k); ce.translate(x, h + 0.028, z + 0.014); L.push(fac(ce, col === '#f6d24a' ? '#e58a2c' : '#f6d24a', 8300)); }
+  const g = new T.Group(); sc.add(g); const m = merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g); if (m && m.isMesh) { m.castShadow = false; m.receiveShadow = true; }
+  WD.bloom[A.id] = g; if (anim) { g.scale.y = 0.01; WD.pop.push({ g, p: 0.001 }); }
+}
+function wonderStep(dt) {
+  if (mons().windmill) AREAS.forEach((A) => { if (/^m\d/.test(A.id) && HAS[A.id] && !WD.bloom[A.id] && !rising) wonderBloom(A, !!WD.anim); });
+  for (let k = WD.pop.length - 1; k >= 0; k--) { const P = WD.pop[k]; P.p = Math.min(1, P.p + dt * 0.8); P.g.scale.y = P.p * P.p * (3 - 2 * P.p); if (P.p >= 1) WD.pop.splice(k, 1); }
 }
 /* ---------- props rebuilt for the highest graphics level (Leon, 2026-11-25): the chest, the boat, the old cottage
    and the two tents. They were a handful of flat boxes; now they are made of boards, stones, cloth panels and shingles
@@ -8457,9 +8616,9 @@ function propKennel(g) {
      the stairs to the cave, the boat to the farm;
    - a red marker that pulses where Pip stands.
    Tap anywhere to close. The map is a canvas drawn when it opens: it costs nothing while it is shut. */
-const MP = { btn: null, el: null, cv: null, pip: null, S: 16, x0: -35, z0: -39, w: 70, h: 78 };
-const MAP_COL = { home: '#9fd36a', rocks: '#b7c888', berry: '#86cc68', meadow: '#c4e56e', orchard: '#d9df78', stone: '#b9b7ab', clay: '#cfa880', snow: '#f4f8fd', cave: '#8a8074', marsh: '#8fbf6c', coral: '#f3e3b0' };
-const MAP_RES = { home: 'log', rocks: 'stone', berry: 'berry', meadow: 'berry', orchard: 'log', stone: 'stone', clay: 'stone', snow: 'crystal', cave: 'crystal', marsh: 'log', coral: 'crystal' };
+const MP = { hint: null, hints: [], btn: null, el: null, cv: null, pip: null, S: 16, x0: -35, z0: -39, w: 70, h: 78 };
+const MAP_COL = { home: '#9fd36a', rocks: '#b7c888', berry: '#86cc68', meadow: '#c4e56e', orchard: '#d9df78', stone: '#b9b7ab', clay: '#cfa880', snow: '#f4f8fd', cave: '#8a8074', marsh: '#8fbf6c', coral: '#f3e3b0', ember: '#7a675c' };
+const MAP_RES = { home: 'log', rocks: 'stone', berry: 'berry', meadow: 'berry', orchard: 'log', stone: 'stone', clay: 'stone', snow: 'crystal', cave: 'crystal', marsh: 'log', coral: 'crystal', ember: 'crystal' };
 function mapXY(x, z) { return [(x - MP.x0) * MP.S, (z - MP.z0) * MP.S]; }
 /* the button's picture: a folded map with an island and a red pin */
 function mapPic(px) {
@@ -8500,6 +8659,9 @@ function mapDraw() {
     if (HAS[A.id]) { x.lineCap = 'butt'; x.lineWidth = 26; x.strokeStyle = '#6e4426'; x.beginPath(); x.moveTo(ax, az); x.lineTo(bx, bz); x.stroke(); x.lineWidth = 19; x.strokeStyle = '#c99f6c'; x.setLineDash([9, 3]); x.stroke(); x.setLineDash([]); x.lineCap = 'round'; }
     else if (HAS[B.from]) { x.lineWidth = 8; x.strokeStyle = '#f4b23a'; x.setLineDash([12, 12]); x.beginPath(); x.moveTo(ax, az); x.lineTo(bx, bz); x.stroke(); x.setLineDash([]);
       const k = LOOP_KEY[A.id], mx = (ax + bx) / 2, mz = (az + bz) / 2; if (k) { mapBadge(x, mx, mz, 30); isleIcon(x, k, mx, mz, 1.0); if (!lkeys()[k]) isleIcon(x, 'lock', mx + 22, mz + 20, 0.6); } } });
+  /* the special finds: a small picture where each one is found */
+  AREAS.forEach((A) => { const seen = {}; (A.finds || []).forEach((f) => { const t = FIND_NODE[f[0]].t; if (seen[t]) return; seen[t] = 1; const [px, pz] = A.cave ? mapXY(A.cx, A.cz + 2.2) : mapXY(A.cx + 4.0, A.cz - 4.2);
+    x.globalAlpha = A.cave || HAS[A.id] ? 1 : 0.6; mapBadge(x, px, pz, 19); isleIcon(x, t, px, pz, 0.62); x.globalAlpha = 1; }); });
   /* the stairs down, the boat to the farm, the camp */
   if (HAS.h3 && stairsDown) { const [px, pz] = mapXY(stairsDown.x, stairsDown.z); mapBadge(x, px, pz, 24, '#3b3348'); isleIcon(x, 'stairsDown', px, pz + 2, 0.75); }
   { const [px, pz] = mapXY(FERRY.x - 2.6, FERRY.z); isleIcon(x, 'travel', px, pz, 0.9); }
@@ -8519,8 +8681,22 @@ function mapDraw() {
   /* where Pip is */
   const P = inCave ? [AREA_BY.cave.cx, AREA_BY.cave.cz] : [pip.position.x, pip.position.z], [qx, qz] = mapXY(P[0], P[1]);
   MP.pip.style.left = (qx / W * 100) + '%'; MP.pip.style.top = (qz / H * 100) + '%';
+  /* the hint: big bouncing pictures where the missing thing is found, with the gear it takes beside it */
+  MP.hints.forEach((el) => el.remove()); MP.hints = [];
+  if (MP.hint) mapHintSpots(MP.hint).forEach((q, k) => { const [px, pz] = mapXY(q.x, q.z), el = document.createElement('div'); el.className = 'mapHint'; el.style.left = (px / W * 100) + '%'; el.style.top = (pz / H * 100) + '%'; el.style.animationDelay = (k * 0.15) + 's';
+    const b = document.createElement('span'); b.appendChild(bldIco(q.t)); el.appendChild(b); if (q.need) { const n = document.createElement('span'); n.className = 'need'; n.appendChild(bldIco(q.need)); el.appendChild(n); }
+    MP.cv.parentNode.appendChild(el); MP.hints.push(el); });
 }
-function mapOpen() { if (!MP.el.hidden) return; if (enSleep || rising || LP.hop) return; if (BM.menu && !BM.menu.hidden) BM.menu.hidden = true; mapDraw(); MP.el.hidden = false; work = null; target.copy(pip.position); Snd.play('pop', { gain: 0.3, f: 520 }); }
+/* where a thing is found: the areas with that find (and the gear Pip still lacks to get it), or the owned land that grows it */
+function mapHintSpots(t) {
+  const out = [];
+  if (FINDS.indexOf(t) >= 0) { AREAS.forEach((A) => { const f = (A.finds || []).find((q) => FIND_NODE[q[0]].t === t); if (!f) return; const F = FIND_NODE[f[0]];
+      const need = A.cave && !gearHas('torch') ? 'torch' : !F.hand && toolTier() < F.tier ? 'pick' + F.tier : null; out.push({ t, x: A.cx, z: A.cz, need }); });
+    if (out.some((q) => AREA_BY.cave2 && Math.abs(q.z - AREA_BY.cave2.cz) < 1) && !inCave && HAS.h3 && stairsDown) out.push({ t: 'stairsDown', x: stairsDown.x, z: stairsDown.z, need: null }); }
+  else if (KINDS.indexOf(t) >= 0) AREAS.forEach((A) => { if (!A.cave && HAS[A.id] && MAP_RES[A.biome] === t) out.push({ t, x: A.cx, z: A.cz, need: null }); });
+  return out;
+}
+function mapOpen(hint) { if (!MP.el || !MP.el.hidden) return; MP.hint = typeof hint === 'string' ? hint : null; if (enSleep || rising || LP.hop) return; if (BM.menu && !BM.menu.hidden) BM.menu.hidden = true; mapDraw(); MP.el.hidden = false; work = null; target.copy(pip.position); Snd.play('pop', { gain: 0.3, f: 520 }); }
 function mapShut() { if (MP.el.hidden) return; MP.el.hidden = true; Snd.play('pop', { gain: 0.25, f: 380 }); }
 function mapInit() {
   if (MP.btn || SHOW) return;
@@ -8532,6 +8708,8 @@ function mapInit() {
     + '.mapPip{position:absolute;width:0;height:0;pointer-events:none}.mapPip::before{content:"";position:absolute;left:-13px;top:-13px;width:26px;height:26px;border-radius:50%;background:#e2483d;border:4px solid #fff6e4;box-sizing:border-box;box-shadow:0 0 0 3px #3a2414}'
     + '.mapPip::after{content:"";position:absolute;left:-13px;top:-13px;width:26px;height:26px;border-radius:50%;border:4px solid #e2483d;box-sizing:border-box;animation:mapPulse 1.3s ease-out infinite}'
     + '@keyframes mapPulse{from{transform:scale(1);opacity:.9}to{transform:scale(3.4);opacity:0}}@media (prefers-reduced-motion: reduce){.mapPip::after{animation:none;transform:scale(1.8);opacity:.5}}'
+    + '.mapHint{position:absolute;width:0;height:0;pointer-events:none;animation:mapHop .9s ease-in-out infinite}.mapHint span{position:absolute;left:-34px;top:-34px;width:68px;height:68px;border-radius:50%;background:#fff6e4;border:5px solid #f4b23a;box-sizing:border-box;box-shadow:0 0 0 3px #6e4426,0 0 0 12px rgba(244,178,58,.4);display:flex;align-items:center;justify-content:center}'
+    + '.mapHint span img{width:50px;height:50px}.mapHint span.need{left:22px;top:-50px;width:44px;height:44px;border-color:#e2483d;box-shadow:0 0 0 3px #6e4426}.mapHint span.need img{width:32px;height:32px}@keyframes mapHop{50%{transform:translateY(-9px)}}@media (prefers-reduced-motion: reduce){.mapHint{animation:none}}'
     + '.mapMenu .x{flex:none;width:64px;height:64px;border-radius:50%;border:3px solid var(--ink);background:var(--paper);font:700 34px Fredoka,sans-serif;align-self:flex-start}';
   document.head.appendChild(st);
   const b = document.createElement('button'); b.type = 'button'; b.className = 'bldBtn mapBtn'; b.setAttribute('aria-label', 'Karta'); b.appendChild(mapPic(96)); document.body.appendChild(b); MP.btn = b;
@@ -8814,12 +8992,12 @@ if (uSnow > 0.003) {
 function snxMap() {
   const W = SNX.W, d = SNX.map, b = SNX.box, feet = LOOK.all.concat(LOOK.feet).filter((f) => !f[5]);
   for (let j = 0; j < W; j++) for (let i = 0; i < W; i++) { const x = b.x + (i + 0.5) / W * b.z, z = b.y + (j + 0.5) / W * b.w, A = areaAt(x, z), on = A && HAS[A.id] && A.biome === 'snow' && !A.cave, o = (j * W + i) * 4;
-    let deep = on; if (deep) for (const f of feet) { const u = (x - f[0]) / (f[2] + 0.25), v = (z - f[1]) / (f[3] + 0.25); if (u * u + v * v < 1) { deep = false; break; } }
+    let deep = on && !mons().tower; /* the star tower's warmth has melted the deep snow (wonders.js) */ if (deep) for (const f of feet) { const u = (x - f[0]) / (f[2] + 0.25), v = (z - f[1]) / (f[3] + 0.25); if (u * u + v * v < 1) { deep = false; break; } }
     d[o] = on ? 255 : 0; d[o + 1] = deep ? 255 : 0; d[o + 2] = 0; d[o + 3] = 255; }
   SNX.tex.needsUpdate = true; if (typeof grMask === 'function' && typeof GR !== 'undefined' && GR.tex) grMask();
 }
 function snxAt(x, z) { const b = SNX.box, W = SNX.W, i = Math.floor((x - b.x) / b.z * W), j = Math.floor((z - b.y) / b.w * W); return i >= 0 && j >= 0 && i < W && j < W && SNX.map[(j * W + i) * 4] > 127; }
-function snxGrass(x, z) { const A = areaAt(x, z); return snxAt(x, z) || (A && A.biome === 'coral') ? 0 : 1; } /* nor on the coral beach's sand */ /* no tall grass in the snow (engine rays.js asks) */
+function snxGrass(x, z) { const A = areaAt(x, z); return snxAt(x, z) || (A && (A.biome === 'coral' || A.biome === 'ember')) ? 0 : 1; } /* nor on the coral beach's sand */ /* no tall grass in the snow (engine rays.js asks) */
 /* press the snow down at a spot */
 function snxStamp(x, z, r, amt) {
   const W = SNX.TW, c = SNX.TS / W, n = Math.ceil(r / c), ix = Math.floor(x / c), iz = Math.floor(z / c), d = SNX.trail;
@@ -8832,7 +9010,7 @@ function snxKeep(g) { if (g && !g.userData.snx) { g.userData.snx = 1; g.traverse
 function snxStep(dt) {
   const pp = pip.position, W = SNX.TW, c = SNX.TS / W, d = SNX.trail;
   SNX.u.uSnow.value = inCave ? 0 : 1;
-  SNX.mapT -= dt; if (SNX.mapT <= 0) { SNX.mapT = 1.5; const k = Object.keys(HAS).length + ':' + (LOOK.all.length + LOOK.feet.length); if (k !== SNX.key) { SNX.key = k; snxMap(); } }
+  SNX.mapT -= dt; if (SNX.mapT <= 0) { SNX.mapT = 1.5; const k = Object.keys(HAS).length + ':' + (LOOK.all.length + LOOK.feet.length) + (mons().tower ? 't' : ''); if (k !== SNX.key) { SNX.key = k; snxMap(); } }
   const near = !inCave && (snxAt(pp.x, pp.z) || snxAt(pp.x + 13, pp.z) || snxAt(pp.x - 13, pp.z) || snxAt(pp.x, pp.z + 13) || snxAt(pp.x, pp.z - 13) || snxAt(pp.x + 9, pp.z + 9) || snxAt(pp.x - 9, pp.z - 9) || snxAt(pp.x + 9, pp.z - 9) || snxAt(pp.x - 9, pp.z + 9));
   SNX.mesh.visible = near; if (!near) return;
   SNX.mesh.position.set(Math.round(pp.x * 3) / 3, 0, Math.round(pp.z * 3) / 3); SNX.lu.uSlC.value.copy(pp);

@@ -19,13 +19,21 @@ const caveRoofs = [];
    a heap of rubble, and the lift room (cave3) behind a rockfall that only the copper pickaxe breaks. The lift at the far
    end is the only way to the stone island: its sign takes the island's price (and the map, loop.js), then the lift runs
    both ways. state.isle.mine.g1 / g2: 1 once that heap is broken through (it does not come back). */
+const RUBBLE_GEO = (() => {
+  const L = []; let q;
+  for (let k = 0; k < 22; k++) { const row = k < 10 ? 0 : k < 17 ? 1 : k < 21 ? 2 : 3, cnt = [10, 7, 4, 1][row], j = k - [0, 10, 17, 21][row], r = 0.3 - row * 0.02 + hash(k, 2650) * 0.1;
+    q = ico(r, 0, 2650 + k, 0.12); q.scale(1.1, 0.8, 1); q.translate((hash(k, 2651) - 0.5) * (0.7 - row * 0.15), 0.2 + row * 0.38, ((j + 0.5) / cnt - 0.5) * (3.1 - row * 0.75) + (hash(k, 2652) - 0.5) * 0.15);
+    L.push(fac(q, (cx, cy, cz, i) => tone(['#cdbfa8', '#b8a78e', '#d9cdb8', '#a89880'][k % 4], i, 0.35), 2650 + k)); }
+  [[-0.5, 0.55], [0.5, -0.5]].forEach(([rx, side], k) => { [-1, 1].forEach((f) => { q = new T.BoxGeometry(0.09, 0.2, 2.5); q.rotateX(rx * f * 0.8); q.translate(side * 0.62, 0.85, 0); L.push(fac(q, (cx, cy, cz, i) => tone(f > 0 ? '#c99f6c' : '#b08454', i, 0.3), 2680 + k * 2 + (f > 0 ? 1 : 0))); }); });
+  return merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT, new T.Group()).geometry;
+})();
 const MINE_GATES = [{ id: 'g1', x: 6, tier: 1 }, { id: 'g2', x: -6, tier: 2 }];
 const LIFT = { low: { x: -15.2, z: 31.7 }, lowOut: { x: -13.8, z: 33.1 }, top: null, topOut: null, lowMat: null, topMat: null };
 function mineS() { return state.isle.mine || (state.isle.mine = {}); }
 /* nothing grows in the doorways between the rooms, or round the lift */
 function mineKeep(a, x, z) { return (Math.abs(z - a.cz) < 1.6 && Math.abs(x - a.cx) > 3.3) || (a.id === 'cave3' && Math.hypot(x - LIFT.low.x, z - LIFT.low.z - 0.5) < 2.6); }
 function mineGateOpen(n) {
-  mineS()[n.gate] = 1; n.dead = 1; n.st = 'gone'; if (work && work.n === n) work = null;
+  mineS()[n.gate] = 1; if (n.tag) { n.g.remove(n.tag); n.tag = null; } n.dead = 1; n.st = 'gone'; if (work && work.n === n) work = null;
   burst(n.x, 1.2, n.z, 12); Snd.play('thud', { gain: 0.6 }); Snd.play('success', { gain: 0.45, f: 'E6' }, 0.15); xpGain(10); isleSigns(); save();
 }
 /* a mine lift: four posts, a cross beam with a wheel and a rope, and a plank floor */
@@ -79,7 +87,11 @@ function caveBuild(A) {
   const M = caveA.mat = stairMat('up', sx, sz - 0.9); M.ok = () => inCave; M.to = () => CAVE_OUT; M.cave = false;
   }
   /* the heaps that shut the doorways, until Pip breaks through */
-  if (A.id === 'cave2') MINE_GATES.forEach((G, q) => { if (mineS()[G.id]) return; const n = makeNode('boulder', G.x, A.cz, 2600 + q); n.gate = G.id; n.tier = G.tier; n.full *= 1.55; n.main.scale.setScalar(n.full); n.hp = nodeHits(n) * 1.5; });
+  if (A.id === 'cave2') MINE_GATES.forEach((G, q) => { if (mineS()[G.id]) return; const n = makeNode('boulder', G.x, A.cz, 2600 + q); n.gate = G.id; n.tier = G.tier; n.g.rotation.y = 0;
+    /* Leon, 2026-11-27: the heap looked like a big boulder nobody can break. Now it is a pile of loose stones behind a plank
+       barrier, and the pickaxe that opens it always floats over it */
+    n.main.geometry = RUBBLE_GEO; n.full = 1; n.main.scale.setScalar(1); n.hp = nodeHits(n) * (G.tier > 1 ? 1.5 : 1);
+    n.tag = isleSprite(isleBubble('pick' + (G.tier > 1 ? G.tier : '')), 0.95); n.tag.position.set(0, 2.55, 0); n.g.add(n.tag); });
   if (A.id === 'cave3') { LIFT.g = liftModel(LIFT.low.x, LIFT.low.z, 2650); const Q = LIFT.lowMat = stairMat('up', LIFT.low.x, LIFT.low.z + 1.3); Q.ok = () => inCave && !!HAS.s0; Q.to = () => LIFT.topOut; Q.cave = false; }
   /* the hill top, seen from outside */
   const H = []; const top = new T.SphereGeometry(7.4, 24, 10, 0, Math.PI * 2, 0, Math.PI / 2); top.scale(1, 0.42, 1); jit(top, 0.22, 2400); top.translate(A.cx, 0, A.cz);

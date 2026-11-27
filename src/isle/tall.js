@@ -20,6 +20,7 @@ function tallSpots(A) {
   return out;
 }
 function tallFill(A, fresh) {
+  if (mons().windmill) return; /* the windmill's wind has laid the meadow's tall grass flat (wonders.js) */
   const C = tallCuts(); tallSpots(A).forEach(([x, z, k, hx, hz]) => { const id = A.id + ':' + k; if (C[id]) return;
     const n = makeNode('tall', x, z, AREAS.indexOf(A) * 997 + 1200 + k); n.cut = id; n.box = [hx + 0.03, hz + 0.03]; if (fresh) { n.pop = 0.001; n.g.scale.setScalar(0.01); } });
 }

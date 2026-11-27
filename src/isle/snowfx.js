@@ -67,12 +67,12 @@ if (uSnow > 0.003) {
 function snxMap() {
   const W = SNX.W, d = SNX.map, b = SNX.box, feet = LOOK.all.concat(LOOK.feet).filter((f) => !f[5]);
   for (let j = 0; j < W; j++) for (let i = 0; i < W; i++) { const x = b.x + (i + 0.5) / W * b.z, z = b.y + (j + 0.5) / W * b.w, A = areaAt(x, z), on = A && HAS[A.id] && A.biome === 'snow' && !A.cave, o = (j * W + i) * 4;
-    let deep = on; if (deep) for (const f of feet) { const u = (x - f[0]) / (f[2] + 0.25), v = (z - f[1]) / (f[3] + 0.25); if (u * u + v * v < 1) { deep = false; break; } }
+    let deep = on && !mons().tower; /* the star tower's warmth has melted the deep snow (wonders.js) */ if (deep) for (const f of feet) { const u = (x - f[0]) / (f[2] + 0.25), v = (z - f[1]) / (f[3] + 0.25); if (u * u + v * v < 1) { deep = false; break; } }
     d[o] = on ? 255 : 0; d[o + 1] = deep ? 255 : 0; d[o + 2] = 0; d[o + 3] = 255; }
   SNX.tex.needsUpdate = true; if (typeof grMask === 'function' && typeof GR !== 'undefined' && GR.tex) grMask();
 }
 function snxAt(x, z) { const b = SNX.box, W = SNX.W, i = Math.floor((x - b.x) / b.z * W), j = Math.floor((z - b.y) / b.w * W); return i >= 0 && j >= 0 && i < W && j < W && SNX.map[(j * W + i) * 4] > 127; }
-function snxGrass(x, z) { const A = areaAt(x, z); return snxAt(x, z) || (A && A.biome === 'coral') ? 0 : 1; } /* nor on the coral beach's sand */ /* no tall grass in the snow (engine rays.js asks) */
+function snxGrass(x, z) { const A = areaAt(x, z); return snxAt(x, z) || (A && (A.biome === 'coral' || A.biome === 'ember')) ? 0 : 1; } /* nor on the coral beach's sand */ /* no tall grass in the snow (engine rays.js asks) */
 /* press the snow down at a spot */
 function snxStamp(x, z, r, amt) {
   const W = SNX.TW, c = SNX.TS / W, n = Math.ceil(r / c), ix = Math.floor(x / c), iz = Math.floor(z / c), d = SNX.trail;
@@ -85,7 +85,7 @@ function snxKeep(g) { if (g && !g.userData.snx) { g.userData.snx = 1; g.traverse
 function snxStep(dt) {
   const pp = pip.position, W = SNX.TW, c = SNX.TS / W, d = SNX.trail;
   SNX.u.uSnow.value = inCave ? 0 : 1;
-  SNX.mapT -= dt; if (SNX.mapT <= 0) { SNX.mapT = 1.5; const k = Object.keys(HAS).length + ':' + (LOOK.all.length + LOOK.feet.length); if (k !== SNX.key) { SNX.key = k; snxMap(); } }
+  SNX.mapT -= dt; if (SNX.mapT <= 0) { SNX.mapT = 1.5; const k = Object.keys(HAS).length + ':' + (LOOK.all.length + LOOK.feet.length) + (mons().tower ? 't' : ''); if (k !== SNX.key) { SNX.key = k; snxMap(); } }
   const near = !inCave && (snxAt(pp.x, pp.z) || snxAt(pp.x + 13, pp.z) || snxAt(pp.x - 13, pp.z) || snxAt(pp.x, pp.z + 13) || snxAt(pp.x, pp.z - 13) || snxAt(pp.x + 9, pp.z + 9) || snxAt(pp.x - 9, pp.z - 9) || snxAt(pp.x + 9, pp.z - 9) || snxAt(pp.x - 9, pp.z + 9));
   SNX.mesh.visible = near; if (!near) return;
   SNX.mesh.position.set(Math.round(pp.x * 3) / 3, 0, Math.round(pp.z * 3) / 3); SNX.lu.uSlC.value.copy(pp);

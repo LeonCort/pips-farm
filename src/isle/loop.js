@@ -266,7 +266,7 @@ function loopBuy(s) {
   if (LOOP_FOLK[id] && s.kind === 'person') { folk()[id] = 2; LP.folk[id].move = { t: 0 }; Snd.play('success', { gain: 0.5, f: 'E6' }); burst(LP.folk[id].g.position.x, 1.5, LP.folk[id].g.position.z, 10); xpGain(10); return true; }
   if (LOOP_FOLK[id] && s.kind === 'plot') { folk()[id] = 3; loopHouse(id, true); LP.folk[id].hop = 1; Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.15); xpGain(20);
     if (LOOP_FOLK[id].key) keyGive(LOOP_FOLK[id].key, HOUSES[id].x, HOUSES[id].z + 1.4); villageSync(true); return true; }
-  if (s.kind === 'mon') { mons()[id] = 1; monMake(id, true); matMake('camp'); xpGain(40); Snd.play('success', { gain: 0.55, f: 'C6' }); Snd.play('sparkle', { gain: 0.5 }, 0.2); Snd.play('success', { gain: 0.45, f: 'G6' }, 0.5); save(); return true; }
+  if (s.kind === 'mon') { mons()[id] = 1; monMake(id, true); wonderNow(id); matMake('camp'); xpGain(40); Snd.play('success', { gain: 0.55, f: 'C6' }); Snd.play('sparkle', { gain: 0.5 }, 0.2); Snd.play('success', { gain: 0.45, f: 'G6' }, 0.5); save(); return true; }
   return false;
 }
 function loopGoal() {

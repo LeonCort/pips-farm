@@ -24,6 +24,8 @@ function findIcon(x, t) {
       x.beginPath(); x.roundRect(-4.5, -22, 9, 18, 4.5); x.fillStyle = '#8a5a34'; x.fill(); x.stroke(); x.restore(); }); }
   else if (t === 'pearl') { x.beginPath(); x.moveTo(-22, 0); x.quadraticCurveTo(-18, 20, 0, 20); x.quadraticCurveTo(18, 20, 22, 0); x.closePath(); blob('#f3b8c8'); x.beginPath(); x.moveTo(-22, -2); x.quadraticCurveTo(-16, -22, 0, -20); x.quadraticCurveTo(16, -22, 22, -2); x.closePath(); blob('#f9d3dd');
     x.beginPath(); x.arc(0, 1, 9, 0, 7); blob('#ffffff'); x.fillStyle = '#dfe9f5'; x.beginPath(); x.arc(2, 3, 4, 0, 7); x.fill(); }
+  else if (t === 'ember') { x.beginPath(); x.moveTo(-18, 10); x.lineTo(-15, -8); x.lineTo(-2, -16); x.lineTo(15, -9); x.lineTo(19, 9); x.lineTo(3, 16); x.closePath(); blob('#4a4038');
+    x.beginPath(); x.moveTo(-10, 6); x.lineTo(-4, -4); x.lineTo(3, 3); x.lineTo(10, -6); x.lineWidth = 5; x.strokeStyle = '#ff8a3c'; x.stroke(); x.lineWidth = 2; x.strokeStyle = '#ffe07a'; x.stroke(); }
   else if (t === 'glow') { x.beginPath(); for (let q = 0; q < 8; q++) { const r = q % 2 ? 7 : 22, a = q / 8 * Math.PI * 2 - Math.PI / 2; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.closePath(); blob('#ffe07a');
     x.beginPath(); x.moveTo(0, -22); x.lineTo(0, 22); x.moveTo(-22, 0); x.lineTo(22, 0); x.lineWidth = 1.6; x.strokeStyle = '#f2a13c'; x.stroke(); x.fillStyle = '#ffffff'; x.beginPath(); x.arc(-3, -4, 3, 0, 7); x.fill(); }
 }
@@ -55,8 +57,8 @@ function findGeo(k) {
     [[0, 0, 0.78, 0, 0], [0.2, 0.08, 0.5, 0.45, 0.2], [-0.2, 0.04, 0.55, -0.4, -0.2], [0.02, -0.2, 0.42, 0.1, -0.5], [-0.08, 0.2, 0.36, -0.15, 0.5]].forEach(([x, z, h, rz, rx], i) => { q = new T.OctahedronGeometry(0.13, 0); q.scale(1, h / 0.13 * 0.5, 1); q.translate(0, h * 0.45, 0); q.rotateZ(rz); q.rotateX(rx); q.translate(x, 0, z);
       L.push(fac(q, (cx, cy, cz, f) => new T.Color(f % 3 === 0 ? '#ffffff' : i % 2 ? '#ffd76a' : '#fff3b0'), 2830 + i)); });
     q = ico(0.22, 0, 2836); q.scale(1.3, 0.5, 1.2); q.translate(0, 0.05, 0); L.push(fac(q, '#6a625a', 2836));
-  } else { /* a vein: a dark rock shot through with metal, and nuggets sitting on it */
-    const c = k === 'copper' ? ['#e8914a', '#f6b987'] : ['#a9c4e6', '#eef5fc'];
+  } else { /* a vein: a dark rock shot through with metal, and nuggets sitting on it (the ember rock: with glowing cracks) */
+    const c = k === 'copper' ? ['#e8914a', '#f6b987'] : k === 'cinder' ? ['#ff8a3c', '#ffd76a'] : ['#a9c4e6', '#eef5fc'];
     q = ico(0.52, 1, 2840, 0.07); q.scale(1.15, 0.78, 1); q.translate(0, 0.3, 0); L.push(fac(q, (cx, cy, cz, f) => (f % 4 === 0 ? tone(c[0], f, 0.4) : shadeY('#474d57', cy, 0, 0.7, f, 0.5)), k === 'copper' ? 2840 : 2841));
     [[0.3, 0.52, 0.18], [-0.26, 0.56, -0.1], [0.02, 0.68, 0.02], [-0.36, 0.3, 0.3], [0.42, 0.26, -0.26], [0.1, 0.4, 0.44]].forEach(([x, y, z], i) => { q = ico(0.13 + (i % 3) * 0.03, 0, 2850 + i); q.translate(x, y, z); L.push(fac(q, (cx, cy, cz, f) => new T.Color(c[f % 2]), 2850 + i)); });
   }
@@ -75,7 +77,7 @@ function findNode(n, g) {
 function findGot(n) {
   const [t, c] = YIELD[n.kind]; state.isle.store[t] = (state.isle.store[t] || 0) + c; xpGain(XP_FOR[n.kind]);
   const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, c), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(n.x, n.g.position.y + 1.5, n.z); sc.add(sp); FD.floats.push({ sp, t: 0, y: n.g.position.y });
-  Snd.play('sparkle', { gain: 0.45 }); burst(n.x, n.g.position.y + 1.0, n.z, 6); bldBadge(); save();
+  invDirty = true; Snd.play('sparkle', { gain: 0.45 }); burst(n.x, n.g.position.y + 1.0, n.z, 6); bldBadge(); save();
 }
 function findStep(dt) {
   for (let k = FD.floats.length - 1; k >= 0; k--) { const G = FD.floats[k]; G.t += dt;

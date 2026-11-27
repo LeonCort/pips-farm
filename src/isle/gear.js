@@ -149,7 +149,7 @@ function torchLight() {
 const gearWet = () => raining() && !inCave && !gearHas('coat');
 const gearEnMul = () => (gearWet() ? 2 : 1); /* rain without a coat: every job costs twice (isle.js enUse) */
 const gearRain = () => gearHas('coat'); /* the yellow slicker only shows once Pip owns the coat (rain.js) */
-const gearSnow = () => !inCave && zoneSeason === 'winter' && !gearHas('boots') && (() => { const A = areaAt(pip.position.x, pip.position.z); return !!A && A.biome === 'snow'; })();
+const gearSnow = () => !inCave && zoneSeason === 'winter' && !gearHas('boots') && !mons().tower && (() => { const A = areaAt(pip.position.x, pip.position.z); return !!A && A.biome === 'snow'; })();
 const gearSlow = () => (state.isle && GE.ready && gearSnow() ? 0.5 : 1); /* deep snow: half speed without boots (rules.js speed) */
 function gearInit() { const I = state.isle; I.seen = I.seen || {}; I.webs = I.webs || {}; I.calm = I.calm || {}; GE.ready = 1; webSync(); torchLight(); }
 function gearStep(dt) {
