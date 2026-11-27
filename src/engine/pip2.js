@@ -147,8 +147,9 @@ function buildPip2() {
     { const p = g.attributes.position, c = g.attributes.color; for (let i = 0; i < p.count; i++) { const t = Math.max(0, Math.min(1, (0.77 - p.getY(i)) / 0.3)), w = Math.cos(Math.atan2(p.getX(i), p.getZ(i)) * 8), f = 1 + 0.05 * t * w, q = 1 + 0.07 * t * w; p.setX(i, p.getX(i) * f); p.setZ(i, p.getZ(i) * f); c.setXYZ(i, c.getX(i) * q, c.getY(i) * q, c.getZ(i) * q); } }
     g.scale(1, 1, 0.86); L.push(g);
   } else { g = p2Ball(1, 0.205, 0.1, 0.152, 16, 8); g.translate(0, 0.665, 0); p2Paint(g, p2G(bc, 0.56, 0.76, 0.74, 0.98)); L.push(g); }
-  g = new T.BoxGeometry(0.44, 0.08, 0.3); g.translate(0, 0.82, -0.34); p2Paint(g, p2G(PAL.trunk, 0.78, 0.86, 0.86, 1.06)); L.push(g);
-  [-0.17, 0.17].forEach((x) => { g = new T.BoxGeometry(0.045, 0.4, 0.045); g.translate(x, 0.98, -0.17); p2Paint(g, p2G(PAL.trunk, 0.78, 1.18, 0.82, 1.04)); L.push(g); });
+  if (typeof NO_BASKET === 'undefined') { /* the carrying frame on Pip's back; a game where nothing is carried leaves it off (the island) */
+    g = new T.BoxGeometry(0.44, 0.08, 0.3); g.translate(0, 0.82, -0.34); p2Paint(g, p2G(PAL.trunk, 0.78, 0.86, 0.86, 1.06)); L.push(g);
+    [-0.17, 0.17].forEach((x) => { g = new T.BoxGeometry(0.045, 0.4, 0.045); g.translate(x, 0.98, -0.17); p2Paint(g, p2G(PAL.trunk, 0.78, 1.18, 0.82, 1.04)); L.push(g); }); }
   p2Mesh(pb, L, ln);
   /* ----- the top: jacket (hood roll, zip, slanted pockets), striped jumper, or hoodie (hood, pouch pocket, strings) ----- */
   const S = p2Surf(P2_TORSO, 0.74), dark = new T.Color(sh).multiplyScalar(0.66), band = p2Mix(sh, '#fff6e4', 0.72); L = [];

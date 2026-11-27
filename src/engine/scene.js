@@ -178,7 +178,8 @@ function groundShade(list) {
     d.save(); d.translate(px, py); d.scale(sx / r, sz / r); const g = d.createRadialGradient(0, 0, r * 0.15, 0, 0, r); const a = k == null ? 0.42 : k; g.addColorStop(0, 'rgba(70,80,60,' + a + ')'); g.addColorStop(0.6, 'rgba(120,130,100,' + a * 0.45 + ')'); g.addColorStop(1, 'rgba(255,255,255,0)'); d.fillStyle = g; d.beginPath(); d.arc(0, 0, r, 0, 6.283); d.fill(); d.restore(); });
   d.restore(); GU.det.value.needsUpdate = true;
 }
-let wg = new T.PlaneGeometry(160, 160, 56, 56); wg.rotateX(-Math.PI / 2);
+const SEAW = ISL.sea || 160; /* how wide the sea is (a game with a bigger world asks for more) */
+let wg = new T.PlaneGeometry(SEAW, SEAW, Math.round(SEAW * 0.35), Math.round(SEAW * 0.35)); wg.rotateX(-Math.PI / 2);
 wg = fac(wg, (cx, cy, cz, i) => { const d = ISL.d ? 16 * clamp((ISL.d(cx, cz) - 1) / 1.3, 0, 2) : Math.hypot(cx / 1.6, cz) * 0.8; return tone(d < 16 ? PAL.seaShallow : d < 28 ? PAL.sea : PAL.seaDeep, i, 0.9); });
 const water = new T.Mesh(wg, new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.28, metalness: 0.05 })); water.position.y = -0.45; water.receiveShadow = true; sc.add(water);
 const wp = wg.attributes.position, wn = wg.attributes.normal;

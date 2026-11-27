@@ -68,7 +68,7 @@ function digSpot(A) {
 }
 /* sleeping fills the holes and buries new treasure */
 function dogWake() { state.isle.dug = {}; Object.keys(DIG).forEach((k) => { delete DIG[k]; }); DG.holes.forEach((h) => sc.remove(h)); DG.holes.length = 0; }
-const DIG_FIND = { meadow: 'honey', orchard: 'honey', stone: 'iron', clay: 'iron', cave: 'copper', marsh: 'reed', coral: 'pearl', ember: 'ember' };
+const DIG_FIND = { meadow: 'honey', orchard: 'honey', stone: 'iron', clay: 'iron', cave: 'copper', marsh: 'reed', coral: 'pearl', ember: 'ember', ash: 'ember' };
 function digLoot(A) {
   const t = BIOME_TIER[A.biome] || 1, out = [];
   for (let k = 0; k < (1 + t * 2) * (dogLv() >= 4 ? 2 : 1); k++) out.push('coin'); /* trick 4: twice the coins */

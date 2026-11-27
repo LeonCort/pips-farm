@@ -2,7 +2,7 @@
    On the island the seasons do not follow the calendar: each island has its own. Home is spring (mild), the meadow
    island is summer (hot sun, a warm shimmer), the stone island is autumn (rain), and the far island over the orchard
    bridge is winter (snow). Walking onto an island turns the season and its weather; the season dial shows where Pip is. */
-const ZONE_SEASON = { home: 'spring', rocks: 'spring', berry: 'spring', cave: 'spring', marsh: 'spring', coral: 'summer', ember: 'summer', meadow: 'summer', orchard: 'summer', stone: 'autumn', clay: 'autumn', snow: 'winter' };
+const ZONE_SEASON = { home: 'spring', rocks: 'spring', berry: 'spring', cave: 'spring', marsh: 'spring', coral: 'summer', ember: 'summer', ash: 'summer', meadow: 'summer', orchard: 'summer', stone: 'autumn', clay: 'autumn', snow: 'winter' };
 const ZONE_WX = { spring: ['clear', 120], summer: ['clear', 150], autumn: ['rain', 100], winter: ['snow', 100] };
 let zoneSeason = 'spring';
 ISLAND.seasonAt = () => zoneSeason;

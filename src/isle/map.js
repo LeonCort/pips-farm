@@ -7,9 +7,9 @@
      the stairs to the cave, the boat to the farm;
    - a red marker that pulses where Pip stands.
    Tap anywhere to close. The map is a canvas drawn when it opens: it costs nothing while it is shut. */
-const MP = { hint: null, hints: [], btn: null, el: null, cv: null, pip: null, S: 16, x0: -35, z0: -39, w: 70, h: 78 };
-const MAP_COL = { home: '#9fd36a', rocks: '#b7c888', berry: '#86cc68', meadow: '#c4e56e', orchard: '#d9df78', stone: '#b9b7ab', clay: '#cfa880', snow: '#f4f8fd', cave: '#8a8074', marsh: '#8fbf6c', coral: '#f3e3b0', ember: '#7a675c' };
-const MAP_RES = { home: 'log', rocks: 'stone', berry: 'berry', meadow: 'berry', orchard: 'log', stone: 'stone', clay: 'stone', snow: 'crystal', cave: 'crystal', marsh: 'log', coral: 'crystal', ember: 'crystal' };
+const MP = { hint: null, hints: [], btn: null, el: null, cv: null, pip: null, S: 12, x0: -49, z0: -53, w: 110, h: 102 };
+const MAP_COL = { home: '#9fd36a', rocks: '#b7c888', berry: '#86cc68', meadow: '#c4e56e', orchard: '#d9df78', stone: '#b9b7ab', clay: '#cfa880', snow: '#f4f8fd', cave: '#8a8074', marsh: '#8fbf6c', coral: '#f3e3b0', ember: '#7a675c', ash: '#85726a' };
+const MAP_RES = { home: 'log', rocks: 'stone', berry: 'berry', meadow: 'berry', orchard: 'log', stone: 'stone', clay: 'stone', snow: 'crystal', cave: 'crystal', marsh: 'log', coral: 'crystal', ember: 'crystal', ash: 'stone' };
 function mapXY(x, z) { return [(x - MP.x0) * MP.S, (z - MP.z0) * MP.S]; }
 /* the button's picture: a folded map with an island and a red pin */
 function mapPic(px) {
@@ -96,7 +96,7 @@ function mapInit() {
   st.textContent = '.bldBtn.mapBtn{top:calc(max(10px,env(safe-area-inset-top,0px)) + 168px);animation:none}'
     + '.mapMenu{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;gap:14px;background:rgba(58,36,20,.5);z-index:22;padding:12px}.mapMenu[hidden]{display:none}'
     + '.mapPaper{position:relative;border:7px solid #8a5a32;border-radius:26px;overflow:hidden;box-shadow:0 8px 0 rgba(70,40,18,.4);line-height:0;background:#6cc0e0}'
-    + '.mapPaper canvas{display:block;height:min(calc(100vh - 40px),calc((100vw - 120px) * 1.114));width:auto;aspect-ratio:70/78}'
+    + '.mapPaper canvas{display:block;height:min(calc(100vh - 40px),calc((100vw - 120px) * 0.927));width:auto;aspect-ratio:110/102}'
     + '.mapPip{position:absolute;width:0;height:0;pointer-events:none}.mapPip::before{content:"";position:absolute;left:-13px;top:-13px;width:26px;height:26px;border-radius:50%;background:#e2483d;border:4px solid #fff6e4;box-sizing:border-box;box-shadow:0 0 0 3px #3a2414}'
     + '.mapPip::after{content:"";position:absolute;left:-13px;top:-13px;width:26px;height:26px;border-radius:50%;border:4px solid #e2483d;box-sizing:border-box;animation:mapPulse 1.3s ease-out infinite}'
     + '@keyframes mapPulse{from{transform:scale(1);opacity:.9}to{transform:scale(3.4);opacity:0}}@media (prefers-reduced-motion: reduce){.mapPip::after{animation:none;transform:scale(1.8);opacity:.5}}'

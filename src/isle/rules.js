@@ -11,40 +11,59 @@ const SAVE_KEY = SHOW ? 'pip-isle-show' : 'pip-isle-v2'; /* the island's own sav
 const HERE = 'isle';
 const MAP_V = 'areas-2'; /* the map's version: a save made for another map starts over */
 const GS = 4; /* one square, in world units; an area is 3 by 3 squares (12 by 12) */
-const GI0 = -9, GWN = 19; /* squares from -9 to 9 along x (i) and along z (j) */
+const GI0 = -15, GWN = 31; /* squares from -15 to 15 along x (i) and along z (j) (2026-11-27: was -9 to 9, the islands grew) */
 const gIdx = (i, j) => (i - GI0) * GWN + (j - GI0);
 const gIn = (i, j) => i >= GI0 && i < GI0 + GWN && j >= GI0 && j < GI0 + GWN;
 const gCell = (x) => Math.round(x / GS);
 /* the areas: i, j = the square at the low corner of the 3 by 3 block. start: land from the beginning. bridge: reached over a
    bridge from another area (x0, z0 to x1, z1), and drawn from the start so it can be seen across the water. chest: a tool inside. */
+const NO_BASKET = true; /* nothing is carried on the island: Pip has no carrying frame on the back (engine/pip2.js) */
 const AREAS = [
   { id: 'h0', i: -1, j: -1, biome: 'home', start: 1 },
   { id: 'h1', i: 2, j: -1, biome: 'rocks', cost: { log: 8, berry: 3 }, chest: 'pick' },
   { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 10, stone: 4, berry: 4 } },
   { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag', ruin: [2.3, 1.0, -0.25], stairs: [-2.6, 2.2] },
-  { id: 'm0', i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, finds: [['hive', -3.6, -2.0], ['hive', 3.7, -3.5], ['hive', 4.3, 4.9]], tall: [[-5.4, 1.5, 5.4, 3.9]], bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
-  { id: 'm1', i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', -2.0, -3.4], ['hive', -3.0, 2.6]], tall: [[1.5, -5.4, 3.9, 5.4]] },
+  { id: 'm0', chest: { coin: 8, berry: 6 }, i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, finds: [['hive', -3.6, -2.0], ['hive', 3.7, -3.5], ['hive', 4.3, 4.9]], tall: [[-5.4, 1.5, 5.4, 3.9]], bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
+  { id: 'm1', chest: { coin: 10, berry: 8 }, i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', -2.0, -3.4], ['hive', -3.0, 2.6]], tall: [[1.5, -5.4, 3.9, 5.4]] },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, berry: 12, stone: 10 }, ruin: [0.4, 0, 0.2] },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14 }, tall: [[-5.4, 1.5, 5.4, 3.9]] },
+  { id: 'm4', chest: { coin: 15, honey: 2 }, chestAt: [3.2, 2.6], i: -4, j: -8, biome: 'meadow', cost: { log: 30, berry: 20, stone: 14 }, finds: [['hive', 3.4, -3.6], ['hive', -3.8, 3.2]], tall: [[1.4, -5.4, 5.4, -1.6]], ponds: [[-1.6, 0.6, 2.0]] },
   /* the stone island has no bridge: the only way there is the mine's tunnel under the sea, and the lift at its end (cave.js) */
   { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.4, 0], mesas: [{ id: 's0a', dx: -2.8, dz: -2.6, w: 4.6, d: 4.0, h: 1.3, finds: [['iron', -0.8, -0.3], ['iron', 0.9, 0.1]] }] },
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3], mesas: [{ id: 's1a', dx: -2.7, dz: 2.6, w: 5.0, d: 4.6, h: 1.3, lx: 1.4, finds: [['iron', 1.2, 0.5]] }, { id: 's1b', par: 's1a', dx: -3.7, dz: 1.9, w: 2.8, d: 2.9, h: 1.2, finds: [['iron', 0, -0.1]] }] },
   { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 }, finds: [['iron', -3.2, -2.2]] },
+  /* the islands grew (Leon, 2026-11-27: every island at least five squares): the stone island runs on west */
+  { id: 's3', chest: { coin: 18, iron: 2 }, chestAt: [-2.6, -0.6], i: -11, j: -5, biome: 'stone', cost: { stone: 40, log: 26, berry: 16 }, mesas: [{ id: 's3a', dx: 2.4, dz: 2.6, w: 4.8, d: 4.2, h: 1.3, finds: [['iron', -0.9, 0.2], ['iron', 1.0, -0.3]] }], finds: [['iron', -3.6, -3.4]] },
+  { id: 's4', chest: { coin: 22, crystal: 5 }, chestAt: [-2.8, -0.4], i: -11, j: -8, biome: 'clay', cost: { stone: 50, log: 30, crystal: 6 }, finds: [['iron', 3.0, -2.6], ['iron', -3.4, 2.8], ['iron', -2.2, -3.6]], ponds: [[0.6, 0.8, 1.7]] },
   /* the winter island, east of the orchard, over a bridge */
   { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 34, berry: 16, stone: 20 }, bridge: { from: 'm2', x0: 17.4, z0: -16, x1: 22.6, z1: -16 },
     ice: { dx: 0.5, dz: -0.4, nx: 7, nz: 6, stop: [[0, 2], [6, 2], [3, 0], [3, 5], [0, 3], [1, 4], [4, 3]], gem: [[3, 2]] } },
   { id: 'w1', i: 6, j: -9, biome: 'snow', cost: { log: 40, stone: 30, crystal: 8 }, ruin: [-2.5, 1.5, 0] },
+  { id: 'w2', chest: { coin: 20, crystal: 6 }, i: 9, j: -6, biome: 'snow', cost: { log: 44, stone: 34, berry: 20 } },
+  { id: 'w3', chest: { coin: 25, crystal: 8 }, i: 9, j: -9, biome: 'snow', cost: { log: 50, stone: 40, crystal: 10 } },
+  { id: 'w4', chest: { coin: 35, crystal: 12 }, i: 9, j: -12, biome: 'snow', cost: { log: 60, stone: 44, crystal: 12 } },
   /* the marsh island, west of the bakery over a bridge (marsh.js). holes: squares of the block that stay water. A channel
      runs through the first square from north to south: the only way over is the pole raft. The second has a pond. */
   { id: 'r0', i: -5, j: 2, biome: 'marsh', cost: { log: 30, stone: 18, berry: 14 }, holes: [[1, 0], [1, 1], [1, 2]], finds: [['reeds', -4.7, -3.4], ['reeds', -3.1, -0.4], ['reeds', -4.8, 1.6]], bridge: { from: 'h2', x0: -5.4, z0: 16.6, x1: -10.6, z1: 16.6 } },
   { id: 'r1', i: -8, j: 2, biome: 'marsh', cost: { log: 36, stone: 24, crystal: 4 }, holes: [[1, 1]], ruin: [4.3, -3.0, 0.1], finds: [['reeds', -2.7, -1.6], ['reeds', 2.8, 1.2], ['reeds', 0.8, 3.0], ['reeds', -1.2, -3.1]] },
+  { id: 'r2', chest: { coin: 18, reed: 3 }, chestAt: [-3.6, -3.6], i: -8, j: 5, biome: 'marsh', cost: { log: 40, stone: 26, berry: 18 }, holes: [[1, 1]], finds: [['reeds', -2.6, 0.4], ['reeds', 2.7, -0.6], ['reeds', 0.3, 2.8]] },
+  { id: 'r3', chest: { coin: 22, crystal: 4 }, chestAt: [2.8, 0.2], i: -11, j: 2, biome: 'marsh', cost: { log: 46, stone: 30, crystal: 6 }, holes: [[0, 1]], finds: [['reeds', -1.4, -1.8], ['reeds', -1.2, 2.2]] },
+  { id: 'r4', chest: { coin: 28, reed: 4 }, chestAt: [-3.4, -3.4], i: -11, j: 5, biome: 'marsh', cost: { log: 52, stone: 34, reed: 4 }, holes: [[1, 1], [2, 2]], finds: [['reeds', -2.7, 0.2], ['reeds', 0.2, -2.7], ['reeds', 2.6, 1.4], ['reeds', 1.0, 2.8]] },
   /* the coral beach, east of the village green over a bridge (coral.js). Its second square is an islet across a strait:
      the way there is a row of stepping stones that the tide covers and bares again (bridge.tide) */
   { id: 'c0', i: 6, j: 2, biome: 'coral', cost: { log: 44, stone: 30, crystal: 6 }, finds: [['clam', 3.6, 3.8], ['clam', -3.8, 2.6]], bridge: { from: 'h3', x0: 17.4, z0: 7.5, x1: 22.6, z1: 7.5 } },
   { id: 'c1', i: 6, j: -2, biome: 'coral', cost: { stone: 40, log: 30, crystal: 10 }, ruin: [2.8, 0.6, -0.2], finds: [['clam', -3.5, -3.0], ['clam', 3.4, -2.2], ['clam', 0.5, -4.2], ['clam', -2.6, 1.8]], bridge: { from: 'c0', x0: 28, z0: 6.6, x1: 28, z1: 1.4, tide: 1 } },
+  { id: 'c2', chest: { coin: 24, pearl: 1 }, i: 9, j: 2, biome: 'coral', cost: { log: 50, stone: 36, crystal: 8 }, finds: [['clam', 3.9, -3.6], ['clam', -2.4, 4.0]] },
+  { id: 'c3', chest: { coin: 30, pearl: 2 }, chestAt: [-3.4, -0.4], i: 12, j: 2, biome: 'coral', cost: { stone: 50, log: 40, crystal: 12 }, finds: [['clam', 4.2, 0.4], ['clam', 3.0, 4.0], ['clam', -1.0, -4.2]], ponds: [[0.2, 0.4, 2.3]] },
+  { id: 'c4', chest: { coin: 36, crystal: 8 }, i: 9, j: -2, biome: 'coral', cost: { stone: 56, log: 44, pearl: 2 }, finds: [['clam', 4.0, -3.4], ['clam', 0.6, 4.2], ['clam', 4.2, 2.2]] },
   /* the ember island, south of the coral beach over a bridge that costs pearls (ember.js): one square under a volcano,
      cut in three by two streams of lava (EMBER below) */
   { id: 'e0', i: 6, j: 6, biome: 'ember', cost: { pearl: 4, log: 50, stone: 40 }, ruin: [-3.8, 4.2, 0.2], finds: [['cinder', 4.6, 0.6], ['cinder', 4.9, 3.4], ['cinder', 3.6, 5.0]], bridge: { from: 'c0', x0: 28, z0: 17.4, x1: 28, z1: 22.6 } },
+  /* the rest of the ember island: ash fields round the volcano's foot (biome 'ash': set out by seed like any other land) */
+  { id: 'e1', chest: { coin: 30, ember: 1 }, i: 9, j: 6, biome: 'ash', cost: { log: 56, stone: 46, crystal: 10 }, finds: [['cinder', 3.2, -3.4], ['cinder', -3.0, 3.6]] },
+  { id: 'e2', chest: { coin: 34, crystal: 10 }, i: 6, j: 9, biome: 'ash', cost: { stone: 60, log: 50, crystal: 12 }, finds: [['cinder', -3.6, 3.0], ['cinder', 2.6, 3.8]] },
+  { id: 'e3', chest: { coin: 40, ember: 2 }, chestAt: [-3.2, 2.6], i: 9, j: 9, biome: 'ash', cost: { stone: 64, log: 54, ember: 2 }, finds: [['cinder', 3.4, 3.2], ['cinder', -3.4, -2.6], ['cinder', 0.4, 4.2]], ponds: [[0.4, 0, 1.8]] },
+  { id: 'e4', chest: { coin: 50, ember: 2, pearl: 2 }, i: 12, j: 6, biome: 'ash', cost: { stone: 70, log: 60, ember: 3 }, finds: [['cinder', 3.8, -2.8], ['cinder', 2.4, 3.6], ['cinder', -3.0, -3.6]] },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
   { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 },
   /* the mine runs on west under the sea: a gallery behind rubble, then the lift room behind a rockfall */
@@ -72,10 +91,13 @@ const TIDE = { low: true, u: 0 }; /* the coral beach's tide (coral.js): low = th
 FIND_NODE.hive.hand = 1;
 /* the marsh raft (marsh.js): where it lies at the east bank and at the west bank, and where it is now (on: lying still, so Pip may step on) */
 const RAFT = { e: [-14.95, 7.6], w: [-17.05, 16.4], x: -14.95, z: 7.6, on: true };
+/* a square's chest: a tool (a word) or a treasure (what is inside). Every square holds something worth the price (Leon,
+   2026-11-27): a friend, a wonder, a way on, or at least a treasure chest. It stands in the middle unless chestAt says where. */
+const chestAt = (a) => (a.chestAt ? [a.cx + a.chestAt[0], a.cz + a.chestAt[1]] : [a.cx, a.cz - 0.4]);
 const AREA_BY = {}; AREAS.forEach((a) => { AREA_BY[a.id] = a; a.cx = (a.i + 1) * GS; a.cz = (a.j + 1) * GS; });
 /* what each biome looks like: a tint over the grass */
-const BIOME_BEACH = { ember: '#4a403a', coral: '#f6e7bd', marsh: '#8f8259', snow: '#c9dcf2', stone: '#a9a79c', clay: '#b9906e', cave: '#5d5249' }; /* the rim and the cliff under each island */
-const BIOME_TINT = { home: null, rocks: ['#c9c58f', 0.18], berry: ['#7fbf5a', 0.15], meadow: ['#b4e05e', 0.24], orchard: ['#d7e07a', 0.2], stone: ['#9fa592', 0.5], clay: ['#c9a27a', 0.38], cave: ['#5d5249', 0.82], snow: ['#cfe0f6', 1], marsh: ['#5f8f4c', 0.5], coral: ['#f1dfae', 0.92], ember: ['#403936', 0.93] };
+const BIOME_BEACH = { ember: '#4a403a', ash: '#4a403a', coral: '#f6e7bd', marsh: '#8f8259', snow: '#c9dcf2', stone: '#a9a79c', clay: '#b9906e', cave: '#5d5249' }; /* the rim and the cliff under each island */
+const BIOME_TINT = { home: null, rocks: ['#c9c58f', 0.18], berry: ['#7fbf5a', 0.15], meadow: ['#b4e05e', 0.24], orchard: ['#d7e07a', 0.2], stone: ['#9fa592', 0.5], clay: ['#c9a27a', 0.38], cave: ['#5d5249', 0.82], snow: ['#cfe0f6', 1], marsh: ['#5f8f4c', 0.5], coral: ['#f1dfae', 0.92], ember: ['#403936', 0.93], ash: ['#4d4440', 0.9] };
 /* the land: WALK = squares Pip may walk on (areas owned), LAND = squares drawn as land (owned, plus each island's first area
    so it can be seen across the sea). Both are read from the save right away, because the ground is drawn before the game starts. */
 const WALK = new Uint8Array(GWN * GWN), LAND = new Uint8Array(GWN * GWN), AREA_AT = new Int16Array(GWN * GWN).fill(-1);
@@ -98,12 +120,58 @@ const areaAt = (x, z) => { const i = gCell(x), j = gCell(z); return gIn(i, j) &&
 /* distance from a point to square (i, j) (0 inside it) */
 function boxD(x, z, i, j) { const dx = Math.max(Math.abs(x - i * GS) - GS / 2, 0), dz = Math.max(Math.abs(z - j * GS) - GS / 2, 0); return Math.hypot(dx, dz); }
 /* signed distance to the coast of a set of squares: below 0 on land (how far in), above 0 at sea (how far out) */
-function gSdfOf(on, x, z) {
+function gSdfBox(on, x, z) {
   const ci = gCell(x), cj = gCell(z); let d = 3;
   if (on(ci, cj)) { for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) if ((a || b) && !on(ci + a, cj + b)) d = Math.min(d, boxD(x, z, ci + a, cj + b)); return -d; }
   for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) if (on(ci + a, cj + b)) d = Math.min(d, boxD(x, z, ci + a, cj + b));
   return d;
 }
+/* ---------- a coast that is not a ruler line (Leon, 2026-11-27) ----------
+   The land is still bought in squares, but where a square's edge faces open sea the coast now wanders: coves cut in (up to
+   1.8 m), small capes reach out (up to 0.9 m), and a square may hold a pond (area.ponds: [dx, dz, r]). It is one fixed
+   field over the world (COAST.F, a value every half metre, made once): metres to add to the square coast's distance.
+   The field is 0 where the coast must stay as it was: next to another area (a square bought later must meet this one in a
+   straight line, and its sign stands there), in the mine, and round everything that stands near a shore (COAST.keep). */
+const COAST = { st: 0.5, x0: (GI0 - 0.5) * GS - 2, n: 0, F: null,
+  /* things set by hand near a shore that the lists below do not know: [x, z, r] */
+  keep: [[0, 0, 3.4]] };
+const sstep = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+function coastMake() {
+  const st = COAST.st, n = COAST.n = Math.ceil((GWN * GS + 4) / st) + 1, F = COAST.F = new Float32Array(n * n), K = COAST.keep.slice();
+  AREAS.forEach((a) => { const P = (dx, dz, r) => K.push([a.cx + dx, a.cz + dz, r]);
+    if (a.bridge) { const b = a.bridge; K.push([b.x0, b.z0, 3], [b.x1, b.z1, 3]); }
+    (a.finds || []).forEach((f) => P(f[1], f[2], 1.9)); if (a.ruin) P(a.ruin[0], a.ruin[1], 2.8); if (a.lift) P(a.lift[0], a.lift[1], 3.2); if (a.stairs) P(a.stairs[0], a.stairs[1], 2.6); if (a.chest) { const c = chestAt(a); K.push([c[0], c[1], 1.8]); }
+    (a.mesas || []).forEach((m) => { if (!m.par) P(m.dx, m.dz, Math.hypot(m.w, m.d) / 2 + 0.8); }); if (a.ice) P(a.ice.dx, a.ice.dz, Math.hypot(a.ice.nx, a.ice.nz) / 2 + 1.2); });
+  SHORTS.forEach((S) => { const b = S.bridge; K.push([b.x0, b.z0, 3], [b.x1, b.z1, 3]); });
+  K.push([FERRY.x - 1.5, FERRY.z, 4], [TENT.x, TENT.z, 2.2], [RAFT.e[0], RAFT.e[1], 3.4], [RAFT.w[0], RAFT.w[1], 3.4], [EMBER.cone[0], EMBER.cone[1], EMBER.cone[2] + 2]); EMBER.lava.forEach((L) => L.forEach((q) => K.push([q[0], q[1], 2.2]))); EMBER.cross.forEach((c) => K.push([c.ring[0], c.ring[1], 2]));
+  Object.values(LOOP_SITES).forEach((m) => K.push([m.x, m.z, 2.6], [m.x + m.sx, m.z + m.sz, 1.2], [m.x + m.mx, m.z + m.mz, 1.4])); Object.values(HAMLET_AT).forEach((H) => { H.h.forEach((h) => K.push([h[0], h[1], 1.7])); K.push([H.crate[0], H.crate[1], 2]); });
+  const at = (i, j) => (gIn(i, j) ? AREA_AT[gIdx(i, j)] : -1);
+  for (let q = 0; q < n; q++) for (let p = 0; p < n; p++) {
+    const x = COAST.x0 + p * st, z = COAST.x0 + q * st, ci = gCell(x), cj = gCell(z); let A0 = -1, d0 = 9;
+    for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) { const k = at(ci + a, cj + b); if (k < 0) continue; const d = boxD(x, z, ci + a, cj + b); if (d < d0) { d0 = d; A0 = k; } }
+    if (A0 < 0 || AREAS[A0].cave) continue;
+    let dO = 9; for (let a = -2; a <= 2; a++) for (let b = -2; b <= 2; b++) { const k = at(ci + a, cj + b); if (k >= 0 && k !== A0) dO = Math.min(dO, boxD(x, z, ci + a, cj + b)); }
+    let amp = sstep(0.8, 3.2, dO); if (amp <= 0) continue;
+    for (const [kx, kz, r] of K) { const d = Math.hypot(x - kx, z - kz); if (d < r + 1.8) { amp *= sstep(r, r + 1.8, d); if (amp <= 0) break; } }
+    if (amp <= 0) continue;
+    const w = Math.sin(x * 0.55 + Math.sin(z * 0.31) * 1.9 + 1.3) * Math.cos(z * 0.47 - Math.sin(x * 0.23) * 1.6) * 1.25 + Math.sin(x * 1.3 - z * 0.9 + 0.7) * 0.3 + Math.sin(z * 1.7 + x * 0.4) * 0.22, v = clamp(w, -1, 1);
+    F[q * n + p] = (v > 0 ? v * 1.8 : v * 0.9) * amp;
+  }
+}
+function coastW(x, z) {
+  if (!COAST.F) coastMake();
+  const n = COAST.n, fx = (x - COAST.x0) / COAST.st, fz = (z - COAST.x0) / COAST.st, i = Math.floor(fx), j = Math.floor(fz); if (i < 0 || j < 0 || i >= n - 1 || j >= n - 1) return 0;
+  const u = fx - i, v = fz - j, F = COAST.F, o = j * n + i; return (F[o] * (1 - u) + F[o + 1] * u) * (1 - v) + (F[o + n] * (1 - u) + F[o + n + 1] * u) * v;
+}
+function gSdfOf(on, x, z) {
+  let d = gSdfBox(on, x, z) + coastW(x, z);
+  if (d < 0) { const ci = gCell(x), cj = gCell(z), k = gIn(ci, cj) ? AREA_AT[gIdx(ci, cj)] : -1, A = k >= 0 ? AREAS[k] : null;
+    if (A && A.ponds) for (const [dx, dz, r] of A.ponds) { const ox = x - A.cx - dx, oz = z - A.cz - dz; d = Math.max(d, r + 0.28 * Math.sin(Math.atan2(oz, ox) * 3 + dx) - Math.hypot(ox, oz)); } }
+  return d;
+}
+/* how far a point is inside the land there can ever be (every area bought): what grows or stands by seed asks this, so
+   nothing lands in a cove or a pond */
+const landSdf = (x, z) => gSdfOf((i, j) => gIn(i, j) && AREA_AT[gIdx(i, j)] >= 0, x, z);
 const gSdf = (x, z) => gSdfOf(owned, x, z);
 const drawSdf = (x, z) => gSdfOf(drawn, x, z);
 /* where Pip may walk: owned areas, and the bridges built to them */
@@ -125,17 +193,17 @@ function wClamp(v) {
   if (s >= -0.2 && typeof pip !== 'undefined' && pip) { const px = pip.position.x, pz = pip.position.z; for (let k = 0; k < 12 && s >= -0.2; k++) { v.x += (px - v.x) * 0.35; v.z += (pz - v.z) * 0.35; s = walkSdf(v.x, v.z); } }
   return v;
 }
-const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 1.95, walk: 1.5, maskW: 1536, maskH: 1536, detW: 2560, detH: 2560, detN: 3, ring: { rx: 3, rz: 3, w: 0 }, /* no ring road: w 0 (pets still wander round it) */ roads: [[0, -1.9, 0, -5.9, 0.5, 1], [-1.9, 0, -3.1, -1.5, 0.38, 1], [1.4, -1.4, 2.7, -1.7, 0.36, 1],
+const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 1.95, walk: 1.5, maskW: 2048, maskH: 2048, detW: 3072, detH: 3072, detN: 5, sea: 232, ring: { rx: 3, rz: 3, w: 0 }, /* no ring road: w 0 (pets still wander round it) */ roads: [[0, -1.9, 0, -5.9, 0.5, 1], [-1.9, 0, -3.1, -1.5, 0.38, 1], [1.4, -1.4, 2.7, -1.7, 0.36, 1],
     /* the settlement fills the whole first island (Leon, 2026-11-25): an east street to the smithy (h1), a south street to the bakery (h2), two cross streets that meet at the village green (h3) */
     [1.9, 0, 6, 0, 0.5, 1], [6, 0, 8.4, 2.2, 0.5, 1], [8.4, 2.2, 16.2, 2.2, 0.5, 1], [0, 1.9, 0, 6, 0.5, 1], [0, 6, 1.2, 8, 0.5, 1], [1.2, 8, 1.2, 16.2, 0.5, 1],
     [7.5, 1.5, 7.5, 11, 0.45, 1], [1.0, 7.5, 16.2, 7.5, 0.45, 1], [7.5, 7.5, 7.51, 7.5, 1.7, 2], [15.3, 2.2, 15.3, -0.7, 0.36, 1], [1.2, 15.1, -1.2, 15.1, 0.36, 1]],
   roadOk: (x, z) => { const i = gCell(x), j = gCell(z); return !!WALK[gIdx(i, j)]; }, /* a road shows only on land that is owned */ trees: [],
   box: { x0: -5.4, x1: 5.4, z0: -5.4, z1: 5.4 }, /* pets keep inside this (the area Pip is in) */
   d: (x, z) => 1 + drawSdf(x, z) / 6, clamp: wClamp,
-  gw: 76, gh: 76, gx: 0, gz: 0, /* the ground covers the whole world, the cave hill too */
+  gw: 124, gh: 124, gx: 0, gz: 0, /* the ground covers the whole world, the cave hill too */
   puddles: [[-2.2, 3.0, 0.9, 0.4], [2.8, -3.2, 0.8, 1.2], [2.9, 3.4, 0.7, 0.2], [-3.3, -0.9, 0.8, 1.5], [0.4, -3.6, 0.6, 0.9]], /* rain puddles in the start area (the farm's lie on its roads) */
   beachAt: (x, z) => { let a = areaAt(x, z); for (let k = 0; !a && k < 4; k++) a = areaAt(x + [1.5, -1.5, 0, 0][k], z + [0, 0, 1.5, -1.5][k]); return a ? BIOME_BEACH[a.biome] : null; },
-  tint: (x, z, c) => { const a = areaAt(x, z), t = a && BIOME_TINT[a.biome]; if (t) c.lerp(new T.Color(t[0]), t[1]); } };
+  tint: (x, z, c) => { let a = areaAt(x, z); for (let k = 0; !a && k < 4; k++) a = areaAt(x + [1.2, -1.2, 0, 0][k], z + [0, 0, 1.2, -1.2][k]); /* a cape reaches past its square */ const t = a && BIOME_TINT[a.biome]; if (t) c.lerp(new T.Color(t[0]), t[1]); } };
 /* the settlement fills the whole first area (Leon, 2026-11-25): a cobbled plaza round the campfire in the middle, dirt roads to
    the bridge and to the two neighbour areas, and a home in each corner */
 const FIRE = { x: 0, z: 0 }, TENT = { x: -3.3, z: -2.9 };
