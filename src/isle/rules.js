@@ -147,13 +147,18 @@ const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2
 /* the island villages (hamlets.js): once an island's monument stands, a few houses and neighbours move in beside it.
    Each house is [x, z, turn]; the crate is where the village stacks what it gathers. Nothing grows on these plots. */
 const HAMLET_AT = {
-  windmill: { h: [[-3.4, -31.6, 0.25], [-4.0, -28.2, 0.35], [-0.9, -32.6, 0.1]], crate: [-1.7, -29.7] },
-  lighthouse: { h: [[-25.0, -7.6, -0.25], [-24.4, -4.2, -0.35], [-28.3, -8.0, -0.05]], crate: [-26.6, -5.5] },
-  tower: { h: [[24.3, -35.6, 0.25], [32.0, -30.4, -0.3], [28.2, -28.2, 0.0]], crate: [29.4, -30.9] }
+  windmill: { h: [[-3.4, -31.6, 0.25], [-4.0, -28.2, 0.35], [-0.9, -32.6, 0.1]], crate: [-1.7, -29.7], more: [[-1.5, -27], [-3.5, -25.5], [0.5, -25.5], [2.5, -27]] },
+  lighthouse: { h: [[-25.0, -7.6, -0.25], [-24.4, -4.2, -0.35], [-28.3, -8.0, -0.05]], crate: [-26.6, -5.5], more: [[-29.5, -5.5], [-26.5, -2.5], [-23.5, -2], [-31, -7.5]] },
+  tower: { h: [[24.3, -35.6, 0.25], [32.0, -30.4, -0.3], [28.2, -28.2, 0.0]], crate: [29.4, -30.9], more: [[30.5, -28.5], [27, -33.5], [26, -27.5], [32.5, -27]] }
 };
+/* a village grows in three sizes (Leon's list, 2026-11-27): `more` holds the plots of the four later cottages, two per size,
+   each turned to face the crate. The village's own upgrade ring lies in front of its crate. */
+const HAM_KEY = {};
+Object.keys(HAMLET_AT).forEach((id) => { const A = HAMLET_AT[id]; A.more.forEach((m) => { A.h.push([m[0], m[1], Math.atan2(A.crate[0] - m[0], A.crate[1] - m[1])]); }); HAM_KEY['ham_' + id] = id; });
 const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to the farm leaves (ferry.js) */
 const TRAVEL_HOME = { x: 2.7, z: 2.6 }, CAVE_FRIEND = { x: 8.8, z: 29.2 };
 const SPOT_AT = { tent: [-4.5, -1.5], fire: [-1.75, 0.75], dog: [-0.75, -2.7], gear: [-2.9, 2.9] }; /* gear has its bench in the start square: rain comes before the smithy does (Leon 2026-11-25, playtest) */ /* the upgrade rings in the camp (spots.js) */
+Object.keys(HAMLET_AT).forEach((id) => { const c = HAMLET_AT[id].crate; SPOT_AT['ham_' + id] = [c[0], c[1] + 1.3]; });
 const KENNEL = { x: -1.3, z: -3.7 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
   isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0, sickle: 0, shovel: 0 }, chests: {}, ruins: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
