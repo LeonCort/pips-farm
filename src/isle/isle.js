@@ -192,7 +192,7 @@ function areaClear(x, z) {
   for (const a of AREAS) { if (a.chest) { const c = chestAt(a); if (Math.hypot(x - c[0], z - c[1] - 0.4) < 1.5) return false; }
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
-    if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z) || emberKeep(a, x, z)) return false;
+    if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || gardenKeep(a, x, z) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z) || emberKeep(a, x, z)) return false;
     if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
@@ -223,7 +223,7 @@ function areaFill(A, fresh) {
     const n = Math.sin(x * 0.45 + base * 0.13) + Math.cos(z * 0.41 - base * 0.07), k = LAYOUT[A.biome](x, z, hash(sd, 3), n); if (!k) continue;
     const nd = makeNode(k, x, z, sd); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); }
   }
-  findFill(A, fresh); tallFill(A, fresh); mesaFill(A, fresh); iceFill(A, fresh); marshFill(A, fresh); coralFill(A, fresh); emberFill(A, fresh); basicsFill(A, fresh);
+  findFill(A, fresh); tallFill(A, fresh); mesaFill(A, fresh); gardenFill(A, fresh); iceFill(A, fresh); marshFill(A, fresh); coralFill(A, fresh); emberFill(A, fresh); basicsFill(A, fresh);
   if (A.chest && !state.isle.chests[A.id]) { const c = chestAt(A); makeChest(c[0], c[1], A.chest, A.id); }
   if (A.ruin) makeRuin(A, fresh);
   if (A.stairs) stairsBuild(A, fresh);
@@ -568,6 +568,7 @@ function nodeHit(n, side) {
   if (n.kind !== 'bush' && n.kind !== 'grass') splash(sx, 0.6, sz, 3);
   if (n.hp > 0.01) return;
   dropOut(n); n.t = sleepRegrow(n);
+  if (n.gate === 'garden') { gardenGateOpen(n); return; }
   if (n.gate) { mineGateOpen(n); return; }
   if (n.kind === 'planks') { n.st = 'gone'; n.main.visible = false; Snd.play('thud', { gain: 0.5 }); ruinOpen(n.ruin); return; }
   if (n.kind === 'tree') { n.st = 'fall'; n.fall = 0; n.stump.visible = true; Snd.play('thud', { gain: 0.5 }); }

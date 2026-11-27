@@ -27,7 +27,7 @@ const AREAS = [
   { id: 'm1', chest: { coin: 10, berry: 8 }, chestAt: [-0.4, 3.4], i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', -2.0, -3.4], ['hive', -3.0, 2.6]], tall: [[1.5, -5.4, 3.9, 5.4]] },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, berry: 12, stone: 10 }, ruin: [0.4, 0, 0.2] },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14 }, tall: [[-5.4, 1.5, 5.4, 3.9]] },
-  { id: 'm4', chest: { coin: 15, honey: 2 }, chestAt: [3.2, 2.6], i: -4, j: -8, biome: 'meadow', cost: { log: 30, berry: 20, stone: 14 }, finds: [['hive', 3.4, -3.6], ['hive', -3.8, 3.2]], tall: [[1.4, -5.4, 5.4, -1.6]], ponds: [[-1.6, 0.6, 2.0]] },
+  { id: 'm4', chest: { coin: 15, honey: 2 }, chestAt: [3.2, 2.6], i: -4, j: -8, biome: 'meadow', cost: { log: 30, berry: 20, stone: 14 }, finds: [['hive', 3.4, -3.6], ['hive', -3.8, 3.2]], tall: [[3.4, -5.4, 5.4, -1.6]], ponds: [[-1.6, 0.6, 2.0]] },
   /* the stone island has no bridge: the only way there is the mine's tunnel under the sea, and the lift at its end (cave.js) */
   { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.4, 0], mesas: [{ id: 's0a', dx: -2.8, dz: -2.6, w: 4.6, d: 4.0, h: 1.3, finds: [['iron', -0.8, -0.3], ['iron', 0.9, 0.1]] }] },
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3], mesas: [{ id: 's1a', dx: -2.7, dz: 2.6, w: 5.0, d: 4.6, h: 1.3, lx: 1.4, finds: [['iron', 1.2, 0.5]] }, { id: 's1b', par: 's1a', dx: -3.7, dz: 1.9, w: 2.8, d: 2.9, h: 1.2, finds: [['iron', 0, -0.1]] }] },
@@ -73,6 +73,8 @@ const AREAS = [
 /* shortcuts (Leon, 2026-11-27): the first way to a far place may be long, but once Pip has reached it a short way back
    opens by itself. Each is a plank bridge between two areas that builds itself, free, when both are owned (isle.js).
    The stone island: the mine and its lift are the first way there; after that a bridge runs to the west meadow. */
+/* the Bee Queen's walled garden in the far corner of the meadow (garden.js): the wall's box, the gate's place along the east wall, the hive and the chest inside */
+const GARDEN = { A: 'm4', x0: -16.9, x1: -11.3, z0: -32.9, z1: -29.5, gate: -31.2, hive: [-15.6, -31.2], chest: [-13.2, -32.3] };
 const SHORTS = [{ id: 'sm', need: ['s0', 'm1'], bridge: { x0: -22.6, z0: -12.2, x1: -17.4, z1: -12.2 } }];
 /* the special finds (finds.js): what each find node gives, how many, and the tool level it needs */
 const FINDS = ['honey', 'copper', 'iron', 'glow', 'reed', 'pearl', 'ember'];
@@ -145,6 +147,7 @@ function coastMake() {
   SHORTS.forEach((S) => { const b = S.bridge; K.push([b.x0, b.z0, 3], [b.x1, b.z1, 3]); });
   K.push([FERRY.x - 1.5, FERRY.z, 4], [TENT.x, TENT.z, 2.2], [RAFT.e[0], RAFT.e[1], 3.4], [RAFT.w[0], RAFT.w[1], 3.4], [EMBER.cone[0], EMBER.cone[1], EMBER.cone[2] + 2]); EMBER.lava.forEach((L) => L.forEach((q) => K.push([q[0], q[1], 2.2]))); EMBER.cross.forEach((c) => K.push([c.ring[0], c.ring[1], 2]));
   Object.values(DOCKS).forEach((D) => K.push([D.x, D.z, 2.6]));
+  for (let k = 0; k <= 4; k++) K.push([GARDEN.x0 + (GARDEN.x1 - GARDEN.x0) * k / 4, GARDEN.z0, 2.2], [GARDEN.x0, GARDEN.z0 + (GARDEN.z1 - GARDEN.z0) * k / 4, 2.2]);
   Object.values(LOOP_SITES).forEach((m) => K.push([m.x, m.z, 2.6], [m.x + m.sx, m.z + m.sz, 1.2], [m.x + m.mx, m.z + m.mz, 1.4])); Object.values(HAMLET_AT).forEach((H) => { H.h.forEach((h) => K.push([h[0], h[1], 1.7])); K.push([H.crate[0], H.crate[1], 2]); });
   TRAILS.forEach((L) => { for (let k = 0; k + 1 < L.length; k++) { const m = Math.max(1, Math.ceil(Math.hypot(L[k + 1][0] - L[k][0], L[k + 1][1] - L[k][1]) / 1.2)); for (let j = 0; j <= m; j++) K.push([L[k][0] + (L[k + 1][0] - L[k][0]) * j / m, L[k][1] + (L[k + 1][1] - L[k][1]) * j / m, 1.1]); } });
   const at = (i, j) => (gIn(i, j) ? AREA_AT[gIdx(i, j)] : -1);
@@ -229,7 +232,7 @@ const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2
 /* the island villages (hamlets.js): once an island's monument stands, a few houses and neighbours move in beside it.
    Each house is [x, z, turn]; the crate is where the village stacks what it gathers. Nothing grows on these plots. */
 const HAMLET_AT = {
-  windmill: { h: [[-3.8, -31.0], [2.8, -24.4], [3.6, -21.8]], crate: [-1.7, -29.7], more: [[-5.6, -24.6], [10.2, -16.2], [-13.6, -22.6], [-12.6, -32.6]] },
+  windmill: { h: [[-3.8, -31.0], [2.8, -24.4], [3.6, -21.8]], crate: [-1.7, -29.7], more: [[-5.6, -24.6], [10.2, -16.2], [-13.6, -22.6], [-8.8, -32.4]] },
   lighthouse: { h: [[-24.4, -8.8], [-30.6, -8.6], [-23.8, -6.2]], crate: [-26.6, -5.5], more: [[-29.4, -14.8], [-23.6, -24.2], [-36.6, -21], [-43.6, -22.8]] },
   tower: { h: [[31.6, -26.6], [25.4, -34.4], [28.6, -26.4]], crate: [29.4, -30.9], more: [[41.6, -17], [40.4, -28.6], [36, -36.4], [41.6, -41]] }
 };
@@ -243,7 +246,7 @@ const TRAILS = [
   [[0, -10.8], [1.4, -13.5], [1.6, -18], [0.4, -22.5], [-1, -26], [-0.5, -27.6]],
   [[1.2, -19.6], [-3, -20.6], [-7, -19.4], [-11.5, -17.6], [-15, -16], [-16.8, -13]],
   [[1.6, -18.4], [5.6, -17.4], [9, -18.6], [13, -17.4], [17.2, -16]],
-  [[-1, -26], [-5.5, -26.9], [-8.2, -28.2], [-10.6, -30.8], [-14.2, -31]],
+  [[-1, -26], [-5.5, -26.9], [-8.2, -28.2], [-9.8, -30.4], [-10.9, -31.2]],
   [[-11.5, -17.6], [-11.6, -21], [-10.9, -24], [-10.7, -26.6], [-8.2, -28.2]],
   [[-0.5, -27.6], [0.2, -31], [0.4, -33.6]],
   /* stone: from the lift south to the lighthouse, north to the ruin, west round the mesas to the far squares */

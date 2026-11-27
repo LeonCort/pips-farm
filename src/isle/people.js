@@ -154,7 +154,7 @@ function peopleGoal() {
 
 let anvilIn = false, hamT = 0;
 function peopleStep(dt) {
-  bakerStep(dt); loopStep(dt); hamStep(dt); giftStep(dt); findStep(dt); mesaStep(dt); iceStep(dt); raftStep(dt); tideStep(dt); emberStep(dt); wonderStep(dt); nightStep(dt); wearStep(); dockStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
+  bakerStep(dt); loopStep(dt); hamStep(dt); giftStep(dt); findStep(dt); mesaStep(dt); gardenStep(dt); iceStep(dt); raftStep(dt); tideStep(dt); emberStep(dt); wonderStep(dt); nightStep(dt); wearStep(); dockStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
   if (!SM.g) return;
   const F = folk(), g = SM.g, pp = pip.position;
   /* she steps out of the cottage */

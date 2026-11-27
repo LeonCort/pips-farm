@@ -52,6 +52,7 @@ gifts.js
 finds.js
 tall.js
 mesa.js
+garden.js
 ice.js
 marsh.js
 coral.js
