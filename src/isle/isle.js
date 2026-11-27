@@ -179,15 +179,17 @@ const LAYOUT = {
   snow: (x, z, h, n) => (n > 0.5 ? (h > 0.3 ? 'tree' : null) : n < -0.9 ? (h > 0.45 ? 'crystal' : null) : h > 0.7 ? 'rock' : h > 0.55 ? 'boulder' : h > 0.42 ? 'tree' : null),
   cave: (x, z, h, n) => (n > 0.6 ? (h > 0.4 ? 'crystal' : null) : n < -0.8 ? (h > 0.5 ? 'boulder' : null) : h > 0.62 ? 'rock' : h > 0.5 ? 'crystal' : null),
   ember: () => null, /* set out by hand between the lava streams (ember.js) */
+  ash: (x, z, h, n) => (n > 0.6 ? (h > 0.4 ? 'boulder' : null) : n < -0.8 ? (h > 0.45 ? 'crystal' : null) : h > 0.8 ? 'tree' : h > 0.62 ? 'rock' : h > 0.52 ? 'bush' : null),
   coral: (x, z, h, n) => (n > 0.7 ? (h > 0.4 ? 'rock' : null) : n < -0.9 ? (h > 0.5 ? 'crystal' : null) : h > 0.86 ? 'boulder' : h > 0.72 ? 'tree' : h > 0.58 ? 'bush' : null),
   marsh: (x, z, h, n) => (n > 0.3 ? (h > 0.3 ? 'tree' : null) : n < -0.8 ? (h > 0.35 ? 'bush' : null) : h > 0.82 ? 'rock' : h > 0.58 ? 'bush' : h > 0.42 ? 'tree' : null),
   clay: (x, z, h, n) => (n > 0.2 ? (h > 0.35 ? (h > 0.72 ? 'boulder' : 'rock') : null) : h > 0.9 ? 'crystal' : h > 0.75 ? 'boulder' : h > 0.5 ? 'rock' : h > 0.4 ? 'tree' : null)
 };
 /* spots that must stay clear: the camp, each chest, both ends of each bridge, and where signs stand */
 function areaClear(x, z) {
+  if (landSdf(x, z) > -0.75) return false; /* a cove or a pond (rules.js COAST) */
   if (Math.hypot(x, z - 0.2) < 3.3) return false; /* the camp */
   if (roadKind(x, z) || roadKind(x + 0.9, z) || roadKind(x - 0.9, z) || roadKind(x, z + 0.9) || roadKind(x, z - 0.9) || campNear(x, z, 1.5) || Math.hypot(x - FORGE.x + 0.4, z - FORGE.z) < 2.6 || Math.hypot(x - OVEN.x + 0.3, z - OVEN.z) < 2.5 || Math.hypot(x - WELL.x, z - WELL.z) < 2.4) return false; /* the settlement's streets and plots */
-  for (const a of AREAS) { if (a.chest && Math.hypot(x - a.cx, z - a.cz) < 1.4) return false;
+  for (const a of AREAS) { if (a.chest) { const c = chestAt(a); if (Math.hypot(x - c[0], z - c[1] - 0.4) < 1.5) return false; }
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
     if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z) || emberKeep(a, x, z)) return false;
@@ -222,7 +224,7 @@ function areaFill(A, fresh) {
     const nd = makeNode(k, x, z, sd); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); }
   }
   findFill(A, fresh); tallFill(A, fresh); mesaFill(A, fresh); iceFill(A, fresh); marshFill(A, fresh); coralFill(A, fresh); emberFill(A, fresh); basicsFill(A, fresh);
-  if (A.chest && !state.isle.chests[A.id]) makeChest(A.cx, A.cz - 0.4, A.chest, A.id);
+  if (A.chest && !state.isle.chests[A.id]) { const c = chestAt(A); makeChest(c[0], c[1], A.chest, A.id); }
   if (A.ruin) makeRuin(A, fresh);
   if (A.stairs) stairsBuild(A, fresh);
   if (A.cave) caveBuild(A);
@@ -232,7 +234,7 @@ function areaFill(A, fresh) {
 /* little things that make each biome look like itself (one mesh per area, nothing to gather): flowers on grass, pebbles on stone */
 function areaDecor(A) {
   const L = [], b = A.biome, base = AREAS.indexOf(A) * 131;
-  const spot = (k, n, w) => { const x = A.cx + (hash(k, n + base) - 0.5) * w, z = A.cz + (hash(k, n + 1 + base) - 0.5) * w; if (walkSdfArea(A, x, z)) return null; if (nodes.some((q) => Math.abs(q.x - x) < 0.55 && Math.abs(q.z - z) < 0.55)) return null; if (roadKind(x, z) || campNear(x, z, 1.5)) return null; return [x, z]; };
+  const spot = (k, n, w) => { const x = A.cx + (hash(k, n + base) - 0.5) * w, z = A.cz + (hash(k, n + 1 + base) - 0.5) * w; if (walkSdfArea(A, x, z)) return null; if (landSdf(x, z) > -0.5) return null; if (nodes.some((q) => Math.abs(q.x - x) < 0.55 && Math.abs(q.z - z) < 0.55)) return null; if (roadKind(x, z) || campNear(x, z, 1.5)) return null; return [x, z]; };
   const green = b === 'home' || b === 'meadow' || b === 'orchard' || b === 'berry';
   if (green) {
     /* flowers with petals, in little groups */
@@ -286,15 +288,20 @@ const campFlame = (() => {
 function makeChest(x, z, tool, idx) {
   const g = new T.Group(); g.position.set(x, 0, z); sc.add(g);
   const lid = new T.Group(); lid.position.set(0, 0.42, -0.24); g.add(lid); propChest(g, lid);
-  const sp = isleSprite(isleBubble(tool), 0.9); sp.position.y = 1.5; sp.visible = false; g.add(sp);
+  const sp = isleSprite(typeof tool === 'string' ? isleBubble(tool) : null, 0.9); sp.position.y = 1.5; sp.visible = false; g.add(sp);
   const ring = ropeRing(0.62, 0.76); ring.rotation.x = -Math.PI / 2; ring.position.set(x, 0.035, z + 0.85); sc.add(ring);
   const c = { x, z, g, lid, sp, ring, tool, idx, open: 0, gone: 0, pop: 0.001 }; g.scale.setScalar(0.01); chests.push(c); return c;
 }
 function chestStep(c, dt) {
   if (c.pop > 0 && c.pop < 1) { c.pop = Math.min(1, c.pop + dt * 2.2); const s = c.pop < 0.7 ? c.pop / 0.7 * 1.15 : 1.15 - (c.pop - 0.7) / 0.3 * 0.15; c.g.scale.setScalar(s); }
   if (!c.open && Math.hypot(pip.position.x - c.x, pip.position.z - (c.z + 0.85)) < 0.9) {
-    c.open = 0.001; state.isle.chests[c.idx] = 1; state.isle.tools[c.tool] = 1;
-    c.sp.visible = true; Snd.play('powerup', { gain: 0.5 }); burst(c.x, 1.0, c.z, 8); save();
+    c.open = 0.001; state.isle.chests[c.idx] = 1;
+    if (typeof c.tool === 'string') { state.isle.tools[c.tool] = 1; c.sp.visible = true; }
+    else { /* a treasure: what is inside floats up as counted pictures and goes straight to the counter */
+      Object.keys(c.tool).forEach((t, k) => { state.isle.store[t] = (state.isle.store[t] || 0) + c.tool[t];
+        const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, c.tool[t]), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(c.x, 1.5 + k * 0.8, c.z); sc.add(sp); FD.floats.push({ sp, t: 0, y: k * 0.8 }); });
+      invDirty = true; burst(c.x, 0.7, c.z, 14); Snd.play('sparkle', { gain: 0.45 }); if (typeof bldBadge === 'function') bldBadge(); }
+    Snd.play('powerup', { gain: 0.5 }); burst(c.x, 1.0, c.z, 8); save();
   }
   if (c.open) {
     c.open += dt; c.lid.rotation.x = -Math.min(1.9, c.open * 5);
