@@ -175,6 +175,7 @@ const LAYOUT = {
   stone: (x, z, h, n) => (n > 0.8 ? (h > 0.45 ? 'boulder' : null) : n < -0.9 ? (h > 0.4 ? 'rock' : null) : h > 0.83 ? 'boulder' : h > 0.76 ? 'tree' : h > 0.5 ? 'rock' : null),
   snow: (x, z, h, n) => (n > 0.5 ? (h > 0.3 ? 'tree' : null) : n < -0.9 ? (h > 0.45 ? 'crystal' : null) : h > 0.7 ? 'rock' : h > 0.55 ? 'boulder' : h > 0.42 ? 'tree' : null),
   cave: (x, z, h, n) => (n > 0.6 ? (h > 0.4 ? 'crystal' : null) : n < -0.8 ? (h > 0.5 ? 'boulder' : null) : h > 0.62 ? 'rock' : h > 0.5 ? 'crystal' : null),
+  ember: () => null, /* set out by hand between the lava streams (ember.js) */
   coral: (x, z, h, n) => (n > 0.7 ? (h > 0.4 ? 'rock' : null) : n < -0.9 ? (h > 0.5 ? 'crystal' : null) : h > 0.86 ? 'boulder' : h > 0.72 ? 'tree' : h > 0.58 ? 'bush' : null),
   marsh: (x, z, h, n) => (n > 0.3 ? (h > 0.3 ? 'tree' : null) : n < -0.8 ? (h > 0.35 ? 'bush' : null) : h > 0.82 ? 'rock' : h > 0.58 ? 'bush' : h > 0.42 ? 'tree' : null),
   clay: (x, z, h, n) => (n > 0.2 ? (h > 0.35 ? (h > 0.72 ? 'boulder' : 'rock') : null) : h > 0.9 ? 'crystal' : h > 0.75 ? 'boulder' : h > 0.5 ? 'rock' : h > 0.4 ? 'tree' : null)
@@ -186,7 +187,7 @@ function areaClear(x, z) {
   for (const a of AREAS) { if (a.chest && Math.hypot(x - a.cx, z - a.cz) < 1.4) return false;
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
-    if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z)) return false;
+    if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z) || emberKeep(a, x, z)) return false;
     if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
@@ -206,7 +207,7 @@ function areaFill(A, fresh) {
     const n = Math.sin(x * 0.45 + base * 0.13) + Math.cos(z * 0.41 - base * 0.07), k = LAYOUT[A.biome](x, z, hash(sd, 3), n); if (!k) continue;
     const nd = makeNode(k, x, z, sd); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); }
   }
-  findFill(A, fresh); tallFill(A, fresh); mesaFill(A, fresh); iceFill(A, fresh); marshFill(A, fresh); coralFill(A, fresh);
+  findFill(A, fresh); tallFill(A, fresh); mesaFill(A, fresh); iceFill(A, fresh); marshFill(A, fresh); coralFill(A, fresh); emberFill(A, fresh);
   if (A.chest && !state.isle.chests[A.id]) makeChest(A.cx, A.cz - 0.4, A.chest, A.id);
   if (A.ruin) makeRuin(A, fresh);
   if (A.stairs) stairsBuild(A, fresh);
@@ -249,6 +250,7 @@ function areaDecor(A) {
   if (b === 'cave') caveDecor(A, L, base);
   if (b === 'marsh') marshDecor(A, L, base);
   if (b === 'coral') coralDecor(A, L, base);
+  if (b === 'ember') emberDecor(A, L, base);
   if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; m.receiveShadow = true; }
 }
 const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL, FERRY].some((o) => Math.hypot(o.x - x, o.z - z) < r) || loopNear(x, z, r) || spotNear(x, z, r) || hamNear(x, z, r); /* the camp's buildings, the friends' houses, the monuments */
@@ -311,7 +313,7 @@ const BOARD_GEO = (() => { const L = [];
   return fac(mergeGeos(L), (cx, cy, cz, i) => cz > 0.1 ? new T.Color('#4a4038') : cz < 0.05 ? tone('#8a6a4a', i, 0.3) : shadeY(cy > 0.98 ? '#ecca94' : '#e0b87c', cy, 0.7, 1.25, i, 0.25), 1501); })();
 /* a sign's price: a home square costs by how many squares are bought; a bridge or a bonus piece has its own price */
 const signCost = (s) => s.cost;
-const costKinds = (s) => KINDS.filter((t) => signCost(s)[t] > 0);
+const costKinds = (s) => KINDS.concat(FINDS).filter((t) => signCost(s)[t] > 0); /* a price may ask for a find too (the ember bridge: pearls) */
 function signPaid(s) { return state.isle.paid[s.key] || (state.isle.paid[s.key] = {}); }
 const paidN = (s, t) => signPaid(s)[t] || 0;
 function drawSign(s) {
@@ -382,7 +384,7 @@ function isleSigns() {
   signs.forEach(drawSign);
 }
 function signNeed(s, t) { return (signCost(s)[t] || 0) - paidN(s, t) - (s.fly[t] || 0); }
-function signFull(s) { const c = signCost(s); return KINDS.every((t) => paidN(s, t) >= (c[t] || 0)); }
+function signFull(s) { const c = signCost(s); return KINDS.concat(FINDS).every((t) => paidN(s, t) >= (c[t] || 0)); }
 function signStep(s, dt) {
   s.bump = Math.max(0, s.bump - dt * 4); s.payT -= dt;
   /* open (big, with the progress) while pieces are flying in, small again a moment after */
@@ -395,6 +397,8 @@ function signStep(s, dt) {
   if (rising || building || giveT > 0 || Math.hypot(pip.position.x - s.x, pip.position.z - s.z) > 0.85) return;
   if (loopSignShut(s)) return; /* the bridge needs its key first (loop.js) */
   if (gearSignShut(s)) return; /* a spider web over the bridge (gear.js) */
+  { const f = FINDS.find((q) => haveN(q) > 0 && signNeed(s, q) > 0); /* a find has no piece to fly: it is counted straight onto the sign */
+    if (f) { spendN(f, 1); signPaid(s)[f] = paidN(s, f) + 1; giveT = 0.18; s.payT = 1.2; s.bump = 1; drawSign(s); Snd.play('tock', { gain: 0.4, f: 620 + paidN(s, f) * 40 }); save(); if (signFull(s) && !rising && !building) isleBuy(s); return; } }
   const t = KINDS.concat(['coin']).find((q) => haveN(q) > 0 && signNeed(s, q) > 0); if (!t) return;
   /* from the counter: the piece appears over Pip's head and flies on to the sign */
   /* big prices are paid in handfuls, so no sign takes more than about three seconds to fill (Leon, 2026-11-25) */

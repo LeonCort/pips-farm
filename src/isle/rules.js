@@ -42,6 +42,9 @@ const AREAS = [
      the way there is a row of stepping stones that the tide covers and bares again (bridge.tide) */
   { id: 'c0', i: 6, j: 2, biome: 'coral', cost: { log: 44, stone: 30, crystal: 6 }, finds: [['clam', 3.6, 3.8], ['clam', -3.8, 2.6]], bridge: { from: 'h3', x0: 17.4, z0: 7.5, x1: 22.6, z1: 7.5 } },
   { id: 'c1', i: 6, j: -2, biome: 'coral', cost: { stone: 40, log: 30, crystal: 10 }, finds: [['clam', -3.5, -3.0], ['clam', 3.4, -2.2], ['clam', 0.5, -4.2], ['clam', -2.6, 1.8]], bridge: { from: 'c0', x0: 28, z0: 6.6, x1: 28, z1: 1.4, tide: 1 } },
+  /* the ember island, south of the coral beach over a bridge that costs pearls (ember.js): one square under a volcano,
+     cut in three by two streams of lava (EMBER below) */
+  { id: 'e0', i: 6, j: 6, biome: 'ember', cost: { pearl: 4, log: 50, stone: 40 }, finds: [['cinder', 4.6, 0.6], ['cinder', 4.9, 3.4], ['cinder', 3.6, 5.0]], bridge: { from: 'c0', x0: 28, z0: 17.4, x1: 28, z1: 22.6 } },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
   { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 },
   /* the mine runs on west under the sea: a gallery behind rubble, then the lift room behind a rockfall */
@@ -49,16 +52,26 @@ const AREAS = [
   { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, finds: [['glow', 2.6, -3.6], ['glow', -0.8, -4.1], ['glow', 3.5, 3.4]] }
 ];
 /* the special finds (finds.js): what each find node gives, how many, and the tool level it needs */
-const FINDS = ['honey', 'copper', 'iron', 'glow', 'reed', 'pearl'];
-const FIND_NODE = { hive: { t: 'honey', n: 1, tier: 1 }, copper: { t: 'copper', n: 2, tier: 1 }, iron: { t: 'iron', n: 2, tier: 2 }, glow: { t: 'glow', n: 1, tier: 3 }, reeds: { t: 'reed', n: 2, tier: 1, hand: 1 }, clam: { t: 'pearl', n: 1, tier: 1, hand: 1 } };
+const FINDS = ['honey', 'copper', 'iron', 'glow', 'reed', 'pearl', 'ember'];
+const FIND_NODE = { hive: { t: 'honey', n: 1, tier: 1 }, copper: { t: 'copper', n: 2, tier: 1 }, iron: { t: 'iron', n: 2, tier: 2 }, glow: { t: 'glow', n: 1, tier: 3 }, reeds: { t: 'reed', n: 2, tier: 1, hand: 1 }, clam: { t: 'pearl', n: 1, tier: 1, hand: 1 }, cinder: { t: 'ember', n: 1, tier: 3 } };
+/* the ember island (ember.js): the volcano in its corner, the two lava streams (the points each runs through), and where
+   each can be cooled into a crossing (a, b: the ends of the slab; ring: where Pip stands to cool it; n: crystals it takes) */
+const EMBER = { cone: [32.2, 23.8, 2.4], lava: [[[30.6, 25.6], [27.2, 27.2], [24, 27.6], [21.4, 29.8]], [[32.0, 26.2], [30.2, 29.5], [29.6, 34.6]]],
+  cross: [{ id: 'a', a: [25.6, 26.3], b: [25.6, 28.5], ring: [25.6, 25.75], n: 6 }, { id: 'b', a: [28.9, 31.4], b: [31.1, 31.7], ring: [28.3, 31.35], n: 10 }], cool: {} };
+/* how far a point is from the nearest lava (below 0: in it), not counting where a cooled slab lies */
+function emberLava(x, z) {
+  for (const c of EMBER.cross) if (EMBER.cool[c.id] && segD(x, z, c.a[0], c.a[1], c.b[0], c.b[1]) < 0.8) return 1;
+  let d = 9; for (const L of EMBER.lava) for (let k = 0; k + 1 < L.length; k++) d = Math.min(d, segD(x, z, L[k][0], L[k][1], L[k + 1][0], L[k + 1][1]) - 0.75);
+  return d;
+}
 const TIDE = { low: true, u: 0 }; /* the coral beach's tide (coral.js): low = the stepping stones are bare */
 FIND_NODE.hive.hand = 1;
 /* the marsh raft (marsh.js): where it lies at the east bank and at the west bank, and where it is now (on: lying still, so Pip may step on) */
 const RAFT = { e: [-14.95, 7.6], w: [-17.05, 16.4], x: -14.95, z: 7.6, on: true };
 const AREA_BY = {}; AREAS.forEach((a) => { AREA_BY[a.id] = a; a.cx = (a.i + 1) * GS; a.cz = (a.j + 1) * GS; });
 /* what each biome looks like: a tint over the grass */
-const BIOME_BEACH = { coral: '#f6e7bd', marsh: '#8f8259', snow: '#c9dcf2', stone: '#a9a79c', clay: '#b9906e', cave: '#5d5249' }; /* the rim and the cliff under each island */
-const BIOME_TINT = { home: null, rocks: ['#c9c58f', 0.18], berry: ['#7fbf5a', 0.15], meadow: ['#b4e05e', 0.24], orchard: ['#d7e07a', 0.2], stone: ['#9fa592', 0.5], clay: ['#c9a27a', 0.38], cave: ['#5d5249', 0.82], snow: ['#cfe0f6', 1], marsh: ['#5f8f4c', 0.5], coral: ['#f1dfae', 0.92] };
+const BIOME_BEACH = { ember: '#4a403a', coral: '#f6e7bd', marsh: '#8f8259', snow: '#c9dcf2', stone: '#a9a79c', clay: '#b9906e', cave: '#5d5249' }; /* the rim and the cliff under each island */
+const BIOME_TINT = { home: null, rocks: ['#c9c58f', 0.18], berry: ['#7fbf5a', 0.15], meadow: ['#b4e05e', 0.24], orchard: ['#d7e07a', 0.2], stone: ['#9fa592', 0.5], clay: ['#c9a27a', 0.38], cave: ['#5d5249', 0.82], snow: ['#cfe0f6', 1], marsh: ['#5f8f4c', 0.5], coral: ['#f1dfae', 0.92], ember: ['#403936', 0.93] };
 /* the land: WALK = squares Pip may walk on (areas owned), LAND = squares drawn as land (owned, plus each island's first area
    so it can be seen across the sea). Both are read from the save right away, because the ground is drawn before the game starts. */
 const WALK = new Uint8Array(GWN * GWN), LAND = new Uint8Array(GWN * GWN), AREA_AT = new Int16Array(GWN * GWN).fill(-1);
@@ -96,6 +109,7 @@ function walkSdf(x, z) {
   for (const a of AREAS) if (a.bridge && HAS[a.id] && (!a.bridge.tide || TIDE.low)) { const b = a.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
   if (HAS.r0) { d = Math.min(d, segD(x, z, RAFT.e[0] + 1.5, RAFT.e[1], RAFT.e[0] + 0.5, RAFT.e[1]) - 0.6, segD(x, z, RAFT.w[0] - 1.5, RAFT.w[1], RAFT.w[0] - 0.5, RAFT.w[1]) - 0.6); /* the raft's two jetties, and the raft while it lies still */
     if (RAFT.on) d = Math.min(d, Math.hypot(x - RAFT.x, z - RAFT.z) - 0.85); }
+  if (HAS.e0 && x > 21 && z > 21) d = Math.max(d, -emberLava(x, z) - 0.2, EMBER.cone[2] - Math.hypot(x - EMBER.cone[0], z - EMBER.cone[1]) - 0.2); /* lava and the volcano are no ground to walk on */
   return d;
 }
 /* keep a point where Pip may walk: slide it down the slope of walkSdf; if that finds nothing, pull it back toward Pip */

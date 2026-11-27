@@ -53,6 +53,7 @@ mesa.js
 ice.js
 marsh.js
 coral.js
+ember.js
 props.js
 map.js
 spots.js
