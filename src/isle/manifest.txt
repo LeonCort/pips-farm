@@ -55,6 +55,7 @@ marsh.js
 coral.js
 ember.js
 wonders.js
+night.js
 props.js
 map.js
 spots.js

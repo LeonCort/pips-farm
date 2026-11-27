@@ -7,7 +7,7 @@ const BLD = {
   fire: { max: 3, cost: [null, null, { log: 6, stone: 4 }, { log: 12, stone: 12, crystal: 2 }], pic: [null, 'fire', 'fire', 'fire'] },
   tool: { max: 4, cost: [null, null, { copper: 6, stone: 14, coin: 10 }, { iron: 6, crystal: 4, coin: 25 }, { glow: 3, crystal: 12, coin: 40 }], pic: [null, 'pick', 'pick2', 'pick3', 'pick4'] } /* at the smith's anvil (people.js) */
 };
-const bldKeys = () => ['tent', 'fire', 'dog'].concat(forgeUp() ? ['tool'] : [], ovenUp() ? ['oven'] : [], gearKeys());
+const bldKeys = () => ['tent', 'fire', 'dog'].concat(forgeUp() ? ['tool'] : [], ovenUp() ? ['oven'] : [], gearKeys(), Object.keys(HAM_KEY).filter((k) => mons()[HAM_KEY[k]]));
 const bldLv = (k) => (state.isle && state.isle.bld && state.isle.bld[k]) || 1;
 const enMax = () => [0, 100, 130, 160][bldLv('tent')] + xpEn() + (state.isle.folk && state.isle.folk.knitter >= 3 ? 25 : 0); /* the knitter's quilt */
 const enRegen = () => [0, 0.2, 0.33, 0.5][bldLv('fire')];
@@ -146,6 +146,7 @@ function bldEff(k, lv) {
    the fire and the raincoat do). Tent: a longer energy bar. Fire: energy comes back faster while resting. Gear: the
    trouble with a tired Pip, then the gear with a happy Pip. */
 function bldHow(k, lv, next) {
+  if (HAM_KEY[k]) return lv >= BLD[k].max ? null : hamHow(HAM_KEY[k], lv, next);
   if (k !== 'tent' && k !== 'fire' && !GEAR[k]) return null; if (lv >= BLD[k].max) return null;
   const c = document.createElement('canvas'); c.width = 400; c.height = 128; const x = c.getContext('2d'); x.lineJoin = x.lineCap = 'round';
   const arrow = () => { x.beginPath(); x.moveTo(178, 64); x.lineTo(214, 64); x.moveTo(202, 50); x.lineTo(218, 64); x.lineTo(202, 78); x.lineWidth = 9; x.strokeStyle = '#6e4426'; x.stroke(); };
@@ -167,7 +168,7 @@ function bldFill() {
   (BM.keys || bldKeys()).forEach((k) => {
     const B = BLD[k], lv = bldLv(k), next = Math.min(B.max, lv + 1), c = B.cost[lv + 1];
     const card = document.createElement('div'); card.className = 'bldCard'; BM[k] = card;
-    const pic = document.createElement('div'); pic.className = 'pic'; pic.appendChild(bldPic(B.pic[next], 128)); const eff = document.createElement('div'); eff.className = 'eff'; eff.appendChild(bldEff(k, next)); pic.appendChild(eff); card.appendChild(pic); const how = bldHow(k, lv, next); if (how) { how.className = 'how'; card.appendChild(how); }
+    const pic = document.createElement('div'); pic.className = 'pic'; pic.appendChild(bldPic(B.pic[next], 128)); const eff = document.createElement('div'); eff.className = 'eff'; eff.appendChild(bldEff(k, next)); if (!HAM_KEY[k]) pic.appendChild(eff); /* a village's card says what it gives in the strip below */ card.appendChild(pic); const how = bldHow(k, lv, next); if (how) { how.className = 'how'; card.appendChild(how); }
     const dots = document.createElement('div'); dots.className = 'dots'; for (let q = 1; q <= B.max; q++) { const d = document.createElement('b'); if (q <= lv) d.className = 'on'; dots.appendChild(d); } card.appendChild(dots);
     if (c) {
       const cost = document.createElement('div'); cost.className = 'cost'; Object.keys(c).forEach((t) => { const s = document.createElement('span'), ok = haveN(t) >= c[t]; s.className = ok ? 'ok' : 'lack'; s.appendChild(bldIco(t));
@@ -193,6 +194,7 @@ function bldUp(k) {
   else if (k === 'oven') ovenLevelUp();
   else if (k === 'dog') dogUp();
   else if (GEAR[k]) gearGot(k);
+  else if (HAM_KEY[k]) hamGrow(HAM_KEY[k]);
   else { fireShape(bldLv('fire')); bldPop = { g: campFlame.g, t: 0 }; burst(FIRE.x, 0.8, FIRE.z, 10); }
   enShow = -1; enBarW();
   Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.1);

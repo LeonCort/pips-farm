@@ -11,7 +11,10 @@ const VILLAGERS = [
   { id: 'baker', head: '#e8b04a', ear: 'duck', badge: 'pie' },
   { id: 'mason', head: '#e07a3a', ear: 'fox', badge: 'chisel' },
   { id: 'knitter', head: '#f4ece2', ear: 'bunny', badge: 'yarn' },
-  { id: 'miner', head: '#7fbf4a', ear: 'frog', badge: 'crystal' }
+  { id: 'miner', head: '#7fbf4a', ear: 'frog', badge: 'crystal' },
+  { id: 'fisher', head: '#f0c45a', ear: 'duck', badge: 'reed' },
+  { id: 'diver', head: '#a5744c', ear: 'bear', badge: 'pearl' },
+  { id: 'glass', head: '#d9622e', ear: 'fox', badge: 'ember' }
 ];
 const housed = (id) => !!(state.isle.folk && state.isle.folk[id] >= 3);
 const villageLv = () => VILLAGERS.filter((v) => housed(v.id)).length;
@@ -46,8 +49,8 @@ function boardDraw() {
   x.fillStyle = '#c99158'; x.beginPath(); x.roundRect(4, 4, 504, 216, 22); x.fill(); x.lineWidth = 8; x.strokeStyle = '#6e4426'; x.stroke();
   x.fillStyle = '#e7c48f'; x.beginPath(); x.roundRect(20, 20, 472, 184, 14); x.fill();
   VILLAGERS.forEach((v, k) => {
-    const cx = 64 + k * 96, cy = 100, f = state.isle && state.isle.folk ? state.isle.folk[v.id] || 0 : 0;
-    boardFace(x, v, cx, cy, 1, f);
+    const cx = 82 + (k % 4) * 116, cy = 70 + Math.floor(k / 4) * 92, f = state.isle && state.isle.folk ? state.isle.folk[v.id] || 0 : 0; /* eight friends: two rows of four */
+    boardFace(x, v, cx, cy, 0.72, f);
   });
   boardTex.needsUpdate = true;
 }
@@ -75,7 +78,7 @@ function lanternMake(x, z, L) {
   q = new T.ConeGeometry(0.17, 0.14, 4); q.rotateY(Math.PI / 4); q.translate(x + 0.3, 1.45, z); L.push(fac(q, '#3e454d', 3102));
   const lamp = new T.Mesh(new T.BoxGeometry(0.16, 0.2, 0.16), new T.MeshBasicMaterial({ color: '#ffe6a8' })); lamp.position.set(x + 0.3, 1.3, z);
   const glow = new T.Sprite(new T.SpriteMaterial({ map: softTex(32, 32), color: '#ffd27a', transparent: true, opacity: 0, depthWrite: false })); glow.position.set(x + 0.3, 1.3, z); glow.scale.set(1.3, 1.3, 1);
-  VG.lamps.push({ lamp, glow }); return [lamp, glow];
+  VG.lamps.push({ lamp, glow }); nightLamp(x + 0.3, z, 3.6); return [lamp, glow];
 }
 function buntingGeo(a, b, seed) { /* a sagging string with little flags between two lantern tops */
   const L = [], COLS = ['#e9684a', '#f2c23c', '#74a857', '#5aa7d6', '#f29ab8'], n = 9;

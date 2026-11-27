@@ -37,20 +37,24 @@ const AREAS = [
   /* the marsh island, west of the bakery over a bridge (marsh.js). holes: squares of the block that stay water. A channel
      runs through the first square from north to south: the only way over is the pole raft. The second has a pond. */
   { id: 'r0', i: -5, j: 2, biome: 'marsh', cost: { log: 30, stone: 18, berry: 14 }, holes: [[1, 0], [1, 1], [1, 2]], finds: [['reeds', -4.7, -3.4], ['reeds', -3.1, -0.4], ['reeds', -4.8, 1.6]], bridge: { from: 'h2', x0: -5.4, z0: 16.6, x1: -10.6, z1: 16.6 } },
-  { id: 'r1', i: -8, j: 2, biome: 'marsh', cost: { log: 36, stone: 24, crystal: 4 }, holes: [[1, 1]], finds: [['reeds', -2.7, -1.6], ['reeds', 2.8, 1.2], ['reeds', 0.8, 3.0], ['reeds', -1.2, -3.1]] },
+  { id: 'r1', i: -8, j: 2, biome: 'marsh', cost: { log: 36, stone: 24, crystal: 4 }, holes: [[1, 1]], ruin: [4.3, -3.0, 0.1], finds: [['reeds', -2.7, -1.6], ['reeds', 2.8, 1.2], ['reeds', 0.8, 3.0], ['reeds', -1.2, -3.1]] },
   /* the coral beach, east of the village green over a bridge (coral.js). Its second square is an islet across a strait:
      the way there is a row of stepping stones that the tide covers and bares again (bridge.tide) */
   { id: 'c0', i: 6, j: 2, biome: 'coral', cost: { log: 44, stone: 30, crystal: 6 }, finds: [['clam', 3.6, 3.8], ['clam', -3.8, 2.6]], bridge: { from: 'h3', x0: 17.4, z0: 7.5, x1: 22.6, z1: 7.5 } },
-  { id: 'c1', i: 6, j: -2, biome: 'coral', cost: { stone: 40, log: 30, crystal: 10 }, finds: [['clam', -3.5, -3.0], ['clam', 3.4, -2.2], ['clam', 0.5, -4.2], ['clam', -2.6, 1.8]], bridge: { from: 'c0', x0: 28, z0: 6.6, x1: 28, z1: 1.4, tide: 1 } },
+  { id: 'c1', i: 6, j: -2, biome: 'coral', cost: { stone: 40, log: 30, crystal: 10 }, ruin: [2.8, 0.6, -0.2], finds: [['clam', -3.5, -3.0], ['clam', 3.4, -2.2], ['clam', 0.5, -4.2], ['clam', -2.6, 1.8]], bridge: { from: 'c0', x0: 28, z0: 6.6, x1: 28, z1: 1.4, tide: 1 } },
   /* the ember island, south of the coral beach over a bridge that costs pearls (ember.js): one square under a volcano,
      cut in three by two streams of lava (EMBER below) */
-  { id: 'e0', i: 6, j: 6, biome: 'ember', cost: { pearl: 4, log: 50, stone: 40 }, finds: [['cinder', 4.6, 0.6], ['cinder', 4.9, 3.4], ['cinder', 3.6, 5.0]], bridge: { from: 'c0', x0: 28, z0: 17.4, x1: 28, z1: 22.6 } },
+  { id: 'e0', i: 6, j: 6, biome: 'ember', cost: { pearl: 4, log: 50, stone: 40 }, ruin: [-3.8, 4.2, 0.2], finds: [['cinder', 4.6, 0.6], ['cinder', 4.9, 3.4], ['cinder', 3.6, 5.0]], bridge: { from: 'c0', x0: 28, z0: 17.4, x1: 28, z1: 22.6 } },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
   { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 },
   /* the mine runs on west under the sea: a gallery behind rubble, then the lift room behind a rockfall */
   { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1, finds: [['copper', -3.5, -3.4], ['copper', -1.0, -4.0], ['copper', 2.6, -3.3], ['copper', 3.4, 3.3], ['copper', -3.2, 3.5]] },
   { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, finds: [['glow', 2.6, -3.6], ['glow', -0.8, -4.1], ['glow', 3.5, 3.4]] }
 ];
+/* shortcuts (Leon, 2026-11-27): the first way to a far place may be long, but once Pip has reached it a short way back
+   opens by itself. Each is a plank bridge between two areas that builds itself, free, when both are owned (isle.js).
+   The stone island: the mine and its lift are the first way there; after that a bridge runs to the west meadow. */
+const SHORTS = [{ id: 'sm', need: ['s0', 'm1'], bridge: { x0: -22.6, z0: -12.2, x1: -17.4, z1: -12.2 } }];
 /* the special finds (finds.js): what each find node gives, how many, and the tool level it needs */
 const FINDS = ['honey', 'copper', 'iron', 'glow', 'reed', 'pearl', 'ember'];
 const FIND_NODE = { hive: { t: 'honey', n: 1, tier: 1 }, copper: { t: 'copper', n: 2, tier: 1 }, iron: { t: 'iron', n: 2, tier: 2 }, glow: { t: 'glow', n: 1, tier: 3 }, reeds: { t: 'reed', n: 2, tier: 1, hand: 1 }, clam: { t: 'pearl', n: 1, tier: 1, hand: 1 }, cinder: { t: 'ember', n: 1, tier: 3 } };
@@ -107,6 +111,7 @@ function walkSdf(x, z) {
   let d = gSdf(x, z);
   d = Math.min(d, segD(x, z, FERRY.x, FERRY.z, FERRY.x - 3.0, FERRY.z) - 0.55); /* the farm boat's dock: its pad is out on the planks (ferry.js) */
   for (const a of AREAS) if (a.bridge && HAS[a.id] && (!a.bridge.tide || TIDE.low)) { const b = a.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
+  for (const S of SHORTS) if (S.on) { const b = S.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
   if (HAS.r0) { d = Math.min(d, segD(x, z, RAFT.e[0] + 1.5, RAFT.e[1], RAFT.e[0] + 0.5, RAFT.e[1]) - 0.6, segD(x, z, RAFT.w[0] - 1.5, RAFT.w[1], RAFT.w[0] - 0.5, RAFT.w[1]) - 0.6); /* the raft's two jetties, and the raft while it lies still */
     if (RAFT.on) d = Math.min(d, Math.hypot(x - RAFT.x, z - RAFT.z) - 0.85); }
   if (HAS.e0 && x > 21 && z > 21) d = Math.max(d, -emberLava(x, z) - 0.2, EMBER.cone[2] - Math.hypot(x - EMBER.cone[0], z - EMBER.cone[1]) - 0.2); /* lava and the volcano are no ground to walk on */
@@ -141,24 +146,33 @@ const WELL = { x: 7.5, z: 7.5 };
 const BOARD = { x: 3.3, z: -4.75 };
 /* the island loop (loop.js): the new friends' houses on the street north of the village green, the monuments (sx/sz: where
    their sign stands, mx/mz: their travel mat), the camp's travel mat by the fire, and where the miner sits in the cave */
-const HOUSES = { mason: { x: 11, z: 4.9 }, knitter: { x: 14, z: 4.9 }, miner: { x: 17, z: 4.9 } };
+const HOUSES = { mason: { x: 11, z: 4.9 }, knitter: { x: 14, z: 4.9 }, miner: { x: 17, z: 4.9 },
+  fisher: { x: 4.2, z: 9.6, area: 'h2' }, diver: { x: 4.2, z: 12.4, area: 'h2' }, glass: { x: 4.2, z: 15.2, area: 'h2' } }; /* the three from the far islands live on the bakery's lane (Leon 2026-11-27: every island holds a friend the ending needs) */
 const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2.6 }, windmill: { x: 2.6, z: -30, sx: -1.7, sz: 1.5, mx: -2.2, mz: 2.2 },
-  lighthouse: { x: -31.4, z: -2.2, sx: 1.8, sz: 1.3, mx: 2.4, mz: -1.0 }, tower: { x: 30.6, z: -34, sx: -1.7, sz: 1.5, mx: -2.0, mz: -1.2 } };
+  lighthouse: { x: -31.4, z: -2.2, sx: 1.8, sz: 1.3, mx: 2.4, mz: -1.0 }, tower: { x: 30.6, z: -34, sx: -1.7, sz: 1.5, mx: -2.0, mz: -1.2 },
+  /* the far islands' wonders (Leon 2026-11-27): a sluice wheel on the marsh channel, a tide bell on the coral beach, a great hearth by the volcano */
+  sluice: { x: -12.5, z: 10.0, sx: 0.9, sz: 1.8, mx: 0.9, mz: -2.0 }, bell: { x: 30.4, z: 12.9, sx: -1.7, sz: 0.9, mx: 0.2, mz: -2.0 }, hearth: { x: 27.6, z: 32.7, sx: -1.7, sz: 0.3, mx: -1.4, mz: -1.8 },
+  belfry: { x: 13.0, z: 9.7, sx: -1.9, sz: 1.0, mx: 0, mz: 0 } }; /* the bell tower on the village green: the last wonder, made of one find from every island */
 /* the island villages (hamlets.js): once an island's monument stands, a few houses and neighbours move in beside it.
    Each house is [x, z, turn]; the crate is where the village stacks what it gathers. Nothing grows on these plots. */
 const HAMLET_AT = {
-  windmill: { h: [[-3.4, -31.6, 0.25], [-4.0, -28.2, 0.35], [-0.9, -32.6, 0.1]], crate: [-1.7, -29.7] },
-  lighthouse: { h: [[-25.0, -7.6, -0.25], [-24.4, -4.2, -0.35], [-28.3, -8.0, -0.05]], crate: [-26.6, -5.5] },
-  tower: { h: [[24.3, -35.6, 0.25], [32.0, -30.4, -0.3], [28.2, -28.2, 0.0]], crate: [29.4, -30.9] }
+  windmill: { h: [[-3.4, -31.6, 0.25], [-4.0, -28.2, 0.35], [-0.9, -32.6, 0.1]], crate: [-1.7, -29.7], more: [[-1.5, -27], [-3.5, -25.5], [0.5, -25.5], [2.5, -27]] },
+  lighthouse: { h: [[-25.0, -7.6, -0.25], [-24.4, -4.2, -0.35], [-28.3, -8.0, -0.05]], crate: [-26.6, -5.5], more: [[-29.5, -5.5], [-26.5, -2.5], [-23.5, -2], [-31, -7.5]] },
+  tower: { h: [[24.3, -35.6, 0.25], [32.0, -30.4, -0.3], [28.2, -28.2, 0.0]], crate: [29.4, -30.9], more: [[30.5, -28.5], [27, -33.5], [26, -27.5], [32.5, -27]] }
 };
+/* a village grows in three sizes (Leon's list, 2026-11-27): `more` holds the plots of the four later cottages, two per size,
+   each turned to face the crate. The village's own upgrade ring lies in front of its crate. */
+const HAM_KEY = {};
+Object.keys(HAMLET_AT).forEach((id) => { const A = HAMLET_AT[id]; A.more.forEach((m) => { A.h.push([m[0], m[1], Math.atan2(A.crate[0] - m[0], A.crate[1] - m[1])]); }); HAM_KEY['ham_' + id] = id; });
 const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to the farm leaves (ferry.js) */
 const TRAVEL_HOME = { x: 2.7, z: 2.6 }, CAVE_FRIEND = { x: 8.8, z: 29.2 };
 const SPOT_AT = { tent: [-4.5, -1.5], fire: [-1.75, 0.75], dog: [-0.75, -2.7], gear: [-2.9, 2.9] }; /* gear has its bench in the start square: rain comes before the smithy does (Leon 2026-11-25, playtest) */ /* the upgrade rings in the camp (spots.js) */
+Object.keys(HAMLET_AT).forEach((id) => { const c = HAMLET_AT[id].crate; SPOT_AT['ham_' + id] = [c[0], c[1] + 1.3]; });
 const KENNEL = { x: -1.3, z: -3.7 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
   isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0, sickle: 0, shovel: 0 }, chests: {}, ruins: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
-const speed = () => (3.2 + 0.45 * state.lv.speed) * gearSlow(); /* deep snow without boots (gear.js) */
-const cap = () => (state.isle && state.isle.tools.bag ? 10 : 6) + (state.isle ? dogBags() : 0); /* + the dog's saddlebags (isledog.js) */
+const speed = () => (3.2 + 0.45 * state.lv.speed + 0.2 * xpRun()) * gearSlow(); /* deep snow without boots (gear.js) */
+const cap = () => (state.isle && state.isle.tools.bag ? 10 : 6) + (state.isle ? dogBags() + 2 * xpBag() : 0); /* + the dog's saddlebags (isledog.js) */
 const UPS = [{ id: 'speed', base: 10, g: 1.8, max: 8 }, { id: 'bag', base: 15, g: 1.8, max: 8 }];
 const upCost = (u) => Math.round(u.base * Math.pow(u.g, state.lv[u.id]));
 const ITEM_H = { log: 0.17, stone: 0.15, berry: 0.13, hay: 0.16, clay: 0.14 }; /* height of each thing Pip carries in the basket */

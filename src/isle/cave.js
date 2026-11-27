@@ -90,7 +90,7 @@ function caveBuild(A) {
   if (A.id === 'cave2') MINE_GATES.forEach((G, q) => { if (mineS()[G.id]) return; const n = makeNode('boulder', G.x, A.cz, 2600 + q); n.gate = G.id; n.tier = G.tier; n.g.rotation.y = 0;
     /* Leon, 2026-11-27: the heap looked like a big boulder nobody can break. Now it is a pile of loose stones behind a plank
        barrier, and the pickaxe that opens it always floats over it */
-    n.main.geometry = RUBBLE_GEO; n.full = 1; n.main.scale.setScalar(1); n.hp = nodeHits(n) * (G.tier > 1 ? 1.5 : 1);
+    n.main.geometry = RUBBLE_GEO; n.full = 1; n.main.scale.setScalar(1); n.hp = nodeHits(n) * (G.tier > 1 ? 1.5 : 1); n.hpMax = n.hp; /* the bar's full length (isle.js hpShow) */
     n.tag = isleSprite(isleBubble('pick' + (G.tier > 1 ? G.tier : '')), 0.95); n.tag.position.set(0, 2.55, 0); n.g.add(n.tag); });
   if (A.id === 'cave3') { LIFT.g = liftModel(LIFT.low.x, LIFT.low.z, 2650); const Q = LIFT.lowMat = stairMat('up', LIFT.low.x, LIFT.low.z + 1.3); Q.ok = () => inCave && !!HAS.s0; Q.to = () => LIFT.topOut; Q.cave = false; }
   /* the hill top, seen from outside */

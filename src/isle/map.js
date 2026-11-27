@@ -50,6 +50,7 @@ function mapDraw() {
     if (HAS[A.id]) { x.lineCap = 'butt'; x.lineWidth = 26; x.strokeStyle = '#6e4426'; x.beginPath(); x.moveTo(ax, az); x.lineTo(bx, bz); x.stroke(); x.lineWidth = 19; x.strokeStyle = '#c99f6c'; x.setLineDash([9, 3]); x.stroke(); x.setLineDash([]); x.lineCap = 'round'; }
     else if (HAS[B.from]) { x.lineWidth = 8; x.strokeStyle = '#f4b23a'; x.setLineDash([12, 12]); x.beginPath(); x.moveTo(ax, az); x.lineTo(bx, bz); x.stroke(); x.setLineDash([]);
       const k = LOOP_KEY[A.id], mx = (ax + bx) / 2, mz = (az + bz) / 2; if (k) { mapBadge(x, mx, mz, 30); isleIcon(x, k, mx, mz, 1.0); if (!lkeys()[k]) isleIcon(x, 'lock', mx + 22, mz + 20, 0.6); } } });
+  SHORTS.forEach((S) => { if (!S.on) return; const B = S.bridge, [ax, az] = mapXY(B.x0, B.z0), [bx, bz] = mapXY(B.x1, B.z1); x.lineCap = 'butt'; x.lineWidth = 26; x.strokeStyle = '#6e4426'; x.beginPath(); x.moveTo(ax, az); x.lineTo(bx, bz); x.stroke(); x.lineWidth = 19; x.strokeStyle = '#c99f6c'; x.setLineDash([9, 3]); x.stroke(); x.setLineDash([]); x.lineCap = 'round'; });
   /* the special finds: a small picture where each one is found */
   AREAS.forEach((A) => { const seen = {}; (A.finds || []).forEach((f) => { const t = FIND_NODE[f[0]].t; if (seen[t]) return; seen[t] = 1; const [px, pz] = A.cave ? mapXY(A.cx, A.cz + 2.2) : mapXY(A.cx + 4.0, A.cz - 4.2);
     x.globalAlpha = A.cave || HAS[A.id] ? 1 : 0.6; mapBadge(x, px, pz, 19); isleIcon(x, t, px, pz, 0.62); x.globalAlpha = 1; }); });
@@ -61,7 +62,7 @@ function mapDraw() {
   Object.keys(LOOP_SITES).forEach((id) => { const st = LOOP_SITES[id], [px, pz] = mapXY(st.x, st.z), up = !!mons()[id]; x.globalAlpha = up ? 1 : 0.4; mapBadge(x, px, pz, 34, up ? '#fff6e4' : '#e9e2d2'); isleIcon(x, id, px, pz, 1.2); x.globalAlpha = 1;
     if (up) isleIcon(x, 'star', px + 26, pz - 26, 0.6); });
   /* the friends: a face where each one is now, a "?" where one still hides */
-  const hide = { smith: 'h3', baker: 'm2', mason: 's1', knitter: 'w1' }, homeAt = { smith: SMITH_AT, baker: BAKER_AT };
+  const hide = { smith: 'h3', baker: 'm2', mason: 's1', knitter: 'w1', fisher: 'r1', diver: 'c1', glass: 'e0' }, homeAt = { smith: SMITH_AT, baker: BAKER_AT };
   VILLAGERS.forEach((v) => { const F = folk()[v.id] || 0; let wx, wz;
     if (F >= 2) { const q = homeAt[v.id] || HOUSES[v.id]; wx = q.x; wz = q.z + (homeAt[v.id] ? 0 : 1.2); }
     else if (v.id === 'miner') { wx = CAVE_FRIEND.x; wz = CAVE_FRIEND.z; }

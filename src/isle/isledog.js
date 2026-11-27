@@ -188,7 +188,7 @@ const dogTest = () => ({ lv: dogLv(), mode: DG.mode, cap: cap(), dug: Object.ass
    (a flood fill from the goal over the 19 by 19 grid) and head for the furthest corner of it that is in plain sight. */
 function landLine(x0, z0, x1, z1) { const L = Math.hypot(x1 - x0, z1 - z0), n = Math.ceil(L / 0.4); for (let k = 1; k < n; k++) { const u = k / n; if (walkSdf(x0 + (x1 - x0) * u, z0 + (z1 - z0) * u) > -0.12) return false; } return true; }
 const LR_DIST = new Int16Array(GWN * GWN);
-function landBridges() { return AREAS.filter((a) => a.bridge && HAS[a.id]).map((a) => { const b = a.bridge; return { b, a: [gCell(b.x0), gCell(b.z0)], c: [gCell(b.x1), gCell(b.z1)] }; }); }
+function landBridges() { return AREAS.filter((a) => a.bridge && HAS[a.id]).concat(SHORTS.filter((S) => S.on)).map((a) => { const b = a.bridge; return { b, a: [gCell(b.x0), gCell(b.z0)], c: [gCell(b.x1), gCell(b.z1)] }; }); }
 function landPath(px, pz, tx, tz) {
   const BR = landBridges(), D = LR_DIST; D.fill(-1); const Q = [];
   const seed = (i, j) => { if (owned(i, j) && D[gIdx(i, j)] < 0) { D[gIdx(i, j)] = 0; Q.push(i, j); } };
