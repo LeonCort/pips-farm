@@ -1,6 +1,9 @@
 /* ---------- Pip grows (Leon's idea list, 2026-11-23): every thing gathered gives stars (XP); a full star ring is a new
    level, and on each level the child picks one of three pictures: more energy (a longer bar), harder hits (things break
-   sooner), or luck (now and then a clover: everything from that one comes twice). ---------- */
+   sooner), or luck (now and then a clover: everything from that one comes twice).
+   Leon, 2026-11-25: "a longer upgrade path". Two more pictures: quick feet (Pip walks faster) and a bigger backpack
+   (two more places each time). Five pictures of five steps make 25 levels; each card still shows three, and which three
+   turns with the level, so every picture keeps coming back until it is full. ---------- */
 const XP_FOR = { crystal: 8, planks: 5, tree: 3, bush: 2, grass: 2, rock: 4, clay: 4, boulder: 8 };
 const XP_PERK_MAX = 5;
 const xpS = () => { const I = state.isle; if (!I.xp) I.xp = { n: 0, lv: 1, en: 0, hit: 0, luck: 0, pend: 0 }; return I.xp; };
@@ -8,6 +11,8 @@ const xpNeed = (lv) => 20 + 15 * (lv - 1);
 function xpPow() { return 1 + 0.25 * xpS().hit; }
 const xpLuck = () => 0.08 * xpS().luck;
 const xpEn = () => 20 * xpS().en;
+const xpRun = () => (state.isle && state.isle.xp && state.isle.xp.run) || 0, xpBag = () => (state.isle && state.isle.xp && state.isle.xp.bag) || 0;
+const XP_PERKS = [['en', 'perkEn', 'Mer energi'], ['hit', 'perkHit', 'Hårdare slag'], ['luck', 'perkLuck', 'Tur'], ['run', 'perkRun', 'Snabbare fötter'], ['bag', 'perkBag', 'Större ryggsäck']];
 function xpGain(v) {
   const X = xpS(); X.n += v;
   while (X.n >= xpNeed(X.lv)) { X.n -= xpNeed(X.lv); X.lv++; X.pend++; xpUpT = 0.6; }
@@ -49,24 +54,24 @@ function xpDraw() {
 }
 function xpPicks() {
   const X = xpS(), row = XPB.row; row.textContent = '';
-  [['en', 'perkEn'], ['hit', 'perkHit'], ['luck', 'perkLuck']].forEach(([k, ic]) => {
-    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', { en: 'Mer energi', hit: 'Hårdare slag', luck: 'Tur' }[k]);
+  const open = XP_PERKS.filter((q) => (X[q[0]] || 0) < XP_PERK_MAX), show = open.length <= 3 ? open : [0, 1, 2].map((q) => open[(X.lv + 3 + q) % open.length]);
+  show.forEach(([k, ic, name]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', name);
     const c = document.createElement('canvas'); c.width = c.height = 128; isleIcon(c.getContext('2d'), ic, 64, 64, 2.4); b.appendChild(c);
-    const d = document.createElement('div'); d.className = 'dots'; for (let q = 0; q < XP_PERK_MAX; q++) { const i = document.createElement('i'); if (q < X[k]) i.className = 'on'; d.appendChild(i); } b.appendChild(d);
-    if (X[k] >= XP_PERK_MAX) b.disabled = true;
+    const d = document.createElement('div'); d.className = 'dots'; for (let q = 0; q < XP_PERK_MAX; q++) { const i = document.createElement('i'); if (q < (X[k] || 0)) i.className = 'on'; d.appendChild(i); } b.appendChild(d);
     b.addEventListener('click', (e) => { e.stopPropagation(); xpPick(k); });
     row.appendChild(b);
   });
 }
 function xpPick(k) {
-  const X = xpS(); if (X[k] >= XP_PERK_MAX || X.pend <= 0) return;
-  X[k]++; X.pend--; if (k === 'en') { state.isle.en = Math.min(enMax(), state.isle.en + 20); enShow = -1; enBarW(); }
+  const X = xpS(); if ((X[k] || 0) >= XP_PERK_MAX || X.pend <= 0) return;
+  X[k] = (X[k] || 0) + 1; X.pend--; invDirty = true; if (k === 'en') { state.isle.en = Math.min(enMax(), state.isle.en + 20); enShow = -1; enBarW(); }
   save(); Snd.play('success', { gain: 0.45, f: 'E6' });
   if (X.pend > 0 && !xpFull()) xpPicks(); else { X.pend = 0; XPB.menu.hidden = true; }
 }
-/* every picture full (15 levels in): there is nothing left to pick, so a new level just fills the energy bar with a
+/* every picture full (25 levels in): there is nothing left to pick, so a new level just fills the energy bar with a
    cheer instead of opening a card nobody can answer */
-const xpFull = () => { const X = xpS(); return X.en >= XP_PERK_MAX && X.hit >= XP_PERK_MAX && X.luck >= XP_PERK_MAX; };
+const xpFull = () => { const X = xpS(); return XP_PERKS.every((q) => (X[q[0]] || 0) >= XP_PERK_MAX); };
 function xpTreat() {
   const X = xpS(); X.pend = 0; XPB.menu.hidden = true; xpUpT = 0;
   state.isle.en = enMax(); enShow = -1; enBarW(); save();

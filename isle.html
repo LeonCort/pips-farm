@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261127184752">
+<meta name="app-ver" content="20261127190559">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1301,8 +1301,8 @@ Object.keys(HAMLET_AT).forEach((id) => { const c = HAMLET_AT[id].crate; SPOT_AT[
 const KENNEL = { x: -1.3, z: -3.7 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
   isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0, sickle: 0, shovel: 0 }, chests: {}, ruins: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
-const speed = () => (3.2 + 0.45 * state.lv.speed) * gearSlow(); /* deep snow without boots (gear.js) */
-const cap = () => (state.isle && state.isle.tools.bag ? 10 : 6) + (state.isle ? dogBags() : 0); /* + the dog's saddlebags (isledog.js) */
+const speed = () => (3.2 + 0.45 * state.lv.speed + 0.2 * xpRun()) * gearSlow(); /* deep snow without boots (gear.js) */
+const cap = () => (state.isle && state.isle.tools.bag ? 10 : 6) + (state.isle ? dogBags() + 2 * xpBag() : 0); /* + the dog's saddlebags (isledog.js) */
 const UPS = [{ id: 'speed', base: 10, g: 1.8, max: 8 }, { id: 'bag', base: 15, g: 1.8, max: 8 }];
 const upCost = (u) => Math.round(u.base * Math.pow(u.g, state.lv[u.id]));
 const ITEM_H = { log: 0.17, stone: 0.15, berry: 0.13, hay: 0.16, clay: 0.14 }; /* height of each thing Pip carries in the basket */
@@ -2208,6 +2208,8 @@ function isleIcon(x, t, cx, cy, s) {
   else if (t === 'clover') { x.fillStyle = '#5fae4a'; [[-8, -8], [8, -8], [-8, 8], [8, 8]].forEach(([a, b]) => { x.beginPath(); x.arc(a, b, 9, 0, 7); x.fill(); x.stroke(); }); x.beginPath(); x.moveTo(2, 4); x.quadraticCurveTo(8, 16, 16, 22); x.stroke(); x.fillStyle = '#9ad67e'; x.beginPath(); x.arc(-10, -10, 3, 0, 7); x.fill(); }
   else if (t === 'perkEn') { isleIcon(x, 'bolt', -10, 0, 1); x.lineWidth = 3; x.strokeStyle = PAL.ink; for (let q = 0; q < 3; q++) { x.beginPath(); x.roundRect(6, 10 - q * 11, 18, 8, 3); x.fillStyle = '#7cc85a'; x.fill(); x.stroke(); } x.beginPath(); x.moveTo(15, -30); x.lineTo(15, -18); x.moveTo(9, -24); x.lineTo(21, -24); x.lineWidth = 4; x.strokeStyle = '#3f8a3a'; x.stroke(); }
   else if (t === 'perkHit') { isleIcon(x, 'pick', -4, 4, 0.9); x.lineWidth = 3.5; x.strokeStyle = '#f2a13c'; x.beginPath(); [[14, -18, 22, -26], [18, -8, 28, -10], [8, -22, 10, -32]].forEach(([a, b, c, d]) => { x.moveTo(a, b); x.lineTo(c, d); }); x.stroke(); }
+  else if (t === 'perkRun') { isleIcon(x, 'boots', 4, 0, 0.95); x.lineWidth = 4; x.strokeStyle = '#f2a13c'; x.beginPath(); [[-30, -12, -16], [-32, 0, -14], [-30, 12, -16]].forEach(([a, b, c]) => { x.moveTo(a, b); x.lineTo(c, b); }); x.stroke(); }
+  else if (t === 'perkBag') { isleIcon(x, 'bag', -4, 2, 1.05); x.beginPath(); x.arc(18, -18, 11, 0, 7); x.fillStyle = '#7cc85a'; x.fill(); x.lineWidth = 3; x.strokeStyle = PAL.ink; x.stroke(); x.beginPath(); x.moveTo(18, -24); x.lineTo(18, -12); x.moveTo(12, -18); x.lineTo(24, -18); x.lineWidth = 3.5; x.strokeStyle = '#fff6e4'; x.stroke(); }
   else if (t === 'perkLuck') { isleIcon(x, 'clover', -4, -2, 0.95); x.font = '700 14px Fredoka, sans-serif'; x.lineWidth = 4; x.strokeStyle = PAL.ink; x.fillStyle = '#fff6e4'; x.strokeText('x2', 8, 24); x.fillText('x2', 8, 24); }
   else if (t === 'fire') { x.fillStyle = '#a9b2bb'; [[-14, 14], [-5, 17], [5, 17], [14, 14]].forEach(([a, b]) => { x.beginPath(); x.ellipse(a, b, 6, 4, 0, 0, 7); x.fill(); x.stroke(); });
     x.beginPath(); x.moveTo(0, -22); x.quadraticCurveTo(16, -4, 10, 12); x.lineTo(-10, 12); x.quadraticCurveTo(-16, -4, 0, -22); x.closePath(); blob('#f2a13c'); x.beginPath(); x.moveTo(0, -6); x.quadraticCurveTo(8, 4, 4, 12); x.lineTo(-4, 12); x.quadraticCurveTo(-8, 4, 0, -6); x.closePath(); x.fillStyle = '#ffe07a'; x.fill(); }
@@ -3319,7 +3321,10 @@ function enBarW() { const b = ENB.el && ENB.el.querySelector('.bar'); if (b) b.s
 function bldBadge() { if (BM.btn) BM.btn.classList.toggle('can', bldKeys().some(bldCan)); if (BM.menu && !BM.menu.hidden) { const key = (BM.keys || bldKeys()).map((k) => bldLv(k) + (bldCan(k) ? 'y' : 'n')).join(); if (key !== BM.key) { BM.key = key; bldFill(); } } }
 /* ---------- Pip grows (Leon's idea list, 2026-11-23): every thing gathered gives stars (XP); a full star ring is a new
    level, and on each level the child picks one of three pictures: more energy (a longer bar), harder hits (things break
-   sooner), or luck (now and then a clover: everything from that one comes twice). ---------- */
+   sooner), or luck (now and then a clover: everything from that one comes twice).
+   Leon, 2026-11-25: "a longer upgrade path". Two more pictures: quick feet (Pip walks faster) and a bigger backpack
+   (two more places each time). Five pictures of five steps make 25 levels; each card still shows three, and which three
+   turns with the level, so every picture keeps coming back until it is full. ---------- */
 const XP_FOR = { crystal: 8, planks: 5, tree: 3, bush: 2, grass: 2, rock: 4, clay: 4, boulder: 8 };
 const XP_PERK_MAX = 5;
 const xpS = () => { const I = state.isle; if (!I.xp) I.xp = { n: 0, lv: 1, en: 0, hit: 0, luck: 0, pend: 0 }; return I.xp; };
@@ -3327,6 +3332,8 @@ const xpNeed = (lv) => 20 + 15 * (lv - 1);
 function xpPow() { return 1 + 0.25 * xpS().hit; }
 const xpLuck = () => 0.08 * xpS().luck;
 const xpEn = () => 20 * xpS().en;
+const xpRun = () => (state.isle && state.isle.xp && state.isle.xp.run) || 0, xpBag = () => (state.isle && state.isle.xp && state.isle.xp.bag) || 0;
+const XP_PERKS = [['en', 'perkEn', 'Mer energi'], ['hit', 'perkHit', 'Hårdare slag'], ['luck', 'perkLuck', 'Tur'], ['run', 'perkRun', 'Snabbare fötter'], ['bag', 'perkBag', 'Större ryggsäck']];
 function xpGain(v) {
   const X = xpS(); X.n += v;
   while (X.n >= xpNeed(X.lv)) { X.n -= xpNeed(X.lv); X.lv++; X.pend++; xpUpT = 0.6; }
@@ -3368,24 +3375,24 @@ function xpDraw() {
 }
 function xpPicks() {
   const X = xpS(), row = XPB.row; row.textContent = '';
-  [['en', 'perkEn'], ['hit', 'perkHit'], ['luck', 'perkLuck']].forEach(([k, ic]) => {
-    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', { en: 'Mer energi', hit: 'Hårdare slag', luck: 'Tur' }[k]);
+  const open = XP_PERKS.filter((q) => (X[q[0]] || 0) < XP_PERK_MAX), show = open.length <= 3 ? open : [0, 1, 2].map((q) => open[(X.lv + 3 + q) % open.length]);
+  show.forEach(([k, ic, name]) => {
+    const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', name);
     const c = document.createElement('canvas'); c.width = c.height = 128; isleIcon(c.getContext('2d'), ic, 64, 64, 2.4); b.appendChild(c);
-    const d = document.createElement('div'); d.className = 'dots'; for (let q = 0; q < XP_PERK_MAX; q++) { const i = document.createElement('i'); if (q < X[k]) i.className = 'on'; d.appendChild(i); } b.appendChild(d);
-    if (X[k] >= XP_PERK_MAX) b.disabled = true;
+    const d = document.createElement('div'); d.className = 'dots'; for (let q = 0; q < XP_PERK_MAX; q++) { const i = document.createElement('i'); if (q < (X[k] || 0)) i.className = 'on'; d.appendChild(i); } b.appendChild(d);
     b.addEventListener('click', (e) => { e.stopPropagation(); xpPick(k); });
     row.appendChild(b);
   });
 }
 function xpPick(k) {
-  const X = xpS(); if (X[k] >= XP_PERK_MAX || X.pend <= 0) return;
-  X[k]++; X.pend--; if (k === 'en') { state.isle.en = Math.min(enMax(), state.isle.en + 20); enShow = -1; enBarW(); }
+  const X = xpS(); if ((X[k] || 0) >= XP_PERK_MAX || X.pend <= 0) return;
+  X[k] = (X[k] || 0) + 1; X.pend--; invDirty = true; if (k === 'en') { state.isle.en = Math.min(enMax(), state.isle.en + 20); enShow = -1; enBarW(); }
   save(); Snd.play('success', { gain: 0.45, f: 'E6' });
   if (X.pend > 0 && !xpFull()) xpPicks(); else { X.pend = 0; XPB.menu.hidden = true; }
 }
-/* every picture full (15 levels in): there is nothing left to pick, so a new level just fills the energy bar with a
+/* every picture full (25 levels in): there is nothing left to pick, so a new level just fills the energy bar with a
    cheer instead of opening a card nobody can answer */
-const xpFull = () => { const X = xpS(); return X.en >= XP_PERK_MAX && X.hit >= XP_PERK_MAX && X.luck >= XP_PERK_MAX; };
+const xpFull = () => { const X = xpS(); return XP_PERKS.every((q) => (X[q[0]] || 0) >= XP_PERK_MAX); };
 function xpTreat() {
   const X = xpS(); X.pend = 0; XPB.menu.hidden = true; xpUpT = 0;
   state.isle.en = enMax(); enShow = -1; enBarW(); save();
