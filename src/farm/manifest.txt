@@ -23,6 +23,7 @@ world.js
 animal2.js
 life.js
 ../engine/sky.js
+../engine/sea.js
 bed.js
 family.js
 ../engine/dog.js

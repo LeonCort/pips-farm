@@ -117,14 +117,8 @@ function hamGiftTex(t, n) {
   x.font = '700 50px Fredoka, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#22303c'; x.fillText('+' + n, 146, 58);
   return new T.CanvasTexture(c);
 }
-function hamWake() {
-  const sum = {}; Object.keys(HAM_DEF).forEach((id) => { if (!mons()[id]) return; const G = HAM_DEF[id].give, lv = hamLv(id); Object.keys(G).forEach((t) => { sum[t] = (sum[t] || 0) + G[t] * lv; }); });
-  const kinds = Object.keys(sum); if (!kinds.length) return;
-  kinds.forEach((t, k) => { state.isle.store[t] = (state.isle.store[t] || 0) + sum[t];
-    const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, sum[t]), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.visible = false; sp.position.set(STORE.x, 1.2, STORE.z); sc.add(sp);
-    HAM.gifts.push({ sp, t: -0.9 - k * 0.75 }); });
-  save();
-}
+/* the morning gift now comes as a present box by the camp (gifts.js) */
+function hamWake() {}
 function hamStep(dt) {
   HAM.t -= dt; if (HAM.t <= 0) { HAM.t = 0.6; hamSync(true); }
   for (let k = HAM.pops.length - 1; k >= 0; k--) { const p = HAM.pops[k]; p.t += dt; if (p.t < 0) continue;
