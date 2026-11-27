@@ -8,7 +8,8 @@
 const GEAR = {
   torch: { cost: { honey: 3, log: 8, coin: 6 }, eff: ['web', 'bees', 'dark'] },
   coat: { cost: { berry: 14, log: 6, coin: 12 }, eff: ['rain'] },
-  boots: { cost: { reed: 4, log: 16, coin: 18 }, eff: ['snowDeep'] }
+  boots: { cost: { reed: 4, log: 16, coin: 18 }, eff: ['snowDeep'] },
+  lantern: { cost: { ember: 2, honey: 2, coin: 20 }, eff: ['dark'] } /* the dark night (night.js) */
 };
 Object.keys(GEAR).forEach((k) => { BLD[k] = { max: 2, cost: [null, null, GEAR[k].cost], pic: [null, k, k] }; });
 const gearHas = (k) => bldLv(k) >= 2;
@@ -30,6 +31,10 @@ function gearIcon(x, t) {
   } else if (t === 'boots') {
     [[-11, 0], [9, 3]].forEach(([a, b]) => { x.beginPath(); x.moveTo(a - 6, b - 18); x.lineTo(a + 4, b - 18); x.lineTo(a + 4, b + 4); x.lineTo(a + 13, b + 8); x.quadraticCurveTo(a + 15, b + 15, a + 8, b + 15); x.lineTo(a - 6, b + 15); x.closePath(); blob('#5b88b8');
       x.beginPath(); x.roundRect(a - 8, b - 22, 14, 7, 3); blob('#f4f8fb'); });
+  } else if (t === 'lantern') {
+    x.beginPath(); x.arc(0, -17, 8, Math.PI, 0); x.lineWidth = 3; x.stroke(); x.beginPath(); x.roundRect(-11, -16, 22, 6, 2); blob('#4a4f57');
+    x.beginPath(); x.roundRect(-9, -10, 18, 24, 3); blob('#ffe07a'); x.beginPath(); x.moveTo(0, 8); x.quadraticCurveTo(-6, 0, 0, -6); x.quadraticCurveTo(6, 0, 0, 8); x.fillStyle = '#f2a13c'; x.fill();
+    x.beginPath(); x.roundRect(-13, 14, 26, 7, 2); blob('#4a4f57');
   } else if (t === 'web') {
     x.lineWidth = 2.2; x.strokeStyle = '#6e7c88'; x.beginPath(); for (let q = 0; q < 8; q++) { const a = q / 8 * 6.283; x.moveTo(0, 0); x.lineTo(Math.cos(a) * 22, Math.sin(a) * 22); } x.stroke();
     [7, 14, 21].forEach((r) => { x.beginPath(); for (let q = 0; q <= 8; q++) { const a = q / 8 * 6.283; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.stroke(); });
@@ -38,7 +43,7 @@ function gearIcon(x, t) {
     [[-10, 4], [8, -8], [10, 12]].forEach(([a, b]) => { x.beginPath(); x.ellipse(a, b, 8, 6, 0, 0, 7); blob('#f2c23c'); x.beginPath(); x.moveTo(a - 2, b - 6); x.lineTo(a - 2, b + 6); x.moveTo(a + 3, b - 5); x.lineTo(a + 3, b + 5); x.stroke();
       x.beginPath(); x.ellipse(a - 1, b - 9, 4, 3, 0.4, 0, 7); x.fillStyle = 'rgba(255,255,255,.85)'; x.fill(); x.stroke(); });
   } else if (t === 'dark') {
-    x.beginPath(); x.roundRect(-20, -20, 40, 40, 10); blob('#2c2438'); x.fillStyle = '#f4d76a'; const mn = new Path2D('M-2 -12 A10 10 0 1 0 10 4 A8 8 0 1 1 -2 -12 Z'); x.fill(mn);
+    x.beginPath(); x.roundRect(-20, -20, 40, 40, 10); blob('#2c2438'); x.beginPath(); x.arc(-1, 1, 11, 0, 7); x.fillStyle = '#f4d76a'; x.fill(); x.beginPath(); x.arc(5, -4, 10, 0, 7); x.fillStyle = '#2c2438'; x.fill(); /* a crescent moon */
   } else if (t === 'rain') {
     x.beginPath(); x.arc(-8, -4, 9, 0, 7); x.arc(4, -9, 11, 0, 7); x.arc(14, -2, 8, 0, 7); blob('#a9b9c9'); x.strokeStyle = '#3f8fd0'; x.lineWidth = 3.5; [-10, 0, 10].forEach((a) => { x.beginPath(); x.moveTo(a, 10); x.lineTo(a - 3, 18); x.stroke(); });
   } else if (t === 'snowDeep') {

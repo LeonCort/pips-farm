@@ -59,7 +59,7 @@ function hamFolk(id, k) {
 }
 /* a lantern post, and for the biggest village a flag in the roof colour: what a bigger village has besides more houses */
 function hamLamp(x, z, seed) {
-  const g = new T.Group(); g.position.set(x, 0, z); sc.add(g); const L = []; let q;
+  const g = new T.Group(); g.position.set(x, 0, z); sc.add(g); const L = []; let q; nightLamp(x, z, 3.4);
   q = new T.CylinderGeometry(0.045, 0.06, 1.25, 6); q.translate(0, 0.62, 0); L.push(fac(q, (cx, cy, cz, i) => tone('#6e4426', i, 0.3), seed));
   q = new T.BoxGeometry(0.3, 0.05, 0.3); q.translate(0, 1.27, 0); L.push(fac(q, () => new T.Color('#4a4f57'), seed + 1));
   q = new T.ConeGeometry(0.22, 0.16, 4); q.rotateY(Math.PI / 4); q.translate(0, 1.6, 0); L.push(fac(q, () => new T.Color('#4a4f57'), seed + 2));

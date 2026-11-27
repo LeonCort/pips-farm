@@ -60,7 +60,7 @@ function isleIcon(x, t, cx, cy, s) {
   else if (t === 'pie' || t === 'oven') bakeryIcon(x, t);
   else if (/^axe/.test(t)) tiersIcon(x, t);
   else if (t === 'dog' || t === 'fetch' || t === 'dig' || t === 'paw') dogIcon(x, t);
-  else if (['torch', 'coat', 'boots', 'web', 'bees', 'dark', 'rain', 'snowDeep'].indexOf(t) >= 0) gearIcon(x, t);
+  else if (['torch', 'coat', 'boots', 'lantern', 'web', 'bees', 'dark', 'rain', 'snowDeep'].indexOf(t) >= 0) gearIcon(x, t);
   else loopIcon(x, t);
   x.restore();
 }

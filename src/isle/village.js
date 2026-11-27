@@ -75,7 +75,7 @@ function lanternMake(x, z, L) {
   q = new T.ConeGeometry(0.17, 0.14, 4); q.rotateY(Math.PI / 4); q.translate(x + 0.3, 1.45, z); L.push(fac(q, '#3e454d', 3102));
   const lamp = new T.Mesh(new T.BoxGeometry(0.16, 0.2, 0.16), new T.MeshBasicMaterial({ color: '#ffe6a8' })); lamp.position.set(x + 0.3, 1.3, z);
   const glow = new T.Sprite(new T.SpriteMaterial({ map: softTex(32, 32), color: '#ffd27a', transparent: true, opacity: 0, depthWrite: false })); glow.position.set(x + 0.3, 1.3, z); glow.scale.set(1.3, 1.3, 1);
-  VG.lamps.push({ lamp, glow }); return [lamp, glow];
+  VG.lamps.push({ lamp, glow }); nightLamp(x + 0.3, z, 3.6); return [lamp, glow];
 }
 function buntingGeo(a, b, seed) { /* a sagging string with little flags between two lantern tops */
   const L = [], COLS = ['#e9684a', '#f2c23c', '#74a857', '#5aa7d6', '#f29ab8'], n = 9;
