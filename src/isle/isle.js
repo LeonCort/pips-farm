@@ -534,7 +534,7 @@ function nodeStep(n, dt) {
     if (n.grow >= 1) { n.st = 'ready'; n.sleepG = 0; n.hp = nodeHits(n); } }
 }
 function nodeHit(n, side) {
-  n.hp -= hitPow(n); if (!side && toolTier() >= 3 && toolKind(n.kind)) wideHit(n, toolTier() >= 4 ? 3 : 1); n.shake = byHand(n.kind) ? 0.12 : 0.28; hpShow(n);
+  n.hp -= hitPow(n); if (!side && toolTier(n.kind) >= 3 && toolKind(n.kind)) wideHit(n, toolTier(n.kind) >= 4 ? 3 : 1); n.shake = byHand(n.kind) ? 0.12 : 0.28; hpShow(n);
   const sx = n.x + (pip.position.x - n.x) * 0.4, sz = n.z + (pip.position.z - n.z) * 0.4;
   if (n.kind === 'tree' || n.kind === 'planks') Snd.play('tock', { gain: 0.55, f: 240 + Math.random() * 40 }); else if (PICKY[n.kind]) Snd.play(n.kind === 'clay' ? 'stamp' : 'impact', { gain: 0.35 }); else Snd.play('swish', { gain: 0.4 });
   if (n.kind !== 'bush' && n.kind !== 'grass') splash(sx, 0.6, sz, 3);
@@ -759,7 +759,7 @@ function hpStep(dt) {
 /* ---- Pip's tools and the work animation: a two-handed overhead swing with the axe (trees) or the pickaxe (rocks);
    the hit lands when the tool comes down. Bushes: both hands reach in and pick. ---- */
 const TOOL = (() => {
-  const mk = (kind, g0) => { const g = g0 || new T.Group(), L = [], tc = toolCol;
+  const mk = (kind, g0) => { const g = g0 || new T.Group(), L = [], tc = (h) => toolCol(h, kind);
     let q = new T.CylinderGeometry(0.028, 0.032, 0.56, 7); q.translate(0, -0.6, 0); L.push(fac(q, '#a8774f', 1700));
     q = new T.CylinderGeometry(0.036, 0.036, 0.08, 7); q.translate(0, -0.36, 0); L.push(fac(q, '#6e4426', 1701)); /* grip */
     if (kind === 'axe') { q = new T.BoxGeometry(0.06, 0.12, 0.13); q.translate(0, -0.84, 0.06); L.push(fac(q, () => tc('#8b939c'), 1702));
@@ -768,7 +768,8 @@ const TOOL = (() => {
     else if (kind === 'sickle') { const c = new T.TorusGeometry(0.13, 0.022, 5, 12, Math.PI * 1.2); c.rotateY(Math.PI / 2); c.translate(0, -0.9, 0.1); L.push(fac(c, () => tc('#d4dade'), 1709)); }
     else { q = new T.CylinderGeometry(0.035, 0.035, 0.08, 7); q.translate(0, -0.86, 0); L.push(fac(q, () => tc('#6e7680'), 1704));
       [1, -1].forEach((k) => { const c = new T.ConeGeometry(0.045, 0.26, 6); c.rotateX(k * Math.PI / 2 + k * 0.25); c.translate(0, -0.85 + 0.03, k * 0.14); L.push(fac(c, () => tc('#b9c1c9'), 1705 + k)); }); }
-    merged(L, MAT, g); g.scale.setScalar(1.35); g.position.y = 0.12; g.visible = false; return g; };
+    let sh = 0; try { sh = kind === 'axe' || kind === 'pick' ? toolSharp(kind) : 0; } catch (e) {}
+    merged(L, MAT, g); g.scale.setScalar(1.35 * (1 + 0.08 * sh)); /* a sharpened tool is a little bigger */ g.position.y = 0.12; g.visible = false; return g; };
   const o = { axe: mk('axe'), pick: mk('pick'), shovel: mk('shovel'), sickle: mk('sickle') };
   /* the smith's better tools: the same shapes with copper, then crystal heads */
   o.re = () => ['axe', 'pick', 'shovel', 'sickle'].forEach((k) => { const g = o[k], v = g.visible; while (g.children.length) g.remove(g.children[0]); mk(k, g); g.visible = v; });

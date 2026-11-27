@@ -7,8 +7,8 @@
    state.isle.folk.smith: 0 in the cottage, 1 found (wants stones), 2 at the camp (forge plot), 3 forge built. */
 const TIER_NEED = {}; /* (old: ore) */
 const TIER_COL = [null, null, '#d9804a', '#8496ab', '#62c8ee']; /* copper, iron, star crystal */
-function toolCol(hex) {
-  let tr = 1; try { tr = toolTier(); } catch (e) {} /* the tools are first made before the game is loaded */
+function toolCol(hex, kind) {
+  let tr = 1; try { tr = toolTier(kind === 'axe' ? 'axe' : 'pick'); } catch (e) {} /* the tools are first made before the game is loaded */
   const c = new T.Color(hex); if (tr < 2) return c;
   const l = (c.r + c.g + c.b) / 3; return new T.Color(TIER_COL[tr]).multiplyScalar(0.45 + l * 0.75);
 }
@@ -102,7 +102,7 @@ function peopleInit() {
   if (!SM.g) SM.g = smithModel();
   SM.g.visible = F.smith >= 1 && (F.smith > 1 || HAS.h3); if (SM.g.visible) smithPlace();
   if (F.smith >= 3) forgeBuild(false);
-  tierSp.material.map = isleBubble('pick' + Math.min(4, toolTier() + 1));
+  smithNext();
   TOOL.re(); bakerInit(); loopInit(); hamSync(false); villageSync(false);
 }
 /* the cottage on h3 just opened: she steps out once the treasure has rolled out */
@@ -134,19 +134,21 @@ function peopleBuy(s) {
   return false;
 }
 /* a new tool level: the tools are made again in the new colour, sparks fly off the anvil and she hops */
-function toolUp() {
+/* over the smith's head: the next tool she can make (the one Pip can pay for first, else the one that is further behind) */
+function smithNext() { const K = toolKeys().filter((k) => bldLv(k) < BLD[k].max); if (!K.length) return null; const k = K.find(bldCan) || K.sort((a, b) => bldLv(a) - bldLv(b))[0]; tierSp.material.map = isleBubble(BLD[k].pic[bldLv(k) + 1]); return k; }
+function toolUp(k) {
   TOOL.re(); SM.hop = 1; burst(ANVIL.x, 0.9, ANVIL.z, 10); splash(ANVIL.x, 0.7, ANVIL.z, 8);
-  tierSp.material.map = isleBubble('pick' + Math.min(4, toolTier() + 1)); hintSp.visible = false;
+  smithNext(); hintSp.visible = false;
   /* the new pick flies up out of the anvil to Pip */
-  const sp = isleSprite(isleBubble('pick' + toolTier()), 0.9); sp.position.set(ANVIL.x, 1.0, ANVIL.z); sc.add(sp); SM.gift = { sp, t: 0 };
+  const sp = isleSprite(isleBubble(BLD[k].pic[bldLv(k)]), 0.9); sp.position.set(ANVIL.x, 1.0, ANVIL.z); sc.add(sp); SM.gift = { sp, t: 0 };
 }
-function anvilOpen() { if (!forgeUp() || !BM.menu) return; const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; /* a new star's card first */ BM.keys = ['tool']; bldFill(); BM.menu.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); }
+function anvilOpen() { if (!forgeUp() || !BM.menu) return; const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; /* a new star's card first */ BM.keys = toolKeys(); bldFill(); BM.menu.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); }
 
 function peopleGoal() {
   const bg = bakerGoal() || loopGoal(); if (bg) return bg;
   const F = state.isle.folk; if (!F || !SM.g) return null; const pp = pip.position;
   if (F.smith === 2 && SM.arr > 0 && !SM.away && Math.hypot(pp.x - SMITH_AT.x, pp.z - SMITH_AT.z) > 4) return [ANVIL_RING.x, ANVIL_RING.z]; /* she moved: show where to */
-  if (F.smith === 3 && toolTier() < 3 && bldCan('tool') && Math.hypot(pp.x, pp.z) < 14 && carry.count() < cap()) return [ANVIL_RING.x, ANVIL_RING.z];
+  if (F.smith === 3 && toolKeys().some((k) => bldLv(k) < 7 && bldCan(k)) && Math.hypot(pp.x, pp.z) < 14) return [ANVIL_RING.x, ANVIL_RING.z];
   return null;
 }
 
@@ -187,7 +189,7 @@ function peopleStep(dt) {
     const inR = Math.hypot(pp.x - ANVIL_RING.x, pp.z - ANVIL_RING.z) < 0.55; if (!inR) anvilIn = false; else if (!anvilIn && BM.menu && BM.menu.hidden) { anvilOpen(); anvilIn = !BM.menu.hidden; } /* once per visit; waits for a new star's card */
     anvilRing.material.opacity = 0.55;
     /* over her head: the next tool she can make */
-    tierSp.visible = toolTier() < 4 && !SM.gift; if (tierSp.visible) { const can = bldCan('tool'); tierSp.position.set(g.position.x, 2.15 + (reduced ? 0 : Math.sin(time * 2) * 0.05), g.position.z); tierSp.scale.setScalar(0.8 * (can && !reduced ? 1 + Math.sin(time * 5) * 0.08 : 1)); tierSp.material.opacity = can ? 1 : 0.7; }
+    const nk = SM.gift ? null : smithNext(); tierSp.visible = !!nk; if (tierSp.visible) { const can = bldCan(nk); tierSp.position.set(g.position.x, 2.15 + (reduced ? 0 : Math.sin(time * 2) * 0.05), g.position.z); tierSp.scale.setScalar(0.8 * (can && !reduced ? 1 + Math.sin(time * 5) * 0.08 : 1)); tierSp.material.opacity = can ? 1 : 0.7; }
   }
   if (SM.gift) { const G = SM.gift; G.t += dt; G.sp.position.y = 1.0 + G.t * 1.6; G.sp.material.opacity = Math.max(0, 1 - Math.max(0, G.t - 0.9) * 2); if (G.t > 1.5) { sc.remove(G.sp); SM.gift = null; } }
 }

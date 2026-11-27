@@ -83,7 +83,7 @@ function mapDraw() {
 function mapHintSpots(t) {
   const out = [];
   if (FINDS.indexOf(t) >= 0) { AREAS.forEach((A) => { const f = (A.finds || []).find((q) => FIND_NODE[q[0]].t === t); if (!f) return; const F = FIND_NODE[f[0]];
-      const need = A.cave && !gearHas('torch') ? 'torch' : !F.hand && toolTier() < F.tier ? 'pick' + F.tier : null; out.push({ t, x: A.cx, z: A.cz, need }); });
+      const need = A.cave && !gearHas('torch') ? 'torch' : !F.hand && toolTier('pick') < F.tier ? 'pick' + F.tier : null; out.push({ t, x: A.cx, z: A.cz, need }); });
     if (out.some((q) => AREA_BY.cave2 && Math.abs(q.z - AREA_BY.cave2.cz) < 1) && !inCave && HAS.h3 && stairsDown) out.push({ t: 'stairsDown', x: stairsDown.x, z: stairsDown.z, need: null }); }
   else if (KINDS.indexOf(t) >= 0) AREAS.forEach((A) => { if (!A.cave && HAS[A.id] && MAP_RES[A.biome] === t) out.push({ t, x: A.cx, z: A.cz, need: null }); });
   return out;
