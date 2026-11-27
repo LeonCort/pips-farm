@@ -27,6 +27,7 @@ timed.js
 ../engine/pip2.js
 ../engine/walkto.js
 ../engine/sky.js
+../engine/sea.js
 ../engine/dog.js
 ../engine/pet2.js
 ../engine/weather.js
