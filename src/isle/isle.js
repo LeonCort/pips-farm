@@ -193,12 +193,23 @@ function areaClear(x, z) {
     if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
+  for (const S of SHORTS) { const b = S.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; }
   if (Math.max(Math.abs(x), Math.abs(z)) < 6 && Math.max(Math.abs(x), Math.abs(z)) > 4.6) return false; /* the start area's shore, where its signs stand */
   return true;
 }
 /* the start area is laid out by hand round the camp, so there is plenty to gather from the first minute (Leon, 2026-11-23) */
 const START_NODES = [['tree', -4.9, -4.9], ['tree', 4.9, -4.9], ['tree', -3.7, 5.1], ['tree', 4.9, 4.9], ['tree', 5.0, -1.5], ['tree', -5.0, 0.3], ['tree', 2.1, 5.1], ['tree', -1.7, -5.2],
   ['bush', 5.1, -3.3], ['bush', 5.2, 2.0], ['bush', -5.1, -1.2], ['bush', -1.5, 4.9], ['bush', -5.2, 3.7], ['rock', 3.3, 5.1], ['rock', -3.2, -5.1]]; /* round the rim: the middle is the settlement */
+/* the basics on every square (Leon, 2026-11-27): no price may send Pip back to another island just to chop wood. After
+   the biome has grown its own things, each square is topped up to at least two trees, two stones and a berry bush. */
+const BASICS = [['tree', 2, ['tree']], ['rock', 2, ['rock', 'boulder']], ['bush', 1, ['bush']]];
+function basicsFill(A, fresh) {
+  if (A.cave || A.start) return; const inA = nodes.filter((n) => Math.abs(n.x - A.cx) < 6.6 && Math.abs(n.z - A.cz) < 6.6), base = 90000 + AREAS.indexOf(A) * 400; let c = 0;
+  BASICS.forEach(([k, min, like]) => { let have = inA.filter((n) => like.includes(n.kind) && Math.abs(n.x - A.cx) < 6 && Math.abs(n.z - A.cz) < 6).length;
+    for (let t = 0; t < 90 && have < min; t++) { const sd = base + c++, x = A.cx + (hash(sd, 1) - 0.5) * 9.8, z = A.cz + (hash(sd, 2) - 0.5) * 9.8;
+      if (!areaClear(x, z) || drawSdf(x, z) > -0.9 || inA.some((n) => Math.hypot(n.x - x, n.z - z) < 1.8)) continue;
+      const nd = makeNode(k, x, z, sd); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); } inA.push(nd); have++; } });
+}
 function areaFill(A, fresh) {
   if (SHOW && SHOW_YARD[A.id]) return; /* the asset yard keeps these two areas as an empty lawn */
   if (A.start) { START_NODES.forEach(([k, x, z], q) => makeNode(k, x, z, 50 + q)); areaDecor(A); return; }
@@ -209,7 +220,7 @@ function areaFill(A, fresh) {
     const n = Math.sin(x * 0.45 + base * 0.13) + Math.cos(z * 0.41 - base * 0.07), k = LAYOUT[A.biome](x, z, hash(sd, 3), n); if (!k) continue;
     const nd = makeNode(k, x, z, sd); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); }
   }
-  findFill(A, fresh); tallFill(A, fresh); mesaFill(A, fresh); iceFill(A, fresh); marshFill(A, fresh); coralFill(A, fresh); emberFill(A, fresh);
+  findFill(A, fresh); tallFill(A, fresh); mesaFill(A, fresh); iceFill(A, fresh); marshFill(A, fresh); coralFill(A, fresh); emberFill(A, fresh); basicsFill(A, fresh);
   if (A.chest && !state.isle.chests[A.id]) makeChest(A.cx, A.cz - 0.4, A.chest, A.id);
   if (A.ruin) makeRuin(A, fresh);
   if (A.stairs) stairsBuild(A, fresh);
@@ -466,6 +477,17 @@ function bridgeStep(dt) {
     pop([B.A.bridge.x1, B.A.bridge.z1]); Snd.play('success', { gain: 0.5 }); Snd.play('sparkle', { gain: 0.4 }); isleSigns(); save();
   }
 }
+/* a shortcut bridge (SHORTS, rules.js) lays itself plank by plank once both its shores are owned and Pip is near enough to see it */
+function shortInit() { const o = state.isle.short || (state.isle.short = {}); SHORTS.forEach((S) => { if (o[S.id] && !S.m) { S.m = bridgeMesh(S); S.on = 1; } }); }
+function shortStep(dt) {
+  for (const S of SHORTS) { if (S.on) continue; const b = S.bridge;
+    if (!S.m) { if (inCave || !S.need.every((id) => HAS[id]) || segD(pip.position.x, pip.position.z, b.x0, b.z0, b.x1, b.z1) > 11) continue;
+      S.m = bridgeMesh(S); S.m.planks.forEach((m) => { m.visible = false; }); S.m.rails.visible = false; S.t = -0.6; S.k = 0; Snd.play('whoosh', { gain: 0.4 }); }
+    S.t += dt; const P = S.m.planks, want = Math.min(P.length, Math.floor(S.t / 0.09));
+    for (; S.k < want; S.k++) { const m = P[S.k]; m.visible = true; m.scale.setScalar(0.01); m.userData.p = 0.001; const w = S.m.g.localToWorld(tmpV.copy(m.position)); if (S.k % 2 === 0) { splash(w.x, -0.2, w.z, 3); Snd.play('tock', { gain: 0.3, f: 300 + S.k * 9 }); } }
+    P.forEach((m) => { if (m.userData.p > 0 && m.userData.p < 1) { m.userData.p = Math.min(1, m.userData.p + dt * 5); m.scale.setScalar(m.userData.p < 0.7 ? m.userData.p / 0.7 * 1.15 : 1.15 - (m.userData.p - 0.7) / 0.3 * 0.15); } });
+    if (S.k >= P.length && S.t > P.length * 0.09 + 0.4) { S.m.rails.visible = true; S.on = 1; state.isle.short[S.id] = 1; pop([b.x1, b.z1]); pop([b.x0, b.z0]); Snd.play('success', { gain: 0.5 }); Snd.play('sparkle', { gain: 0.4 }); save(); } }
+}
 
 /* ---- drops: chunks that pop out and wait to be picked up ---- */
 function dropOut(n) {
@@ -528,7 +550,7 @@ function canWork(n) { return n.st === 'ready' && n.pop >= 0 && (n.pop === 0 || n
 /* ---- the island's part of every frame ---- */
 function isleStep(dt) {
   const px = pip.position.x, pz = pip.position.z;
-  isleRiseStep(dt); bridgeStep(dt); isleBoxStep();
+  isleRiseStep(dt); bridgeStep(dt); shortStep(dt); isleBoxStep();
   /* keep Pip and the touch point on land, and out of trees and rocks */
   const v = tmpV.set(px, 0, pz); wClamp(v); pip.position.x = v.x; pip.position.z = v.z;
   nodes.forEach((n) => { if (Math.abs(n.x - pip.position.x) > 3 || Math.abs(n.z - pip.position.z) > 3 || !mesaLevel(n)) return; const r = n.kind === 'tree' ? NODE_R.tree : n.kind === 'grass' ? 0.2 : n.st === 'ready' || n.st === 'grow' ? NODE_R[n.kind] * (n.kind === 'bush' ? 1 : n.main.scale.x / n.full) : 0.2;
@@ -583,6 +605,7 @@ function isleInit() {
   if (nodes.length) return;
   if (!state.isle || state.isle.map !== MAP_V) state.isle = fresh().isle; /* a save made for another map starts over */
   const I = state.isle; I.paid = I.paid || {}; I.chests = I.chests || {}; I.ruins = I.ruins || {}; I.bld = I.bld || { tent: 1, fire: 1 }; I.tools = I.tools || { pick: 0, bag: 0 }; I.areas = I.areas || { h0: 1 }; I.folk = I.folk || {}; I.dug = I.dug || {};
+  shortInit();
   AREAS.forEach((A) => { if (HAS[A.id] && A.bridge) bridgeBuild(A, true); if (HAS[A.id] || drawn(A.i, A.j)) areaFill(A, false); });
   nodes.forEach((n) => { n.pop = 0; n.g.scale.setScalar(1); });
   chests.forEach((c) => { c.pop = 1; c.g.scale.setScalar(1); });
@@ -716,7 +739,7 @@ function hpDraw(f) {
     x.beginPath(); x.roundRect(13, 13, Math.max(10, 142 * f - 8), 5, 3); x.fillStyle = 'rgba(255,255,255,0.45)'; x.fill(); }
   hpBar.tex.needsUpdate = true;
 }
-function hpShow(n) { if (hpBar.n !== n) hpBar.shown = 1; hpBar.n = n; hpBar.t = 2.2; hpBar.sp.visible = true; hpBar.goal = Math.max(0, n.hp / nodeHits(n)); }
+function hpShow(n) { if (hpBar.n !== n) hpBar.shown = 1; hpBar.n = n; hpBar.t = 2.2; hpBar.sp.visible = true; hpBar.goal = Math.max(0, Math.min(1, n.hp / (n.hpMax || nodeHits(n)))); }
 function hpStep(dt) {
   const b = hpBar; if (!b.sp.visible || !b.n) return;
   b.t -= dt; b.shown += (b.goal - b.shown) * Math.min(1, dt * 10); hpDraw(b.shown);

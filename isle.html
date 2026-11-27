@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261127194105">
+<meta name="app-ver" content="20261127195426">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1190,6 +1190,10 @@ const AREAS = [
   { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1, finds: [['copper', -3.5, -3.4], ['copper', -1.0, -4.0], ['copper', 2.6, -3.3], ['copper', 3.4, 3.3], ['copper', -3.2, 3.5]] },
   { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, finds: [['glow', 2.6, -3.6], ['glow', -0.8, -4.1], ['glow', 3.5, 3.4]] }
 ];
+/* shortcuts (Leon, 2026-11-27): the first way to a far place may be long, but once Pip has reached it a short way back
+   opens by itself. Each is a plank bridge between two areas that builds itself, free, when both are owned (isle.js).
+   The stone island: the mine and its lift are the first way there; after that a bridge runs to the west meadow. */
+const SHORTS = [{ id: 'sm', need: ['s0', 'm1'], bridge: { x0: -22.6, z0: -12.2, x1: -17.4, z1: -12.2 } }];
 /* the special finds (finds.js): what each find node gives, how many, and the tool level it needs */
 const FINDS = ['honey', 'copper', 'iron', 'glow', 'reed', 'pearl', 'ember'];
 const FIND_NODE = { hive: { t: 'honey', n: 1, tier: 1 }, copper: { t: 'copper', n: 2, tier: 1 }, iron: { t: 'iron', n: 2, tier: 2 }, glow: { t: 'glow', n: 1, tier: 3 }, reeds: { t: 'reed', n: 2, tier: 1, hand: 1 }, clam: { t: 'pearl', n: 1, tier: 1, hand: 1 }, cinder: { t: 'ember', n: 1, tier: 3 } };
@@ -1246,6 +1250,7 @@ function walkSdf(x, z) {
   let d = gSdf(x, z);
   d = Math.min(d, segD(x, z, FERRY.x, FERRY.z, FERRY.x - 3.0, FERRY.z) - 0.55); /* the farm boat's dock: its pad is out on the planks (ferry.js) */
   for (const a of AREAS) if (a.bridge && HAS[a.id] && (!a.bridge.tide || TIDE.low)) { const b = a.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
+  for (const S of SHORTS) if (S.on) { const b = S.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
   if (HAS.r0) { d = Math.min(d, segD(x, z, RAFT.e[0] + 1.5, RAFT.e[1], RAFT.e[0] + 0.5, RAFT.e[1]) - 0.6, segD(x, z, RAFT.w[0] - 1.5, RAFT.w[1], RAFT.w[0] - 0.5, RAFT.w[1]) - 0.6); /* the raft's two jetties, and the raft while it lies still */
     if (RAFT.on) d = Math.min(d, Math.hypot(x - RAFT.x, z - RAFT.z) - 0.85); }
   if (HAS.e0 && x > 21 && z > 21) d = Math.max(d, -emberLava(x, z) - 0.2, EMBER.cone[2] - Math.hypot(x - EMBER.cone[0], z - EMBER.cone[1]) - 0.2); /* lava and the volcano are no ground to walk on */
@@ -2358,12 +2363,23 @@ function areaClear(x, z) {
     if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
+  for (const S of SHORTS) { const b = S.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; }
   if (Math.max(Math.abs(x), Math.abs(z)) < 6 && Math.max(Math.abs(x), Math.abs(z)) > 4.6) return false; /* the start area's shore, where its signs stand */
   return true;
 }
 /* the start area is laid out by hand round the camp, so there is plenty to gather from the first minute (Leon, 2026-11-23) */
 const START_NODES = [['tree', -4.9, -4.9], ['tree', 4.9, -4.9], ['tree', -3.7, 5.1], ['tree', 4.9, 4.9], ['tree', 5.0, -1.5], ['tree', -5.0, 0.3], ['tree', 2.1, 5.1], ['tree', -1.7, -5.2],
   ['bush', 5.1, -3.3], ['bush', 5.2, 2.0], ['bush', -5.1, -1.2], ['bush', -1.5, 4.9], ['bush', -5.2, 3.7], ['rock', 3.3, 5.1], ['rock', -3.2, -5.1]]; /* round the rim: the middle is the settlement */
+/* the basics on every square (Leon, 2026-11-27): no price may send Pip back to another island just to chop wood. After
+   the biome has grown its own things, each square is topped up to at least two trees, two stones and a berry bush. */
+const BASICS = [['tree', 2, ['tree']], ['rock', 2, ['rock', 'boulder']], ['bush', 1, ['bush']]];
+function basicsFill(A, fresh) {
+  if (A.cave || A.start) return; const inA = nodes.filter((n) => Math.abs(n.x - A.cx) < 6.6 && Math.abs(n.z - A.cz) < 6.6), base = 90000 + AREAS.indexOf(A) * 400; let c = 0;
+  BASICS.forEach(([k, min, like]) => { let have = inA.filter((n) => like.includes(n.kind) && Math.abs(n.x - A.cx) < 6 && Math.abs(n.z - A.cz) < 6).length;
+    for (let t = 0; t < 90 && have < min; t++) { const sd = base + c++, x = A.cx + (hash(sd, 1) - 0.5) * 9.8, z = A.cz + (hash(sd, 2) - 0.5) * 9.8;
+      if (!areaClear(x, z) || drawSdf(x, z) > -0.9 || inA.some((n) => Math.hypot(n.x - x, n.z - z) < 1.8)) continue;
+      const nd = makeNode(k, x, z, sd); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); } inA.push(nd); have++; } });
+}
 function areaFill(A, fresh) {
   if (SHOW && SHOW_YARD[A.id]) return; /* the asset yard keeps these two areas as an empty lawn */
   if (A.start) { START_NODES.forEach(([k, x, z], q) => makeNode(k, x, z, 50 + q)); areaDecor(A); return; }
@@ -2374,7 +2390,7 @@ function areaFill(A, fresh) {
     const n = Math.sin(x * 0.45 + base * 0.13) + Math.cos(z * 0.41 - base * 0.07), k = LAYOUT[A.biome](x, z, hash(sd, 3), n); if (!k) continue;
     const nd = makeNode(k, x, z, sd); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); }
   }
-  findFill(A, fresh); tallFill(A, fresh); mesaFill(A, fresh); iceFill(A, fresh); marshFill(A, fresh); coralFill(A, fresh); emberFill(A, fresh);
+  findFill(A, fresh); tallFill(A, fresh); mesaFill(A, fresh); iceFill(A, fresh); marshFill(A, fresh); coralFill(A, fresh); emberFill(A, fresh); basicsFill(A, fresh);
   if (A.chest && !state.isle.chests[A.id]) makeChest(A.cx, A.cz - 0.4, A.chest, A.id);
   if (A.ruin) makeRuin(A, fresh);
   if (A.stairs) stairsBuild(A, fresh);
@@ -2631,6 +2647,17 @@ function bridgeStep(dt) {
     pop([B.A.bridge.x1, B.A.bridge.z1]); Snd.play('success', { gain: 0.5 }); Snd.play('sparkle', { gain: 0.4 }); isleSigns(); save();
   }
 }
+/* a shortcut bridge (SHORTS, rules.js) lays itself plank by plank once both its shores are owned and Pip is near enough to see it */
+function shortInit() { const o = state.isle.short || (state.isle.short = {}); SHORTS.forEach((S) => { if (o[S.id] && !S.m) { S.m = bridgeMesh(S); S.on = 1; } }); }
+function shortStep(dt) {
+  for (const S of SHORTS) { if (S.on) continue; const b = S.bridge;
+    if (!S.m) { if (inCave || !S.need.every((id) => HAS[id]) || segD(pip.position.x, pip.position.z, b.x0, b.z0, b.x1, b.z1) > 11) continue;
+      S.m = bridgeMesh(S); S.m.planks.forEach((m) => { m.visible = false; }); S.m.rails.visible = false; S.t = -0.6; S.k = 0; Snd.play('whoosh', { gain: 0.4 }); }
+    S.t += dt; const P = S.m.planks, want = Math.min(P.length, Math.floor(S.t / 0.09));
+    for (; S.k < want; S.k++) { const m = P[S.k]; m.visible = true; m.scale.setScalar(0.01); m.userData.p = 0.001; const w = S.m.g.localToWorld(tmpV.copy(m.position)); if (S.k % 2 === 0) { splash(w.x, -0.2, w.z, 3); Snd.play('tock', { gain: 0.3, f: 300 + S.k * 9 }); } }
+    P.forEach((m) => { if (m.userData.p > 0 && m.userData.p < 1) { m.userData.p = Math.min(1, m.userData.p + dt * 5); m.scale.setScalar(m.userData.p < 0.7 ? m.userData.p / 0.7 * 1.15 : 1.15 - (m.userData.p - 0.7) / 0.3 * 0.15); } });
+    if (S.k >= P.length && S.t > P.length * 0.09 + 0.4) { S.m.rails.visible = true; S.on = 1; state.isle.short[S.id] = 1; pop([b.x1, b.z1]); pop([b.x0, b.z0]); Snd.play('success', { gain: 0.5 }); Snd.play('sparkle', { gain: 0.4 }); save(); } }
+}
 
 /* ---- drops: chunks that pop out and wait to be picked up ---- */
 function dropOut(n) {
@@ -2693,7 +2720,7 @@ function canWork(n) { return n.st === 'ready' && n.pop >= 0 && (n.pop === 0 || n
 /* ---- the island's part of every frame ---- */
 function isleStep(dt) {
   const px = pip.position.x, pz = pip.position.z;
-  isleRiseStep(dt); bridgeStep(dt); isleBoxStep();
+  isleRiseStep(dt); bridgeStep(dt); shortStep(dt); isleBoxStep();
   /* keep Pip and the touch point on land, and out of trees and rocks */
   const v = tmpV.set(px, 0, pz); wClamp(v); pip.position.x = v.x; pip.position.z = v.z;
   nodes.forEach((n) => { if (Math.abs(n.x - pip.position.x) > 3 || Math.abs(n.z - pip.position.z) > 3 || !mesaLevel(n)) return; const r = n.kind === 'tree' ? NODE_R.tree : n.kind === 'grass' ? 0.2 : n.st === 'ready' || n.st === 'grow' ? NODE_R[n.kind] * (n.kind === 'bush' ? 1 : n.main.scale.x / n.full) : 0.2;
@@ -2748,6 +2775,7 @@ function isleInit() {
   if (nodes.length) return;
   if (!state.isle || state.isle.map !== MAP_V) state.isle = fresh().isle; /* a save made for another map starts over */
   const I = state.isle; I.paid = I.paid || {}; I.chests = I.chests || {}; I.ruins = I.ruins || {}; I.bld = I.bld || { tent: 1, fire: 1 }; I.tools = I.tools || { pick: 0, bag: 0 }; I.areas = I.areas || { h0: 1 }; I.folk = I.folk || {}; I.dug = I.dug || {};
+  shortInit();
   AREAS.forEach((A) => { if (HAS[A.id] && A.bridge) bridgeBuild(A, true); if (HAS[A.id] || drawn(A.i, A.j)) areaFill(A, false); });
   nodes.forEach((n) => { n.pop = 0; n.g.scale.setScalar(1); });
   chests.forEach((c) => { c.pop = 1; c.g.scale.setScalar(1); });
@@ -2881,7 +2909,7 @@ function hpDraw(f) {
     x.beginPath(); x.roundRect(13, 13, Math.max(10, 142 * f - 8), 5, 3); x.fillStyle = 'rgba(255,255,255,0.45)'; x.fill(); }
   hpBar.tex.needsUpdate = true;
 }
-function hpShow(n) { if (hpBar.n !== n) hpBar.shown = 1; hpBar.n = n; hpBar.t = 2.2; hpBar.sp.visible = true; hpBar.goal = Math.max(0, n.hp / nodeHits(n)); }
+function hpShow(n) { if (hpBar.n !== n) hpBar.shown = 1; hpBar.n = n; hpBar.t = 2.2; hpBar.sp.visible = true; hpBar.goal = Math.max(0, Math.min(1, n.hp / (n.hpMax || nodeHits(n)))); }
 function hpStep(dt) {
   const b = hpBar; if (!b.sp.visible || !b.n) return;
   b.t -= dt; b.shown += (b.goal - b.shown) * Math.min(1, dt * 10); hpDraw(b.shown);
@@ -3569,7 +3597,7 @@ function caveBuild(A) {
   if (A.id === 'cave2') MINE_GATES.forEach((G, q) => { if (mineS()[G.id]) return; const n = makeNode('boulder', G.x, A.cz, 2600 + q); n.gate = G.id; n.tier = G.tier; n.g.rotation.y = 0;
     /* Leon, 2026-11-27: the heap looked like a big boulder nobody can break. Now it is a pile of loose stones behind a plank
        barrier, and the pickaxe that opens it always floats over it */
-    n.main.geometry = RUBBLE_GEO; n.full = 1; n.main.scale.setScalar(1); n.hp = nodeHits(n) * (G.tier > 1 ? 1.5 : 1);
+    n.main.geometry = RUBBLE_GEO; n.full = 1; n.main.scale.setScalar(1); n.hp = nodeHits(n) * (G.tier > 1 ? 1.5 : 1); n.hpMax = n.hp; /* the bar's full length (isle.js hpShow) */
     n.tag = isleSprite(isleBubble('pick' + (G.tier > 1 ? G.tier : '')), 0.95); n.tag.position.set(0, 2.55, 0); n.g.add(n.tag); });
   if (A.id === 'cave3') { LIFT.g = liftModel(LIFT.low.x, LIFT.low.z, 2650); const Q = LIFT.lowMat = stairMat('up', LIFT.low.x, LIFT.low.z + 1.3); Q.ok = () => inCave && !!HAS.s0; Q.to = () => LIFT.topOut; Q.cave = false; }
   /* the hill top, seen from outside */
@@ -7001,7 +7029,7 @@ const dogTest = () => ({ lv: dogLv(), mode: DG.mode, cap: cap(), dug: Object.ass
    (a flood fill from the goal over the 19 by 19 grid) and head for the furthest corner of it that is in plain sight. */
 function landLine(x0, z0, x1, z1) { const L = Math.hypot(x1 - x0, z1 - z0), n = Math.ceil(L / 0.4); for (let k = 1; k < n; k++) { const u = k / n; if (walkSdf(x0 + (x1 - x0) * u, z0 + (z1 - z0) * u) > -0.12) return false; } return true; }
 const LR_DIST = new Int16Array(GWN * GWN);
-function landBridges() { return AREAS.filter((a) => a.bridge && HAS[a.id]).map((a) => { const b = a.bridge; return { b, a: [gCell(b.x0), gCell(b.z0)], c: [gCell(b.x1), gCell(b.z1)] }; }); }
+function landBridges() { return AREAS.filter((a) => a.bridge && HAS[a.id]).concat(SHORTS.filter((S) => S.on)).map((a) => { const b = a.bridge; return { b, a: [gCell(b.x0), gCell(b.z0)], c: [gCell(b.x1), gCell(b.z1)] }; }); }
 function landPath(px, pz, tx, tz) {
   const BR = landBridges(), D = LR_DIST; D.fill(-1); const Q = [];
   const seed = (i, j) => { if (owned(i, j) && D[gIdx(i, j)] < 0) { D[gIdx(i, j)] = 0; Q.push(i, j); } };
@@ -8850,6 +8878,7 @@ function mapDraw() {
     if (HAS[A.id]) { x.lineCap = 'butt'; x.lineWidth = 26; x.strokeStyle = '#6e4426'; x.beginPath(); x.moveTo(ax, az); x.lineTo(bx, bz); x.stroke(); x.lineWidth = 19; x.strokeStyle = '#c99f6c'; x.setLineDash([9, 3]); x.stroke(); x.setLineDash([]); x.lineCap = 'round'; }
     else if (HAS[B.from]) { x.lineWidth = 8; x.strokeStyle = '#f4b23a'; x.setLineDash([12, 12]); x.beginPath(); x.moveTo(ax, az); x.lineTo(bx, bz); x.stroke(); x.setLineDash([]);
       const k = LOOP_KEY[A.id], mx = (ax + bx) / 2, mz = (az + bz) / 2; if (k) { mapBadge(x, mx, mz, 30); isleIcon(x, k, mx, mz, 1.0); if (!lkeys()[k]) isleIcon(x, 'lock', mx + 22, mz + 20, 0.6); } } });
+  SHORTS.forEach((S) => { if (!S.on) return; const B = S.bridge, [ax, az] = mapXY(B.x0, B.z0), [bx, bz] = mapXY(B.x1, B.z1); x.lineCap = 'butt'; x.lineWidth = 26; x.strokeStyle = '#6e4426'; x.beginPath(); x.moveTo(ax, az); x.lineTo(bx, bz); x.stroke(); x.lineWidth = 19; x.strokeStyle = '#c99f6c'; x.setLineDash([9, 3]); x.stroke(); x.setLineDash([]); x.lineCap = 'round'; });
   /* the special finds: a small picture where each one is found */
   AREAS.forEach((A) => { const seen = {}; (A.finds || []).forEach((f) => { const t = FIND_NODE[f[0]].t; if (seen[t]) return; seen[t] = 1; const [px, pz] = A.cave ? mapXY(A.cx, A.cz + 2.2) : mapXY(A.cx + 4.0, A.cz - 4.2);
     x.globalAlpha = A.cave || HAS[A.id] ? 1 : 0.6; mapBadge(x, px, pz, 19); isleIcon(x, t, px, pz, 0.62); x.globalAlpha = 1; }); });
