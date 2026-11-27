@@ -144,7 +144,10 @@ const BOARD = { x: 3.3, z: -4.75 };
 const HOUSES = { mason: { x: 11, z: 4.9 }, knitter: { x: 14, z: 4.9 }, miner: { x: 17, z: 4.9 },
   fisher: { x: 4.2, z: 9.6, area: 'h2' }, diver: { x: 4.2, z: 12.4, area: 'h2' }, glass: { x: 4.2, z: 15.2, area: 'h2' } }; /* the three from the far islands live on the bakery's lane (Leon 2026-11-27: every island holds a friend the ending needs) */
 const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2.6 }, windmill: { x: 2.6, z: -30, sx: -1.7, sz: 1.5, mx: -2.2, mz: 2.2 },
-  lighthouse: { x: -31.4, z: -2.2, sx: 1.8, sz: 1.3, mx: 2.4, mz: -1.0 }, tower: { x: 30.6, z: -34, sx: -1.7, sz: 1.5, mx: -2.0, mz: -1.2 } };
+  lighthouse: { x: -31.4, z: -2.2, sx: 1.8, sz: 1.3, mx: 2.4, mz: -1.0 }, tower: { x: 30.6, z: -34, sx: -1.7, sz: 1.5, mx: -2.0, mz: -1.2 },
+  /* the far islands' wonders (Leon 2026-11-27): a sluice wheel on the marsh channel, a tide bell on the coral beach, a great hearth by the volcano */
+  sluice: { x: -12.5, z: 10.0, sx: 0.9, sz: 1.8, mx: 0.9, mz: -2.0 }, bell: { x: 30.4, z: 12.9, sx: -1.7, sz: 0.9, mx: 0.2, mz: -2.0 }, hearth: { x: 27.6, z: 32.7, sx: -1.7, sz: 0.3, mx: -1.4, mz: -1.8 },
+  belfry: { x: 13.0, z: 9.7, sx: -1.9, sz: 1.0, mx: 0, mz: 0 } }; /* the bell tower on the village green: the last wonder, made of one find from every island */
 /* the island villages (hamlets.js): once an island's monument stands, a few houses and neighbours move in beside it.
    Each house is [x, z, turn]; the crate is where the village stacks what it gathers. Nothing grows on these plots. */
 const HAMLET_AT = {

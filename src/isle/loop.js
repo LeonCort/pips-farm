@@ -30,11 +30,17 @@ const LOOP_MON = {
   harbor: { isle: 'home', need: () => ['h0', 'h1', 'h2', 'h3'].every((a) => HAS[a]) && (folk().smith || 0) >= 3, area: 'h2', cost: { log: 30, stone: 20 } },
   windmill: { isle: 'meadow', need: () => HAS.m3 && (folk().baker || 0) >= 2, area: 'm3', cost: { log: 40, berry: 20, stone: 15 } },
   lighthouse: { isle: 'stone', need: () => HAS.s2 && (folk().mason || 0) >= 2, area: 's2', cost: { stone: 50, log: 20, crystal: 6 } },
-  tower: { isle: 'winter', need: () => HAS.w1 && (folk().knitter || 0) >= 2, area: 'w1', cost: { crystal: 15, stone: 30, log: 30 } }
+  tower: { isle: 'winter', need: () => HAS.w1 && (folk().knitter || 0) >= 2, area: 'w1', cost: { crystal: 15, stone: 30, log: 30 } },
+  sluice: { isle: 'marsh', need: () => HAS.r0 && HAS.r1 && (folk().fisher || 0) >= 2, area: 'r0', cost: { log: 60, stone: 30, reed: 8 } },
+  bell: { isle: 'coral', need: () => HAS.c0 && HAS.c1 && (folk().diver || 0) >= 2, area: 'c0', cost: { stone: 60, crystal: 10, pearl: 5 } },
+  hearth: { isle: 'ember', need: () => HAS.e0 && (folk().glass || 0) >= 2, area: 'e0', cost: { stone: 70, crystal: 16, ember: 4 } },
+  /* the last wonder: its plot shows as soon as the harbour stands, so the goal is in sight all game, but it takes a find
+     from every island (honey: meadow, iron: stone, reeds: marsh, pearls: coral, ember: volcano, crystals: winter and mine) */
+  belfry: { isle: 'home', need: () => HAS.h3 && !!mons().harbor, area: 'h3', cost: { honey: 4, iron: 4, reed: 4, pearl: 4, ember: 4, crystal: 20 } }
 };
-const ISLE_OF = (id) => (!id ? null : /^cave/.test(id) ? 'cave' : { h: 'home', m: 'meadow', s: 'stone', w: 'winter' }[id[0]]);
-const ISLE_PIC = { home: 'camp', meadow: 'windmill', stone: 'lighthouse', winter: 'tower' };
-const ISLE_MON = { meadow: 'windmill', stone: 'lighthouse', winter: 'tower', home: 'harbor' };
+const ISLE_OF = (id) => (!id ? null : /^cave/.test(id) ? 'cave' : { h: 'home', m: 'meadow', s: 'stone', w: 'winter', r: 'marsh', c: 'coral', e: 'ember' }[id[0]]);
+const ISLE_PIC = { home: 'camp', meadow: 'windmill', stone: 'lighthouse', winter: 'tower', marsh: 'sluice', coral: 'bell', ember: 'hearth' };
+const ISLE_MON = { meadow: 'windmill', stone: 'lighthouse', winter: 'tower', home: 'harbor', marsh: 'sluice', coral: 'bell', ember: 'hearth' };
 const lkeys = () => state.isle.keys || (state.isle.keys = {});
 const mons = () => state.isle.mon || (state.isle.mon = {});
 
@@ -57,6 +63,13 @@ function loopIcon(x, t) {
   else if (t === 'lighthouse') { x.beginPath(); x.moveTo(-9, 21); x.lineTo(-6, -8); x.lineTo(6, -8); x.lineTo(9, 21); x.closePath(); blob('#fff6e4');
     x.fillStyle = '#d9573f'; [[-8.3, 12, 16.6], [-7.2, 2, 14.4]].forEach(([a, b, w]) => { x.fillRect(a, b, w, 5); }); x.beginPath(); x.rect(-7, -16, 14, 8); blob('#ffe07a'); x.beginPath(); x.moveTo(-9, -16); x.lineTo(0, -23); x.lineTo(9, -16); x.closePath(); blob('#d9573f'); }
   else if (t === 'tower') { x.beginPath(); x.rect(-7, -4, 14, 24); blob('#c9d6e6'); x.beginPath(); x.moveTo(0, -24); x.lineTo(5, -14); x.lineTo(15, -12); x.lineTo(7, -5); x.lineTo(9, 5); x.lineTo(0, 0); x.lineTo(-9, 5); x.lineTo(-7, -5); x.lineTo(-15, -12); x.lineTo(-5, -14); x.closePath(); blob('#7fd3ef'); }
+  else if (t === 'sluice') { x.beginPath(); x.arc(-2, 0, 17, 0, 7); blob('#c99f6c'); x.beginPath(); x.arc(-2, 0, 9, 0, 7); blob('#fff6e4'); x.lineWidth = 3; for (let q = 0; q < 8; q++) { const a = q / 8 * 6.283; x.beginPath(); x.moveTo(-2 + Math.cos(a) * 9, Math.sin(a) * 9); x.lineTo(-2 + Math.cos(a) * 21, Math.sin(a) * 21); x.stroke(); }
+    x.beginPath(); x.moveTo(-26, 20); x.quadraticCurveTo(0, 14, 26, 20); x.strokeStyle = '#5aa7d6'; x.lineWidth = 4; x.stroke(); }
+  else if (t === 'bell') { x.beginPath(); x.moveTo(-16, 12); x.quadraticCurveTo(-12, -18, 0, -20); x.quadraticCurveTo(12, -18, 16, 12); x.closePath(); blob('#e0a53c'); x.beginPath(); x.roundRect(-20, 10, 40, 7, 3); blob('#c48a28'); x.beginPath(); x.arc(0, 21, 4.5, 0, 7); blob('#8a5f3c'); x.beginPath(); x.arc(0, -22, 4, 0, 7); blob('#8a5f3c'); }
+  else if (t === 'hearth') { x.beginPath(); x.moveTo(-20, 20); x.lineTo(-20, 0); x.quadraticCurveTo(-20, -20, 0, -20); x.quadraticCurveTo(20, -20, 20, 0); x.lineTo(20, 20); x.closePath(); blob('#a89c90'); x.beginPath(); x.moveTo(-10, 20); x.lineTo(-10, 6); x.quadraticCurveTo(0, -6, 10, 6); x.lineTo(10, 20); x.closePath(); blob('#3a2a24');
+    x.beginPath(); x.moveTo(0, 2); x.quadraticCurveTo(9, 12, 0, 19); x.quadraticCurveTo(-9, 12, 0, 2); x.fillStyle = '#ff9a3c'; x.fill(); }
+  else if (t === 'belfry') { x.beginPath(); x.rect(-9, -2, 18, 23); blob('#e4d8bc'); x.beginPath(); x.rect(-11, -14, 22, 12); blob('#fff6e4'); x.beginPath(); x.moveTo(-14, -14); x.lineTo(0, -27); x.lineTo(14, -14); x.closePath(); blob('#d9573f');
+    x.beginPath(); x.moveTo(-5, -4); x.quadraticCurveTo(-4, -12, 0, -12); x.quadraticCurveTo(4, -12, 5, -4); x.closePath(); x.fillStyle = '#e0a53c'; x.fill(); x.lineWidth = 2; x.stroke(); x.lineWidth = 3; x.beginPath(); x.arc(0, 9, 5, 0, 7); blob('#8a5f3c'); }
   else if (t === 'harbor') { x.beginPath(); x.rect(-22, 4, 30, 6); blob('#b9824c'); [-18, -6, 4].forEach((q) => { x.beginPath(); x.rect(q, 10, 4, 10); blob('#8a5f3c'); });
     x.beginPath(); x.moveTo(6, 8); x.quadraticCurveTo(15, 18, 24, 8); x.closePath(); blob('#d9573f'); x.beginPath(); x.moveTo(14, 7); x.lineTo(14, -18); x.lineTo(24, 4); x.closePath(); blob('#fff6e4'); x.beginPath(); x.moveTo(-26, 20); x.quadraticCurveTo(0, 14, 26, 20); x.strokeStyle = '#5aa7d6'; x.stroke(); }
   else if (t === 'camp') { x.beginPath(); x.moveTo(-20, 16); x.lineTo(-4, -16); x.lineTo(12, 16); x.closePath(); blob('#ee7a5a'); x.beginPath(); x.moveTo(-8, 16); x.lineTo(-4, 4); x.lineTo(0, 16); x.closePath(); blob('#4a3326');
@@ -191,15 +204,64 @@ function monMake(id, anim) {
     merged(BG, MAT, boat); g.add(boat); M.boat = boat;
     const lm = new T.Mesh(new T.BoxGeometry(0.14, 0.18, 0.14), new T.MeshBasicMaterial({ color: '#ffe6a8' })); lm.position.set(-4.6, 1.78, 0.62); g.add(lm);
   }
+  if (id === 'sluice') { /* a mill house on a stone foot by the channel, and a big water wheel turning out over the water */
+    kitStone(L, 1.9, 0.45, 1.7, 0, 0, 0, 5000, { ch: 0.16, bl: 0.3 }); kitPlanks(L, 1.5, 1.1, 1.3, 0.45, 5010, {}); kitRoof(L, 1.9, 1.75, 1.5, 0.85, 5030, { cols: LOOP_FOLK.fisher.roof });
+    q = new T.BoxGeometry(0.4, 0.66, 0.05); q.translate(0.2, 0.8, 0.67); L.push(fac(q, (cx, cy) => shadeY('#8a4a32', cy, 0.4, 1.2, 2, 0.4), 5050));
+    q = new T.CylinderGeometry(0.07, 0.07, 1.5, 8); q.rotateZ(Math.PI / 2); q.translate(-1.3, 1.25, 0.2); L.push(fac(q, () => new T.Color('#6e4426'), 5051));
+    [[-1.95, 0.6], [-1.95, -0.2]].forEach(([px, pz], k) => { q = new T.BoxGeometry(0.14, 1.9, 0.14); q.translate(px, 0.5, pz); L.push(fac(q, (cx, cy, cz, i) => tone('#8a5f3c', i, 0.3), 5052 + k)); });
+    const wh = new T.Group(); wh.position.set(-1.55, 1.25, 0.2); const WG = [];
+    [0, 0.34].forEach((dz, k) => { const rim = new T.TorusGeometry(1.0, 0.055, 5, 22); rim.translate(0, 0, dz - 0.17); WG.push(fac(rim, (cx, cy, cz, i) => tone('#a8774f', i, 0.3), 5060 + k)); });
+    for (let a = 0; a < 8; a++) { const sp = new T.BoxGeometry(0.07, 2.0, 0.07); sp.rotateZ(a * Math.PI / 8); if (a < 4) WG.push(fac(sp, () => new T.Color('#8a5f3c'), 5064 + a));
+      const pd = new T.BoxGeometry(0.34, 0.05, 0.44); pd.translate(1.0, 0, 0); pd.rotateZ(a * Math.PI / 4); WG.push(fac(pd, (cx, cy, cz, i) => tone(a % 2 ? '#c99f6c' : '#b08454', i, 0.3), 5070 + a)); }
+    merged(WG.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, wh); g.add(wh); M.wheel = wh;
+  }
+  if (id === 'bell') { /* two stone pillars with shells, a beam, and a big bronze bell that sways */
+    kitStone(L, 2.4, 0.3, 1.3, 0, 0, 0, 5100, { ch: 0.16, bl: 0.3 });
+    [-0.85, 0.85].forEach((px, k) => { q = new T.BoxGeometry(0.42, 2.5, 0.42); q.translate(px, 1.5, 0); L.push(fac(q, (cx, cy, cz, i) => shadeY(i % 3 ? '#e4d8bc' : '#d6c8a8', cy, 0.3, 2.8, i, 0.35), 5110 + k));
+      q = new T.SphereGeometry(0.13, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2); q.scale(1, 0.6, 1); q.rotateX(Math.PI / 2); q.translate(px, 1.2, 0.22); L.push(fac(q, () => new T.Color(k ? '#f6b7a8' : '#fbf3e4'), 5112 + k)); });
+    q = new T.BoxGeometry(2.5, 0.24, 0.5); q.translate(0, 2.85, 0); L.push(fac(q, (cx, cy, cz, i) => tone('#8a5f3c', i, 0.3), 5120));
+    q = new T.BoxGeometry(2.8, 0.1, 0.8); q.translate(0, 3.02, 0); L.push(fac(q, (cx, cy, cz, i) => tone(LOOP_FOLK.diver.roof[i % 4], i, 0.2), 5121));
+    const bl = new T.Group(); bl.position.set(0, 2.72, 0); const BG = [];
+    q = new T.CylinderGeometry(0.2, 0.52, 0.8, 16, 3); q.translate(0, -0.62, 0); BG.push(fac(q, (cx, cy, cz, i) => shadeY('#e0a53c', cy, -1.1, -0.2, i, 0.35), 5130));
+    q = new T.SphereGeometry(0.2, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2); q.translate(0, -0.22, 0); BG.push(fac(q, () => new T.Color('#eab552'), 5131));
+    q = new T.TorusGeometry(0.52, 0.045, 5, 18); q.rotateX(Math.PI / 2); q.translate(0, -1.02, 0); BG.push(fac(q, () => new T.Color('#c48a28'), 5132));
+    q = new T.SphereGeometry(0.1, 8, 6); q.translate(0, -1.1, 0); BG.push(fac(q, () => new T.Color('#6e4426'), 5133)); q = new T.CylinderGeometry(0.03, 0.03, 0.2, 5); q.translate(0, -0.1, 0); BG.push(fac(q, () => new T.Color('#4a3a2e'), 5134));
+    merged(BG.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, bl); g.add(bl); M.bell = bl;
+  }
+  if (id === 'hearth') { /* a round stone furnace with a glowing mouth, a dome and a chimney: the glassblower's great hearth */
+    q = new T.CylinderGeometry(1.15, 1.25, 1.2, 12, 3); q.translate(0, 0.6, 0); L.push(fac(q, (cx, cy, cz, i) => shadeY(['#8f8378', '#7d7268', '#9c9084'][i % 3], cy, 0, 1.3, i, 0.4), 5200));
+    q = new T.SphereGeometry(1.15, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2); q.scale(1, 0.85, 1); q.translate(0, 1.2, 0); L.push(fac(q, (cx, cy, cz, i) => shadeY(i % 2 ? '#a3968a' : '#8f8378', cy, 1.2, 2.2, i, 0.35), 5201));
+    q = new T.CylinderGeometry(0.26, 0.34, 1.2, 8); q.translate(0.2, 2.5, -0.3); L.push(fac(q, (cx, cy, cz, i) => tone('#6f655c', i, 0.4), 5202));
+    q = new T.TorusGeometry(0.5, 0.11, 6, 12, Math.PI); q.translate(0, 0.55, 1.14); L.push(fac(q, (cx, cy, cz, i) => tone('#5a5048', i, 0.3), 5203));
+    for (let k = 0; k < 3; k++) { q = new T.OctahedronGeometry(0.14, 0); q.scale(1, 1.5, 1); q.translate(-1.5 + k * 0.22, 0.2, 0.9 - k * 0.1); L.push(fac(q, () => new T.Color(['#7fd3ef', '#f29ab8', '#f6d24a'][k]), 5204 + k)); }
+    const mo = new T.Mesh(new T.CircleGeometry(0.48, 14, 0, Math.PI), new T.MeshBasicMaterial({ color: '#ff9a3c' })); mo.position.set(0, 0.55, 1.2); g.add(mo); M.fire = mo;
+    const glow = new T.Sprite(new T.SpriteMaterial({ map: softTex(32, 32), color: '#ff9a3c', transparent: true, opacity: 0.55, depthWrite: false })); glow.scale.set(2.6, 2.2, 1); glow.position.set(0, 0.8, 1.5); g.add(glow); M.glow = glow;
+  }
+  if (id === 'belfry') { /* a tall stone tower on the green: an open top with four pillars, a bell that sways, a pointed red roof */
+    kitStone(L, 1.9, 0.4, 1.9, 0, 0, 0, 5300, { ch: 0.17, bl: 0.32 });
+    q = new T.BoxGeometry(1.45, 3.4, 1.45, 2, 6, 2); q.translate(0, 2.1, 0); L.push(fac(q, (cx, cy, cz, i) => shadeY(['#e4d8bc', '#d9cba9', '#ece2c9'][i % 3], cy, 0.4, 3.9, i, 0.35), 5310));
+    for (let k = 0; k < 4; k++) { q = new T.BoxGeometry(1.55, 0.08, 1.55); q.translate(0, 0.9 + k * 0.85, 0); L.push(fac(q, () => new T.Color('#c9b98f'), 5311 + k)); }
+    q = new T.BoxGeometry(0.46, 0.8, 0.06); q.translate(0, 0.8, 0.74); L.push(fac(q, (cx, cy) => shadeY('#8a4a32', cy, 0.4, 1.3, 2, 0.4), 5320));
+    q = new T.CylinderGeometry(0.34, 0.34, 0.05, 16); q.rotateX(Math.PI / 2); q.translate(0, 2.9, 0.74); L.push(fac(q, () => new T.Color('#fff6e4'), 5321));
+    q = new T.BoxGeometry(0.04, 0.26, 0.03); q.translate(0, 3.0, 0.78); L.push(fac(q, () => new T.Color('#3a2a1e'), 5322)); q = new T.BoxGeometry(0.2, 0.04, 0.03); q.translate(0.08, 2.9, 0.78); L.push(fac(q, () => new T.Color('#3a2a1e'), 5323));
+    q = new T.BoxGeometry(1.7, 0.14, 1.7); q.translate(0, 3.87, 0); L.push(fac(q, (cx, cy, cz, i) => tone('#c9b98f', i, 0.3), 5324));
+    [[-0.66, -0.66], [0.66, -0.66], [-0.66, 0.66], [0.66, 0.66]].forEach(([px, pz], k) => { q = new T.BoxGeometry(0.22, 1.0, 0.22); q.translate(px, 4.44, pz); L.push(fac(q, (cx, cy, cz, i) => tone('#e4d8bc', i, 0.3), 5325 + k)); });
+    q = new T.BoxGeometry(1.7, 0.12, 1.7); q.translate(0, 4.98, 0); L.push(fac(q, (cx, cy, cz, i) => tone('#c9b98f', i, 0.3), 5330));
+    q = new T.ConeGeometry(1.3, 1.35, 4); q.rotateY(Math.PI / 4); q.translate(0, 5.7, 0); L.push(fac(q, (cx, cy, cz, i) => shadeY(i % 2 ? '#d9573f' : '#c94a34', cy, 5.0, 6.4, i, 0.35), 5331));
+    const bl = new T.Group(); bl.position.set(0, 4.92, 0); const BG = [];
+    q = new T.CylinderGeometry(0.16, 0.42, 0.62, 14, 2); q.translate(0, -0.42, 0); BG.push(fac(q, (cx, cy, cz, i) => shadeY('#f2c23c', cy, -0.8, -0.1, i, 0.3), 5340));
+    q = new T.TorusGeometry(0.42, 0.04, 5, 16); q.rotateX(Math.PI / 2); q.translate(0, -0.73, 0); BG.push(fac(q, () => new T.Color('#d9a520'), 5341)); q = new T.SphereGeometry(0.08, 8, 6); q.translate(0, -0.8, 0); BG.push(fac(q, () => new T.Color('#6e4426'), 5342));
+    merged(BG.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, bl); g.add(bl); M.bell = bl;
+  }
   /* a pennant on top once it stands: the island is finished */
-  const top = { windmill: 4.15, lighthouse: 5.75, tower: 5.4, harbor: 2.0 }[id];
+  const top = { belfry: 6.35, windmill: 4.15, lighthouse: 5.75, tower: 5.4, harbor: 2.0, sluice: 2.3, bell: 3.05, hearth: 3.05 }[id];
   q = new T.CylinderGeometry(0.02, 0.02, 0.7, 5); q.translate(id === 'harbor' ? 0.5 : 0, top + 0.35, id === 'harbor' ? -0.2 : 0); L.push(fac(q, () => new T.Color('#5a3a22'), 4890));
   merged(L, MAT, g);
   const fq = new T.BufferGeometry(); fq.setAttribute('position', new T.Float32BufferAttribute([0, 0.12, 0, 0.5, 0, 0, 0, -0.12, 0], 3)); fq.computeVertexNormals();
   const flag = new T.Mesh(fq, new T.MeshBasicMaterial({ color: '#f2c23c', side: T.DoubleSide })); flag.position.set(id === 'harbor' ? 0.5 : 0, top + 0.6, id === 'harbor' ? -0.2 : 0); g.add(flag); M.flag = flag;
   lookFoot(S.x, S.z, id === 'harbor' ? 0.9 : 1.15);
   LP.mon[id] = M; if (anim) { g.scale.setScalar(0.01); M.pop = 0.001; burst(S.x, 2, S.z, 16); }
-  matMake(id);
+  if (id !== 'belfry') matMake(id);
 }
 /* ---- travel mats: a round mat with a boat; standing on it fills a gold ring, then the island pictures open ---- */
 function matMake(id) {
@@ -215,14 +277,14 @@ function matMake(id) {
   const fl = new T.Sprite(new T.SpriteMaterial({ map: isleBubble('travel'), transparent: true, depthWrite: false })); fl.scale.set(0.5, 0.5, 1); fl.position.set(P.x + 0.95, 1.16, P.z - 0.27); sc.add(fl);
   LP.mats.push({ id, x: P.x, z: P.z, pad, f, fg, t: 0, post, fl }); LP.armed[id] = Math.hypot(pip.position.x - P.x, pip.position.z - P.z) > 1.0;
 }
-const travelTo = () => { const L = [{ id: 'camp', isle: 'home', pic: 'camp' }]; Object.keys(LOOP_MON).forEach((m) => { if (mons()[m] && m !== 'harbor') L.push({ id: m, isle: LOOP_MON[m].isle, pic: m }); }); return L; };
+const travelTo = () => { const L = [{ id: 'camp', isle: 'home', pic: 'camp' }]; Object.keys(LOOP_MON).forEach((m) => { if (mons()[m] && m !== 'harbor' && m !== 'belfry') L.push({ id: m, isle: LOOP_MON[m].isle, pic: m }); }); return L; };
 function travelOpen(fromId) {
   if (LP.trv && !LP.trv.hidden) return false; const xu = document.querySelector('.xpUp'); if ((xu && !xu.hidden) || document.querySelector('.party')) return false; /* a new star's card first */
   const here = ISLE_OF((areaAt(pip.position.x, pip.position.z) || {}).id), list = travelTo().filter((d) => d.isle !== here); if (!list.length) return false;
   if (!LP.trv) { const m = document.createElement('div'); m.className = 'trvMenu'; m.hidden = true; document.body.appendChild(m); LP.trv = m; m.addEventListener('click', (e) => { if (e.target === m) { m.hidden = true; } }); }
   const m = LP.trv; m.innerHTML = ''; const row = document.createElement('div'); row.className = 'row'; m.appendChild(row);
   list.forEach((d) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'trvBtn'; const cv = document.createElement('canvas'); cv.width = cv.height = 220; const x = cv.getContext('2d');
-    x.fillStyle = { home: '#cfe8b4', meadow: '#e6f0a8', stone: '#d8d4c8', winter: '#e4eef8' }[d.isle]; x.beginPath(); x.arc(110, 110, 104, 0, 7); x.fill(); isleIcon(x, d.pic, 110, 112, 3.4);
+    x.fillStyle = { marsh: '#bfe0a4', coral: '#f6ecc4', ember: '#d8c2b4', home: '#cfe8b4', meadow: '#e6f0a8', stone: '#d8d4c8', winter: '#e4eef8' }[d.isle]; x.beginPath(); x.arc(110, 110, 104, 0, 7); x.fill(); isleIcon(x, d.pic, 110, 112, 3.4);
     b.appendChild(cv); b.addEventListener('click', (e) => { e.stopPropagation(); m.hidden = true; travelGo(d.id); }); row.appendChild(b); });
   const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.textContent = '✕'; x.addEventListener('click', (e) => { e.stopPropagation(); m.hidden = true; }); m.appendChild(x);
   m.hidden = false; Snd.play('pop', { gain: 0.3, f: 560 }); return true;
@@ -291,7 +353,7 @@ function loopGoal() {
 }
 function loopRuinOpen(R) { Object.keys(LOOP_FOLK).forEach((id) => { if (LOOP_FOLK[id].ruin === R.A.id && !loopF(id)) { folk()[id] = 1; LP.folk[id].wait = 2.2; } }); }
 /* the friends' houses and the monuments keep Pip outside */
-function loopNear(x, z, r) { return Object.keys(HOUSES).some((k) => Math.hypot(HOUSES[k].x - x, HOUSES[k].z - z) < r + 0.6) || Object.keys(LOOP_SITES).some((k) => Math.hypot(LOOP_SITES[k].x - x, LOOP_SITES[k].z - z) < r + 0.9) || Math.hypot(TRAVEL_HOME.x - x, TRAVEL_HOME.z - z) < r; }
+function loopNear(x, z, r) { return Object.keys(HOUSES).some((k) => Math.hypot(HOUSES[k].x - x, HOUSES[k].z - z) < r + 0.6) || Object.keys(LOOP_SITES).some((k) => Math.hypot(LOOP_SITES[k].x - x, LOOP_SITES[k].z - z) < r + 0.9) || Object.keys(LOOP_SITES).some((k) => Math.hypot(LOOP_SITES[k].x + LOOP_SITES[k].mx - x, LOOP_SITES[k].z + LOOP_SITES[k].mz - z) < r * 0.5 + 0.7 || Math.hypot(LOOP_SITES[k].x + LOOP_SITES[k].sx - x, LOOP_SITES[k].z + LOOP_SITES[k].sz - z) < r * 0.5 + 0.6) || Math.hypot(TRAVEL_HOME.x - x, TRAVEL_HOME.z - z) < r; }
 
 function loopInit() {
   const I = state.isle; I.mon = I.mon || {}; I.keys = I.keys || {}; const F = folk();
@@ -361,6 +423,7 @@ function loopStep(dt) {
     if (d < r && d > 1e-4) { pp.x = S.x + dx / d * r; pp.z = S.z + dz / d * r; }
     if (M.pop) { M.pop = Math.min(1, M.pop + dt * 1.2); M.g.scale.setScalar(M.pop < 0.7 ? M.pop / 0.7 * 1.08 : 1.08 - (M.pop - 0.7) / 0.3 * 0.08); if (M.pop >= 1) M.pop = 0; }
     if (M.spin && !reduced) { if (M.star) M.spin.rotation.y += dt * 0.8; else M.spin.rotation.z -= dt * 0.9; }
+    if (M.wheel) M.wheel.rotation.z += dt * 0.7; if (M.bell) M.bell.rotation.z = reduced ? 0 : Math.sin(time * 1.7) * 0.2; if (M.glow) M.glow.material.opacity = 0.45 + (reduced ? 0 : Math.sin(time * 6) * 0.08 + Math.sin(time * 14) * 0.04);
     if (M.beam) { M.beam.rotation.y += dt * 0.9; M.beamM.material.opacity = (typeof nightAmt === 'number' ? nightAmt : isNight ? 1 : 0) * 0.28; }
     if (M.boat && !reduced) { M.boat.position.y = -0.2 + Math.sin(time * 1.6) * 0.04; M.boat.rotation.z = Math.sin(time * 1.2) * 0.05; }
     if (M.flag && !reduced) M.flag.rotation.y = Math.sin(time * 3 + S.x) * 0.3; });

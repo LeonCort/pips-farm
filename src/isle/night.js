@@ -13,6 +13,7 @@ function nightLights() {
   NT.lamps.forEach((q) => L.push(q));
   if (forgeUp() && HAS.h1) L.push([FORGE.x, 0.8, FORGE.z, 3.4]); if (ovenUp() && HAS.h2) L.push([OVEN.x, 0.8, OVEN.z, 3.4]);
   const M = mons(); if (M.lighthouse) L.push([LOOP_SITES.lighthouse.x, 1.5, LOOP_SITES.lighthouse.z, 10]); if (M.tower) L.push([LOOP_SITES.tower.x, 1.5, LOOP_SITES.tower.z, 7.5]);
+  if (M.belfry) L.push([LOOP_SITES.belfry.x, 1.5, LOOP_SITES.belfry.z, 6]); if (M.hearth) L.push([LOOP_SITES.hearth.x, 1, LOOP_SITES.hearth.z + 1, 6.5]); if (M.bell) L.push([LOOP_SITES.bell.x, 1.2, LOOP_SITES.bell.z, 4.5]); if (M.sluice) L.push([LOOP_SITES.sluice.x, 1.2, LOOP_SITES.sluice.z, 4.5]);
   if (M.windmill) L.push([LOOP_SITES.windmill.x, 1.2, LOOP_SITES.windmill.z, 4]); if (M.harbor) L.push([LOOP_SITES.harbor.x, 1.2, LOOP_SITES.harbor.z, 4.5]);
   Object.keys(HAM.v).forEach((id) => { const c = HAMLET_AT[id].crate; L.push([c[0], 0.8, c[1], 4.2]); });
   if (HAS.e0) EMBER.lava.forEach((line) => line.forEach((q) => L.push([q[0], 0.2, q[1], 3.6])));
