@@ -67,7 +67,7 @@ function mapDraw() {
     if (F >= 2) { const q = homeAt[v.id] || HOUSES[v.id]; wx = q.x; wz = q.z + (homeAt[v.id] ? 0 : 1.2); }
     else if (v.id === 'miner') { wx = CAVE_FRIEND.x; wz = CAVE_FRIEND.z; }
     else { const A = AREA_BY[hide[v.id]]; wx = A.cx + A.ruin[0]; wz = A.cz + A.ruin[1]; }
-    const [px, pz] = mapXY(wx, wz); if (F) mapBadge(x, px, pz, 27); boardFace(x, v, px, pz + (F ? 3 : 0), F ? 0.5 : 0.62, F ? 3 : 0); });
+    const [px, pz] = mapXY(wx, wz); if (F) mapBadge(x, px, pz, 27); boardFace(x, v, px, pz + (F ? 3 : 0), F ? 0.5 : 0.62, F ? 3 : 0); if (F === 2 && LOOP_FOLK[v.id]) { mapBadge(x, px + 24, pz - 22, 15, '#f4b23a'); isleIcon(x, 'hammer', px + 24, pz - 22, 0.5); } /* a house to build here */ });
   /* something to pay for here */
   signs.forEach((s) => { if (s.A || s.x == null) return; const [px, pz] = mapXY(s.x, s.z); x.beginPath(); x.arc(px, pz, 11, 0, 7); x.fillStyle = '#f4b23a'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#6e4426'; x.stroke(); x.beginPath(); x.arc(px, pz, 4, 0, 7); x.fillStyle = '#fff6e4'; x.fill(); });
   /* where Pip is */
@@ -83,7 +83,7 @@ function mapDraw() {
 function mapHintSpots(t) {
   const out = [];
   if (FINDS.indexOf(t) >= 0) { AREAS.forEach((A) => { const f = (A.finds || []).find((q) => FIND_NODE[q[0]].t === t); if (!f) return; const F = FIND_NODE[f[0]];
-      const need = A.cave && !gearHas('torch') ? 'torch' : !F.hand && toolTier() < F.tier ? 'pick' + F.tier : null; out.push({ t, x: A.cx, z: A.cz, need }); });
+      const need = A.cave && !gearHas('torch') ? 'torch' : !F.hand && toolTier('pick') < F.tier ? 'pick' + F.tier : null; out.push({ t, x: A.cx, z: A.cz, need }); });
     if (out.some((q) => AREA_BY.cave2 && Math.abs(q.z - AREA_BY.cave2.cz) < 1) && !inCave && HAS.h3 && stairsDown) out.push({ t: 'stairsDown', x: stairsDown.x, z: stairsDown.z, need: null }); }
   else if (KINDS.indexOf(t) >= 0) AREAS.forEach((A) => { if (!A.cave && HAS[A.id] && MAP_RES[A.biome] === t) out.push({ t, x: A.cx, z: A.cz, need: null }); });
   return out;

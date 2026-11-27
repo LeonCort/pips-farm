@@ -12,7 +12,7 @@ function xpPow() { return 1 + 0.25 * xpS().hit; }
 const xpLuck = () => 0.08 * xpS().luck;
 const xpEn = () => 20 * xpS().en;
 const xpRun = () => (state.isle && state.isle.xp && state.isle.xp.run) || 0, xpBag = () => (state.isle && state.isle.xp && state.isle.xp.bag) || 0;
-const XP_PERKS = [['en', 'perkEn', 'Mer energi'], ['hit', 'perkHit', 'Hårdare slag'], ['luck', 'perkLuck', 'Tur'], ['run', 'perkRun', 'Snabbare fötter'], ['bag', 'perkBag', 'Större ryggsäck']];
+const XP_PERKS = [['en', 'perkEn', 'Mer energi'], ['hit', 'perkHit', 'Hårdare slag'], ['luck', 'perkLuck', 'Tur'], ['run', 'perkRun', 'Snabbare fötter'], ['bag', 'perkBag', 'Längre räckvidd']];
 function xpGain(v) {
   const X = xpS(); X.n += v;
   while (X.n >= xpNeed(X.lv)) { X.n -= xpNeed(X.lv); X.lv++; X.pend++; xpUpT = 0.6; }

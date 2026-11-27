@@ -9,7 +9,13 @@ const BIOME_TIER = { home: 1, rocks: 1, berry: 1, meadow: 1, orchard: 2, stone: 
 const TIER_MUL = [1, 1, 2.5, 5, 10]; /* how big the pile is */
 const HIT_MUL = [1, 1, 1.5, 2, 2.5]; /* how many more hits it takes, with the right tool */
 const HAND = { bush: 1, planks: 1, shroom: 1 }; /* always open: picked by hand, or a door's old boards */
-const toolTier = () => bldLv('tool');
+/* the axe is for trees; the pickaxe for everything else that needs a tool. A tool's level (1 to 12, build.js) gives its
+   metal (the tier: 1 plain, 2 copper, 3 iron, 4 star crystal) and how sharp it is within that metal (0 to 2). */
+const toolKey = (kind) => (kind === 'tree' || kind === 'axe' ? 'axe' : 'pick');
+const tierOfLv = (lv) => Math.min(4, 1 + Math.floor((lv - 1) / 3)), sharpOfLv = (lv) => (lv - 1) % 3;
+const toolTier = (kind) => (kind ? tierOfLv(bldLv(toolKey(kind))) : Math.max(tierOfLv(bldLv('axe')), tierOfLv(bldLv('pick'))));
+const toolSharp = (kind) => sharpOfLv(bldLv(toolKey(kind)));
+const toolKeys = () => (state.isle.tools && state.isle.tools.pick ? ['axe', 'pick'] : ['axe']);
 const toolKind = (k) => !HAND[k];
 function nodeTier(kind, x, z) {
   if (FIND_NODE[kind]) return FIND_NODE[kind].tier; /* a find's level is its own, not the island's (finds.js) */
@@ -20,11 +26,13 @@ function nodeTier(kind, x, z) {
 }
 const nodeHits = (n) => HITS[n.kind] * HIT_MUL[n.tier || 1];
 /* (finds give their own fixed number: finds.js) */
-const tierYield = (n) => Math.max(1, Math.round(YIELD[n.kind][1] * TIER_MUL[n.tier || 1]));
-function gated(n) { return gearGate(n) || toolKind(n.kind) && ((NEED[n.kind] && !hasTool(n.kind)) || toolTier() < (n.tier || 1)); }
+/* the backpack from the chest: one more piece out of every tree, stone and bush (it used to hold coins) */
+const bagMore = (n) => (state.isle.tools.bag && ['log', 'stone', 'berry'].indexOf(YIELD[n.kind][0]) >= 0 ? 1 : 0);
+const tierYield = (n) => Math.max(1, Math.round(YIELD[n.kind][1] * TIER_MUL[n.tier || 1])) + bagMore(n);
+function gated(n) { return gearGate(n) || toolKind(n.kind) && ((NEED[n.kind] && !hasTool(n.kind)) || toolTier(n.kind) < (n.tier || 1)); }
 function gateIcon(n) { if (gearGate(n)) return 'torch'; if (NEED[n.kind] && !hasTool(n.kind)) return 'pick'; const t = n.tier || 1; return (NEED[n.kind] ? 'pick' : 'axe') + (t > 1 ? t : ''); }
-function tierPow(n) { return toolKind(n.kind) ? 1 + 1.5 * Math.max(0, toolTier() - (n.tier || 1)) : 1; }
-const dropReach = () => (toolTier() >= 2 ? 4.5 : 2.2);
+function tierPow(n) { return toolKind(n.kind) ? 1 + 1.5 * Math.max(0, toolTier(n.kind) - (n.tier || 1)) + 0.25 * toolSharp(n.kind) : 1; }
+const dropReach = () => (toolTier() >= 2 ? 4.5 : 2.2) + 0.7 * xpBag(); /* the level-up pick that was a bigger backpack now reaches further */
 /* a tier-2 or tier-3 thing looks bigger: an old oak, a tall winter pine, a big crystal */
 function tierInit(n) {
   n.tier = SHOW_T.tier || nodeTier(n.kind, n.x, n.z); n.hp = nodeHits(n);
@@ -60,7 +68,7 @@ function tierMigrate(I) {
   const S = I.store; if (S.gem) S.crystal = (S.crystal || 0) + S.gem;
   ['gem', 'hay', 'clay', 'ore', 'pie'].forEach((t) => { delete S[t]; });
   Object.keys(I.paid || {}).forEach((k) => { ['hay', 'clay', 'ore', 'gem'].forEach((t) => { delete I.paid[k][t]; }); });
-  if (I.bld && I.bld.tool > 4) I.bld.tool = 4;
+  if (I.bld && I.bld.tool) { const t = Math.min(4, I.bld.tool); I.bld.axe = Math.max(I.bld.axe || 1, 1 + (t - 1) * 3); I.bld.pick = Math.max(I.bld.pick || 1, 1 + (t - 1) * 3); delete I.bld.tool; } /* one tool level became an axe and a pickaxe of that metal */
   if (!I.dogV) { if (I.bld && I.bld.dog >= 4) I.bld.dog = 5; I.dogV = 2; } /* the courier trick came in as level 4; dogs that had saddlebags keep them (level 5) */
 }
 /* the axe, in the counter's picture style; axe2 copper, axe3 iron, axe4 star crystal */

@@ -26,7 +26,7 @@ function showBuild() {
   [1, 2, 3].forEach((lv) => { fireShape(lv); showPut(campFlame.g.clone(true), 'Campfire ' + lv, sx(k++), z + 0.3, { grp: 'Camp', front: 1.9 }); }); fireShape(bldLv('fire'));
   const ken = sc.children.find((c) => c.isGroup && Math.abs(c.position.x - KENNEL.x) < 0.01 && Math.abs(c.position.z - KENNEL.z) < 0.01);
   if (ken) showPut(ken.clone(true), 'Doghouse', sx(k++), z, { grp: 'Camp' });
-  showPut(storeG.g.clone(true), 'Storage crate', sx(k++), z, { grp: 'Camp' });
+  showPut(storeG.g.clone(true), 'Storage yard', sx(k++), z, { grp: 'Camp' });
   /* row 2: buildings */
   z = -17.0; k = 0;
   if (forgeG) showPut(forgeG.clone(true), 'Forge', sx(k++), z, { grp: 'Buildings' });

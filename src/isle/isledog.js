@@ -68,9 +68,10 @@ function digSpot(A) {
 }
 /* sleeping fills the holes and buries new treasure */
 function dogWake() { state.isle.dug = {}; Object.keys(DIG).forEach((k) => { delete DIG[k]; }); DG.holes.forEach((h) => sc.remove(h)); DG.holes.length = 0; }
+const DIG_FIND = { meadow: 'honey', orchard: 'honey', stone: 'iron', clay: 'iron', cave: 'copper', marsh: 'reed', coral: 'pearl', ember: 'ember' };
 function digLoot(A) {
   const t = BIOME_TIER[A.biome] || 1, out = [];
-  for (let k = 0; k < 1 + t * 2; k++) out.push('coin');
+  for (let k = 0; k < (1 + t * 2) * (dogLv() >= 4 ? 2 : 1); k++) out.push('coin'); /* trick 4: twice the coins */
   if (t >= 3 || Math.random() < (t >= 2 ? 0.6 : 0.3)) out.push('crystal');
   return out;
 }
@@ -156,6 +157,8 @@ function digDone() {
   const s = DG.spot, A = DG.area; state.isle.dug[A.id] = 1; save();
   DG.mode = null; DG.spot = null; DG.cool = 2;
   const h = new T.Mesh(new T.CircleGeometry(0.32, 14), new T.MeshLambertMaterial({ color: '#5a3a22' })); h.rotation.x = -Math.PI / 2; h.position.set(s.x, 0.025, s.z); h.scale.y = 0.75; sc.add(h); DG.holes.push(h);
+  { const f = dogLv() >= 5 && DIG_FIND[A.biome]; /* trick 5, the saddlebags: the island's own find comes up too */
+    if (f) { state.isle.store[f] = (state.isle.store[f] || 0) + 1; invDirty = true; const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(f, 1), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(s.x, 1.5, s.z); sc.add(sp); FD.floats.push({ sp, t: 0, y: 0 }); } }
   digLoot(A).forEach((t, k) => { const m = itemModel(t), a = Math.random() * 6.28; m.position.set(s.x, 0.4, s.z); sc.add(m); drops.push({ m, t, vx: Math.cos(a) * 1.3, vz: Math.sin(a) * 1.3, vy: 3.8 + k * 0.25 + Math.random(), land: 0, wait: 0.3 }); });
   Snd.play('sparkle', { gain: 0.5 }); Snd.play('success', { gain: 0.4, f: 'E5' }, 0.15); burst(s.x, 0.9, s.z, 5); dog.hop = 1; xpGain(4);
 }
@@ -174,9 +177,8 @@ function courierEnd() { if (!DG.coin) return; if (DG.coin.parent) DG.coin.parent
 function dogEff(x, lv) {
   if (lv <= 2) isleIcon(x, 'fetch', 48, 48, 1.4);
   else if (lv === 3) isleIcon(x, 'dig', 48, 50, 1.4);
-  else if (lv === 4) { /* coins, an arrow, the crate */ isleIcon(x, 'coin', 22, 34, 0.8); isleIcon(x, 'coin', 32, 46, 0.8); x.lineWidth = 6; x.lineCap = 'round'; x.strokeStyle = '#f2a13c'; x.beginPath(); x.moveTo(40, 66); x.lineTo(58, 66); x.moveTo(52, 59); x.lineTo(60, 66); x.lineTo(52, 73); x.stroke();
-    x.lineWidth = 3; x.strokeStyle = PAL.ink; x.beginPath(); x.rect(62, 50, 28, 24); x.fillStyle = '#c0935f'; x.fill(); x.stroke(); x.beginPath(); x.moveTo(62, 58); x.lineTo(90, 58); x.moveTo(76, 50); x.lineTo(76, 74); x.stroke(); }
-  else { isleIcon(x, 'bag', 36, 48, 1.1); x.font = '700 26px Fredoka, sans-serif'; x.lineWidth = 5; x.strokeStyle = PAL.ink; x.fillStyle = '#7cc85a'; x.strokeText('+6', 58, 60); x.fillText('+6', 58, 60); }
+  else if (lv === 4) { /* twice the coins from a dig */ isleIcon(x, 'coin', 30, 40, 0.95); isleIcon(x, 'coin', 44, 54, 0.95); x.font = '700 26px Fredoka, sans-serif'; x.lineWidth = 5; x.strokeStyle = PAL.ink; x.fillStyle = '#7cc85a'; x.strokeText('x2', 60, 44); x.fillText('x2', 60, 44); }
+  else { /* the saddlebags: the island's own find comes up with the treasure */ isleIcon(x, 'bag', 32, 50, 1.0); isleIcon(x, 'honey', 66, 40, 0.8); x.font = '700 24px Fredoka, sans-serif'; x.lineWidth = 5; x.strokeStyle = PAL.ink; x.fillStyle = '#7cc85a'; x.strokeText('+1', 56, 74); x.fillText('+1', 56, 74); }
 }
 function dogUp() { dogBagSync(); const p = dog.g.position; burst(p.x, 1.0, p.z, 8); dog.hop = 1; bark(0.6); camFocus.set(p.x, 0, p.z); DG.cool = 1; }
 const dogTest = () => ({ lv: dogLv(), mode: DG.mode, cap: cap(), dug: Object.assign({}, state.isle.dug), spots: Object.keys(DIG).length, holes: DG.holes.length, pos: [+dog.g.position.x.toFixed(2), +dog.g.position.z.toFixed(2)], bags: !!(dogBagG && dogBagG.visible) });

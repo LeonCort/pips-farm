@@ -5,9 +5,15 @@
 const BLD = {
   tent: { max: 3, cost: [null, null, { log: 12, berry: 5 }, { log: 20, stone: 10, berry: 10 }], pic: [null, 'tent', 'tent', 'hut'] },
   fire: { max: 3, cost: [null, null, { log: 6, stone: 4 }, { log: 12, stone: 12, crystal: 2 }], pic: [null, 'fire', 'fire', 'fire'] },
-  tool: { max: 4, cost: [null, null, { copper: 6, stone: 14, coin: 10 }, { iron: 6, crystal: 4, coin: 25 }, { glow: 3, crystal: 12, coin: 40 }], pic: [null, 'pick', 'pick2', 'pick3', 'pick4'] } /* at the smith's anvil (people.js) */
+  /* the axe and the pickaxe, each on its own card at the smith's anvil (Leon, 2026-11-27: smaller steps, one tool at a time).
+     Twelve levels: every third one is a new metal (copper at 4, iron at 7, star crystal at 10) and opens the next tier of
+     trees or rocks (tiers.js); the two between sharpen the tool, so it hits harder and looks a little bigger. */
+  axe: { max: 12, cost: [null, null, { log: 8, coin: 3 }, { log: 14, stone: 6, coin: 6 }, { copper: 3, log: 16, coin: 8 }, { log: 24, coin: 12 }, { log: 30, stone: 16, coin: 16 }, { iron: 3, crystal: 2, coin: 16 }, { log: 40, crystal: 4, coin: 22 }, { log: 50, crystal: 6, coin: 28 }, { glow: 2, crystal: 6, coin: 30 }, { log: 70, crystal: 10, coin: 40 }, { log: 90, crystal: 14, coin: 50 }],
+    pic: [null, 'axe', 'axe', 'axe', 'axe2', 'axe2', 'axe2', 'axe3', 'axe3', 'axe3', 'axe4', 'axe4', 'axe4'] },
+  pick: { max: 12, cost: [null, null, { stone: 8, coin: 3 }, { stone: 14, log: 6, coin: 6 }, { copper: 3, stone: 14, coin: 8 }, { stone: 24, coin: 12 }, { stone: 30, log: 16, coin: 16 }, { iron: 3, crystal: 2, coin: 16 }, { stone: 40, crystal: 4, coin: 22 }, { stone: 50, crystal: 6, coin: 28 }, { glow: 2, crystal: 6, coin: 30 }, { stone: 70, crystal: 10, coin: 40 }, { stone: 90, crystal: 14, coin: 50 }],
+    pic: [null, 'pick', 'pick', 'pick', 'pick2', 'pick2', 'pick2', 'pick3', 'pick3', 'pick3', 'pick4', 'pick4', 'pick4'] }
 };
-const bldKeys = () => ['tent', 'fire', 'dog'].concat(forgeUp() ? ['tool'] : [], ovenUp() ? ['oven'] : [], gearKeys(), Object.keys(HAM_KEY).filter((k) => mons()[HAM_KEY[k]]));
+const bldKeys = () => ['tent', 'fire', 'dog'].concat(forgeUp() ? toolKeys() : [], ovenUp() ? ['oven'] : [], gearKeys(), Object.keys(HAM_KEY).filter((k) => mons()[HAM_KEY[k]]));
 const bldLv = (k) => (state.isle && state.isle.bld && state.isle.bld[k]) || 1;
 const enMax = () => [0, 100, 130, 160][bldLv('tent')] + xpEn() + (state.isle.folk && state.isle.folk.knitter >= 3 ? 25 : 0); /* the knitter's quilt */
 const enRegen = () => [0, 0.2, 0.33, 0.5][bldLv('fire')];
@@ -98,6 +104,7 @@ function bldBuild() {
     + '.bldCard{background:var(--paper);border:4px solid #6e4426;border-radius:24px;box-shadow:0 6px 0 rgba(34,48,60,.3);padding:12px 14px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;width:220px}'
     + '.bldCard .pic{display:flex;align-items:center;gap:6px}.bldCard .pic canvas{width:110px;height:110px}.bldCard .eff canvas{width:56px;height:56px}'
     + '.bldCard .how{width:200px;height:64px;background:#fffaf0;border:2px solid #c9b38a;border-radius:14px}'
+    + '.bldCard .dots.many{gap:3px;align-items:center}.bldCard .dots.many b{width:7px;height:7px;border-width:2.5px}.bldCard .dots.many b.big{width:13px;height:13px}'
     + '.bldCard .dots{display:flex;gap:6px}.bldCard .dots b{width:16px;height:16px;border-radius:50%;border:3px solid var(--ink);background:#e6d9bd}.bldCard .dots b.on{background:#f2c23c}'
     + '.bldCard .cost{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}.bldCard .cost span{display:flex;align-items:center;gap:2px;padding:2px 8px 2px 2px;border-radius:999px;border:2px solid var(--ink);font:700 20px Fredoka,sans-serif;background:#fff}'
     + '.bldCard .cost span i{font-style:normal;color:#c2543a}.bldCard .cost span.ok,.bldCard .cost span.ok i{color:#3f8a3a}.bldCard .cost span.tap{cursor:pointer;box-shadow:0 0 0 3px #f4b23a;animation:costTap 1.4s ease-in-out infinite}@keyframes costTap{50%{box-shadow:0 0 0 6px rgba(244,178,58,.35)}}.bldCard .cost img{width:28px;height:28px}'
@@ -134,10 +141,10 @@ function bldEff(k, lv) {
   const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d');
   if (k === 'dog') { dogEff(x, lv); return c; }
   if (GEAR[k]) { gearEff(x, k); return c; }
-  isleIcon(x, k === 'tool' ? 'perkHit' : k === 'oven' ? 'pie' : 'bolt', 30, 48, k === 'oven' ? 0.95 : 1.1);
+  isleIcon(x, k === 'axe' || k === 'pick' ? 'perkHit' : k === 'oven' ? 'pie' : 'bolt', 30, 48, k === 'oven' ? 0.95 : 1.1);
   x.lineWidth = 4; x.strokeStyle = PAL.ink;
   if (k === 'oven') { if (lv >= 3) { isleIcon(x, 'pie', 30, 74, 0.7); } for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < Math.min(lv, 2) ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
-  else if (k === 'tool') { for (let q = 0; q < 4; q++) { x.beginPath(); x.moveTo(50 + q * 10, 30); x.lineTo(60 + q * 10, 48); x.lineTo(50 + q * 10, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 6; x.stroke(); } isleIcon(x, 'axe' + lv, 78, 80, 0.5); }
+  else if (k === 'axe' || k === 'pick') { /* three arrows: how sharp it is within its metal; the metal itself is the small tool below */ for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(52 + q * 12, 26); x.lineTo(63 + q * 12, 42); x.lineTo(52 + q * 12, 58); x.strokeStyle = q <= (lv - 1) % 3 ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 6.5; x.stroke(); } isleIcon(x, BLD[k].pic[Math.min(lv, BLD[k].max)], 70, 76, 0.62); }
   else if (k === 'tent') { for (let q = 0; q < 3; q++) { x.beginPath(); x.roundRect(54, 70 - q * 22, 32, 16, 5); x.fillStyle = q < lv ? '#7cc85a' : '#e6d9bd'; x.fill(); x.stroke(); } }
   else { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
   return c;
@@ -169,7 +176,7 @@ function bldFill() {
     const B = BLD[k], lv = bldLv(k), next = Math.min(B.max, lv + 1), c = B.cost[lv + 1];
     const card = document.createElement('div'); card.className = 'bldCard'; BM[k] = card;
     const pic = document.createElement('div'); pic.className = 'pic'; pic.appendChild(bldPic(B.pic[next], 128)); const eff = document.createElement('div'); eff.className = 'eff'; eff.appendChild(bldEff(k, next)); if (!HAM_KEY[k]) pic.appendChild(eff); /* a village's card says what it gives in the strip below */ card.appendChild(pic); const how = bldHow(k, lv, next); if (how) { how.className = 'how'; card.appendChild(how); }
-    const dots = document.createElement('div'); dots.className = 'dots'; for (let q = 1; q <= B.max; q++) { const d = document.createElement('b'); if (q <= lv) d.className = 'on'; dots.appendChild(d); } card.appendChild(dots);
+    const dots = document.createElement('div'); dots.className = 'dots' + (B.max > 6 ? ' many' : ''); for (let q = 1; q <= B.max; q++) { const d = document.createElement('b'); d.className = (q <= lv ? 'on' : '') + (B.max > 6 && q % 3 === 1 ? ' big' : ''); dots.appendChild(d); } /* a long row: small dots, a bigger one for each new metal */ card.appendChild(dots);
     if (c) {
       const cost = document.createElement('div'); cost.className = 'cost'; Object.keys(c).forEach((t) => { const s = document.createElement('span'), ok = haveN(t) >= c[t]; s.className = ok ? 'ok' : 'lack'; s.appendChild(bldIco(t));
         /* Leon, 2026-11-27: show how many Pip has of each, not only green or not; a missing one opens the map where it is found */
@@ -190,7 +197,7 @@ function bldUp(k) {
   Object.keys(c).forEach((t) => { spendN(t, c[t]).forEach((m) => { fly(m, () => pip.localToWorld(tmpV.set(0, 2.2, 0)), () => sc.remove(m), 0.3); }); });
   state.isle.bld[k] = bldLv(k) + 1; save();
   if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(TENT.x, 1.2, TENT.z, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
-  else if (k === 'tool') toolUp();
+  else if (k === 'axe' || k === 'pick') toolUp(k);
   else if (k === 'oven') ovenLevelUp();
   else if (k === 'dog') dogUp();
   else if (GEAR[k]) gearGot(k);
