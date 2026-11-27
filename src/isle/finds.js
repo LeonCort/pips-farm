@@ -22,6 +22,8 @@ function findIcon(x, t) {
     x.fillStyle = c[1]; x.beginPath(); x.moveTo(-8, -7); x.lineTo(0, -11); x.lineTo(4, -8); x.lineTo(-3, -4); x.closePath(); x.fill(); }
   else if (t === 'reed') { [[-10, 0.12], [0, -0.05], [10, -0.2]].forEach(([a, r]) => { x.save(); x.translate(a, 0); x.rotate(r); x.beginPath(); x.moveTo(0, 22); x.lineTo(0, -6); x.lineWidth = 6; x.strokeStyle = PAL.ink; x.stroke(); x.lineWidth = 3; x.strokeStyle = '#7fae4f'; x.stroke(); x.strokeStyle = PAL.ink;
       x.beginPath(); x.roundRect(-4.5, -22, 9, 18, 4.5); x.fillStyle = '#8a5a34'; x.fill(); x.stroke(); x.restore(); }); }
+  else if (t === 'pearl') { x.beginPath(); x.moveTo(-22, 0); x.quadraticCurveTo(-18, 20, 0, 20); x.quadraticCurveTo(18, 20, 22, 0); x.closePath(); blob('#f3b8c8'); x.beginPath(); x.moveTo(-22, -2); x.quadraticCurveTo(-16, -22, 0, -20); x.quadraticCurveTo(16, -22, 22, -2); x.closePath(); blob('#f9d3dd');
+    x.beginPath(); x.arc(0, 1, 9, 0, 7); blob('#ffffff'); x.fillStyle = '#dfe9f5'; x.beginPath(); x.arc(2, 3, 4, 0, 7); x.fill(); }
   else if (t === 'glow') { x.beginPath(); for (let q = 0; q < 8; q++) { const r = q % 2 ? 7 : 22, a = q / 8 * Math.PI * 2 - Math.PI / 2; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.closePath(); blob('#ffe07a');
     x.beginPath(); x.moveTo(0, -22); x.lineTo(0, 22); x.moveTo(-22, 0); x.lineTo(22, 0); x.lineWidth = 1.6; x.strokeStyle = '#f2a13c'; x.stroke(); x.fillStyle = '#ffffff'; x.beginPath(); x.arc(-3, -4, 3, 0, 7); x.fill(); }
 }
@@ -44,6 +46,11 @@ function findGeo(k) {
   } else if (k === 'reedsBase') { /* the cut stubs left in the mud */
     [[0, 0], [0.16, 0.05], [-0.15, 0.08], [0.05, -0.16], [-0.08, -0.12]].forEach(([x, z], i) => { q = new T.CylinderGeometry(0.02, 0.024, 0.14, 5); q.translate(x, 0.07, z); L.push(fac(q, '#6f9a45', 2890 + i)); });
     q = ico(0.3, 1, 2896); q.scale(1.2, 0.12, 1.1); q.translate(0, 0.01, 0); L.push(fac(q, (cx, cy, cz, f) => tone('#6b5a3c', f, 0.4), 2896));
+  } else if (k === 'clam') { /* the pearl, and the open lid of a big scallop standing up behind it */
+    q = new T.CylinderGeometry(0.46, 0.46, 0.07, 14); q.scale(1, 1, 0.9); q.translate(0, 0, 0.41); q.rotateX(-2.05); q.translate(0, 0.2, -0.36); L.push(fac(q, (cx, cy, cz, f) => tone(f % 2 ? '#fbe1e8' : '#f3b8c8', f, 0.25), 2900));
+    q = new T.SphereGeometry(0.16, 12, 9); q.translate(0, 0.33, 0.02); L.push(fac(q, (cx, cy, cz, f) => new T.Color(cy > 0.36 ? '#ffffff' : '#e3ecf7'), 2901));
+  } else if (k === 'clamBase') { /* the lower shell, lying in the sand */
+    q = new T.CylinderGeometry(0.47, 0.34, 0.2, 14); q.scale(1, 1, 0.9); q.translate(0, 0.1, 0); L.push(fac(q, (cx, cy, cz, f) => (cy > 0.19 ? new T.Color('#fbe6ec') : tone(f % 2 ? '#f3b8c8' : '#e79fb4', f, 0.3)), 2905));
   } else if (k === 'glow') { /* a star crystal: tall pale-gold spikes */
     [[0, 0, 0.78, 0, 0], [0.2, 0.08, 0.5, 0.45, 0.2], [-0.2, 0.04, 0.55, -0.4, -0.2], [0.02, -0.2, 0.42, 0.1, -0.5], [-0.08, 0.2, 0.36, -0.15, 0.5]].forEach(([x, z, h, rz, rx], i) => { q = new T.OctahedronGeometry(0.13, 0); q.scale(1, h / 0.13 * 0.5, 1); q.translate(0, h * 0.45, 0); q.rotateZ(rz); q.rotateX(rx); q.translate(x, 0, z);
       L.push(fac(q, (cx, cy, cz, f) => new T.Color(f % 3 === 0 ? '#ffffff' : i % 2 ? '#ffd76a' : '#fff3b0'), 2830 + i)); });
@@ -62,7 +69,7 @@ function findNode(n, g) {
   if (k === 'glow') { findGlowMat = findGlowMat || (() => { const m = crystalMat.clone(); m.emissive = new T.Color('#c9962a'); m.emissiveIntensity = 0.75; return m; })(); n.main = new T.Mesh(findGeo(k), findGlowMat); }
   else { n.main = new T.Mesh(findGeo(k), MAT); n.main.castShadow = true; n.main.receiveShadow = true; }
   n.full = k === 'reeds' ? 1.3 : FIND_NODE[k].hand ? 1 : 0.95 + hash(n.seed, 4) * 0.2; n.main.scale.setScalar(n.full); g.add(n.main);
-  if (k === 'hive' || k === 'reeds') { const b = new T.Mesh(findGeo(k + 'Base'), MAT); b.castShadow = true; b.receiveShadow = true; g.add(b); }
+  if (k === 'hive' || k === 'reeds' || k === 'clam') { const b = new T.Mesh(findGeo(k + 'Base'), MAT); b.castShadow = true; b.receiveShadow = true; g.add(b); }
 }
 /* the find goes straight to the store, and a picture with its number floats up where it was */
 function findGot(n) {

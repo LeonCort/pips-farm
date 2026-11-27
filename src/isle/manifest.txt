@@ -52,6 +52,7 @@ tall.js
 mesa.js
 ice.js
 marsh.js
+coral.js
 props.js
 map.js
 spots.js

@@ -72,7 +72,7 @@ function snxMap() {
   SNX.tex.needsUpdate = true; if (typeof grMask === 'function' && typeof GR !== 'undefined' && GR.tex) grMask();
 }
 function snxAt(x, z) { const b = SNX.box, W = SNX.W, i = Math.floor((x - b.x) / b.z * W), j = Math.floor((z - b.y) / b.w * W); return i >= 0 && j >= 0 && i < W && j < W && SNX.map[(j * W + i) * 4] > 127; }
-function snxGrass(x, z) { return snxAt(x, z) ? 0 : 1; } /* no tall grass in the snow (engine rays.js asks) */
+function snxGrass(x, z) { const A = areaAt(x, z); return snxAt(x, z) || (A && A.biome === 'coral') ? 0 : 1; } /* nor on the coral beach's sand */ /* no tall grass in the snow (engine rays.js asks) */
 /* press the snow down at a spot */
 function snxStamp(x, z, r, amt) {
   const W = SNX.TW, c = SNX.TS / W, n = Math.ceil(r / c), ix = Math.floor(x / c), iz = Math.floor(z / c), d = SNX.trail;
