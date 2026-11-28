@@ -169,8 +169,8 @@ function mineChest(x, z, loot, idx) { const c = makeChest(x, z, loot, idx); c.ri
 function mineCartMesh() {
   const g = new T.Group(), L = [], GL = []; let q;
   q = new T.BoxGeometry(0.8, 0.44, 1.08); { const P = q.attributes.position; for (let i = 0; i < P.count; i++) if (P.getY(i) < 0) P.setXYZ(i, P.getX(i) * 0.78, P.getY(i), P.getZ(i) * 0.84); } q.translate(0, 0.5, 0);
-  L.push(fac(q, (cx, cy, cz, i) => (cy > 0.71 ? new T.Color('#2c2620') : shadeY(Math.abs(cz) > 0.5 ? '#8a5f3c' : '#a06f45', cy, 0.25, 0.75, i, 0.4)), 2900));
-  [[0.86, 0.07, 1.14, 0.72], [0.7, 0.05, 0.98, 0.42]].forEach(([w, h, d, y], k) => { q = new T.BoxGeometry(w, h, d); q.translate(0, y, 0); L.push(fac(q, (cx, cy, cz, i) => tone('#4a4f57', i, 0.3), 2901 + k)); });
+  L.push(fac(q, (cx, cy, cz, i) => (cy > 0.71 ? new T.Color('#1f1a16') : shadeY(Math.abs(cz) > 0.5 ? '#8a5f3c' : '#a06f45', cy, 0.25, 0.75, i, 0.4)), 2900));
+  [[0.07, 0.08, 1.16, 0.73, -0.4, 0], [0.07, 0.08, 1.16, 0.73, 0.4, 0], [0.87, 0.08, 0.07, 0.73, 0, -0.545], [0.87, 0.08, 0.07, 0.73, 0, 0.545], [0.7, 0.05, 0.98, 0.42, 0, 0]].forEach(([w, h, d, y, x, z], k) => { q = new T.BoxGeometry(w, h, d); q.translate(x, y, z); L.push(fac(q, (cx, cy, cz, i) => tone('#4a4f57', i, 0.3), 2901 + k)); });
   [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([a, b], k) => { q = new T.CylinderGeometry(0.17, 0.17, 0.08, 10); q.rotateZ(Math.PI / 2); q.translate(a * 0.35, 0.19, b * 0.33); L.push(fac(cvQ(q), (cx, cy, cz, i) => tone(i % 3 ? '#4a4f57' : '#6c737d', i, 0.3), 2905 + k)); });
   q = new T.BoxGeometry(0.05, 0.62, 0.05); q.translate(0.33, 1.0, 0.5); L.push(fac(q, '#6e4426', 2910)); q = new T.BoxGeometry(0.26, 0.05, 0.05); q.translate(0.22, 1.3, 0.5); L.push(fac(q, '#6e4426', 2911));
   q = new T.BoxGeometry(0.15, 0.22, 0.15); q.translate(0.12, 1.16, 0.5); GL.push(cvPaint(q, () => new T.Color('#ffd27a')));
@@ -223,7 +223,7 @@ function mineBuild() {
     /* crates, a barrel, a pick and a shovel left leaning */
     [[-4.4, 31.3, 0.5, 0], [-4.35, 31.25, 0.36, 0.5], [-3.7, 31.75, 0.4, 0]].forEach(([x, z, s, y], k) => { q = new T.BoxGeometry(s, s, s); q.rotateY(k * 0.5); q.translate(x, y + s / 2, z); L.push(fac(q, (cx, cy, cz, i) => tone(i % 4 < 2 ? '#b08454' : '#c99f6c', i + k, 0.4), 3240 + k)); });
     q = new T.CylinderGeometry(0.24, 0.24, 0.55, 10); q.translate(4.4, 0.28, 33.3); L.push(fac(cvQ(q), (cx, cy, cz, i) => (Math.abs(cy - 0.28) > 0.15 && Math.abs(cy - 0.28) < 0.24 ? new T.Color('#4a4f57') : tone('#a06f45', i, 0.4)), 3250)); CV.solid.push([-4.3, 31.4, 0.6], [4.4, 33.3, 0.3]);
-    [['crystal', 4.2, 29.0, 2], ['rock', 2.0, 35.0], ['rock', -1.2, 33.9]].forEach(([k, x, z, t], n) => mineNode(k, x, z, 3260 + n, t)); }
+    [['crystal', 4.2, 29.0, 2], ['rock', 0.9, 30.6], ['rock', -1.2, 33.9]].forEach(([k, x, z, t], n) => mineNode(k, x, z, 3260 + n, t)); }
 
   /* ---- the rail, the two tunnels through the rock, the two parked carts ---- */
   { const cur = new T.CatmullRomCurve3(MINE_RAIL.map((p) => new T.Vector3(p[0], 0, p[1])), false, 'catmullrom', 0.5), P = cur.getSpacedPoints(96), R = [];
@@ -383,9 +383,9 @@ function mineDarkStep(dt) {
     const g = x.createRadialGradient(0, 0, R * 0.25, 0, 0, R); g.addColorStop(0, 'rgba(0,0,0,' + (a || 0.94) + ')'); g.addColorStop(0.55, 'rgba(0,0,0,' + (a || 0.94) * 0.55 + ')'); g.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = g; x.beginPath(); x.arc(0, 0, R, 0, 7); x.fill(); x.restore(); };
   const tun = CV.riding && mineSdf(pp.x, pp.z, true) > 0.2 ? 0.55 : 1; /* in the cart's tunnel only the cart's own lantern is left */
   hole(pp.x, 0.8, pp.z, MINE_R() * tun * (reduced ? 1 : 1 + Math.sin(time * 9) * 0.012 + Math.sin(time * 3.1) * 0.015));
-  CV.lights.forEach((q) => { if (q.on && !q.on()) return; hole(q.x, q.y, q.z, q.r * (q.fl && !reduced ? 1 + Math.sin(time * 6 + q.fl) * 0.03 : 1), q.a); });
-  nodes.forEach((n) => { if (!n.mine || n.st !== 'ready' || n.gate) return; if (n.kind === 'crystal') hole(n.x, 0.5, n.z, 1.7, 0.8); else if (n.kind === 'glow') hole(n.x, 0.5, n.z, 2.3, 0.85); else if (n.kind === 'copper') hole(n.x, 0.4, n.z, 1.0, 0.5); });
-  chests.forEach((q) => { if (q.idx === 'mine1' || q.idx === 'mine2' || q.idx === 'cath') hole(q.x, 0.5, q.z, 1.5, 0.7); });
+  CV.lights.forEach((q) => { if ((q.on && !q.on()) || (q.z > 50.4) !== inCath) return; hole(q.x, q.y, q.z, q.r * (q.fl && !reduced ? 1 + Math.sin(time * 6 + q.fl) * 0.03 : 1), q.a); });
+  nodes.forEach((n) => { if (!n.mine || n.st !== 'ready' || n.gate || (n.z > 50.4) !== inCath) return; if (n.kind === 'crystal') hole(n.x, 0.5, n.z, 1.7, 0.8); else if (n.kind === 'glow') hole(n.x, 0.5, n.z, 2.3, 0.85); else if (n.kind === 'copper') hole(n.x, 0.4, n.z, 1.0, 0.5); });
+  chests.forEach((q) => { if ((q.idx === 'mine1' || q.idx === 'mine2' || q.idx === 'cath') && (q.z > 50.4) === inCath) hole(q.x, 0.5, q.z, 1.5, 0.7); });
   x.globalCompositeOperation = 'source-over';
 }
 function caveGo(M) {

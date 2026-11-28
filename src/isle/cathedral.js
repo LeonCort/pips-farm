@@ -23,6 +23,8 @@ SECRET_FILL.cave7 = (A) => {
     const pale = new T.Color('#9a9ad8'), deep = new T.Color('#34315c'); const m = new T.Mesh(cvPaint(q, (x, y, z, i) => { const dx = x - CATH.pool[0], dz = z - CATH.pool[1], d = Math.hypot(dx, dz), a = Math.atan2(dz, dx), c = tone('#565683', i, 0.5);
       const ray = Math.abs(Math.sin(a * 4)) < 0.16 && d > 2.5 && d < 4.6, ring = Math.abs(d - 2.75) < 0.2 || Math.abs(d - 4.6) < 0.14; if (ray || ring) c.lerp(pale, 0.55); else if (d < 2.4) c.lerp(deep, 0.7);
       const s = mineSdf(x, z, true); if (s > -0.9) c.multiplyScalar(0.7 + 0.3 * clamp(-s / 0.9, 0, 1)); return c; }), MAT); m.receiveShadow = true; g.add(m); }
+  /* dark rock all round, so that no sea shows at the edges of the picture */
+  { q = new T.PlaneGeometry(60, 34, 6, 4); q.rotateX(-Math.PI / 2); q.translate(X, 0.046, Z + 3.5); const dk = new T.Color('#0d0b1c'); g.add(new T.Mesh(cvPaint(q, () => dk), MAT)); }
   /* the rim: dark rock, and out of it the giant crystals: as tall as houses at the back, lower to the sides, small in front where we look in */
   mineRocks(L, F, -6.2, 6.3, 51.0, 61.9, (x, z) => Math.abs(x - X) < 1.3 && z > 60.4);
   const RA = [], RB = [], PA = ['#b9c8ff', '#7f96f0', '#9fb4ff', '#e6ecff'], PB = ['#ffc4e0', '#e88cc0', '#d8b0f4', '#fff0f8'];
@@ -62,6 +64,7 @@ SECRET_FILL.cave7 = (A) => {
   CA.n = S.lit ? 4 : Math.min(4, S.n || 0);
 };
 function cathStep(dt) {
+  if (CA.g) CA.g.visible = inCave && pip.position.z > 50.4; /* from the lake room its tall crystals would stand in front of Pip */
   if (!CA.g || !inCave) { CA.in = false; return; } const pp = pip.position, S = cathS(), here = pp.z > 50.6 && !caveT, [px, pz, pr] = CATH.pool;
   if (!here) { CA.in = false; return; }
   if (!CA.in) { CA.in = true; CA.hum = 1.5; if (!S.seen) { S.seen = 1; ['C5', 'G5', 'E6'].forEach((f, k) => Snd.play('bell', { gain: 0.3, f }, 0.5 + k * 0.45)); Snd.play('sparkle', { gain: 0.3 }, 1.9); save(); } }
