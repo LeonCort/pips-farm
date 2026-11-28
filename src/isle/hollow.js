@@ -60,7 +60,7 @@ function hollowFrostMat() { if (!HL.frostMat) { HL.frostMat = new T.MeshStandard
 function hollowLake() { if (HL.lake === undefined) { const A = AREA_BY.w0, D = A && A.ice; HL.lake = D ? [A.cx + D.dx, A.cz + D.dz, D.nx / 2, D.nz / 2] : null; } return HL.lake; }
 function hollowTrails() { if (!HL.trails) { HL.trails = []; TRAILS.forEach((L) => { if (L[0][0] < 21 || L[0][1] > -13) return; for (let k = 0; k + 1 < L.length; k++) HL.trails.push([L[k][0], L[k][1], L[k + 1][0], L[k + 1][1]]); }); } return HL.trails; }
 function hollowWarm(x, z) {
-  if (x < 21 || z > -13 || !HAS.w5) return 0;
+  if (x < 21 || z > -13 || !HAS.w5 || (rising && rising.area === 'w5')) return 0; /* it rises as snow, and turns green when the hollow stands */
   let w = 1 - sstep(4.75, 5.45, Math.hypot(x - HW.cx, z - HW.cz)); if (w >= 1) return 1;
   w = Math.max(w, 1 - sstep(0.85, 1.5, segD(x, z, 44.3, -32, 48, -32)), 1 - sstep(0.95, 1.6, Math.hypot(x - HW.out[0], z - HW.out[1])));
   const th = HL.thaw; if (th <= 0 || w >= 1) return w;
@@ -249,7 +249,7 @@ function hollowFill(A, fresh) {
   /* a warm light in the hollow, and the glow that is seen from afar at night once the sun stone is found */
   HL.lamp = new T.PointLight('#ffdca0', 0, 11, 1.4); HL.lamp.position.set(0, 2.4, 0); g.add(HL.lamp);
   HL.night = hollowGlow(HL.warmTex, 13, 0); HL.night.position.set(0, 2.2, 0); g.add(HL.night);
-  hollowBeams(false); hollowPaint(); if (S.sun) hollowBloom(false);
+  hollowBeams(false); hollowPaint(); SNX.key = ''; if (S.sun) hollowBloom(false);
   if (fresh) { g.scale.setScalar(0.01); HL.pop = 0.001; Snd.play('sparkle', { gain: 0.4 }, 0.3); }
 }
 SECRET_FILL.w5 = hollowFill;
