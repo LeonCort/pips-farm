@@ -21,6 +21,46 @@ function mapPic(px) {
   x.beginPath(); x.arc(7, -9, 2.6, 0, 7); x.fillStyle = '#fff6e4'; x.fill();
   return c;
 }
+/* the land as it really lies (Leon, 2026-11-27: coasts are no longer straight): the coast distance is read on a half-metre
+   grid and smoothed up to the map's size, so coves, capes and ponds show just as they are in the world */
+function mapLand() {
+  const S = MP.S, W = MP.w * S, H = MP.h * S, gw = MP.w * 2 + 1, gh = MP.h * 2 + 1, D = new Float32Array(gw * gh), K = new Int16Array(gw * gh);
+  for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) { const wx = MP.x0 + i * 0.5, wz = MP.z0 + j * 0.5, A = areaAt(wx, wz), k = A && !A.cave && HAS[A.id] ? AREAS.indexOf(A) : -1; K[j * gw + i] = k; D[j * gw + i] = k < 0 ? Math.max(0.3, gSdf(wx, wz)) : gSdf(wx, wz); }
+  const rgb = (h) => { const c = new T.Color(h); return [c.r * 255, c.g * 255, c.b * 255]; }, G = AREAS.map((A) => rgb(MAP_COL[A.biome] || '#9fd36a')), B = AREAS.map((A) => rgb(BIOME_BEACH[A.biome] || '#f0dfae'));
+  const c = MP.land || (MP.land = document.createElement('canvas')); c.width = W; c.height = H; const cx = c.getContext('2d'), im = cx.createImageData(W, H), px = im.data, q = 2 / S;
+  for (let y = 0; y < H; y++) { const fy = y * q, j = Math.min(gh - 2, fy | 0), v = fy - j, r0 = j * gw, r1 = r0 + gw;
+    for (let xx = 0; xx < W; xx++) { const fx = xx * q, i = Math.min(gw - 2, fx | 0), u = fx - i;
+      const d = (D[r0 + i] * (1 - u) + D[r0 + i + 1] * u) * (1 - v) + (D[r1 + i] * (1 - u) + D[r1 + i + 1] * u) * v; if (d > 0.05) continue;
+      let k = K[(v < 0.5 ? r0 : r1) + (u < 0.5 ? i : i + 1)]; if (k < 0) { k = Math.max(K[r0 + i], K[r0 + i + 1], K[r1 + i], K[r1 + i + 1]); if (k < 0) continue; }
+      const g = G[k], b = B[k], t = clamp((-0.62 - d) * S * 0.5 + 0.5, 0, 1), e = clamp((d + 0.2) * S * 0.6, 0, 1) * 0.5, o = (y * W + xx) * 4;
+      px[o] = (b[0] + (g[0] - b[0]) * t) * (1 - e) + 58 * e; px[o + 1] = (b[1] + (g[1] - b[1]) * t) * (1 - e) + 36 * e; px[o + 2] = (b[2] + (g[2] - b[2]) * t) * (1 - e) + 20 * e; px[o + 3] = clamp(0.5 - d * S, 0, 1) * 255; } }
+  cx.putImageData(im, 0, 0); return c;
+}
+/* ---------- a finished star for each island (Leon, 2026-11-27: "a finished star per island") ----------
+   An island is finished when all its land is bought, its wonders stand, its friend has a house and its golden gift is
+   found. The map shows a star by each island Pip has set foot on: grey with four small dots (land, wonder, friend,
+   gift) that fill one by one, gold once all four are done. The moment it turns gold Pip holds the star up. */
+const STAR_HIDE = { smith: 'h', baker: 'm', mason: 's', knitter: 'w', fisher: 'r', diver: 'c', glass: 'e' }, STAR_ISLES = ['h', 'm', 's', 'w', 'r', 'c', 'e'], STARS = { t: 6 };
+function starParts(L) {
+  const land = AREAS.every((A) => A.cave || A.secret || A.id[0] !== L || HAS[A.id]);
+  const wonder = Object.keys(LOOP_SITES).every((id) => { const A = areaAt(LOOP_SITES[id].x, LOOP_SITES[id].z); return !A || A.cave || A.id[0] !== L || !!mons()[id]; });
+  const friend = VILLAGERS.every((v) => (STAR_HIDE[v.id] || 'h') !== L || (folk()[v.id] || 0) >= (LOOP_FOLK[v.id] ? 3 : 2));
+  const gift = GOLD.every((G) => (G.isle === 'cave' ? 'h' : G.isle) !== L || !!golds()[G.id]);
+  return [land, wonder, friend, gift];
+}
+function starStep(dt) {
+  STARS.t -= dt; if (STARS.t > 0 || rising || building || inCave || enSleep) return; STARS.t = 1.5;
+  const I = state.isle; I.stars = I.stars || {};
+  for (const L of STAR_ISLES) if (!I.stars[L] && starParts(L).every(Boolean)) { I.stars[L] = 1; save(); foundIt('star'); return; }
+}
+ISLE_STEPS.push(starStep);
+function mapStars(x) {
+  STAR_ISLES.forEach((L) => { const As = AREAS.filter((A) => !A.cave && !A.secret && A.id[0] === L && HAS[A.id]); if (!As.length) return;
+    const top = Math.min(...As.map((A) => A.cz)), row = As.filter((A) => A.cz === top), A0 = row.reduce((a, b) => (b.cx < a.cx ? b : a)), q0 = mapXY(A0.cx - 6.9, top - 6.9), px = Math.max(40, q0[0]), pz = Math.max(40, q0[1]), P = starParts(L), done = P.every(Boolean);
+    mapBadge(x, px, pz, 27, done ? '#fff1b8' : '#f4efe4'); if (done) { x.beginPath(); x.arc(px, pz, 33, 0, 7); x.lineWidth = 4; x.strokeStyle = '#f4b23a'; x.stroke(); }
+    x.save(); if (!done) { x.globalAlpha = 0.45; x.filter = 'grayscale(1)'; } isleIcon(x, 'star', px, pz, 0.95); x.restore();
+    if (!done) P.forEach((ok, k) => { x.beginPath(); x.arc(px - 24 + k * 16, pz + 38, 5.5, 0, 7); x.fillStyle = ok ? '#f4b23a' : '#fff6e4'; x.fill(); x.lineWidth = 2.5; x.strokeStyle = '#6e4426'; x.stroke(); }); });
+}
 function mapBadge(x, px, pz, r, fill) { x.beginPath(); x.arc(px, pz, r, 0, 7); x.fillStyle = fill || '#fff6e4'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#6e4426'; x.stroke(); }
 function mapDraw() {
   const S = MP.S, W = MP.w * S, H = MP.h * S, x = MP.cv.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, W, H); x.lineJoin = 'round'; x.lineCap = 'round';
@@ -29,13 +69,8 @@ function mapDraw() {
   x.strokeStyle = 'rgba(255,255,255,.4)'; x.lineWidth = 3; for (let k = 0; k < 46; k++) { const wx = hash(k, 301) * W, wz = hash(k, 302) * H; x.beginPath(); x.moveTo(wx - 14, wz); x.quadraticCurveTo(wx - 7, wz - 7, wx, wz); x.quadraticCurveTo(wx + 7, wz + 7, wx + 14, wz); x.stroke(); }
   const buy = {}; signs.forEach((s) => { if (s.A) buy[s.A.id] = 1; });
   const sq = (A, grow, r) => { const [px, pz] = mapXY(A.cx - 6 - grow, A.cz - 6 - grow); x.beginPath(); x.roundRect(px, pz, (12 + grow * 2) * S, (12 + grow * 2) * S, r * S); };
-  /* owned land: a sand rim, then the grass, so squares of one island run together */
-  AREAS.forEach((A) => { if (A.cave || !HAS[A.id]) return; sq(A, 0.55, 2.4); x.fillStyle = BIOME_BEACH[A.biome] || '#f0dfae'; x.fill(); });
-  AREAS.forEach((A) => { if (A.cave || !HAS[A.id]) return; sq(A, 0.55, 2.4); x.lineWidth = 3; x.strokeStyle = 'rgba(58,36,20,.5)'; x.stroke(); });
-  AREAS.forEach((A) => { if (A.cave || !HAS[A.id]) return; sq(A, 0.55, 2.4); x.fillStyle = BIOME_BEACH[A.biome] || '#f0dfae'; x.fill(); });
-  AREAS.forEach((A) => { if (A.cave || !HAS[A.id]) return; sq(A, 0.08, 1.6); x.fillStyle = MAP_COL[A.biome]; x.fill(); });
-  /* water inside an area: the marsh's channel and pond */
-  AREAS.forEach((A) => { if (!A.holes || !HAS[A.id]) return; A.holes.forEach(([a, b]) => { const [px, pz] = mapXY((A.i + a) * GS - 1.5, (A.j + b) * GS - (A.holes.length > 1 ? 2.6 : 1.5)); x.beginPath(); x.roundRect(px, pz, 3 * S, (A.holes.length > 1 ? 5.2 : 3) * S, 1.2 * S); x.fillStyle = '#6fbfe0'; x.fill(); }); });
+  /* owned land with its real, wandering coast: a dark edge, a sand rim, then the island's own colour; ponds stay sea */
+  x.drawImage(mapLand(), 0, 0);
   /* land Pip does not own yet */
   AREAS.forEach((A) => { if (A.cave || A.secret || HAS[A.id]) return; sq(A, -0.35, 1.6); x.fillStyle = buy[A.id] ? 'rgba(255,246,228,.5)' : 'rgba(255,255,255,.22)'; x.fill();
     x.setLineDash([14, 12]); x.lineWidth = buy[A.id] ? 6 : 3; x.strokeStyle = buy[A.id] ? '#f4b23a' : 'rgba(255,255,255,.75)'; x.stroke(); x.setLineDash([]);
@@ -71,6 +106,7 @@ function mapDraw() {
     const [px, pz] = mapXY(wx, wz); if (F) mapBadge(x, px, pz, 27); boardFace(x, v, px, pz + (F ? 3 : 0), F ? 0.5 : 0.62, F ? 3 : 0); if (F === 2 && LOOP_FOLK[v.id]) { mapBadge(x, px + 24, pz - 22, 15, '#f4b23a'); isleIcon(x, 'hammer', px + 24, pz - 22, 0.5); } /* a house to build here */ });
   /* something to pay for here */
   signs.forEach((s) => { if (s.A || s.x == null) return; const [px, pz] = mapXY(s.x, s.z); x.beginPath(); x.arc(px, pz, 11, 0, 7); x.fillStyle = '#f4b23a'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#6e4426'; x.stroke(); x.beginPath(); x.arc(px, pz, 4, 0, 7); x.fillStyle = '#fff6e4'; x.fill(); });
+  mapStars(x);
   /* where Pip is */
   const P = inCave ? [AREA_BY.cave.cx, AREA_BY.cave.cz] : [pip.position.x, pip.position.z], [qx, qz] = mapXY(P[0], P[1]);
   MP.pip.style.left = (qx / W * 100) + '%'; MP.pip.style.top = (qz / H * 100) + '%';

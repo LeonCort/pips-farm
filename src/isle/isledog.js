@@ -76,6 +76,71 @@ function digLoot(A) {
   return out;
 }
 
+/* ---------- the dog leads the way (Leon, 2026-11-27: "the dog as hint system") ----------
+   Pip stands at a sign and has none of something it wants: the dog barks, shows the missing thing in a bubble and trots
+   off to where it is, waiting and looking back whenever Pip falls behind. Where it leads, in this order:
+     a ready tree, stone, bush, crystal or find on land Pip owns (through the mine stairs if it is down there);
+     the anvil, if the find needs a better pick first;
+     the dock, when the way there is by boat;
+     else the sign or bridge that opens the way toward the island that has it.
+   Nothing is saved; a wrong guess costs nothing, the dog simply sits and wags. */
+const LEAD = { t: 0, cool: 0 };
+const nodeGives = (n) => (FIND_NODE[n.kind] ? FIND_NODE[n.kind].t : YIELD[n.kind] ? YIELD[n.kind][0] : null);
+function leadMissing(s) { /* what the sign still wants and Pip has none of; null while he can pay anything at all */
+  const cs = signCost(s), miss = [];
+  for (const t of Object.keys(cs)) { if (signNeed(s, t) <= 0) continue; if (haveN(t) > 0) return null; miss.push(t); }
+  return miss.find((t) => FINDS.indexOf(t) >= 0) || miss.find((t) => t !== 'coin') || null;
+}
+function leadShut(s) { /* a bridge waiting for its key or behind a web has its own hint */
+  if (s.kind !== 'bridge' && s.kind !== 'lift') return false;
+  return !!(LOOP_KEY[s.A.id] && !lkeys()[LOOP_KEY[s.A.id]]) || (s.kind === 'bridge' && GE.webs.some((w) => w.id === s.A.id));
+}
+function leadBy(x, z, r, pic) { /* a dry spot right beside it */
+  let b = [x, z + r], bs = 1e9; for (let k = 0; k < 8; k++) { const q = k / 8 * 6.283, px = x + Math.sin(q) * r, pz = z + Math.cos(q) * r, w = walkSdf(px, pz); if (w < bs - 0.05) { bs = w; b = [px, pz]; } }
+  return { x: b[0], z: b[1], pic };
+}
+function leadPick(t, s) {
+  const pp = pip.position, way = (x, z, fx, fz) => { fx = fx == null ? pp.x : fx; fz = fz == null ? pp.z : fz; return landLine(fx, fz, x, z) || !!landPath(fx, fz, x, z); };
+  let best = null, bd = 1e9, down = null, gear = null;
+  nodes.forEach((n) => { if (n.st !== 'ready' || nodeGives(n) !== t || n.mesa) return; const A = areaAt(n.x, n.z); if (!A || !HAS[A.id]) return;
+    const F = FIND_NODE[n.kind]; if (F && !F.hand && toolTier('pick') < F.tier) { gear = 'pick' + (F.tier > 1 ? F.tier : ''); return; }
+    if (!!A.cave !== !!inCave) { if (A.cave) down = n; return; }
+    const d = Math.hypot(n.x - pp.x, n.z - pp.z); if (d > 1.5 && d < bd) { bd = d; best = n; } });
+  let G = null;
+  if (best) G = leadBy(best.x, best.z, 0.75, t);
+  else if (inCave) return null;
+  else if (gear) G = { x: ANVIL_RING.x + 0.7, z: ANVIL_RING.z, pic: gear, gear: 1 };
+  else if (down && stairsDown) G = leadBy(stairsDown.x, stairsDown.z, 0.7, t);
+  else { /* it grows on land Pip does not own yet: to the sign nearest to it */
+    let S = null, sd = 1e9; mapHintSpots(t).forEach((q) => { if (q.t !== t) return; const A = areaAt(q.x, q.z); if (A && HAS[A.id]) return; const d = Math.hypot(q.x - pp.x, q.z - pp.z); if (d < sd) { sd = d; S = q; } });
+    if (!S) return null;
+    if (S.need === 'torch') G = { x: SPOT_AT.gear[0] + 0.7, z: SPOT_AT.gear[1], pic: 'torch', gear: 1 };
+    else { let q = null, qd = 1e9; signs.forEach((o) => { if (o === s || o.x == null || (o.kind !== 'area' && o.kind !== 'bridge' && o.kind !== 'lift')) return; const d = Math.hypot(o.x - S.x, o.z - S.z); if (d < qd) { qd = d; q = o; } });
+      if (!q || qd > sd - 1) return null; G = leadBy(q.x, q.z, 0.85, t); }
+  }
+  if (inCave || way(G.x, G.z)) return G;
+  /* no way by land: by boat, if a dock stands at both ends */
+  const D = Object.keys(DK.d).map((k) => DK.d[k]), to = D.find((d) => way(G.x, G.z, d.lx, d.lz)); let from = null, fd = 1e9;
+  D.forEach((d) => { if (d === to || !way(d.lx, d.lz)) return; const q = Math.hypot(d.lx - pp.x, d.lz - pp.z); if (q < fd) { fd = q; from = d; } });
+  return to && from ? { x: from.lx, z: from.lz, pic: 'travel', then: t } : null;
+}
+function leadWatch(dt) {
+  LEAD.cool -= dt; const pp = pip.position, dp = dog.g.position;
+  if (DG.mode || LEAD.cool > 0 || rising || building || Math.hypot(pp.x - dp.x, pp.z - dp.z) > 12) { LEAD.t = 0; return; }
+  const s = signs.find((q) => q.x != null && Math.hypot(pp.x - q.x, pp.z - q.z) < 0.85), t = s && !leadShut(s) ? leadMissing(s) : null;
+  if (!t) { LEAD.t = 0; return; }
+  LEAD.t += dt; if (LEAD.t < 1.0) return; LEAD.t = 0;
+  const L = leadPick(t, s); bark(0.55); dogBubble(L ? L.pic : t); LEAD.cool = L ? 8 : 14; if (!L) return;
+  L.t = t; L.T = 0; L.w = 0; DG.lead = L; DG.mode = 'lead';
+}
+function leadStep(dt) {
+  const L = DG.lead, pp = pip.position, dp = dog.g.position, far = Math.hypot(pp.x - dp.x, pp.z - dp.z), at = Math.hypot(L.x - dp.x, L.z - dp.z) < 0.6;
+  L.T += dt; if (!DG.bub) dogBubble(L.pic); /* the picture stays up all the way */
+  if (far > 4.6 || at) { dog.g.rotation.y = Math.atan2(pp.x - dp.x, pp.z - dp.z); L.w += dt; if (L.w > 2.6) { L.w = 0; bark(0.4); dogBubble(L.pic); } } else L.w = 1.8;
+  if (at && far < 2.8) { bark(0.5); dogBubble(L.then || L.pic); Snd.play('blip', { gain: 0.3, f: 820 }); DG.mode = null; DG.lead = null; DG.cool = 3; LEAD.cool = 14; return; }
+  if (L.T > 75 || far > 26 || (!L.gear && !L.then && haveN(L.t) > 0)) { DG.mode = null; DG.lead = null; DG.cool = 1; LEAD.cool = 10; }
+}
+
 /* ---- what the dog wants to do ---- */
 const dogFree = () => state.pet !== 'none' && !isNight && !enSleep;
 function dogGoal() {
@@ -86,6 +151,7 @@ function dogGoal() {
   if (DG.mode === 'sniff' || DG.mode === 'dig') return [DG.spot.x, DG.spot.z + 0.45, 2.4];
   if (DG.mode === 'take') return [pp.x, pp.z, sp];
   if (DG.mode === 'home') return [STORE.x, STORE.z + 0.95, sp * 1.15];
+  if (DG.mode === 'lead') { const L = DG.lead, dp = dog.g.position; return Math.hypot(pp.x - dp.x, pp.z - dp.z) > 4.6 ? [dp.x, dp.z, sp] : [L.x, L.z, sp * 1.1]; }
   return null;
 }
 function dogMouth() { return dog.head || dog.g; }
@@ -109,7 +175,7 @@ function dogStepIsle(dt) {
   if (DG.bub) { DG.bub.t -= dt; DG.bub.position.set(dp.x, 1.45 + Math.sin(time * 4) * 0.04, dp.z); if (DG.bub.t <= 0) { sc.remove(DG.bub); DG.bub = null; } }
   dirtStep(dt);
   if (!dogFree()) { if (DG.mode === 'back') dogDrop(); if (DG.mode === 'home') courierEnd(); DG.mode = null; DG.d = null; return; }
-  DG.cool -= dt;
+  DG.cool -= dt; leadWatch(dt);
   if (!DG.mode && DG.cool <= 0) {
     const d = lv >= 2 ? dogFind() : null;
     if (lv >= 4 && !inCave && carry.count('coin') > 0 && carry.count() >= cap() && Math.hypot(pp.x - dp.x, pp.z - dp.z) < 14) { DG.mode = 'take'; DG.t = 0; bark(0.5); dogBubble('coin'); }
@@ -117,7 +183,8 @@ function dogStepIsle(dt) {
     else if (lv >= 3) { const A = areaAt(pp.x, pp.z), s = digSpot(A); if (s && Math.hypot(s.x - dp.x, s.z - dp.z) < 8 && Math.hypot(s.x - pp.x, s.z - pp.z) < 9) { DG.mode = 'sniff'; DG.spot = s; DG.area = A; DG.t = 0; } }
     if (!DG.mode) DG.cool = 0.5;
   }
-  if (DG.mode === 'take') { /* the courier: fetch the coins off Pip, they are safe in the crate's count at once, then run them home */
+  if (DG.mode === 'lead') leadStep(dt);
+  else if (DG.mode === 'take') { /* the courier: fetch the coins off Pip, they are safe in the crate's count at once, then run them home */
     DG.t += dt; if (carry.count() < cap() || DG.t > 12) { DG.mode = null; DG.cool = 1; }
     else if (Math.hypot(pp.x - dp.x, pp.z - dp.z) < 1.15) { let n = 0, m; while ((m = carry.take('coin'))) { n++; if (m.parent) m.parent.remove(m); }
       state.isle.store.coin = storeN('coin') + n; invDirty = true; save();
@@ -181,7 +248,7 @@ function dogEff(x, lv) {
   else { /* the saddlebags: the island's own find comes up with the treasure */ isleIcon(x, 'bag', 32, 50, 1.0); isleIcon(x, 'honey', 66, 40, 0.8); x.font = '700 24px Fredoka, sans-serif'; x.lineWidth = 5; x.strokeStyle = PAL.ink; x.fillStyle = '#7cc85a'; x.strokeText('+1', 56, 74); x.fillText('+1', 56, 74); }
 }
 function dogUp() { dogBagSync(); const p = dog.g.position; burst(p.x, 1.0, p.z, 8); dog.hop = 1; bark(0.6); camFocus.set(p.x, 0, p.z); DG.cool = 1; }
-const dogTest = () => ({ lv: dogLv(), mode: DG.mode, cap: cap(), dug: Object.assign({}, state.isle.dug), spots: Object.keys(DIG).length, holes: DG.holes.length, pos: [+dog.g.position.x.toFixed(2), +dog.g.position.z.toFixed(2)], bags: !!(dogBagG && dogBagG.visible) });
+const dogTest = () => ({ lv: dogLv(), mode: DG.mode, lead: DG.lead ? [DG.lead.pic, +DG.lead.x.toFixed(1), +DG.lead.z.toFixed(1)] : null, cap: cap(), dug: Object.assign({}, state.isle.dug), spots: Object.keys(DIG).length, holes: DG.holes.length, pos: [+dog.g.position.x.toFixed(2), +dog.g.position.z.toFixed(2)], bags: !!(dogBagG && dogBagG.visible) });
 
 /* ---------- pets keep to the land and take the bridges (Leon, 2026-11-25) ----------
    The pet used to run in a straight line at whatever it was after, so it crossed the sea between islands, and the pets
@@ -220,5 +287,10 @@ function landRoute(d, tx, tz) {
   return R.P[0];
 }
 /* never out at sea: slide back to the shore (the cave has its own walls) */
-function landKeep(p) { if (!inCave && walkSdf(p.x, p.z) > -0.15) wClamp(p); }
+function landKeep(p) {
+  if (inCave) return; if (walkSdf(p.x, p.z) > -0.15) wClamp(p);
+  /* nor through the rock tables and the garden walls (pets stay on the ground level) */
+  MS.list.forEach((m) => { if (!m.par && !m.pop) mesaOut(m, p, 0.25); });
+  if (typeof GD !== 'undefined' && GD.walls) GD.walls.forEach((m) => { mesaOut(m, p, 0.25); });
+}
 ISLAND.petRoute = landRoute; ISLAND.petLand = landKeep;
