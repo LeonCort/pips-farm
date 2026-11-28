@@ -2,7 +2,7 @@
    takes you to another island"; 2026-11-28: "expand the size of the mines to fit the new size of the game", a mini
    adventure with a place that opens only on a return visit) ----------
    The stairs stand in h3. Standing on the mat in front of them, the screen goes dark and Pip comes out in the mine. From
-   outside the mine is a rocky hill range out at sea, south of h3; inside, the top is lifted off and it is dark: only what
+   outside there is nothing to see (2026-11-28: the hills over it showed from the marsh and ember shores, so they went); inside, the top is lifted off and it is dark: only what
    glows, the lanterns and Pip's own torch (or lantern) cut circles out of the dark (mineDarkStep).
    Six rooms, laid by hand as one place (the areas have secret: 1, so nothing random grows in them):
         deep gallery (cave3)  <- rail tunnel ->  ore gallery (cave2)  <- heap g1 ->  entry hall (cave)   <- stairs from h3
@@ -394,7 +394,7 @@ function caveGo(M) {
 function minePush(pp, x, z, r) { const dx = pp.x - x, dz = pp.z - z, d = Math.hypot(dx, dz); if (d < r && d > 1e-4) { pp.x = x + dx / d * r; pp.z = z + dz / d * r; } }
 function caveStep(dt) {
   if (stairsDown && stairsDown.pop) { stairsDown.pop = Math.min(1, stairsDown.pop + dt * 1.5); stairsDown.g.scale.setScalar(stairsDown.pop); if (stairsDown.pop >= 1) stairsDown.pop = 0; }
-  caveRoofs.forEach((r) => { r.visible = !inCave; }); if (CV.g) CV.g.visible = inCave || !!caveT; if (CV.lakeMat) CV.lakeMat.pad.visible = !!mineS().lake;
+  caveRoofs.forEach((r) => { r.visible = false; }); /* the hill range over the mine is gone: the mine lies deep under the sea, out of sight from every shore (Leon 2026-11-28) */ if (CV.g) CV.g.visible = inCave || !!caveT; if (CV.lakeMat) CV.lakeMat.pad.visible = !!mineS().lake;
   for (let k = nodes.length - 1; k >= 0; k--) { const n = nodes[k]; if (n.dead) { sc.remove(n.g); nodes.splice(k, 1); } else if (n.mine) n.g.visible = inCave; } /* a heap broken through is gone for good; what grows in the mine stays under the hill */
   if (inCave) { streaks.visible = ringMesh.visible = dropPts.visible = pudMesh.visible = false; } /* no rain under the hill */
   mineDarkStep(dt);
