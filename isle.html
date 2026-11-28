@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261128080721">
+<meta name="app-ver" content="20261128082304">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -7681,7 +7681,7 @@ const LOOP_MON = {
   hearth: { isle: 'ember', need: () => HAS.e0 && (folk().glass || 0) >= 2, area: 'e0', cost: { stone: 70, crystal: 16, ember: 4 } },
   /* the last wonder: its plot shows as soon as the harbour stands, so the goal is in sight all game, but it takes a find
      from every island (honey: meadow, iron: stone, reeds: marsh, pearls: coral, ember: volcano, crystals: winter and mine) */
-  belfry: { isle: 'home', need: () => HAS.h3 && !!mons().harbor, area: 'h3', cost: { honey: 4, iron: 4, reed: 4, pearl: 4, ember: 4, crystal: 20 } }
+  belfry: { isle: 'home', need: () => HAS.h3 && !!mons().harbor && goldAll(), /* the bell is cast from the seven golden gifts: its plot waits until all seven stand on their pedestals (gold.js) */ area: 'h3', cost: { honey: 4, iron: 4, reed: 4, pearl: 4, ember: 4, crystal: 20 } }
 };
 const ISLE_OF = (id) => (!id ? null : /^cave/.test(id) ? 'cave' : { h: 'home', m: 'meadow', s: 'stone', w: 'winter', r: 'marsh', c: 'coral', e: 'ember' }[id[0]]);
 const ISLE_PIC = { home: 'camp', meadow: 'windmill', stone: 'lighthouse', winter: 'tower', marsh: 'sluice', coral: 'bell', ember: 'hearth' };
@@ -8610,6 +8610,7 @@ const GOLD = [{ id: 'comb', isle: 'm' }, { id: 'hammer', isle: 's' }, { id: 'lil
 const GOLD_AT = { x: 13, z: 9.7, r: 1.95 }; /* a ring round the bell tower's plot */
 const GO = { g: null, items: {}, hold: null };
 const golds = () => state.isle.gold || (state.isle.gold = {});
+const goldAll = () => GOLD.every((G) => golds()[G.id]);
 const goldSpot = (k) => { const a = (k - 3) * Math.PI / 4; return [GOLD_AT.x + Math.sin(a) * GOLD_AT.r, GOLD_AT.z - Math.cos(a) * GOLD_AT.r]; }; /* three quarters of a ring; the gap looks south */
 const goldKeep = (x, z) => Math.hypot(x - GOLD_AT.x, z - GOLD_AT.z) < GOLD_AT.r + 0.8;
 function goldGeo(id) {
@@ -8661,8 +8662,18 @@ function goldGive(id) {
   if (golds()[id]) return; golds()[id] = 1; holdUp(new T.Mesh(goldGeo(id), goldMat), { len: 3.2, s: 1.3, snd: 'fanfare', gain: 0.7, n: 22 });
   if (GO.items[id]) { GO.items[id].material = goldMat; GO.items[id].castShadow = true; } save();
 }
+/* over the middle of the ring: the bell, and seven dots that turn gold one by one */
+function goldTag() {
+  const n = GOLD.filter((G) => golds()[G.id]).length; if (GO.tagN === n && GO.tag) return; GO.tagN = n;
+  const c = document.createElement('canvas'); c.width = 256; c.height = 192; const x = c.getContext('2d');
+  x.beginPath(); x.roundRect(8, 8, 240, 176, 44); x.fillStyle = '#fff6e4'; x.fill(); x.lineWidth = 7; x.strokeStyle = '#6e4426'; x.stroke();
+  x.save(); x.translate(128, 76); x.scale(2.3, 2.3); x.lineWidth = 3; x.strokeStyle = '#3a2414'; x.lineJoin = x.lineCap = 'round'; loopIcon(x, 'belfry'); x.restore();
+  for (let k = 0; k < 7; k++) { x.beginPath(); x.arc(44 + k * 28, 154, 10, 0, 7); x.fillStyle = k < n ? '#f6c63c' : '#d9cfbb'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#6e4426'; x.stroke(); }
+  const tex = new T.CanvasTexture(c); if (!GO.tag) { GO.tag = new T.Sprite(new T.SpriteMaterial({ map: tex, transparent: true, depthWrite: false })); GO.tag.scale.set(1.5, 1.125, 1); GO.tag.position.set(GOLD_AT.x, 2.5, GOLD_AT.z); GO.g.add(GO.tag); } else { GO.tag.material.map.dispose(); GO.tag.material.map = tex; }
+}
 function goldStep(dt) {
   if (!GO.g) goldBuild();
+  if (GO.g) { goldTag(); GO.tag.visible = !inCave && !goldAll() && !mons().belfry; GO.tag.position.y = 2.5 + (reduced ? 0 : Math.sin(time * 1.7) * 0.05); }
   if (GO.g) GOLD.forEach((G, k) => { const m = GO.items[G.id]; const got = golds()[G.id]; m.rotation.y = got ? time * 0.9 + k : 0; m.scale.setScalar(got ? 1 : 0.8); m.position.y = got ? 1.2 + (reduced ? 0 : Math.sin(time * 1.6 + k) * 0.05) : 1.02; m.visible = !inCave; });
   const H = GO.hold; if (!H) return; H.t += dt; const pp = pip.position, up = Math.min(1, H.t / 0.55), s = up * up * (3 - 2 * up), out = H.t > H.len ? Math.max(0.01, 1 - (H.t - H.len) / 0.4) : 1;
   if (H.t < H.len) { target.copy(pp); work = null; pip.rotation.y = (1 - s) * (H.r0 + Math.PI * 2); /* a full turn that ends facing us */
