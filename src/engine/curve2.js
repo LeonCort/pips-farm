@@ -14,7 +14,7 @@ const curveLive = () => CURVE.on && !inHouse && !(typeof ED !== 'undefined' && E
 function curveFrame(aspectK, dt0) {
   fpsTick();
   CURVE.u.strength.value = curveLive() ? CURVE.strength : 0; CURVE.u.side.value = CURVE.side;
-  CURVE.u.origin.value.set(pip.position.x, 0, pip.position.z);
+  const cc = typeof camCut === 'function' && camCut(), co = cc || pip.position; CURVE.u.origin.value.set(co.x, 0, co.z); /* the world bends round what the camera shows */
   if (inHouse || window.__camTop) return;
   /* at the counter and the stalls the guests stand behind the awning: ease up to a higher view there so they and their orders show */
   let wNear = 0; if (typeof SHOP !== 'undefined') { const pp = pip.position, at = (x, z) => { const d = Math.hypot(pp.x - x, pp.z - z); wNear = Math.max(wNear, clamp((4.2 - d) / 1.6, 0, 1)); };
@@ -23,7 +23,7 @@ function curveFrame(aspectK, dt0) {
   const sw = CURVE.shopW * CURVE.shopW * (3 - 2 * CURVE.shopW);
   /* the striped awnings turn see-through while Pip serves, so the guests behind them show */
   if (typeof FL !== 'undefined' && FL && FL.awn) for (const k in FL.awn) { const m = FL.awn[k]; if (!m.__fade) { m.__fade = true; m.transparent = true; m.alphaTest = 0.15; m.needsUpdate = true; } m.opacity = 1 - CURVE.awnFade * sw; m.depthWrite = m.opacity > 0.98; }
-  const D = (CURVE.dist + (CURVE.shopDist - CURVE.dist) * sw) * aspectK, p = (CURVE.pitch + (CURVE.shopPitch - CURVE.pitch) * sw) * Math.PI / 180, tx = camFocus.x, ty = 0.4, tz = camFocus.z - (CURVE.ahead + (CURVE.shopAhead - CURVE.ahead) * sw);
+  const D = (CURVE.dist + (CURVE.shopDist - CURVE.dist) * sw) * aspectK * (cc && cc.zoom || 1), p = (CURVE.pitch + (CURVE.shopPitch - CURVE.pitch) * sw) * Math.PI / 180, tx = camFocus.x, ty = 0.4, tz = camFocus.z - (CURVE.ahead + (CURVE.shopAhead - CURVE.ahead) * sw);
   cam.position.set(tx, ty + D * Math.sin(p), tz + D * Math.cos(p)); cam.lookAt(tx, ty, tz);
   sun.position.z -= 3; sun.target.position.z -= 3;
 }

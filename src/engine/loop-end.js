@@ -13,7 +13,7 @@
 
   /* water and camera */
   seaStep(dt); /* the sea's swell, foam and ripples (sea.js) */
-  /* the camera keeps up closely, so it stops with Pip instead of gliding on after the finger lifts */ camFocus.lerp(pip.position, 1 - Math.exp(-dt * 10)); if (inBarn) camFocus.z = Math.min(camFocus.z, BI.z + 0.9); if (inStore) camFocus.z = Math.min(camFocus.z, SI.z + 1.2);
+  /* the camera keeps up closely, so it stops with Pip instead of gliding on after the finger lifts */ camFocus.lerp((typeof camCut === 'function' && camCut()) || pip.position, 1 - Math.exp(-dt * 10)); /* camCut: a game may show a far place for a moment (isle gold.js) */ if (inBarn) camFocus.z = Math.min(camFocus.z, BI.z + 0.9); if (inStore) camFocus.z = Math.min(camFocus.z, SI.z + 1.2);
   dressT += ((dressing ? 1 : 0) - dressT) * Math.min(1, dt * 5); const k = (aspect < 1 ? 1.5 : 1.15) * (1 - 0.7 * dressT) * (inBarn ? 1.22 : 1); cam.position.set(camFocus.x, 9.5 * k, camFocus.z + 8.5 * k); cam.lookAt(camFocus.x + (aspect < 1 ? 0 : 0.75) * dressT, 0.55 * dressT, camFocus.z + 0.3 + (aspect < 1 ? 0.55 : -0.1) * dressT);
   sun.position.set(camFocus.x + SUN_OFF.x, SUN_OFF.y, camFocus.z + SUN_OFF.z); sun.target.position.copy(camFocus); curveFrame(aspect < 1 ? 1.15 : 1, dt); skyFrame(dt);
   if (buyCam(dt)) {} else if (window.__camTop) { const c = window.__camTop; cam.position.set(c[0], c[2], c[1] + (c[3] || 0)); cam.lookAt(c[0], 0, c[1]); cam.far = 300; }

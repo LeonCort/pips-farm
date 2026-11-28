@@ -5,7 +5,7 @@
    empty pedestals show a pale shape of what is still out there. state.isle.gold[id] = 1. */
 const GOLD = [{ id: 'comb', isle: 'm' }, { id: 'hammer', isle: 's' }, { id: 'lily', isle: 'r' }, { id: 'sun', isle: 'w' }, { id: 'glass', isle: 'e' }, { id: 'shipbell', isle: 'c' }, { id: 'starheart', isle: 'cave' }];
 const GOLD_AT = { x: 13, z: 9.7, r: 1.95 }; /* a ring round the bell tower's plot */
-const GO = { g: null, items: {}, hold: null };
+const GO = { g: null, items: {}, hold: null, wait: {}, cuts: [], cut: null, cutV: new T.Vector3() };
 const golds = () => state.isle.gold || (state.isle.gold = {});
 const goldAll = () => GOLD.every((G) => golds()[G.id]);
 const goldSpot = (k) => { const a = (k - 3) * Math.PI / 4; return [GOLD_AT.x + Math.sin(a) * GOLD_AT.r, GOLD_AT.z - Math.cos(a) * GOLD_AT.r]; }; /* three quarters of a ring; the gap looks south */
@@ -57,11 +57,38 @@ function foundIt(t) { const sp = isleSprite(foundTex(t), 1.15); holdUp(sp, { tex
 /* Pip finds a golden gift: the long fanfare, and from now on it stands on its pedestal */
 function goldGive(id) {
   if (golds()[id]) return; golds()[id] = 1; holdUp(new T.Mesh(goldGeo(id), goldMat), { len: 3.2, s: 1.3, snd: 'fanfare', gain: 0.7, n: 22 });
-  if (GO.items[id]) { GO.items[id].material = goldMat; GO.items[id].castShadow = true; } save();
+  GO.wait[id] = 1; GO.cuts.push(id); save(); /* its pedestal stays grey until the trip to the green below has set it there */
+}
+const goldShown = (id) => !!golds()[id] && !GO.wait[id];
+/* ---- the gift goes home (Leon 2026-11-28: "after the player has lifted up the item, show the final place and how one
+   item has been added, to understand that progress has been made") ----
+   Once the hold-up is over, the picture dips to cream, opens on the ring of pedestals round the bell tower's plot, and
+   the new gift drops out of the sky onto its own pedestal: a sparkle, a chime, the grey stone turns gold and one more dot
+   on the bell sign fills. Then it dips again and we are back with Pip. No words. A gift found in the mine waits until Pip
+   is back in daylight; one found before the village green is bought waits until the pedestals stand. */
+const camCut = () => (GO.cut && GO.cut.at ? GO.cutV : null); /* the engine's camera and the curve follow this point instead of Pip (loop-end.js, curve2.js) */
+const goldCutFree = () => !GO.hold && !!GO.g && !inCave && !caveT && !(typeof ferryBusy === 'function' && ferryBusy()) && !riding2() && !enSleep && !(typeof ED !== 'undefined' && ED.on);
+function goldCutStep(dt) {
+  if (!GO.cut) { if (!GO.cuts.length || !goldCutFree()) return; const id = GO.cuts.shift(); if (!GO.wait[id]) return;
+    if (!GO.fade) { const f = GO.fade = document.createElement('div'); f.setAttribute('aria-hidden', 'true'); f.style.cssText = 'position:fixed;inset:0;background:#fff6e4;opacity:0;pointer-events:none;z-index:30'; document.body.appendChild(f); }
+    GO.cut = { id, t: 0, at: 0, k: GOLD.findIndex((G) => G.id === id) }; Snd.play('whoosh', { gain: 0.35 }); }
+  const C = GO.cut, pp = pip.position; C.t += dt; target.copy(pp); work = null;
+  const [sx, sz] = goldSpot(C.k), IN = 0.35, OUT = 3.5, fall0 = 0.8, land = 1.95;
+  GO.fade.style.opacity = String(C.t < IN ? C.t / IN : C.t < IN + 0.4 ? 1 - (C.t - IN) / 0.4 : C.t < OUT ? 0 : C.t < OUT + IN ? (C.t - OUT) / IN : Math.max(0, 1 - (C.t - OUT - IN) / 0.4));
+  if (!C.at && !C.back && C.t >= IN) { C.at = 1; GO.cutV.set(GOLD_AT.x + (sx - GOLD_AT.x) * 0.25, 0, GOLD_AT.z + (sz - GOLD_AT.z) * 0.25 + 0.5); GO.cutV.zoom = 0.8; camFocus.copy(GO.cutV); /* a closer look than usual, the whole ring in the picture */
+    C.m = new T.Mesh(goldGeo(C.id), goldMat); C.rays = new T.Sprite(new T.SpriteMaterial({ map: foundRays(), transparent: true, depthWrite: false, blending: T.AdditiveBlending })); sc.add(C.m); sc.add(C.rays); }
+  if (C.m) { const u = clamp((C.t - fall0) / (land - fall0), 0, 1), y = 1.2 + 4.6 * (1 - u * u); C.m.position.set(sx, y, sz); C.m.rotation.y = C.t * (3 + 4 * u); C.m.scale.setScalar(1.9 - 0.9 * u);
+    C.rays.position.set(sx, y, sz - 0.05); C.rays.material.rotation = C.t * 0.7; C.rays.scale.setScalar(1.9 * (1 - 0.35 * u)); C.rays.renderOrder = 4;
+    if (!C.whoosh && C.t > fall0) { C.whoosh = 1; Snd.play('swish', { gain: 0.4 }); }
+    if (C.t >= land) { sc.remove(C.m); sc.remove(C.rays); C.rays.material.dispose(); C.m = null; delete GO.wait[C.id];
+      const m = GO.items[C.id]; if (m) { m.material = goldMat; m.castShadow = true; } C.pop = 1; burst(sx, 1.3, sz, 18); Snd.play('success', { gain: 0.6 }); Snd.play('sparkle', { gain: 0.5 }); } }
+  if (C.pop) { C.pop = Math.max(0, C.pop - dt * 1.6); const m = GO.items[C.id]; if (m) m.scale.setScalar(1 + 0.45 * Math.sin(C.pop * Math.PI)); }
+  if (C.at && C.t >= OUT + IN) { C.at = 0; C.back = 1; camFocus.copy(pp); }
+  if (C.t >= OUT + IN + 0.4) { GO.fade.style.opacity = '0'; if (C.m) { sc.remove(C.m); sc.remove(C.rays); delete GO.wait[C.id]; } GO.cut = null; }
 }
 /* over the middle of the ring: the bell, and seven dots that turn gold one by one */
 function goldTag() {
-  const n = GOLD.filter((G) => golds()[G.id]).length; if (GO.tagN === n && GO.tag) return; GO.tagN = n;
+  const n = GOLD.filter((G) => goldShown(G.id)).length; if (GO.tagN === n && GO.tag) return; GO.tagN = n;
   const c = document.createElement('canvas'); c.width = 256; c.height = 192; const x = c.getContext('2d');
   x.beginPath(); x.roundRect(8, 8, 240, 176, 44); x.fillStyle = '#fff6e4'; x.fill(); x.lineWidth = 7; x.strokeStyle = '#6e4426'; x.stroke();
   x.save(); x.translate(128, 76); x.scale(2.3, 2.3); x.lineWidth = 3; x.strokeStyle = '#3a2414'; x.lineJoin = x.lineCap = 'round'; loopIcon(x, 'belfry'); x.restore();
@@ -70,8 +97,9 @@ function goldTag() {
 }
 function goldStep(dt) {
   if (!GO.g) goldBuild();
-  if (GO.g) { goldTag(); GO.tag.visible = !inCave && !goldAll() && !mons().belfry; GO.tag.position.y = 2.5 + (reduced ? 0 : Math.sin(time * 1.7) * 0.05); }
-  if (GO.g) GOLD.forEach((G, k) => { const m = GO.items[G.id]; const got = golds()[G.id]; m.rotation.y = got ? time * 0.9 + k : 0; m.scale.setScalar(got ? 1 : 0.8); m.position.y = got ? 1.2 + (reduced ? 0 : Math.sin(time * 1.6 + k) * 0.05) : 1.02; m.visible = !inCave; });
+  if (GO.g) { goldTag(); GO.tag.visible = !inCave && (!goldAll() || !!GO.cut || GOLD.some((G) => GO.wait[G.id])) && !mons().belfry; GO.tag.position.y = 2.5 + (reduced ? 0 : Math.sin(time * 1.7) * 0.05); }
+  if (GO.g) GOLD.forEach((G, k) => { const m = GO.items[G.id]; const got = goldShown(G.id); if (m.material !== (got ? goldMat : goldGhost)) m.material = got ? goldMat : goldGhost; m.rotation.y = got ? time * 0.9 + k : 0; if (!(GO.cut && GO.cut.pop && GO.cut.id === G.id)) m.scale.setScalar(got ? 1 : 0.8); m.position.y = got ? 1.2 + (reduced ? 0 : Math.sin(time * 1.6 + k) * 0.05) : 1.02; m.visible = !inCave; });
+  goldCutStep(dt);
   const H = GO.hold; if (!H) return; H.t += dt; const pp = pip.position, up = Math.min(1, H.t / 0.55), s = up * up * (3 - 2 * up), out = H.t > H.len ? Math.max(0.01, 1 - (H.t - H.len) / 0.4) : 1;
   if (H.t < H.len) { target.copy(pp); work = null; pip.rotation.y = (1 - s) * (H.r0 + Math.PI * 2); /* a full turn that ends facing us */
     limbs.forEach((l) => { if (l.arm) { l.g.rotation.x = -2.75 * s; l.g.rotation.z = (l.s > 0 ? -1 : 1) * (0.1 + 0.22 * s); } }); GO.arms = 1; }

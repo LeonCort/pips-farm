@@ -815,7 +815,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261128180015">
+<meta name="app-ver" content="20261128190214">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1706,7 +1706,7 @@ const curveLive = () => CURVE.on && !inHouse && !(typeof ED !== 'undefined' && E
 function curveFrame(aspectK, dt0) {
   fpsTick();
   CURVE.u.strength.value = curveLive() ? CURVE.strength : 0; CURVE.u.side.value = CURVE.side;
-  CURVE.u.origin.value.set(pip.position.x, 0, pip.position.z);
+  const cc = typeof camCut === 'function' && camCut(), co = cc || pip.position; CURVE.u.origin.value.set(co.x, 0, co.z); /* the world bends round what the camera shows */
   if (inHouse || window.__camTop) return;
   /* at the counter and the stalls the guests stand behind the awning: ease up to a higher view there so they and their orders show */
   let wNear = 0; if (typeof SHOP !== 'undefined') { const pp = pip.position, at = (x, z) => { const d = Math.hypot(pp.x - x, pp.z - z); wNear = Math.max(wNear, clamp((4.2 - d) / 1.6, 0, 1)); };
@@ -1715,7 +1715,7 @@ function curveFrame(aspectK, dt0) {
   const sw = CURVE.shopW * CURVE.shopW * (3 - 2 * CURVE.shopW);
   /* the striped awnings turn see-through while Pip serves, so the guests behind them show */
   if (typeof FL !== 'undefined' && FL && FL.awn) for (const k in FL.awn) { const m = FL.awn[k]; if (!m.__fade) { m.__fade = true; m.transparent = true; m.alphaTest = 0.15; m.needsUpdate = true; } m.opacity = 1 - CURVE.awnFade * sw; m.depthWrite = m.opacity > 0.98; }
-  const D = (CURVE.dist + (CURVE.shopDist - CURVE.dist) * sw) * aspectK, p = (CURVE.pitch + (CURVE.shopPitch - CURVE.pitch) * sw) * Math.PI / 180, tx = camFocus.x, ty = 0.4, tz = camFocus.z - (CURVE.ahead + (CURVE.shopAhead - CURVE.ahead) * sw);
+  const D = (CURVE.dist + (CURVE.shopDist - CURVE.dist) * sw) * aspectK * (cc && cc.zoom || 1), p = (CURVE.pitch + (CURVE.shopPitch - CURVE.pitch) * sw) * Math.PI / 180, tx = camFocus.x, ty = 0.4, tz = camFocus.z - (CURVE.ahead + (CURVE.shopAhead - CURVE.ahead) * sw);
   cam.position.set(tx, ty + D * Math.sin(p), tz + D * Math.cos(p)); cam.lookAt(tx, ty, tz);
   sun.position.z -= 3; sun.target.position.z -= 3;
 }
@@ -9741,7 +9741,7 @@ function gardenStep(dt) {
    empty pedestals show a pale shape of what is still out there. state.isle.gold[id] = 1. */
 const GOLD = [{ id: 'comb', isle: 'm' }, { id: 'hammer', isle: 's' }, { id: 'lily', isle: 'r' }, { id: 'sun', isle: 'w' }, { id: 'glass', isle: 'e' }, { id: 'shipbell', isle: 'c' }, { id: 'starheart', isle: 'cave' }];
 const GOLD_AT = { x: 13, z: 9.7, r: 1.95 }; /* a ring round the bell tower's plot */
-const GO = { g: null, items: {}, hold: null };
+const GO = { g: null, items: {}, hold: null, wait: {}, cuts: [], cut: null, cutV: new T.Vector3() };
 const golds = () => state.isle.gold || (state.isle.gold = {});
 const goldAll = () => GOLD.every((G) => golds()[G.id]);
 const goldSpot = (k) => { const a = (k - 3) * Math.PI / 4; return [GOLD_AT.x + Math.sin(a) * GOLD_AT.r, GOLD_AT.z - Math.cos(a) * GOLD_AT.r]; }; /* three quarters of a ring; the gap looks south */
@@ -9793,11 +9793,38 @@ function foundIt(t) { const sp = isleSprite(foundTex(t), 1.15); holdUp(sp, { tex
 /* Pip finds a golden gift: the long fanfare, and from now on it stands on its pedestal */
 function goldGive(id) {
   if (golds()[id]) return; golds()[id] = 1; holdUp(new T.Mesh(goldGeo(id), goldMat), { len: 3.2, s: 1.3, snd: 'fanfare', gain: 0.7, n: 22 });
-  if (GO.items[id]) { GO.items[id].material = goldMat; GO.items[id].castShadow = true; } save();
+  GO.wait[id] = 1; GO.cuts.push(id); save(); /* its pedestal stays grey until the trip to the green below has set it there */
+}
+const goldShown = (id) => !!golds()[id] && !GO.wait[id];
+/* ---- the gift goes home (Leon 2026-11-28: "after the player has lifted up the item, show the final place and how one
+   item has been added, to understand that progress has been made") ----
+   Once the hold-up is over, the picture dips to cream, opens on the ring of pedestals round the bell tower's plot, and
+   the new gift drops out of the sky onto its own pedestal: a sparkle, a chime, the grey stone turns gold and one more dot
+   on the bell sign fills. Then it dips again and we are back with Pip. No words. A gift found in the mine waits until Pip
+   is back in daylight; one found before the village green is bought waits until the pedestals stand. */
+const camCut = () => (GO.cut && GO.cut.at ? GO.cutV : null); /* the engine's camera and the curve follow this point instead of Pip (loop-end.js, curve2.js) */
+const goldCutFree = () => !GO.hold && !!GO.g && !inCave && !caveT && !(typeof ferryBusy === 'function' && ferryBusy()) && !riding2() && !enSleep && !(typeof ED !== 'undefined' && ED.on);
+function goldCutStep(dt) {
+  if (!GO.cut) { if (!GO.cuts.length || !goldCutFree()) return; const id = GO.cuts.shift(); if (!GO.wait[id]) return;
+    if (!GO.fade) { const f = GO.fade = document.createElement('div'); f.setAttribute('aria-hidden', 'true'); f.style.cssText = 'position:fixed;inset:0;background:#fff6e4;opacity:0;pointer-events:none;z-index:30'; document.body.appendChild(f); }
+    GO.cut = { id, t: 0, at: 0, k: GOLD.findIndex((G) => G.id === id) }; Snd.play('whoosh', { gain: 0.35 }); }
+  const C = GO.cut, pp = pip.position; C.t += dt; target.copy(pp); work = null;
+  const [sx, sz] = goldSpot(C.k), IN = 0.35, OUT = 3.5, fall0 = 0.8, land = 1.95;
+  GO.fade.style.opacity = String(C.t < IN ? C.t / IN : C.t < IN + 0.4 ? 1 - (C.t - IN) / 0.4 : C.t < OUT ? 0 : C.t < OUT + IN ? (C.t - OUT) / IN : Math.max(0, 1 - (C.t - OUT - IN) / 0.4));
+  if (!C.at && !C.back && C.t >= IN) { C.at = 1; GO.cutV.set(GOLD_AT.x + (sx - GOLD_AT.x) * 0.25, 0, GOLD_AT.z + (sz - GOLD_AT.z) * 0.25 + 0.5); GO.cutV.zoom = 0.8; camFocus.copy(GO.cutV); /* a closer look than usual, the whole ring in the picture */
+    C.m = new T.Mesh(goldGeo(C.id), goldMat); C.rays = new T.Sprite(new T.SpriteMaterial({ map: foundRays(), transparent: true, depthWrite: false, blending: T.AdditiveBlending })); sc.add(C.m); sc.add(C.rays); }
+  if (C.m) { const u = clamp((C.t - fall0) / (land - fall0), 0, 1), y = 1.2 + 4.6 * (1 - u * u); C.m.position.set(sx, y, sz); C.m.rotation.y = C.t * (3 + 4 * u); C.m.scale.setScalar(1.9 - 0.9 * u);
+    C.rays.position.set(sx, y, sz - 0.05); C.rays.material.rotation = C.t * 0.7; C.rays.scale.setScalar(1.9 * (1 - 0.35 * u)); C.rays.renderOrder = 4;
+    if (!C.whoosh && C.t > fall0) { C.whoosh = 1; Snd.play('swish', { gain: 0.4 }); }
+    if (C.t >= land) { sc.remove(C.m); sc.remove(C.rays); C.rays.material.dispose(); C.m = null; delete GO.wait[C.id];
+      const m = GO.items[C.id]; if (m) { m.material = goldMat; m.castShadow = true; } C.pop = 1; burst(sx, 1.3, sz, 18); Snd.play('success', { gain: 0.6 }); Snd.play('sparkle', { gain: 0.5 }); } }
+  if (C.pop) { C.pop = Math.max(0, C.pop - dt * 1.6); const m = GO.items[C.id]; if (m) m.scale.setScalar(1 + 0.45 * Math.sin(C.pop * Math.PI)); }
+  if (C.at && C.t >= OUT + IN) { C.at = 0; C.back = 1; camFocus.copy(pp); }
+  if (C.t >= OUT + IN + 0.4) { GO.fade.style.opacity = '0'; if (C.m) { sc.remove(C.m); sc.remove(C.rays); delete GO.wait[C.id]; } GO.cut = null; }
 }
 /* over the middle of the ring: the bell, and seven dots that turn gold one by one */
 function goldTag() {
-  const n = GOLD.filter((G) => golds()[G.id]).length; if (GO.tagN === n && GO.tag) return; GO.tagN = n;
+  const n = GOLD.filter((G) => goldShown(G.id)).length; if (GO.tagN === n && GO.tag) return; GO.tagN = n;
   const c = document.createElement('canvas'); c.width = 256; c.height = 192; const x = c.getContext('2d');
   x.beginPath(); x.roundRect(8, 8, 240, 176, 44); x.fillStyle = '#fff6e4'; x.fill(); x.lineWidth = 7; x.strokeStyle = '#6e4426'; x.stroke();
   x.save(); x.translate(128, 76); x.scale(2.3, 2.3); x.lineWidth = 3; x.strokeStyle = '#3a2414'; x.lineJoin = x.lineCap = 'round'; loopIcon(x, 'belfry'); x.restore();
@@ -9806,8 +9833,9 @@ function goldTag() {
 }
 function goldStep(dt) {
   if (!GO.g) goldBuild();
-  if (GO.g) { goldTag(); GO.tag.visible = !inCave && !goldAll() && !mons().belfry; GO.tag.position.y = 2.5 + (reduced ? 0 : Math.sin(time * 1.7) * 0.05); }
-  if (GO.g) GOLD.forEach((G, k) => { const m = GO.items[G.id]; const got = golds()[G.id]; m.rotation.y = got ? time * 0.9 + k : 0; m.scale.setScalar(got ? 1 : 0.8); m.position.y = got ? 1.2 + (reduced ? 0 : Math.sin(time * 1.6 + k) * 0.05) : 1.02; m.visible = !inCave; });
+  if (GO.g) { goldTag(); GO.tag.visible = !inCave && (!goldAll() || !!GO.cut || GOLD.some((G) => GO.wait[G.id])) && !mons().belfry; GO.tag.position.y = 2.5 + (reduced ? 0 : Math.sin(time * 1.7) * 0.05); }
+  if (GO.g) GOLD.forEach((G, k) => { const m = GO.items[G.id]; const got = goldShown(G.id); if (m.material !== (got ? goldMat : goldGhost)) m.material = got ? goldMat : goldGhost; m.rotation.y = got ? time * 0.9 + k : 0; if (!(GO.cut && GO.cut.pop && GO.cut.id === G.id)) m.scale.setScalar(got ? 1 : 0.8); m.position.y = got ? 1.2 + (reduced ? 0 : Math.sin(time * 1.6 + k) * 0.05) : 1.02; m.visible = !inCave; });
+  goldCutStep(dt);
   const H = GO.hold; if (!H) return; H.t += dt; const pp = pip.position, up = Math.min(1, H.t / 0.55), s = up * up * (3 - 2 * up), out = H.t > H.len ? Math.max(0.01, 1 - (H.t - H.len) / 0.4) : 1;
   if (H.t < H.len) { target.copy(pp); work = null; pip.rotation.y = (1 - s) * (H.r0 + Math.PI * 2); /* a full turn that ends facing us */
     limbs.forEach((l) => { if (l.arm) { l.g.rotation.x = -2.75 * s; l.g.rotation.z = (l.s > 0 ? -1 : 1) * (0.1 + 0.22 * s); } }); GO.arms = 1; }
@@ -13607,7 +13635,7 @@ function step(dt) {
 
   /* water and camera */
   seaStep(dt); /* the sea's swell, foam and ripples (sea.js) */
-  /* the camera keeps up closely, so it stops with Pip instead of gliding on after the finger lifts */ camFocus.lerp(pip.position, 1 - Math.exp(-dt * 10)); if (inBarn) camFocus.z = Math.min(camFocus.z, BI.z + 0.9); if (inStore) camFocus.z = Math.min(camFocus.z, SI.z + 1.2);
+  /* the camera keeps up closely, so it stops with Pip instead of gliding on after the finger lifts */ camFocus.lerp((typeof camCut === 'function' && camCut()) || pip.position, 1 - Math.exp(-dt * 10)); /* camCut: a game may show a far place for a moment (isle gold.js) */ if (inBarn) camFocus.z = Math.min(camFocus.z, BI.z + 0.9); if (inStore) camFocus.z = Math.min(camFocus.z, SI.z + 1.2);
   dressT += ((dressing ? 1 : 0) - dressT) * Math.min(1, dt * 5); const k = (aspect < 1 ? 1.5 : 1.15) * (1 - 0.7 * dressT) * (inBarn ? 1.22 : 1); cam.position.set(camFocus.x, 9.5 * k, camFocus.z + 8.5 * k); cam.lookAt(camFocus.x + (aspect < 1 ? 0 : 0.75) * dressT, 0.55 * dressT, camFocus.z + 0.3 + (aspect < 1 ? 0.55 : -0.1) * dressT);
   sun.position.set(camFocus.x + SUN_OFF.x, SUN_OFF.y, camFocus.z + SUN_OFF.z); sun.target.position.copy(camFocus); curveFrame(aspect < 1 ? 1.15 : 1, dt); skyFrame(dt);
   if (buyCam(dt)) {} else if (window.__camTop) { const c = window.__camTop; cam.position.set(c[0], c[2], c[1] + (c[3] || 0)); cam.lookAt(c[0], 0, c[1]); cam.far = 300; }
