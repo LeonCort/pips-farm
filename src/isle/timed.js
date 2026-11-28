@@ -16,6 +16,7 @@ function timedSpot(r0, r1) {
     const a = Math.random() * 6.28, r = r0 + Math.random() * (r1 - r0), x = pip.position.x + Math.cos(a) * r, z = pip.position.z + Math.sin(a) * r;
     if (walkSdf(x, z) > -0.8) continue; const A = areaAt(x, z); if (!A || !HAS[A.id]) continue;
     if (nodes.some((n) => Math.hypot(n.x - x, n.z - z) < 1.0) || signs.some((s) => Math.hypot(s.x - x, s.z - z) < 1.3) || Math.hypot(x - STORE.x, z - STORE.z) < 1.4 || Math.hypot(x - TENT_RING.x, z - TENT_RING.z) < 1.2 || campNear(x, z, 1.5) || roadKind(x, z)) continue;
+    if (A.secret || ISLE_KEEPS.some((f) => f(A, x, z))) continue; /* not inside a hidden world's laid pieces */
     return [x, z];
   }
   return null;
