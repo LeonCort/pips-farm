@@ -229,9 +229,10 @@ const HERON = { shore: [-25.7, 29.4], ring0: [-24.4, 28.9], bud: [-24.9, 31.2], 
   pads: [[-29.98, 39.33, 0.95], [-29.28, 37.88, 0.95], [-27.7, 37.04, 0.95], [-26.22, 38.0, 0.95], [-25.29, 39.3, 0.95], [-30.15, 41.35, 1], [-28.92, 41.55, 1], [-27.7, 41.4, 1], [-26.47, 41.55, 1], [-25.25, 41.35, 1]],
   keep: [[-34, 31.2, 1.5], [-34, 33, 1.5], [-34, 34.6, 1.4], [-34, 38.6, 1.5], [-34, 40.6, 1.4], [-32.6, 42, 1.4], [-29.4, 42, 1.3], [-27.7, 42, 1.3], [-26, 42, 1.3], [-22, 31.2, 1.5], [-22, 33, 1.5], [-22, 34.9, 1.4], [-22, 38.3, 1.6], [-22, 40.8, 1.4], [-23.4, 42, 1.4]] };
 COAST.keep.push(...HERON.keep);
-/* where Pip may walk: owned areas, and the bridges built to them */
-function walkSdf(x, z) {
-  let d = gSdf(x, z);
+/* where Pip may walk: owned areas, and the bridges built to them. m: keep that much further in from the coast (the pets do,
+   isledog.js PET_M), while the planks of bridges and docks stay as they are */
+function walkSdf(x, z, m) {
+  let d = gSdf(x, z) + (m || 0);
   d = Math.min(d, segD(x, z, FERRY.x, FERRY.z, FERRY.x - 3.0, FERRY.z) - 0.55); /* the farm boat's dock: its pad is out on the planks (ferry.js) */
   for (const a of AREAS) if (a.bridge && HAS[a.id] && (!a.bridge.tide || TIDE.low)) { const b = a.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
   for (const S of SHORTS) if (S.on) { const b = S.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
@@ -244,11 +245,11 @@ function walkSdf(x, z) {
   return d;
 }
 /* keep a point where Pip may walk: slide it down the slope of walkSdf; if that finds nothing, pull it back toward Pip */
-function wClamp(v) {
-  let s = walkSdf(v.x, v.z); if (s < -0.2) return v;
-  for (let k = 0; k < 10 && s >= -0.2; k++) { const e = 0.05, gx = walkSdf(v.x + e, v.z) - walkSdf(v.x - e, v.z), gz = walkSdf(v.x, v.z + e) - walkSdf(v.x, v.z - e), l = Math.hypot(gx, gz);
-    if (l < 1e-5) break; const st = s + 0.24; v.x -= gx / l * st; v.z -= gz / l * st; s = walkSdf(v.x, v.z); }
-  if (s >= -0.2 && typeof pip !== 'undefined' && pip) { const px = pip.position.x, pz = pip.position.z; for (let k = 0; k < 12 && s >= -0.2; k++) { v.x += (px - v.x) * 0.35; v.z += (pz - v.z) * 0.35; s = walkSdf(v.x, v.z); } }
+function wClamp(v, m) {
+  let s = walkSdf(v.x, v.z, m); if (s < -0.2) return v;
+  for (let k = 0; k < 10 && s >= -0.2; k++) { const e = 0.05, gx = walkSdf(v.x + e, v.z, m) - walkSdf(v.x - e, v.z, m), gz = walkSdf(v.x, v.z + e, m) - walkSdf(v.x, v.z - e, m), l = Math.hypot(gx, gz);
+    if (l < 1e-5) break; const st = s + 0.24; v.x -= gx / l * st; v.z -= gz / l * st; s = walkSdf(v.x, v.z, m); }
+  if (s >= -0.2 && typeof pip !== 'undefined' && pip) { const px = pip.position.x, pz = pip.position.z; for (let k = 0; k < 12 && s >= -0.2; k++) { v.x += (px - v.x) * 0.35; v.z += (pz - v.z) * 0.35; s = walkSdf(v.x, v.z, m); } }
   return v;
 }
 const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 1.95, walk: 1.5, maskW: 2048, maskH: 2048, detW: 3072, detH: 3072, detN: 5, sea: 232, maskSoft: 1, ring: { rx: 3, rz: 3, w: 0 }, /* no ring road: w 0 (pets still wander round it) */ roads: [[0, -1.9, 0, -5.9, 0.5, 1], [-1.9, 0, -3.1, -1.5, 0.38, 1], [1.4, -1.4, 2.7, -1.7, 0.36, 1],
