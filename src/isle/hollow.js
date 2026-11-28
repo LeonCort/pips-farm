@@ -347,6 +347,6 @@ function hollowStep(dt) {
   if (!reduced) { HL.steam -= dt; if (HL.steam <= 0) { HL.steam = 0.4; const [px, pz, pr] = HW.pond, a = Math.random() * 6.283, r = Math.random() * pr * 0.8; smokePuff(HW.cx + px + Math.cos(a) * r, 0.15, HW.cz + pz + Math.sin(a) * r, '#ffffff'); if (Math.random() < 0.5) { const V = HL.vents[0]; smokePuff(V.x + (Math.random() - 0.5) * 0.5, 0.15, V.z + (Math.random() - 0.5) * 0.5, '#ffffff'); } } }
   HL.flies.forEach((F) => { const t = time * F.sp + F.ph, x = F.hx + Math.sin(t * 1.3) * 0.9 + Math.sin(t * 0.37) * 0.6, z = F.hz + Math.cos(t * 1.1) * 0.9 + Math.cos(t * 0.29) * 0.6, r = Math.hypot(x, z), k = r > 4.1 ? 4.1 / r : 1;
     F.b.rotation.y = Math.atan2(x * k - F.b.position.x, z * k - F.b.position.z); F.b.position.set(x * k, 0.55 + Math.sin(t * 2.3) * 0.25 + Math.sin(t * 0.7) * 0.2, z * k); const fl = Math.sin(time * 17 + F.ph) * 1.05; F.W[0].rotation.z = fl; F.W[1].rotation.z = -fl; });
-  HL.lamp.intensity = 0.25 + 0.95 * nightAmt; HL.night.material.opacity = S.sun ? 0.1 + 0.4 * nightAmt : 0.2 * nightAmt;
+  HL.lamp.intensity = 0.3 + 1.4 * nightAmt; HL.night.material.opacity = S.sun ? 0.1 + 0.55 * nightAmt : 0.2 * nightAmt;
 }
 ISLE_STEPS.push(hollowStep);
