@@ -124,7 +124,7 @@ const heronSpot = (k) => (k ? HERON.land : HERON.shore), heronFace = (k) => (k ?
 function heronStand(k, snap) { const p = heronSpot(k), B = HR.bird; HR.at = k; B.g.position.set(p[0], 0, p[1]); if (snap) { HR.rot = heronFace(k); B.g.rotation.y = HR.rot; } }
 /* the way over the lake: out from the marsh shore, east along the lake, round the isle and its tree, in over the west arm */
 function heronPath(to) {
-  const C = [[HERON.shore[0], 0, HERON.shore[1]], [-27.4, 0.5, 30.6], [-24.4, 1.2, 32.2], [-21.5, 1.5, 35.4], [-21.7, 1.35, 39.4], [-24.4, 1.1, 42.9], [-28, 0.95, 43.6], [-31.6, 1.05, 42.7], [-34.6, 1.2, 39.8], [-34.9, 1.0, 36.8], [-33.8, 0.45, 35.2], [HERON.land[0], 0, HERON.land[1]]].map((p) => new T.Vector3(p[0], p[1], p[2]));
+  const C = [[HERON.shore[0], 0, HERON.shore[1]], [-24.6, 0.45, 30.6], [-22.4, 1.1, 32.2], [-21.2, 1.5, 35.4], [-21.7, 1.35, 39.4], [-24.4, 1.1, 42.9], [-28, 0.95, 43.6], [-31.6, 1.05, 42.7], [-34.6, 1.2, 39.8], [-34.9, 1.0, 36.8], [-33.8, 0.45, 35.2], [HERON.land[0], 0, HERON.land[1]]].map((p) => new T.Vector3(p[0], p[1], p[2]));
   const P = new T.CatmullRomCurve3(C, false, 'centripetal').getSpacedPoints(64).map((v) => [v.x, Math.max(0, v.y), v.z]); P[0][1] = 0; P[P.length - 1][1] = 0; return to ? P : P.reverse();
 }
 const HERON_SEAT = 0.98;

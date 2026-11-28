@@ -195,7 +195,7 @@ const drawSdf = (x, z) => gSdfOf(drawn, x, z);
    waits on the marsh shore and where it lands on the isle (each: the heron, and the ring Pip stands on), the lily bud, the
    Firefly Tree, the giant lily pads Pip can walk on ([x, z, r]; the first five are the frog choir's), and the stretches of
    the isle's coast that must not wander */
-const HERON = { shore: [-28.4, 29.4], ring0: [-29.9, 29.0], bud: [-29.4, 31.2], land: [-32.5, 34.4], ring1: [-31.2, 35.0], tree: [-28, 34.8],
+const HERON = { shore: [-25.7, 29.4], ring0: [-24.4, 28.9], bud: [-24.9, 31.2], land: [-32.5, 34.4], ring1: [-31.2, 35.0], tree: [-28, 34.8],
   pads: [[-29.98, 39.33, 0.95], [-29.28, 37.88, 0.95], [-27.7, 37.04, 0.95], [-26.22, 38.0, 0.95], [-25.29, 39.3, 0.95], [-30.15, 41.35, 1], [-28.92, 41.55, 1], [-27.7, 41.4, 1], [-26.47, 41.55, 1], [-25.25, 41.35, 1]],
   keep: [[-34, 31.2, 1.5], [-34, 33, 1.5], [-34, 34.6, 1.4], [-34, 38.6, 1.5], [-34, 40.6, 1.4], [-32.6, 42, 1.4], [-29.4, 42, 1.3], [-27.7, 42, 1.3], [-26, 42, 1.3], [-22, 31.2, 1.5], [-22, 33, 1.5], [-22, 34.9, 1.4], [-22, 38.3, 1.6], [-22, 40.8, 1.4], [-23.4, 42, 1.4]] };
 COAST.keep.push(...HERON.keep);
