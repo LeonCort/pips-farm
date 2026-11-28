@@ -204,15 +204,18 @@ SECRET_FILL.e5 = (A, fresh) => {
   /* what can be gathered: cinder rocks for ember, crystals, and a chest among the roots */
   [['cinder', 4.2, -2.1], ['cinder', -0.6, 3.2], ['cinder', 3.0, 1.4], ['crystal', 0.3, -4.4], ['crystal', -0.9, 1.7]].forEach(([k, dx, dz], n) => { const nd = makeNode(k, X + dx, Z + dz, 11800 + n); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); } });
   if (!state.isle.chests.glass) makeChest(X - 2.4, Z + 1.9, { coin: 60, ember: 3, crystal: 8 }, 'glass');
-  if (fresh) { g.scale.set(1, 0.01, 1); GL.pop = 0.001; }
+  if (fresh) { g.scale.set(1, 0.01, 1); GL.pop = 0.001; glassWeld(A); }
 };
+/* land that has just risen has hair-thin gaps between its triangles (every corner is given a height of its own); on
+   black sand they show as pale lines until the next visit, so the corners that meet are set to one height here */
+function glassWeld(A) { const p = ground.geometry.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i), y = p.getY(i); if (Math.abs(x - A.cx) < 7.6 && Math.abs(z - A.cz) < 7.6 && y >= 0 && y <= 0.0201) p.setY(i, 0.02 * hash(Math.round(x * 16), Math.round(z * 16))); } p.needsUpdate = true; }
 /* move the light patches: each drifts a little round its place and swells and fades */
 function glassPatches() { const P = GL.pat; if (!P) return; const A = P.m.geometry.attributes.position, t = reduced ? 0 : time;
   P.list.forEach((p, k) => { const lit = p.bell == null ? 1 : GL.bells[p.bell] ? GL.bells[p.bell].lit * 1.3 + GL.bells[p.bell].fl : 0, s = p.s * (0.82 + Math.sin(t * 0.9 + p.ph) * 0.2) * (p.bell == null ? 1 : Math.min(1.4, lit)), x = p.x + Math.sin(t * 0.5 + p.ph) * 0.16, z = p.z + Math.cos(t * 0.37 + p.ph * 1.7) * 0.12, a = p.ph + t * 0.12, cx = Math.cos(a) * s, sx = Math.sin(a) * s * 0.62, o = k * 12;
     A.array[o] = x - cx + sx; A.array[o + 1] = 0.05; A.array[o + 2] = z - sx * 1.6 - cx * 0.62; A.array[o + 3] = x + cx + sx; A.array[o + 4] = 0.05; A.array[o + 5] = z + sx * 1.6 - cx * 0.62;
     A.array[o + 6] = x + cx - sx; A.array[o + 7] = 0.05; A.array[o + 8] = z + sx * 1.6 + cx * 0.62; A.array[o + 9] = x - cx - sx; A.array[o + 10] = 0.05; A.array[o + 11] = z - sx * 1.6 + cx * 0.62; }); A.needsUpdate = true; }
 ISLE_KEYS.push({ id: 'glass', ok: () => !!HAS.e3 && !HAS.e5 && !glassS().cool, x: GLASS.sign[0], z: GLASS.sign[1], cost: { frost: 5, stone: 30 }, open: () => glassCool() });
-ISLE_KEEPS.push((a, x, z) => (a.id === 'e3' && (x > 43.4 && emberLava(x, z) < 0.75 || Math.hypot(x - GLASS.sign[0], z - GLASS.sign[1]) < 1.4 || Math.hypot(x - GLASS.rock[0], z - GLASS.rock[1]) < 1.0 || Math.hypot(x - 43.7, z - 41) < 1.2)) || (a.id === 'e0' && x > 27.3 && x < 31.3 && z < 27.3) /* no tree between the balloon's landing place and us */);
+ISLE_KEEPS.push((a, x, z) => (a.id === 'e3' && (x > 43.4 && emberLava(x, z) < 0.75 || Math.hypot(x - GLASS.sign[0], z - GLASS.sign[1]) < 1.4 || Math.hypot(x - GLASS.rock[0], z - GLASS.rock[1]) < 1.0 || Math.hypot(x - 43.7, z - 41) < 1.2)) || (a.id === 'e0' && x > 27.3 && x < 31.3 && z < 27.3) || (a.id === 'e5' && GL.solid.some((q) => Math.hypot(x - q[0], z - q[1]) < q[2] + 1.0)) /* no tree between the balloon's landing place and us */);
 /* the frost flowers go in: they fly out over the river one after another, and it sets where each one lands */
 function glassCool() { const S = glassS(); if (S.cool) return; S.cool = 1; GL.cool = 0.001; const pp = pip.position; Snd.play('swish', { gain: 0.4 });
   for (let k = 0; k < 5; k++) { const sp = isleSprite(isleBubbleFree('frost'), 0.5); sp.position.set(pp.x, 1.7, pp.z); sp.visible = false; sc.add(sp); GL.thrown.push({ sp, t: -k * 0.16, x0: pp.x, z0: pp.z, x1: GL.stones[k].position.x, z1: GL.stones[k].position.z, k }); } save(); }
