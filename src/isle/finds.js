@@ -77,6 +77,7 @@ function findNode(n, g) {
 function findGot(n) {
   const t = YIELD[n.kind][0], c = hiveGives(n, YIELD[n.kind][1]); state.isle.store[t] = (state.isle.store[t] || 0) + c; xpGain(XP_FOR[n.kind]);
   const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, c), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(n.x, n.g.position.y + 1.5, n.z); sc.add(sp); FD.floats.push({ sp, t: 0, y: n.g.position.y });
+  const F1 = state.isle.first || (state.isle.first = {}); if (!F1[t]) { F1[t] = 1; foundIt(t); } /* the first of each special find is held up */
   invDirty = true; Snd.play('sparkle', { gain: 0.45 }); burst(n.x, n.g.position.y + 1.0, n.z, 6); bldBadge(); save();
 }
 function findStep(dt) {

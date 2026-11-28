@@ -283,6 +283,7 @@ function travelGo(id) { dockGo(id); }
 /* ---- keys: a picture in the corner while held; the bridge that needs one shows it in a locked bubble ---- */
 function keyGive(k, x, z) {
   if (lkeys()[k]) return; lkeys()[k] = 1; save(); keyHud();
+  foundIt(k);
   const sp = isleSprite(isleBubble(k), 0.9); sp.position.set(x, 1.6, z); sc.add(sp); LP.gift = { sp, t: 0 };
   Snd.play('success', { gain: 0.5, f: 'G5' }); Snd.play('sparkle', { gain: 0.45 }, 0.2);
 }

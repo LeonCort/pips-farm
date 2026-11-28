@@ -50,7 +50,7 @@ function gardenFill(A, fresh) {
 }
 function gardenGateOpen(n) {
   state.isle.garden = 1; if (n.tag) { n.g.remove(n.tag); n.tag = null; } n.dead = 1; n.st = 'gone'; n.main.visible = false; if (work && work.n === n) work = null; GD.node = null; GD.open = 0.001;
-  burst(n.x, 1.2, n.z, 16); Snd.play('thud', { gain: 0.5 }); Snd.play('success', { gain: 0.5, f: 'E6' }, 0.15); Snd.play('sparkle', { gain: 0.45 }, 0.4); xpGain(25);
+  burst(n.x, 1.2, n.z, 16); Snd.play('thud', { gain: 0.5 }); Snd.play('secret', { gain: 0.6 }, 0.25); xpGain(25);
   nodes.forEach((q) => { if (q.kind === 'hive' && q.st !== 'ready') { q.t = 0.01; } }); save();
 }
 /* honey from a hive: the Queen's own gives a big comb, and once she is found every hive gives double */

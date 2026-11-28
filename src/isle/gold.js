@@ -1,0 +1,72 @@
+/* ---------- the seven golden gifts (Leon, 2026-11-28: a hidden world should give something special, with a moment of
+   joy; "inspired by Zelda") ----------
+   Each island's hidden world holds one golden gift. When Pip finds it, the game stops for a breath: Pip holds it up, the
+   fanfare plays. From then on it stands on its own pedestal on the village green, beside the bell tower's place; the
+   empty pedestals show a pale shape of what is still out there. state.isle.gold[id] = 1. */
+const GOLD = [{ id: 'comb', isle: 'm' }, { id: 'hammer', isle: 's' }, { id: 'lily', isle: 'r' }, { id: 'sun', isle: 'w' }, { id: 'glass', isle: 'e' }, { id: 'shipbell', isle: 'c' }, { id: 'starheart', isle: 'cave' }];
+const GOLD_AT = { x: 13, z: 9.7, r: 1.95 }; /* a ring round the bell tower's plot */
+const GO = { g: null, items: {}, hold: null };
+const golds = () => state.isle.gold || (state.isle.gold = {});
+const goldSpot = (k) => { const a = (k - 3) * Math.PI / 4; return [GOLD_AT.x + Math.sin(a) * GOLD_AT.r, GOLD_AT.z - Math.cos(a) * GOLD_AT.r]; }; /* three quarters of a ring; the gap looks south */
+const goldKeep = (x, z) => Math.hypot(x - GOLD_AT.x, z - GOLD_AT.z) < GOLD_AT.r + 0.8;
+function goldGeo(id) {
+  let q; const P = [];
+  if (id === 'comb') { [[0, 0], [0.19, 0.11], [-0.19, 0.11], [0, 0.22], [0.19, 0.33], [-0.19, 0.33], [0, 0.44]].forEach(([x, y]) => { q = new T.CylinderGeometry(0.115, 0.115, 0.1, 6); q.rotateX(Math.PI / 2); q.rotateZ(Math.PI / 6); q.translate(x, y - 0.22, 0); P.push(q.toNonIndexed()); }); }
+  else if (id === 'hammer') { q = new T.BoxGeometry(0.46, 0.24, 0.24); q.translate(0, 0.16, 0); P.push(q.toNonIndexed()); q = new T.CylinderGeometry(0.045, 0.045, 0.46, 6); q.translate(0, -0.14, 0); P.push(q.toNonIndexed()); }
+  else if (id === 'lily') { for (let k = 0; k < 6; k++) { q = new T.ConeGeometry(0.1, 0.4, 4); q.translate(0, 0.2, 0); q.rotateZ(0.75); q.rotateY(k / 6 * 6.283); P.push(q.toNonIndexed()); } q = new T.SphereGeometry(0.09, 8, 6); P.push(q.toNonIndexed()); }
+  else if (id === 'sun') { q = new T.SphereGeometry(0.2, 10, 8); P.push(q.toNonIndexed()); for (let k = 0; k < 8; k++) { q = new T.ConeGeometry(0.05, 0.16, 4); q.translate(0, 0.31, 0); q.rotateZ(k / 8 * 6.283); P.push(q.toNonIndexed()); } }
+  else if (id === 'glass') { q = new T.SphereGeometry(0.2, 8, 6); q.scale(1, 1.25, 1); const A = q.attributes.position; for (let i = 0; i < A.count; i++) if (A.getY(i) > 0.05) A.setXYZ(i, A.getX(i) * (1 - A.getY(i) * 2.2), A.getY(i) * 1.3, A.getZ(i) * (1 - A.getY(i) * 2.2)); P.push(q.toNonIndexed()); }
+  else if (id === 'shipbell') { q = new T.CylinderGeometry(0.1, 0.24, 0.34, 10, 1, true); P.push(q.toNonIndexed()); q = new T.SphereGeometry(0.1, 8, 5, 0, 6.283, 0, 1.6); q.translate(0, 0.17, 0); P.push(q.toNonIndexed()); q = new T.SphereGeometry(0.05, 6, 5); q.translate(0, -0.2, 0); P.push(q.toNonIndexed()); }
+  else { q = new T.OctahedronGeometry(0.2, 0); q.scale(1, 1.5, 1); P.push(q.toNonIndexed()); for (let k = 0; k < 4; k++) { q = new T.OctahedronGeometry(0.08, 0); q.scale(1, 1.6, 1); q.translate(0.26, 0, 0); q.rotateY(k / 4 * 6.283); P.push(q.toNonIndexed()); } }
+  let n = 0; P.forEach((p) => { n += p.attributes.position.count; }); const A = new Float32Array(n * 3); let o = 0; P.forEach((p) => { A.set(p.attributes.position.array, o); o += p.attributes.position.count * 3; });
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(A, 3)); g.computeVertexNormals(); return g;
+}
+const goldMat = new T.MeshStandardMaterial({ color: '#f6c63c', roughness: 0.3, metalness: 0.55, emissive: new T.Color('#a8741a'), emissiveIntensity: 0.55, side: T.DoubleSide });
+const goldGhost = new T.MeshStandardMaterial({ color: '#8d8a84', roughness: 0.95, side: T.DoubleSide }); /* a grey stone carving of what is still out there */
+function goldBuild() {
+  if (GO.g || !HAS.h3) return; const g = GO.g = new T.Group(); sc.add(g); const L = []; let q;
+  GOLD.forEach((G, k) => { const [x, z] = goldSpot(k);
+    q = new T.CylinderGeometry(0.3, 0.36, 0.14, 8); q.translate(x, 0.07, z); L.push(fac(q.toNonIndexed(), (cx, cy, cz, i) => tone('#b5ab98', i, 0.3), 9600 + k));
+    q = new T.CylinderGeometry(0.2, 0.24, 0.5, 8); q.translate(x, 0.39, z); L.push(fac(q.toNonIndexed(), (cx, cy, cz, i) => shadeY('#d6cebd', cy, 0.1, 0.7, i, 0.3), 9610 + k));
+    q = new T.CylinderGeometry(0.3, 0.22, 0.1, 8); q.translate(x, 0.69, z); L.push(fac(q.toNonIndexed(), (cx, cy, cz, i) => tone('#c9c0ae', i, 0.3), 9620 + k));
+    const m = new T.Mesh(goldGeo(G.id), golds()[G.id] ? goldMat : goldGhost); m.position.set(x, 1.15, z); m.castShadow = !!golds()[G.id]; g.add(m); GO.items[G.id] = m; lookFoot(x, z, 0.4, 0.4); });
+  const mesh = merged(L, MAT, g); if (mesh && mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; }
+}
+/* ---- "found it!" (Leon 2026-11-28: every one-time find is held up, "like it does with Zelda: Pip turns around and lifts it
+   up. We celebrate the fact that we found something useful") ----
+   holdUp(obj, o): the game holds its breath, Pip spins to face us, both arms go up, the thing rises over the head with rays
+   of light turning behind it. Golden gifts get the long fanfare, tools, gear, keys and first finds the treasure tune.
+   A second find while one is up waits its turn. */
+let raysTex = null;
+function foundRays() {
+  if (raysTex) return raysTex; const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'); x.translate(128, 128);
+  const g = x.createRadialGradient(0, 0, 8, 0, 0, 124); g.addColorStop(0, 'rgba(255,244,190,0.95)'); g.addColorStop(0.45, 'rgba(255,214,110,0.45)'); g.addColorStop(1, 'rgba(255,200,80,0)'); x.fillStyle = g;
+  for (let k = 0; k < 12; k++) { x.rotate(Math.PI / 6); x.beginPath(); x.moveTo(0, 0); x.lineTo(-13 - (k % 2) * 6, -124); x.lineTo(13 + (k % 2) * 6, -124); x.closePath(); x.fill(); }
+  x.beginPath(); x.arc(0, 0, 46, 0, 7); x.fill(); raysTex = new T.CanvasTexture(c); return raysTex;
+}
+function foundTex(t) { const c = document.createElement('canvas'); c.width = c.height = 160; isleIcon(c.getContext('2d'), t, 80, 82, 2.3); return new T.CanvasTexture(c); }
+function holdUp(m, o) {
+  o = o || {}; if (GO.hold) { (GO.q = GO.q || []).push([m, o]); return; }
+  const rays = new T.Sprite(new T.SpriteMaterial({ map: foundRays(), transparent: true, depthWrite: false, blending: T.AdditiveBlending })); sc.add(rays); sc.add(m);
+  GO.hold = { m, rays, t: 0, len: o.len || 2.4, s0: o.s || 1, r0: pip.rotation.y, tex: o.tex };
+  Snd.play(o.snd || 'treasure', { gain: o.gain || 0.65 }); burst(pip.position.x, 2.2, pip.position.z, o.n || 12);
+}
+/* a tool, a piece of gear, a key or the first of a special find: t is its picture */
+function foundIt(t) { const sp = isleSprite(foundTex(t), 1.15); holdUp(sp, { tex: 1, s: 1.15 }); }
+/* Pip finds a golden gift: the long fanfare, and from now on it stands on its pedestal */
+function goldGive(id) {
+  if (golds()[id]) return; golds()[id] = 1; holdUp(new T.Mesh(goldGeo(id), goldMat), { len: 3.2, s: 1.3, snd: 'fanfare', gain: 0.7, n: 22 });
+  if (GO.items[id]) { GO.items[id].material = goldMat; GO.items[id].castShadow = true; } save();
+}
+function goldStep(dt) {
+  if (!GO.g) goldBuild();
+  if (GO.g) GOLD.forEach((G, k) => { const m = GO.items[G.id]; const got = golds()[G.id]; m.rotation.y = got ? time * 0.9 + k : 0; m.scale.setScalar(got ? 1 : 0.8); m.position.y = got ? 1.2 + (reduced ? 0 : Math.sin(time * 1.6 + k) * 0.05) : 1.02; m.visible = !inCave; });
+  const H = GO.hold; if (!H) return; H.t += dt; const pp = pip.position, up = Math.min(1, H.t / 0.55), s = up * up * (3 - 2 * up), out = H.t > H.len ? Math.max(0.01, 1 - (H.t - H.len) / 0.4) : 1;
+  if (H.t < H.len) { target.copy(pp); work = null; pip.rotation.y = (1 - s) * (H.r0 + Math.PI * 2); /* a full turn that ends facing us */
+    limbs.forEach((l) => { if (l.arm) { l.g.rotation.x = -2.75 * s; l.g.rotation.z = (l.s > 0 ? -1 : 1) * (0.1 + 0.22 * s); } }); GO.arms = 1; }
+  else if (GO.arms) { limbs.forEach((l) => { if (l.arm) l.g.rotation.z = l.s > 0 ? -0.1 : 0.1; }); GO.arms = 0; }
+  const y = pp.y + 1.55 + s * 0.85 + (reduced ? 0 : Math.sin(H.t * 3) * 0.03);
+  H.m.position.set(pp.x, y, pp.z); if (H.tex) H.m.scale.set(H.s0 * out * (0.4 + 0.6 * s), H.s0 * out * (0.4 + 0.6 * s), 1); else { H.m.rotation.y = H.t * 2.4; H.m.scale.setScalar(H.s0 * out); }
+  H.rays.position.set(pp.x, y, pp.z - 0.05); H.rays.material.rotation = H.t * 0.7; H.rays.scale.setScalar(2.3 * s * out); H.rays.renderOrder = 4; H.m.renderOrder = 5;
+  if (H.t > H.len + 0.4) { sc.remove(H.m); sc.remove(H.rays); H.rays.material.dispose(); if (H.tex) { H.m.material.map.dispose(); H.m.material.dispose(); } GO.hold = null; if (GO.q && GO.q.length) { const n = GO.q.shift(); holdUp(n[0], n[1]); } }
+}
