@@ -14,7 +14,7 @@ const SC = { rings: [], ride: null };
 function secretOpen(id) { const A = AREAS.find((a) => a.id === id); if (!A || HAS[A.id] || rising) return false; Snd.play('secret', { gain: 0.65 }); areaRise(A); isleSigns(); save(); return true; }
 function ringMake(o) {
   const r = { o, w: 0, armed: false, ph: SC.rings.length * 1.7 }, y = o.y || 0;
-  r.ring = ropeRing(0.5, 0.62); r.ring.position.set(o.x, y + 0.035, o.z); sc.add(r.ring);
+  r.ring = ropeRing(0.5, 0.62); r.ring.rotation.x = -Math.PI / 2; r.ring.position.set(o.x, y + 0.035, o.z); sc.add(r.ring);
   const q = new T.CircleGeometry(0.5, 24); q.rotateX(-Math.PI / 2); r.fill = new T.Mesh(q, new T.MeshBasicMaterial({ color: '#ffe9a6', transparent: true, opacity: 0.75, depthWrite: false })); r.fill.position.set(o.x, y + 0.045, o.z); r.fill.scale.setScalar(0.001); sc.add(r.fill);
   r.sp = isleSprite(isleBubble(o.icon || 'star'), 0.85); r.sp.position.set(o.x, y + 1.75, o.z); sc.add(r.sp); SC.rings.push(r); return r;
 }
