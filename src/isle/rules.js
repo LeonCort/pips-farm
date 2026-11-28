@@ -86,7 +86,7 @@ const AREAS = [
    opens by itself. Each is a plank bridge between two areas that builds itself, free, when both are owned (isle.js).
    The stone island: the mine and its lift are the first way there; after that a bridge runs to the west meadow. */
 /* the Bee Queen's walled garden in the far corner of the meadow (garden.js): the wall's box, the gate's place along the east wall, the hive and the chest inside */
-const GARDEN = { A: 'm4', x0: -16.9, x1: -11.3, z0: -32.9, z1: -29.5, gate: -31.2, hive: [-15.6, -31.2], chest: [-13.2, -32.3] };
+const GARDEN = { A: 'm4', x0: -16.9, x1: -11.3, z0: -32.9, z1: -29.5, gate: -31.2, hive: [-15.6, -31.2], chest: [-12.6, -32.2], door: -14.4 }; /* door: the round hedge door in the north wall, to the Garden of Giant Flowers (giant.js) */
 const SHORTS = [{ id: 'sm', need: ['s0', 'm1'], bridge: { x0: -22.6, z0: -12.2, x1: -17.4, z1: -12.2 } }];
 /* the special finds (finds.js): what each find node gives, how many, and the tool level it needs */
 const FINDS = ['honey', 'copper', 'iron', 'glow', 'reed', 'pearl', 'ember'];

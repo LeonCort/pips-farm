@@ -22,7 +22,7 @@ function gardenFill(A, fresh) {
       q.rotateY(Math.atan2(-uz, ux)); q.translate(xa + ux * len * t, 0.21 + r * 0.42, za + uz * len * t); L.push(fac(q.toNonIndexed(), (cx, cy, cz, i) => tone(['#c9c0ae', '#b5ab98', '#d6cebd', '#a89f8d'][(k + r * 2 + (i >> 3)) % 4], i + k, 0.4), sd + k * 2 + r)); }
     for (let k = 0; k < n; k += 2) { const t = (k + 0.6) / n; q = ico(0.2, 0, sd + 60 + k, 0.2); q.scale(1.5, 0.35, 1.1); q.translate(xa + ux * len * t, 0.86, za + uz * len * t); L.push(fac(q, (cx, cy, cz, i) => tone('#7f9a5e', i + k, 0.35), sd + 60 + k)); } };
   const gz0 = G.gate - 0.85, gz1 = G.gate + 0.85;
-  course(G.x0, G.z0, G.x1, G.z0, 8900); course(G.x0, G.z1, G.x1, G.z1, 8960); course(G.x0, G.z0, G.x0, G.z1, 9020); course(G.x1, G.z0, G.x1, gz0, 9080); course(G.x1, gz1, G.x1, G.z1, 9140);
+  course(G.x0, G.z0, G.door - 0.8, G.z0, 8900); course(G.door + 0.8, G.z0, G.x1, G.z0, 8930); course(G.x0, G.z1, G.x1, G.z1, 8960); course(G.x0, G.z0, G.x0, G.z1, 9020); course(G.x1, G.z0, G.x1, gz0, 9080); course(G.x1, gz1, G.x1, G.z1, 9140);
   [[G.x0, G.z0], [G.x1, G.z0], [G.x0, G.z1], [G.x1, G.z1], [G.x1, gz0], [G.x1, gz1]].forEach(([x, z], k) => { const tall = k > 3; q = new T.BoxGeometry(0.56, tall ? 1.7 : 1.1, 0.56); q.translate(x, tall ? 0.85 : 0.55, z); L.push(fac(q.toNonIndexed(), (cx, cy, cz, i) => shadeY(k % 2 ? '#cfc6b3' : '#bdb3a0', cy, 0, 1.7, i, 0.4), 9200 + k));
     q = ico(0.2, 0, 9210 + k); q.scale(1.2, 0.7, 1.2); q.translate(x, (tall ? 1.7 : 1.1) + 0.1, z); L.push(fac(q, (cx, cy, cz, i) => tone(tall ? '#f2c23c' : '#b5ab98', i, 0.25), 9210 + k)); });
   q = new T.BoxGeometry(0.2, 0.16, 2.0); q.translate(G.x1, 1.62, G.gate); L.push(fac(q.toNonIndexed(), (cx, cy, cz, i) => tone('#8a5f3c', i, 0.3), 9230));
@@ -35,7 +35,13 @@ function gardenFill(A, fresh) {
   for (let k = 0; k < 7; k++) { const t = k / 6; q = new T.CylinderGeometry(0.3, 0.33, 0.05, 6); q.rotateY(hash(k, 9350) * 3); q.translate(G.x1 - 0.2 - t * (G.x1 - G.hive[0] - 1.2), 0.03, G.gate + Math.sin(t * 3.1) * 0.25); L.push(fac(q.toNonIndexed(), (cx, cy, cz, i) => tone(k % 2 ? '#d6cebd' : '#c2b9a6', i, 0.25), 9350 + k)); }
   const mesh = merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g); if (mesh && mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; }
   lookFoot((G.x0 + G.x1) / 2, (G.z0 + G.z1) / 2, (G.x1 - G.x0) / 2 + 0.3, (G.z1 - G.z0) / 2 + 0.3);
-  const T2 = 0.5; GD.walls = [{ x: (G.x0 + G.x1) / 2, z: G.z0, w: G.x1 - G.x0 + T2, d: T2 }, { x: (G.x0 + G.x1) / 2, z: G.z1, w: G.x1 - G.x0 + T2, d: T2 }, { x: G.x0, z: (G.z0 + G.z1) / 2, w: T2, d: G.z1 - G.z0 }, { x: G.x1, z: (G.z0 + gz0) / 2, w: T2, d: gz0 - G.z0 + 0.3 }, { x: G.x1, z: (gz1 + G.z1) / 2, w: T2, d: G.z1 - gz1 + 0.3 }];
+  /* the hidden door in the north wall: a stone arch, and a round plug of hedge with a golden bee on it (giant.js opens it) */
+  [-0.8, 0.8].forEach((dx, k) => { q = new T.BoxGeometry(0.42, 1.75, 0.5); q.translate(G.door + dx, 0.875, G.z0); L.push(fac(q.toNonIndexed(), (cx, cy, cz, i) => shadeY(k ? '#cfc6b3' : '#bdb3a0', cy, 0, 1.75, i, 0.4), 9460 + k)); });
+  for (let k = 0; k < 7; k++) { const a = Math.PI * (k + 0.5) / 7; q = new T.BoxGeometry(0.4, 0.3, 0.52); q.rotateZ(a - Math.PI / 2); q.translate(G.door + Math.cos(a) * 0.82, 1.7 + Math.sin(a) * 0.5, G.z0); L.push(fac(q.toNonIndexed(), (cx, cy, cz, i) => tone(k === 3 ? '#f2c23c' : k % 2 ? '#c9c0ae' : '#b5ab98', i, 0.3), 9470 + k)); }
+  if (!HAS.m5) { const P = []; for (let k = 0; k < 22; k++) { const a = hash(k, 9480) * 6.283, r = Math.sqrt(hash(k, 9481)) * 0.72; q = ico(0.26 + hash(k, 9482) * 0.1, 0, 9483 + k, 0.2); q.translate(G.door + Math.cos(a) * r * 0.85, 1.0 + Math.sin(a) * r * 1.05, G.z0 + (hash(k, 9484) - 0.5) * 0.25); P.push(fac(q, (cx, cy, cz, i) => tone(['#4d7a41', '#3f6b3a', '#5a8a4a'][k % 3], i, 0.3), 9483 + k)); }
+    [[0, 0, 0.16, '#f6c63c'], [-0.13, 0.02, 0.11, '#3a2c1c'], [0.14, 0, 0.12, '#3a2c1c'], [-0.02, 0.17, 0.1, '#eaf6ff'], [0.1, 0.17, 0.1, '#eaf6ff']].forEach(([x, y, r, c], k) => { q = ico(r, 1, 9520 + k); q.scale(1, 0.85, 0.5); q.translate(G.door + x, 1.15 + y, G.z0 + 0.3); P.push(fac(q, c, 9520 + k)); });
+    GD.door = merged(P, MAT, g); GD.door.castShadow = true; GD.doorTag = isleSprite(isleBubble('bee'), 0.8); GD.doorTag.position.set(G.door, 2.75, G.z0); g.add(GD.doorTag); }
+  const T2 = 0.5; GD.walls = [{ x: (G.x0 + G.door - 0.8) / 2, z: G.z0, w: G.door - 0.8 - G.x0 + T2, d: T2 }, { x: (G.door + 0.8 + G.x1) / 2, z: G.z0, w: G.x1 - G.door - 0.8 + T2, d: T2 }, { x: (G.x0 + G.x1) / 2, z: G.z1, w: G.x1 - G.x0 + T2, d: T2 }, { x: G.x0, z: (G.z0 + G.z1) / 2, w: T2, d: G.z1 - G.z0 }, { x: G.x1, z: (G.z0 + gz0) / 2, w: T2, d: gz0 - G.z0 + 0.3 }, { x: G.x1, z: (gz1 + G.z1) / 2, w: T2, d: G.z1 - gz1 + 0.3 }];
   /* the Queen's hive: a tall golden skep on a stone plinth; its honey is a find like any hive's, only more of it */
   { const n = GD.hive = makeNode('hive', G.hive[0], G.hive[1], 9400); n.queen = 1; n.g.rotation.y = Math.PI / 2; const P = []; let p = new T.CylinderGeometry(0.62, 0.7, 0.3, 8); p.translate(0, 0.15, 0); P.push(fac(p.toNonIndexed(), (cx, cy, cz, i) => tone('#cfc6b3', i, 0.3), 9401));
     for (let k = 0; k < 6; k++) { const r = [0.5, 0.54, 0.5, 0.42, 0.3, 0.16][k]; p = new T.CylinderGeometry(r * 0.9, r, 0.22, 12); p.translate(0, 0.41 + k * 0.2, 0); P.push(fac(p.toNonIndexed(), (cx, cy, cz, i) => tone(k % 2 ? '#f2c23c' : '#ffd75a', i, 0.2), 9402 + k)); }
@@ -53,12 +59,16 @@ function gardenGateOpen(n) {
   burst(n.x, 1.2, n.z, 16); Snd.play('thud', { gain: 0.5 }); Snd.play('secret', { gain: 0.6 }, 0.25); xpGain(25);
   nodes.forEach((q) => { if (q.kind === 'hive' && q.st !== 'ready') { q.t = 0.01; } }); save();
 }
+/* the hedge plug shrinks away: the way north is open */
+function gardenDoor() { GD.doorOpen = 0.001; }
 /* honey from a hive: the Queen's own gives a big comb, and once she is found every hive gives double */
 const hiveGives = (n, c) => (n.kind !== 'hive' ? c : n.queen ? 5 : gardenOpen() ? c * 2 : c);
 function gardenStep(dt) {
   if (!GD.g) return; const pp = pip.position;
   if (GD.pop) { GD.pop = Math.min(1, GD.pop + dt * 1.5); GD.g.scale.setScalar(GD.pop); if (GD.pop >= 1) GD.pop = 0; }
-  if (!inCave) { GD.walls.forEach((m) => { mesaOut(m, pp, 0.3); }); if (!gardenOpen()) mesaOut({ x: GARDEN.x1, z: GARDEN.gate, w: 0.5, d: 1.9 }, pp, 0.3); }
+  if (GD.doorOpen) { GD.doorOpen = Math.min(1, GD.doorOpen + dt * 1.2); if (GD.door) { GD.door.scale.setScalar(Math.max(0.001, 1 - GD.doorOpen)); GD.door.position.set(GARDEN.door * GD.doorOpen, GD.doorOpen, GARDEN.z0 * GD.doorOpen); if (GD.doorOpen >= 1) { GD.g.remove(GD.door); GD.door = null; } } if (GD.doorTag) { GD.g.remove(GD.doorTag); GD.doorTag = null; } }
+  if (GD.doorTag) GD.doorTag.position.y = 2.75 + (reduced ? 0 : Math.sin(time * 2) * 0.05);
+  if (!inCave) { GD.walls.forEach((m) => { mesaOut(m, pp, 0.3); }); if (!HAS.m5 || GD.door) mesaOut({ x: GARDEN.door, z: GARDEN.z0, w: 1.6, d: 0.5 }, pp, 0.3); if (!gardenOpen()) mesaOut({ x: GARDEN.x1, z: GARDEN.gate, w: 0.5, d: 1.9 }, pp, 0.3); }
   /* bees: a few round the Queen always (seen over the wall), a dance out through the gate when it opens */
   if (!GD.bees) { GD.bees = []; for (let k = 0; k < 7; k++) { const b = new T.Mesh(new T.SphereGeometry(0.05, 6, 5), new T.MeshBasicMaterial({ color: k % 2 ? '#ffd75a' : '#3a2c1c' })); sc.add(b); GD.bees.push(b); } }
   if (GD.open) GD.open += dt; const out = GD.open && GD.open < 6 ? Math.sin(Math.min(1, GD.open / 6) * Math.PI) : 0;

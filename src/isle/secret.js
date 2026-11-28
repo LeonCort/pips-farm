@@ -37,6 +37,6 @@ function secretStep(dt) {
   const y = a.y + (b.y - a.y) * (f * f * (3 - 2 * f)); pp.set(a.x + (b.x - a.x) * f, y + (o.seat || 0), a.z + (b.z - a.z) * f); target.copy(pp); work = null;
   if (b.x !== a.x || b.z !== a.z) pip.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
   if (o.mesh) { o.mesh.position.set(pp.x, y, pp.z); o.mesh.rotation.y = pip.rotation.y; } if (o.each) o.each(R, dt);
-  if (R.d >= R.len - 0.01) { SC.ride = null; if (o.mesh && !o.keep) sc.remove(o.mesh); pp.y = o.endY != null ? o.endY : b.y; target.copy(pp); if (o.onEnd) o.onEnd(); }
+  if (R.d >= R.len - 0.01) { SC.ride = null; if (o.mesh && !o.keep) sc.remove(o.mesh); pp.y = o.endY != null ? o.endY : b.y; target.copy(pp); SC.rings.forEach((r) => { if (Math.hypot(pp.x - r.o.x, pp.z - r.o.z) < 1.0) { r.armed = false; r.w = 0; } }); /* the ring Pip lands on waits until he has stepped off it */ if (o.onEnd) o.onEnd(); }
 }
 ISLE_STEPS.push(secretStep);
