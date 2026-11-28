@@ -36,6 +36,31 @@ function mapLand() {
       px[o] = (b[0] + (g[0] - b[0]) * t) * (1 - e) + 58 * e; px[o + 1] = (b[1] + (g[1] - b[1]) * t) * (1 - e) + 36 * e; px[o + 2] = (b[2] + (g[2] - b[2]) * t) * (1 - e) + 20 * e; px[o + 3] = clamp(0.5 - d * S, 0, 1) * 255; } }
   cx.putImageData(im, 0, 0); return c;
 }
+/* ---------- a finished star for each island (Leon, 2026-11-27: "a finished star per island") ----------
+   An island is finished when all its land is bought, its wonders stand, its friend has a house and its golden gift is
+   found. The map shows a star by each island Pip has set foot on: grey with four small dots (land, wonder, friend,
+   gift) that fill one by one, gold once all four are done. The moment it turns gold Pip holds the star up. */
+const STAR_HIDE = { smith: 'h', baker: 'm', mason: 's', knitter: 'w', fisher: 'r', diver: 'c', glass: 'e' }, STAR_ISLES = ['h', 'm', 's', 'w', 'r', 'c', 'e'], STARS = { t: 6 };
+function starParts(L) {
+  const land = AREAS.every((A) => A.cave || A.secret || A.id[0] !== L || HAS[A.id]);
+  const wonder = Object.keys(LOOP_SITES).every((id) => { const A = areaAt(LOOP_SITES[id].x, LOOP_SITES[id].z); return !A || A.cave || A.id[0] !== L || !!mons()[id]; });
+  const friend = VILLAGERS.every((v) => (STAR_HIDE[v.id] || 'h') !== L || (folk()[v.id] || 0) >= (LOOP_FOLK[v.id] ? 3 : 2));
+  const gift = GOLD.every((G) => (G.isle === 'cave' ? 'h' : G.isle) !== L || !!golds()[G.id]);
+  return [land, wonder, friend, gift];
+}
+function starStep(dt) {
+  STARS.t -= dt; if (STARS.t > 0 || rising || building || inCave || enSleep) return; STARS.t = 1.5;
+  const I = state.isle; I.stars = I.stars || {};
+  for (const L of STAR_ISLES) if (!I.stars[L] && starParts(L).every(Boolean)) { I.stars[L] = 1; save(); foundIt('star'); return; }
+}
+ISLE_STEPS.push(starStep);
+function mapStars(x) {
+  STAR_ISLES.forEach((L) => { const As = AREAS.filter((A) => !A.cave && !A.secret && A.id[0] === L && HAS[A.id]); if (!As.length) return;
+    const top = Math.min(...As.map((A) => A.cz)), row = As.filter((A) => A.cz === top), A0 = row.reduce((a, b) => (b.cx < a.cx ? b : a)), q0 = mapXY(A0.cx - 6.9, top - 6.9), px = Math.max(40, q0[0]), pz = Math.max(40, q0[1]), P = starParts(L), done = P.every(Boolean);
+    mapBadge(x, px, pz, 27, done ? '#fff1b8' : '#f4efe4'); if (done) { x.beginPath(); x.arc(px, pz, 33, 0, 7); x.lineWidth = 4; x.strokeStyle = '#f4b23a'; x.stroke(); }
+    x.save(); if (!done) { x.globalAlpha = 0.45; x.filter = 'grayscale(1)'; } isleIcon(x, 'star', px, pz, 0.95); x.restore();
+    if (!done) P.forEach((ok, k) => { x.beginPath(); x.arc(px - 24 + k * 16, pz + 38, 5.5, 0, 7); x.fillStyle = ok ? '#f4b23a' : '#fff6e4'; x.fill(); x.lineWidth = 2.5; x.strokeStyle = '#6e4426'; x.stroke(); }); });
+}
 function mapBadge(x, px, pz, r, fill) { x.beginPath(); x.arc(px, pz, r, 0, 7); x.fillStyle = fill || '#fff6e4'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#6e4426'; x.stroke(); }
 function mapDraw() {
   const S = MP.S, W = MP.w * S, H = MP.h * S, x = MP.cv.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, W, H); x.lineJoin = 'round'; x.lineCap = 'round';
@@ -81,6 +106,7 @@ function mapDraw() {
     const [px, pz] = mapXY(wx, wz); if (F) mapBadge(x, px, pz, 27); boardFace(x, v, px, pz + (F ? 3 : 0), F ? 0.5 : 0.62, F ? 3 : 0); if (F === 2 && LOOP_FOLK[v.id]) { mapBadge(x, px + 24, pz - 22, 15, '#f4b23a'); isleIcon(x, 'hammer', px + 24, pz - 22, 0.5); } /* a house to build here */ });
   /* something to pay for here */
   signs.forEach((s) => { if (s.A || s.x == null) return; const [px, pz] = mapXY(s.x, s.z); x.beginPath(); x.arc(px, pz, 11, 0, 7); x.fillStyle = '#f4b23a'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#6e4426'; x.stroke(); x.beginPath(); x.arc(px, pz, 4, 0, 7); x.fillStyle = '#fff6e4'; x.fill(); });
+  mapStars(x);
   /* where Pip is */
   const P = inCave ? [AREA_BY.cave.cx, AREA_BY.cave.cz] : [pip.position.x, pip.position.z], [qx, qz] = mapXY(P[0], P[1]);
   MP.pip.style.left = (qx / W * 100) + '%'; MP.pip.style.top = (qz / H * 100) + '%';
