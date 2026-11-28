@@ -32,8 +32,8 @@ const LOOP_MON = {
   lighthouse: { isle: 'stone', need: () => HAS.s2 && (folk().mason || 0) >= 2, area: 's2', cost: { stone: 50, log: 20, crystal: 6, iron: 4 } },
   tower: { isle: 'winter', need: () => HAS.w1 && (folk().knitter || 0) >= 2, area: 'w1', cost: { crystal: 20, stone: 30, log: 30 } },
   sluice: { isle: 'marsh', need: () => HAS.r0 && HAS.r1 && HAS.r2 && (folk().fisher || 0) >= 2, area: 'r2', cost: { log: 60, stone: 30, reed: 10 } },
-  bell: { isle: 'coral', need: () => HAS.c0 && HAS.c1 && (folk().diver || 0) >= 2, area: 'c0', cost: { stone: 60, crystal: 10, pearl: 7 } },
-  hearth: { isle: 'ember', need: () => HAS.e0 && (folk().glass || 0) >= 2, area: 'e0', cost: { stone: 70, crystal: 16, ember: 6 } },
+  bell: { isle: 'coral', need: () => HAS.c0 && HAS.c1 && HAS.c2 && (folk().diver || 0) >= 2, area: 'c2', cost: { stone: 60, crystal: 10, pearl: 7 } },
+  hearth: { isle: 'ember', need: () => HAS.e0 && HAS.e1 && (folk().glass || 0) >= 2, area: 'e1', cost: { stone: 70, crystal: 16, ember: 6 } },
   /* the last wonder: its plot shows as soon as the harbour stands, so the goal is in sight all game, but it takes a find
      from every island (honey: meadow, iron: stone, reeds: marsh, pearls: coral, ember: volcano, crystals: winter and mine) */
   belfry: { isle: 'home', need: () => HAS.h3 && !!mons().harbor && goldAll(), /* the bell is cast from the seven golden gifts: its plot waits until all seven stand on their pedestals (gold.js) */ area: 'h3', cost: { honey: 4, iron: 4, reed: 4, pearl: 4, ember: 4, crystal: 20 } }
