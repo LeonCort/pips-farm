@@ -815,7 +815,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261128151946">
+<meta name="app-ver" content="20261128163055">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1175,15 +1175,15 @@ const AREAS = [
   { id: 'm0', chest: { coin: 8, berry: 6 }, i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, finds: [['hive', -3.6, -2.0], ['hive', 3.7, -3.5], ['hive', 4.3, 4.9]], tall: [[-5.4, 1.5, 5.4, 3.9]], bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
   { id: 'm1', chest: { coin: 10, berry: 8, gear: 'coat' }, chestAt: [-0.4, 3.4], i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', -2.0, -3.4], ['hive', -3.0, 2.6]], tall: [[1.5, -5.4, 3.9, 5.4]] },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, berry: 12, stone: 10 }, ruin: [0.4, 0, 0.2] },
-  { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14 }, tall: [[-5.4, 1.5, 5.4, 3.9]] },
-  { id: 'm4', chest: { coin: 15, honey: 2 }, chestAt: [3.2, 2.6], i: -4, j: -8, biome: 'meadow', cost: { log: 30, berry: 20, stone: 14 }, finds: [['hive', 3.4, -3.6], ['hive', -3.8, 3.2]], tall: [[3.4, -5.4, 5.4, -1.6]], ponds: [[-1.6, 0.6, 2.0]] },
+  { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14, honey: 3 }, tall: [[-5.4, 1.5, 5.4, 3.9]] },
+  { id: 'm4', chest: { coin: 15, honey: 2 }, chestAt: [3.2, 2.6], i: -4, j: -8, biome: 'meadow', cost: { log: 30, berry: 20, stone: 14, honey: 4 }, finds: [['hive', 3.4, -3.6], ['hive', -3.8, 3.2]], tall: [[3.4, -5.4, 5.4, -1.6]], ponds: [[-1.6, 0.6, 2.0]] },
   /* the stone island has no bridge: the only way there is the mine's tunnel under the sea, and the lift at its end (cave.js) */
   { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.4, 0], mesas: [{ id: 's0a', dx: -2.8, dz: -2.6, w: 4.6, d: 4.0, h: 1.3, finds: [['iron', -0.8, -0.3], ['iron', 0.9, 0.1]] }] },
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3], mesas: [{ id: 's1a', dx: -2.7, dz: 2.6, w: 5.0, d: 4.6, h: 1.3, lx: 1.4, finds: [['iron', 1.2, 0.5]] }, { id: 's1b', par: 's1a', dx: -3.7, dz: 1.9, w: 2.8, d: 2.9, h: 1.2, finds: [['iron', 0, -0.1]] }] },
   { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 }, finds: [['iron', -3.2, -2.2]] },
   /* the islands grew (Leon, 2026-11-27: every island at least five squares): the stone island runs on west */
-  { id: 's3', chest: { coin: 18, iron: 2 }, chestAt: [-2.6, -0.6], i: -11, j: -5, biome: 'stone', cost: { stone: 40, log: 26, berry: 16 }, mesas: [{ id: 's3a', dx: 2.4, dz: 2.6, w: 4.8, d: 4.2, h: 1.3, finds: [['iron', -0.9, 0.2], ['iron', 1.0, -0.3]] }], finds: [['iron', -3.6, -3.4]] },
-  { id: 's4', chest: { coin: 22, crystal: 5 }, chestAt: [3.6, 2.4], i: -11, j: -8, biome: 'clay', cost: { stone: 50, log: 30, crystal: 6 }, finds: [['iron', 3.0, -2.6], ['iron', -3.4, 2.8]], ponds: [[0.6, 0.8, 1.7]],
+  { id: 's3', chest: { coin: 18, iron: 2 }, chestAt: [-2.6, -0.6], i: -11, j: -5, biome: 'stone', cost: { stone: 40, log: 26, berry: 16, iron: 2 }, mesas: [{ id: 's3a', dx: 2.4, dz: 2.6, w: 4.8, d: 4.2, h: 1.3, finds: [['iron', -0.9, 0.2], ['iron', 1.0, -0.3]] }], finds: [['iron', -3.6, -3.4]] },
+  { id: 's4', chest: { coin: 22, crystal: 5 }, chestAt: [3.6, 2.4], i: -11, j: -8, biome: 'clay', cost: { stone: 50, log: 30, crystal: 6, iron: 3 }, finds: [['iron', 3.0, -2.6], ['iron', -3.4, 2.8]], ponds: [[0.6, 0.8, 1.7]],
     /* the High Table (mesa.js): the tallest rock on the island, its ladder broken. A rope ladder of marsh reed opens it: the island's sealed place, for the visit after the marsh */
     mesas: [{ id: 's4a', dx: -2.9, dz: -2.7, w: 4.8, d: 4.0, h: 2.3, seal: { reed: 6, log: 14 }, chest: [{ coin: 40, iron: 4 }, 1.5, -1.0], finds: [['iron', -0.2, -1.3], ['iron', 1.4, 1.0], ['iron', -0.7, 1.1]] }] }, /* the west end of its top is kept for the giant's kite (sky.js) */
   /* the winter island, east of the orchard, over a bridge */
@@ -1196,16 +1196,16 @@ const AREAS = [
   /* the marsh island, west of the bakery over a bridge (marsh.js). holes: squares of the block that stay water. A channel
      runs through the first square from north to south: the only way over is the pole raft. The second has a pond. */
   { id: 'r0', i: -5, j: 2, biome: 'marsh', cost: { log: 30, stone: 18, berry: 14 }, holes: [[1, 0], [1, 1], [1, 2]], finds: [['reeds', -4.7, -3.4], ['reeds', -3.1, -0.4], ['reeds', -4.8, 1.6]], bridge: { from: 'h2', x0: -5.4, z0: 16.6, x1: -10.6, z1: 16.6 } },
-  { id: 'r1', i: -8, j: 2, biome: 'marsh', cost: { log: 36, stone: 24, crystal: 4 }, holes: [[1, 1]], ruin: [4.3, -3.0, 0.1], finds: [['reeds', -2.7, -1.6], ['reeds', 2.8, 1.2], ['reeds', 0.8, 3.0], ['reeds', -1.2, -3.1]] },
+  { id: 'r1', i: -8, j: 2, biome: 'marsh', cost: { log: 36, stone: 24, crystal: 4, reed: 2 }, holes: [[1, 1]], ruin: [4.3, -3.0, 0.1], finds: [['reeds', -2.7, -1.6], ['reeds', 2.8, 1.2], ['reeds', 0.8, 3.0], ['reeds', -1.2, -3.1]] },
   { id: 'r2', chest: { coin: 18, reed: 3, gear: 'boots' }, chestAt: [3.6, -3.6], i: -8, j: 5, biome: 'marsh', cost: { log: 40, stone: 26, berry: 18 }, holes: [[1, 1]], finds: [['reeds', -2.6, 0.4], ['reeds', 1.2, -2.6], ['reeds', -0.6, 3.6]] },
-  { id: 'r3', chest: { coin: 22, crystal: 4 }, chestAt: [2.8, 0.2], i: -11, j: 2, biome: 'marsh', cost: { log: 46, stone: 30, crystal: 6 }, holes: [[0, 1]], finds: [['reeds', -1.4, -1.8], ['reeds', -1.2, 2.2]] },
+  { id: 'r3', chest: { coin: 22, crystal: 4 }, chestAt: [2.8, 0.2], i: -11, j: 2, biome: 'marsh', cost: { log: 46, stone: 30, crystal: 6, reed: 3 }, holes: [[0, 1]], finds: [['reeds', -1.4, -1.8], ['reeds', -1.2, 2.2]] },
   { id: 'r4', chest: { coin: 28, reed: 4 }, chestAt: [-3.4, -3.4], i: -11, j: 5, biome: 'marsh', cost: { log: 52, stone: 34, reed: 4 }, holes: [[1, 1], [2, 2]], finds: [['reeds', -2.7, 0.2], ['reeds', 0.2, -2.7], ['reeds', 2.6, 1.4], ['reeds', 1.0, 2.8]] },
   /* the coral beach, east of the village green over a bridge (coral.js). Its second square is an islet across a strait:
      the way there is a row of stepping stones that the tide covers and bares again (bridge.tide) */
   { id: 'c0', i: 6, j: 2, biome: 'coral', cost: { log: 44, stone: 30, reed: 3 }, finds: [['clam', 3.6, 3.8], ['clam', -3.8, 2.6]], bridge: { from: 'h3', x0: 17.4, z0: 7.5, x1: 22.6, z1: 7.5 } },
   { id: 'c1', i: 6, j: -2, biome: 'coral', cost: { stone: 40, log: 30, crystal: 10 }, ruin: [2.8, 0.6, -0.2], finds: [['clam', -3.5, -3.0], ['clam', 3.4, -2.2], ['clam', 0.5, -4.2], ['clam', -2.6, 1.8]], bridge: { from: 'c0', x0: 28, z0: 6.6, x1: 28, z1: 1.4, tide: 1 } },
   { id: 'c2', chest: { coin: 24, pearl: 1 }, i: 9, j: 2, biome: 'coral', cost: { log: 50, stone: 36, crystal: 8 }, finds: [['clam', 3.9, -3.6], ['clam', -2.4, 4.0]] },
-  { id: 'c3', chest: { coin: 30, pearl: 2 }, chestAt: [-3.4, -0.4], i: 12, j: 2, biome: 'coral', cost: { stone: 50, log: 40, crystal: 12 }, finds: [['clam', 4.2, 0.4], ['clam', 3.0, 4.0], ['clam', -1.0, -4.2]], ponds: [[0.2, 0.4, 2.3]] },
+  { id: 'c3', chest: { coin: 30, pearl: 2 }, chestAt: [-3.4, -0.4], i: 12, j: 2, biome: 'coral', cost: { stone: 50, log: 40, crystal: 12, pearl: 3 }, finds: [['clam', 4.2, 0.4], ['clam', 3.0, 4.0], ['clam', -1.0, -4.2]], ponds: [[0.2, 0.4, 2.3]] },
   { id: 'c4', chest: { coin: 36, crystal: 8 }, i: 9, j: -2, biome: 'coral', cost: { stone: 56, log: 44, pearl: 2 }, finds: [['clam', 4.0, -3.4], ['clam', 0.6, 4.2], ['clam', 4.2, 2.2]] },
   /* the ember island, south of the coral beach over a bridge that costs pearls (ember.js): one square under a volcano,
      cut in three by two streams of lava (EMBER below) */
@@ -3160,6 +3160,42 @@ const TOOL = (() => {
   o.re = () => ['axe', 'pick', 'shovel', 'sickle'].forEach((k) => { const g = o[k], v = g.visible; while (g.children.length) g.remove(g.children[0]); mk(k, g); g.visible = v; });
   return o;
 })();
+/* each tool of each family moves its own way (Leon 2026-11-28: "we need new animations for each new tool").
+   u runs 0..1 over one go; a/b = the two arms (b defaults to a), lean = body tip forward, yaw = body turn, hop = lift, shake = a fast judder;
+   at = when the hit lands. */
+const TOOL_ANIM_D = { axe1: 0.5, axe2: 0.6, axe3: 0.66, axe4: 0.62, pick1: 0.5, pick2: 0.56, pick3: 0.6, pick4: 0.66 };
+function toolChop(u, top, slam) { /* the overhead swing: up and back, then down hard */
+  if (u < 0.55) { const e = ease(u / 0.55); return { a: -0.35 - (top - 0.35) * e, lean: -0.12 * e * slam }; }
+  if (u < 0.72) { const e = (u - 0.55) / 0.17; return { a: -top + (top - 0.9) * e * e, lean: -0.12 * slam + 0.42 * slam * e }; }
+  const e = ease((u - 0.72) / 0.28); return { a: -0.9 + 0.5 * e, lean: 0.3 * slam * (1 - e) };
+}
+function toolMove(w, u) {
+  const sfx = (k, name, o) => { if (!w[k]) { w[k] = 1; Snd.play(name, o); } };
+  switch (w.anim) {
+    case 'axe2': { /* the double axe: a big heavy swing from far behind, and Pip bounces with the blow */
+      const m = toolChop(u, 3.15, 1.4); m.hop = u > 0.7 && u < 0.86 ? Math.sin((u - 0.7) / 0.16 * Math.PI) * 0.1 : 0; m.at = 0.72; return m; }
+    case 'axe3': { /* the bow saw: arms out front, three strokes back and forth, the body rocking along */
+      const s = Math.sin(u * Math.PI * 6), k = Math.floor(u * 3);
+      sfx('s' + k, 'swish', { gain: 0.22, f: 900 + k * 120 });
+      return { a: -1.4 + s * 0.28, b: -1.4 - s * 0.12, lean: 0.12 + s * 0.06, yaw: s * 0.14, at: 0.92 }; }
+    case 'axe4': { /* the great saw: Pip winds round to one side and sweeps it through the trunk in one long pull */
+      let yaw; if (u < 0.42) yaw = -1.05 * ease(u / 0.42); else if (u < 0.62) yaw = -1.05 + 2.0 * ease((u - 0.42) / 0.2); else yaw = 0.95 * (1 - ease((u - 0.62) / 0.38));
+      if (u > 0.42) sfx('s', 'whoosh', { gain: 0.25 });
+      return { a: -1.5, b: -1.45, lean: 0.1 + (u > 0.42 && u < 0.62 ? 0.12 : 0), yaw, at: 0.55 }; }
+    case 'pick2': { /* the mattock: two quick chops, tap-TAP, the second one counts */
+      const h = u < 0.45 ? u / 0.45 : (u - 0.45) / 0.55, m = toolChop(h, u < 0.45 ? 2.0 : 2.6, 1);
+      if (u >= 0.45 * 0.72) sfx('t1', 'tock', { gain: 0.3, f: 520 });
+      m.at = 0.45 + 0.55 * 0.72; return m; }
+    case 'pick3': { /* the rock drill: lean in, hold it down on the rock and rattle */
+      const In = ease(Math.min(1, u / 0.2)), out = u > 0.85 ? ease((u - 0.85) / 0.15) : 0;
+      if (u > 0.2) sfx('d', 'buzz', { gain: 0.3, f: 140 });
+      return { a: -0.9 * In - 0.35 * (1 - In) + out * 0.5, lean: 0.22 * In * (1 - out), shake: u > 0.2 && u < 0.85 ? 0.06 : 0, hop: u > 0.2 && u < 0.85 ? Math.abs(Math.sin(time * 60)) * 0.025 : 0, at: 0.82 }; }
+    case 'pick4': { /* the chime hammer: a hop up with the hammer high, and a ringing slam on landing */
+      const m = toolChop(u, 3.0, 1.2); m.hop = u < 0.66 ? Math.sin(Math.min(1, u / 0.66) * Math.PI) * 0.32 : 0;
+      if (u >= 0.72) sfx('c', 'bell', { gain: 0.3, f: 'E6' }); m.at = 0.72; return m; }
+    default: { const m = toolChop(u, 2.9, 1); m.at = 0.72; return m; } /* the hand axe, the pickaxe, the shovel, the sickle */
+  }
+}
 let work = null, toolHold = 0;
 function workStart(n) { work = { n, t: 0, hit: false, kind: n.kind }; }
 const ease = (u) => u * u * (3 - 2 * u);
@@ -3167,21 +3203,19 @@ function workStep(dt) {
   const R = limbs.filter((l) => l.arm), arm = R.find((l) => l.g.position.x < 0) || R[0], other = R.find((l) => l !== arm);
   if (arm) [TOOL.axe, TOOL.pick, TOOL.shovel, TOOL.sickle].forEach((t) => { if (t.parent !== arm.g) arm.g.add(t); });
   toolHold = Math.max(0, toolHold - dt);
-  if (!work) { TOOL.axe.visible = TOOL.pick.visible = TOOL.shovel.visible = TOOL.sickle.visible = false; pb.rotation.x *= Math.max(0, 1 - dt * 8); return; }
-  const w = work, n = w.n, hand = w.kind === 'bush' || w.kind === 'grass' || w.kind === 'shroom' || byHand(w.kind), D = hand ? 0.48 : 0.5;
+  if (!work) { TOOL.axe.visible = TOOL.pick.visible = TOOL.shovel.visible = TOOL.sickle.visible = false; pb.rotation.x *= Math.max(0, 1 - dt * 8); pb.rotation.y *= Math.max(0, 1 - dt * 8); return; }
+  const w = work, n = w.n, hand = w.kind === 'bush' || w.kind === 'grass' || w.kind === 'shroom' || byHand(w.kind);
+  if (!w.anim) { let tt = 1; try { tt = toolTierNow(); } catch (e) {} w.anim = hand ? 'hand' : (w.kind === 'tree' || w.kind === 'planks' ? 'axe' : NEED[w.kind] === 'pick' ? 'pick' : 'base') + tt; }
+  const D = hand ? 0.48 : TOOL_ANIM_D[w.anim] || 0.5;
   w.t += dt / D; const u = Math.min(1, w.t);
   pip.rotation.y = Math.atan2(n.x - pip.position.x, n.z - pip.position.z);
   TOOL.axe.visible = w.kind === 'tree' || w.kind === 'planks'; TOOL.pick.visible = !byHand(w.kind) && NEED[w.kind] === 'pick'; TOOL.shovel.visible = !byHand(w.kind) && NEED[w.kind] === 'shovel'; TOOL.sickle.visible = !byHand(w.kind) && NEED[w.kind] === 'sickle';
-  let a, b, lean;
+  let a, b, lean, yaw = 0, hop = 0, shake = 0;
   if (hand) { const s = Math.sin(u * Math.PI * 2); a = -1.25 + s * 0.35; b = -1.25 - s * 0.35; lean = 0.18 * Math.sin(u * Math.PI); if (!w.hit && u > 0.5) { w.hit = true; if (n.st === 'ready') nodeHit(n); } }
-  else {
-    if (u < 0.55) { const e = ease(u / 0.55); a = -0.35 - 2.55 * e; lean = -0.12 * e; }
-    else if (u < 0.72) { const e = (u - 0.55) / 0.17; a = -2.9 + 2.0 * e * e; lean = -0.12 + 0.42 * e; }
-    else { const e = ease((u - 0.72) / 0.28); a = -0.9 + 0.5 * e; lean = 0.3 * (1 - e); }
-    b = a; if (!w.hit && u >= 0.72) { w.hit = true; if (n.st === 'ready') nodeHit(n); }
-  }
-  if (!reduced) { if (arm) arm.g.rotation.x = a; if (other) other.g.rotation.x = b; pb.rotation.x = lean; }
-  if (u >= 1) { work = null; toolHold = 0.4; }
+  else { const m = toolMove(w, u); a = m.a; b = m.b === undefined ? a : m.b; lean = m.lean; yaw = m.yaw || 0; hop = m.hop || 0; shake = m.shake || 0;
+    if (!w.hit && u >= m.at) { w.hit = true; if (n.st === 'ready') nodeHit(n); } }
+  if (!reduced) { if (arm) arm.g.rotation.x = a; if (other) other.g.rotation.x = b; pb.rotation.x = lean; pb.rotation.y = yaw; pb.position.y += hop; if (shake) pb.rotation.z = Math.sin(time * 85) * shake; }
+  if (u >= 1) { work = null; toolHold = 0.4; pb.rotation.y = 0; }
 }
 
 /* ---------- start over: a button in the settings sheet; hold it until the ring is full, then the island starts fresh (copied from the farm's catalog.js) ----------
@@ -8173,11 +8207,11 @@ const LOOP_FOLK = {
 };
 const LOOP_MON = {
   harbor: { isle: 'home', need: () => ['h0', 'h1', 'h2', 'h3'].every((a) => HAS[a]) && (folk().smith || 0) >= 3, area: 'h2', cost: { log: 30, stone: 20 } },
-  windmill: { isle: 'meadow', need: () => HAS.m3 && (folk().baker || 0) >= 2, area: 'm3', cost: { log: 40, berry: 20, stone: 15 } },
-  lighthouse: { isle: 'stone', need: () => HAS.s2 && (folk().mason || 0) >= 2, area: 's2', cost: { stone: 50, log: 20, crystal: 6 } },
+  windmill: { isle: 'meadow', need: () => HAS.m3 && (folk().baker || 0) >= 2, area: 'm3', cost: { log: 40, berry: 20, stone: 15, honey: 6 } },
+  lighthouse: { isle: 'stone', need: () => HAS.s2 && (folk().mason || 0) >= 2, area: 's2', cost: { stone: 50, log: 20, crystal: 6, iron: 4 } },
   tower: { isle: 'winter', need: () => HAS.w1 && (folk().knitter || 0) >= 2, area: 'w1', cost: { crystal: 15, stone: 30, log: 30 } },
-  sluice: { isle: 'marsh', need: () => HAS.r0 && HAS.r1 && HAS.r2 && (folk().fisher || 0) >= 2, area: 'r2', cost: { log: 60, stone: 30, reed: 8 } },
-  bell: { isle: 'coral', need: () => HAS.c0 && HAS.c1 && (folk().diver || 0) >= 2, area: 'c0', cost: { stone: 60, crystal: 10, pearl: 5 } },
+  sluice: { isle: 'marsh', need: () => HAS.r0 && HAS.r1 && HAS.r2 && (folk().fisher || 0) >= 2, area: 'r2', cost: { log: 60, stone: 30, reed: 10 } },
+  bell: { isle: 'coral', need: () => HAS.c0 && HAS.c1 && (folk().diver || 0) >= 2, area: 'c0', cost: { stone: 60, crystal: 10, pearl: 7 } },
   hearth: { isle: 'ember', need: () => HAS.e0 && (folk().glass || 0) >= 2, area: 'e0', cost: { stone: 70, crystal: 16, ember: 4 } },
   /* the last wonder: its plot shows as soon as the harbour stands, so the goal is in sight all game, but it takes a find
      from every island (honey: meadow, iron: stone, reeds: marsh, pearls: coral, ember: volcano, crystals: winter and mine) */
@@ -8899,6 +8933,299 @@ function findStep(dt) {
 /* the finds an area holds, at fixed spots (rules.js) */
 function findFill(A, fresh) { (A.finds || []).forEach(([k, dx, dz], q) => { const n = makeNode(k, A.cx + dx, A.cz + dz, AREAS.indexOf(A) * 997 + 900 + q); if (fresh) { n.pop = 0.001; n.g.scale.setScalar(0.01); } }); }
 const findKeep = (a, x, z) => !!a.finds && a.finds.some((f) => Math.hypot(x - a.cx - f[1], z - a.cz - f[2]) < 1.5);
+/* ---------- the Meadow's craft: bee trails (Leon 2026-11-28: each island gets a new fun way of gathering, played a lot
+   on its own island, and now and then later, so the time there is play and not grinding) ----------
+   Honey is the Meadow's own material: its later parts and the windmill ask for it. Every Meadow square Pip owns has a
+   flower patch. When Pip walks up to it, a bee rises from the flowers and buzzes off across the island, leaving a glittering
+   trail. It waits whenever Pip falls behind. Where it stops, a wild hive pops up by the grass: Pip takes the comb (two honey,
+   four once the Bee Queen's garden is open), and the bee flies home. Each patch sends one bee a day.
+   Saved: state.isle.bees = { day, done: { area id: 1 } }. A wild hive is not saved: it is there until Pip takes it or
+   leaves the game. */
+const BT = { patch: {}, bee: null, sparks: [], geo: null };
+const BEE_ISLE = (A) => A && !A.secret && A.id[0] === 'm';
+const beeS = () => state.isle.bees || (state.isle.bees = { day: -1, done: {} });
+/* a free spot on owned Meadow ground: off roads, away from what stands there */
+function beeFree(x, z, r) {
+  const A = areaAt(x, z); if (!BEE_ISLE(A) || !HAS[A.id] || walkSdf(x, z) > -1.1 || campNear(x, z, 1.5) || tallKeep(A, x, z)) return false; /* out of the tall grass, so the hive is easy to see */
+  return !nodes.some((n) => n.st !== 'gone' && Math.hypot(n.x - x, n.z - z) < r);
+}
+function beePatchAt(A) { for (let k = 0; k < 40; k++) { const x = A.cx + (hash(k, 7300 + A.i * 13 + A.j) - 0.5) * 8.5, z = A.cz + (hash(k, 7400 + A.i * 7 - A.j) - 0.5) * 8.5; if (beeFree(x, z, 1.3)) return [x, z]; } return null; }
+/* the patch: a ring of bright flowers round one big golden one */
+function beePatchMake(A) {
+  const at = beePatchAt(A); if (!at) return null; const g = new T.Group(), L = []; g.position.set(at[0], 0, at[1]); sc.add(g); let q;
+  for (let k = 0; k < 9; k++) { const a = k / 9 * 6.28 + hash(k, 7500) * 0.5, r = 0.35 + hash(k, 7501) * 0.25, h = 0.22 + hash(k, 7502) * 0.14, col = ['#f07aa8', '#ffd84a', '#b78af0', '#ffffff'][k % 4];
+    q = new T.CylinderGeometry(0.012, 0.014, h, 4); q.translate(Math.cos(a) * r, h / 2, Math.sin(a) * r); L.push(fac(q, () => new T.Color('#4f8a3a'), 7510 + k));
+    q = new T.SphereGeometry(0.06, 7, 5); q.scale(1, 0.55, 1); q.translate(Math.cos(a) * r, h + 0.02, Math.sin(a) * r); L.push(fac(q, () => new T.Color(col), 7520 + k)); }
+  q = new T.CylinderGeometry(0.018, 0.02, 0.42, 5); q.translate(0, 0.21, 0); L.push(fac(q, () => new T.Color('#4f8a3a'), 7540));
+  for (let k = 0; k < 6; k++) { q = new T.SphereGeometry(0.07, 6, 4); q.scale(1.4, 0.35, 0.8); q.translate(0.08, 0.44, 0); q.rotateY(k / 6 * 6.28); L.push(fac(q, () => new T.Color('#ffc21e'), 7541 + k)); }
+  q = new T.SphereGeometry(0.055, 7, 5); q.translate(0, 0.46, 0); L.push(fac(q, () => new T.Color('#8a4a22'), 7550));
+  merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g); lookFoot(at[0], at[1], 0.6, 0.6);
+  return { id: A.id, x: at[0], z: at[1], g };
+}
+/* a bee: a striped body, a head, two wings that flap */
+function beeModel() {
+  const g = new T.Group(), L = []; let q = new T.SphereGeometry(0.11, 10, 8); q.scale(1.35, 1, 1); L.push(fac(q, (cx) => new T.Color(Math.floor((cx + 0.15) / 0.06) % 2 ? '#2b2420' : '#ffc21e'), 7560));
+  q = new T.SphereGeometry(0.07, 8, 6); q.translate(0.15, 0.02, 0); L.push(fac(q, () => new T.Color('#2b2420'), 7561));
+  merged(L, MAT, g); const wm = new T.MeshBasicMaterial({ color: '#eaf6ff', transparent: true, opacity: 0.8, side: T.DoubleSide }), W = [];
+  [-1, 1].forEach((s) => { const w = new T.Mesh(new T.CircleGeometry(0.09, 8), wm); w.scale.set(1.3, 0.7, 1); w.rotation.x = Math.PI / 2; w.position.set(-0.02, 0.1, s * 0.08); g.add(w); W.push(w); });
+  g.userData.w = W; g.scale.setScalar(1.25); sc.add(g); return g;
+}
+/* where today's bee goes from a patch: a spot on owned Meadow ground, some way off, the same all day */
+function beeGoal(P) {
+  const day = Math.floor(state.clock / DAY);
+  for (let k = 0; k < 60; k++) { const a = hash(k + day * 3, 7600 + P.id.charCodeAt(1)) * 6.28, d = 6 + hash(k + day, 7601) * 8, x = P.x + Math.cos(a) * d, z = P.z + Math.sin(a) * d; if (beeFree(x, z, 1.4)) return [x, z]; }
+  return null;
+}
+function beeStart(P) {
+  const goal = beeGoal(P); if (!goal) return; const g = beeModel(); g.position.set(P.x, 0.5, P.z);
+  BT.bee = { P, g, goal, st: 'go', t: 0, hive: null }; beeS().done[P.id] = 1; save();
+  Snd.play('buzz', { gain: 0.35 }); Snd.play('pop', { gain: 0.3, f: 760 }); burst(P.x, 0.6, P.z, 4);
+}
+function beeSpark(x, y, z) {
+  if (!BT.geo) BT.geo = new T.SphereGeometry(0.045, 5, 4);
+  const m = new T.Mesh(BT.geo, new T.MeshBasicMaterial({ color: '#ffe27a', transparent: true, opacity: 0.95 })); m.position.set(x, y, z); sc.add(m); BT.sparks.push({ m, t: 0 });
+}
+function beeStep(dt) {
+  if (!state.isle || inCave) return; const S = beeS(), day = Math.floor(state.clock / DAY), pp = pip.position;
+  if (S.day !== day) { S.day = day; S.done = {}; }
+  /* a patch for every owned Meadow square */
+  AREAS.forEach((A) => { if (BEE_ISLE(A) && HAS[A.id] && BT.patch[A.id] === undefined) BT.patch[A.id] = beePatchMake(A); });
+  /* the sparkles of the trail fade */
+  for (let k = BT.sparks.length - 1; k >= 0; k--) { const s = BT.sparks[k]; s.t += dt; s.m.material.opacity = Math.max(0, 0.95 - s.t / 2.2); s.m.position.y -= dt * 0.05; if (s.t > 2.2) { sc.remove(s.m); s.m.material.dispose(); BT.sparks.splice(k, 1); } }
+  /* walking up to a patch that has not sent its bee today */
+  if (!BT.bee && !enSleep) Object.keys(BT.patch).forEach((id) => { const P = BT.patch[id]; if (!P || S.done[id] || BT.bee) return; if (Math.hypot(pp.x - P.x, pp.z - P.z) < 1.8) beeStart(P); });
+  const B = BT.bee; if (!B) return; const g = B.g; B.t += dt;
+  g.userData.w.forEach((w, k) => { w.rotation.y = Math.sin(time * 60 + k * Math.PI) * 0.6; });
+  if (B.st === 'go') { /* off to the hive spot, waiting for Pip whenever Pip lags behind */
+    const dx = B.goal[0] - g.position.x, dz = B.goal[1] - g.position.z, d = Math.hypot(dx, dz), lag = Math.hypot(pp.x - g.position.x, pp.z - g.position.z), v = lag > 3.6 ? 0 : Math.min(2.4, 0.6 + d);
+    if (d > 0.05) { g.position.x += dx / d * Math.min(d, v * dt); g.position.z += dz / d * Math.min(d, v * dt); g.rotation.y = Math.atan2(-dz, dx); }
+    if (v === 0) { g.rotation.y += Math.sin(time * 3) * dt * 2; } /* hovering, turned back toward Pip */
+    g.position.y = 1.1 + Math.sin(time * 5) * 0.12 + Math.min(1, B.t) * 0.2;
+    if ((B.sp = (B.sp || 0) + dt) > 0.12 && v > 0) { B.sp = 0; beeSpark(g.position.x, g.position.y - 0.05, g.position.z); }
+    if (lag > 3.6 && (B.bz = (B.bz || 0) + dt) > 1.6) { B.bz = 0; Snd.play('buzz', { gain: 0.2 }); } /* come on! */
+    if (d < 0.1) { /* the wild hive */
+      const n = makeNode('hive', B.goal[0], B.goal[1], 7700 + day % 97); n.bee = 1; n.pop = 0.001; n.g.scale.setScalar(0.01); B.hive = n; B.st = 'wait'; B.t = 0;
+      Snd.play('secret', { gain: 0.4 }); burst(B.goal[0], 0.8, B.goal[1], 10); }
+  } else if (B.st === 'wait') { /* round and round the hive until Pip takes the comb */
+    const a = time * 2.4; g.position.set(B.goal[0] + Math.cos(a) * 0.7, 1.0 + Math.sin(time * 4) * 0.1, B.goal[1] + Math.sin(a) * 0.7); g.rotation.y = -a - Math.PI / 2;
+    if (B.hive.st !== 'ready') { B.st = 'home'; B.t = 0; B.hive.beeGone = 1; }
+  } else { /* home to its patch, and the empty hive goes */
+    const P = B.P, dx = P.x - g.position.x, dz = P.z - g.position.z, d = Math.hypot(dx, dz); g.position.x += dx / Math.max(d, 0.01) * Math.min(d, 3 * dt); g.position.z += dz / Math.max(d, 0.01) * Math.min(d, 3 * dt); g.position.y = 1.0 + B.t * 0.6; g.rotation.y = Math.atan2(-dz, dx);
+    if (B.t > 1.6 && B.hive) { B.hive.dead = 1; B.hive = null; }
+    if (d < 0.2 || B.t > 6) { sc.remove(g); BT.bee = null; }
+  }
+}
+ISLE_STEPS.push(beeStep);
+/* ---------- the Stone Isle's craft: the ore hunt (Leon 2026-11-28: each island gets a new fun way of gathering, played a
+   lot on its own island and now and then later, so the time there is play and not grinding) ----------
+   Iron is the Stone Isle's own material: its later parts and the lighthouse ask for it. Every Stone square Pip owns hides
+   one ore vein a day under the ground. On a square with a hidden vein, a glow ring circles Pip's feet: blue and slow far
+   away, orange, fast and ticking close by (warmer, colder: no reading). Right on top, the ground cracks and the vein pushes
+   up. Pip breaks it for three iron.
+   Saved: state.isle.ore = { day, done: { area id: 1 } }. A vein that has come up is not saved: it is there until Pip
+   breaks it or leaves the game. */
+const OH = { ring: null, tick: 0, vein: {} };
+const ORE_ISLE = (A) => A && !A.secret && A.id[0] === 's' && A.id[1] !== 'k';
+const oreS = () => state.isle.ore || (state.isle.ore = { day: -1, done: {} });
+const oreOffMesa = (A, x, z) => !(A.mesas || []).some((m) => Math.abs(x - A.cx - m.dx) < m.w / 2 + 0.8 && Math.abs(z - A.cz - m.dz) < m.d / 2 + 0.8) && !(A.lift && Math.hypot(x - A.cx - A.lift[0], z - A.cz - A.lift[1]) < 2.4); /* and clear of the lift */
+/* where today's vein lies in a square: open ground, off roads and mesas, away from what stands there, the same all day */
+function oreSpot(A) {
+  const day = Math.floor(state.clock / DAY);
+  for (let k = 0; k < 60; k++) {
+    const x = A.cx + (hash(k + day * 5, 7800 + A.i * 13 + A.j) - 0.5) * 8.6, z = A.cz + (hash(k + day * 7, 7801 + A.i * 7 - A.j) - 0.5) * 8.6;
+    if (areaAt(x, z) !== A || walkSdf(x, z) > -1.1 || campNear(x, z, 1.5) || !oreOffMesa(A, x, z)) continue;
+    if (nodes.some((n) => n.st !== 'gone' && Math.hypot(n.x - x, n.z - z) < 1.5)) continue;
+    return [x, z];
+  }
+  return null;
+}
+/* the glow ring at Pip's feet */
+function oreRing() {
+  const m = new T.Mesh(new T.RingGeometry(0.55, 0.72, 32), new T.MeshBasicMaterial({ color: '#7fc8ff', transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide }));
+  m.rotation.x = -Math.PI / 2; m.renderOrder = 3; sc.add(m); return m;
+}
+const ORE_COLD = new T.Color('#7fc8ff'), ORE_HOT = new T.Color('#ff8a2a');
+function oreStep(dt) {
+  if (!state.isle || inCave) return; const S = oreS(), day = Math.floor(state.clock / DAY), pp = pip.position;
+  if (S.day !== day) { S.day = day; S.done = {}; OH.spot = {}; }
+  OH.spot = OH.spot || {};
+  if (!OH.ring) OH.ring = oreRing();
+  const A = areaAt(pp.x, pp.z), R = OH.ring;
+  let warm = -1;
+  if (ORE_ISLE(A) && HAS[A.id] && !S.done[A.id] && !enSleep && !rising) {
+    if (OH.spot[A.id] === undefined) OH.spot[A.id] = oreSpot(A);
+    const at = OH.spot[A.id];
+    if (at) {
+      const d = Math.hypot(pp.x - at[0], pp.z - at[1]); warm = Math.max(0, Math.min(1, 1 - (d - 0.9) / 7));
+      if (d < 0.9) { /* found: the ground cracks and the vein comes up */
+        S.done[A.id] = 1; save();
+        const n = makeNode('iron', at[0], at[1], 7900 + day % 97); n.vein = 1; n.pop = 0.001; n.g.scale.setScalar(0.01);
+        Snd.play('secret', { gain: 0.4 }); Snd.play('impact', { gain: 0.3 }); burst(at[0], 0.5, at[1], 12); warm = -1;
+      }
+    }
+  }
+  /* the ring: blue and slow when cold, orange and quick when warm, with a tick that speeds up */
+  const on = warm >= 0; R.material.opacity += ((on ? 0.75 : 0) - R.material.opacity) * Math.min(1, dt * 5); R.visible = R.material.opacity > 0.02;
+  if (!R.visible) return;
+  R.position.set(pp.x, 0.06 + (pp.y || 0), pp.z);
+  if (on) {
+    R.material.color.copy(ORE_COLD).lerp(ORE_HOT, warm);
+    const rate = 0.9 + warm * 5; OH.ph = ((OH.ph || 0) + dt * rate) % 1; R.scale.setScalar(0.9 + OH.ph * 0.9 * (1 - warm * 0.4));
+    R.material.opacity = 0.75 * (1 - OH.ph * 0.7);
+    if ((OH.tick += dt) > 1 / rate) { OH.tick = 0; Snd.play('tick', { gain: 0.12 + warm * 0.2, f: 500 + warm * 900 }); }
+  }
+}
+ISLE_STEPS.push(oreStep);
+/* ---------- the Marsh's craft: the frog choir (Leon 2026-11-28: each island gets a new fun way of gathering, played a lot
+   on its own island and now and then later, so the time there is play and not grinding) ----------
+   Reeds are the Marsh's own material. Every Marsh square Pip owns has a ring of frogs on stones round a big lily stone.
+   When Pip steps on the lily stone, the frogs sing a little tune: one after another each lights up, hops and croaks its
+   own note. Pip walks to the frogs in the same order. A wrong frog just shakes its head and the tune plays again (never a
+   fail). When the whole tune is right, the frogs leap into the water and a thick bundle of reeds stands where they sat
+   (four reeds). The tune is three notes on the first square of the day, one note longer on each next square.
+   Saved: state.isle.frogs = { day, done: { area id: 1 } }. A reed bundle is not saved. */
+const FS = { choir: {}, play: null };
+const FROG_ISLE = (A) => A && !A.secret && A.id[0] === 'r';
+const frogS = () => state.isle.frogs || (state.isle.frogs = { day: -1, done: {} });
+const FROG_R = 1.7; /* how far the frogs sit from the lily stone */
+const FROG_NOTE = ['C5', 'E5', 'G5', 'A5', 'C6'], FROG_COL = ['#7cc56a', '#e6c44a', '#6fb3e0', '#e07aa8', '#b08ae0'];
+function frogFree(A, x, z, r, w) { const B = areaAt(x, z);
+  if ((A ? B !== A : !B || !HAS[B.id]) || walkSdf(x, z) > (w || -0.9) || campNear(x, z, 1.5)) return false; /* the frogs may sit on any owned ground next door */
+  return !nodes.some((n) => n.st !== "gone" && Math.hypot(n.x - x, n.z - z) < r + (n.kind === "tree" ? 1.3 : 0)); /* not under a tree crown, so the frogs are easy to see */
+}
+/* the choir's place: a lily stone with room for four frogs round it */
+function frogSpot(A) {
+  for (let k = 0; k < 160; k++) {
+    const x = A.cx + (hash(k, 8000 + A.i * 13 + A.j) - 0.5) * 8, z = A.cz + (hash(k, 8001 + A.i * 7 - A.j) - 0.5) * 7;
+    if (!frogFree(A, x, z, 1.0)) continue;
+    for (let r = 0; r < 6; r++) { const rot = r / 6 * 1.57;
+      if ([0, 1, 2, 3].every((q) => { const a = q / 4 * 6.28 + rot; return frogFree(null, x + Math.cos(a) * FROG_R, z + Math.sin(a) * FROG_R, 0.6, -0.4); })) return [x, z, rot]; }
+  }
+  return null;
+}
+function frogModel(col) {
+  const g = new T.Group(), L = []; let q = new T.SphereGeometry(0.2, 10, 8); q.scale(1, 0.72, 1.15); q.translate(0, 0.16, 0); L.push(fac(q, () => new T.Color(col), 8010));
+  [-1, 1].forEach((s) => { q = new T.SphereGeometry(0.07, 8, 6); q.translate(s * 0.09, 0.3, 0.12); L.push(fac(q, () => new T.Color('#ffffff'), 8011 + s));
+    q = new T.SphereGeometry(0.035, 6, 5); q.translate(s * 0.095, 0.31, 0.175); L.push(fac(q, () => new T.Color('#22303c'), 8013 + s));
+    q = new T.SphereGeometry(0.06, 6, 5); q.scale(1.4, 0.5, 1.2); q.translate(s * 0.17, 0.04, 0.12); L.push(fac(q, () => new T.Color(col).multiplyScalar(0.8), 8015 + s)); });
+  q = new T.SphereGeometry(0.1, 8, 6); q.scale(1.3, 0.35, 0.6); q.translate(0, 0.13, 0.2); L.push(fac(q, () => new T.Color('#f3e7b5'), 8017)); /* the throat that puffs */
+  merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g); return g;
+}
+function frogStoneGeo(r) { const q = new T.CylinderGeometry(r, r * 1.1, 0.16, 9); q.translate(0, 0.08, 0); return q; }
+function frogMake(A) {
+  const at = frogSpot(A); if (!at) return null; const g = new T.Group(); g.position.set(at[0], 0, at[1]); sc.add(g);
+  const L = []; let q = frogStoneGeo(0.62); L.push(fac(q, () => new T.Color('#9aa79a'), 8020));
+  q = new T.CircleGeometry(0.5, 14); q.rotateX(-Math.PI / 2); q.translate(0, 0.17, 0); L.push(fac(q, () => new T.Color('#4f9a52'), 8021)); /* the big lily leaf on top */
+  const frogs = [];
+  for (let k = 0; k < 4; k++) { const a = k / 4 * 6.28 + at[2], x = Math.cos(a) * FROG_R, z = Math.sin(a) * FROG_R;
+    q = frogStoneGeo(0.32); q.translate(x, 0, z); L.push(fac(q, () => new T.Color('#8b968b'), 8022 + k));
+    const f = frogModel(FROG_COL[k]); f.position.set(x, 0.16, z); f.rotation.y = Math.atan2(-x, -z); g.add(f); frogs.push({ g: f, x: at[0] + x, z: at[1] + z, lit: 0, hop: 0, no: 0 }); }
+  merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g); lookFoot(at[0], at[1], 0.7, 0.7);
+  return { id: A.id, x: at[0], z: at[1], g, frogs };
+}
+/* a frog sings: it hops, its throat puffs, its note plays */
+function frogSing(f, k) { f.lit = 1; f.hop = 1; Snd.play('ding', { gain: 0.32, f: FROG_NOTE[k] }); Snd.play('pop', { gain: 0.15, f: 260 + k * 60 }); }
+function frogStep(dt) {
+  if (!state.isle || inCave) return; const S = frogS(), day = Math.floor(state.clock / DAY), pp = pip.position;
+  if (S.day !== day) { S.day = day; S.done = {}; Object.values(FS.choir).forEach((C) => { if (C && C.gone) { C.gone = 0; C.frogs.forEach((f) => { f.g.visible = true; f.g.position.y = 0.16; }); } }); }
+  AREAS.forEach((A) => { if (FROG_ISLE(A) && HAS[A.id] && FS.choir[A.id] === undefined) FS.choir[A.id] = frogMake(A); });
+  /* the frogs themselves: hop and glow back down, a gone frog stays under */
+  Object.values(FS.choir).forEach((C) => { if (!C) return; C.frogs.forEach((f) => {
+    if (C.gone || S.done[C.id]) { f.g.visible = false; return; } f.g.visible = true;
+    f.hop = Math.max(0, f.hop - dt * 3); f.lit = Math.max(0, f.lit - dt * 1.6); f.no = Math.max(0, f.no - dt * 2.5);
+    f.g.position.y = 0.16 + Math.sin(f.hop * Math.PI) * 0.35; f.g.scale.set(1 + f.lit * 0.25, 1 + f.lit * 0.1, 1 + f.lit * 0.25); f.g.rotation.z = Math.sin(f.no * 20) * 0.35 * f.no; }); });
+  /* stepping on a lily stone starts that choir's tune */
+  if (!FS.play && !enSleep) Object.values(FS.choir).forEach((C) => {
+    if (!C || FS.play || S.done[C.id] || Math.hypot(pp.x - C.x, pp.z - C.z) > 0.7) return;
+    const len = Math.min(5, 3 + Object.keys(S.done).length), tune = [];
+    for (let k = 0; k < len; k++) { let v = Math.floor(hash(k + day * 11, 8030 + C.id.charCodeAt(1)) * 4) % 4; if (v === tune[k - 1]) v = (v + 1) % 4; tune.push(v); } /* never the same frog twice in a row */
+    FS.play = { C, tune, st: 'sing', k: 0, t: -0.4, at: 0, on: false }; Snd.play('blip', { gain: 0.25, f: 520 });
+  });
+  const P = FS.play; if (!P) return; const C = P.C;
+  if (P.st === 'sing') { /* the frogs sing the tune once, a note every 0.55 s */
+    P.t += dt; if (P.t >= 0) { if (P.k < P.tune.length) { frogSing(C.frogs[P.tune[P.k]], P.tune[P.k]); P.k++; P.t = -0.55; } else { P.st = 'copy'; P.at = 0; P.on = -1; } }
+  } else if (P.st === 'copy') { /* Pip walks to the frogs in the same order */
+    let near = -1; C.frogs.forEach((f, k) => { if (Math.hypot(pp.x - f.x, pp.z - f.z) < 0.85) near = k; });
+    if (near >= 0 && near !== P.on) {
+      if (near === P.tune[P.at]) { frogSing(C.frogs[near], near); P.at++; if (P.at >= P.tune.length) { P.st = 'won'; P.t = 0; } }
+      else { C.frogs[near].no = 1; Snd.play('blip', { gain: 0.2, f: 220 }); P.st = 'sing'; P.k = 0; P.t = -1.2; P.at = 0; } /* not that one: listen again */
+    }
+    P.on = near;
+    if (Math.hypot(pp.x - C.x, pp.z - C.z) > 7) FS.play = null; /* Pip walked away: the tune starts over next time */
+  } else if (P.st === 'won') { /* all the frogs sing together, leap into the water, and the reeds stand there */
+    P.t += dt;
+    if (P.t < 0.05) { C.frogs.forEach((f, k) => frogSing(f, k)); Snd.play('success', { gain: 0.4 }); }
+    if (P.t > 0.9) {
+      S.done[C.id] = 1; save(); C.frogs.forEach((f) => burst(f.x, 0.4, f.z, 4));
+      const a = Math.atan2(pp.z - C.z, pp.x - C.x) + Math.PI, n = makeNode('reeds', C.x + Math.cos(a) * 1.0, C.z + Math.sin(a) * 1.0, 8100 + day % 97);
+      n.choir = 1; n.pop = 0.001; n.g.scale.setScalar(0.01); Snd.play('secret', { gain: 0.4 }); FS.play = null;
+    }
+  }
+}
+ISLE_STEPS.push(frogStep);
+/* ---------- the Coral Isle's craft: shells in the waves (Leon 2026-11-28: each island gets a new fun way of gathering,
+   played a lot on its own island and now and then later, so the time there is play and not grinding) ----------
+   Pearls are the Coral Isle's own material. On every Coral square Pip owns, the waves wash glittering shells up on the
+   sand near the water. Each set of three stays only a short while, then the next wave takes them back with a splash and
+   brings new ones somewhere else (never a fail, the waves keep coming). Five shells over Pip's head make a string: it
+   shines and turns into two pearls. Each square gives one string a day.
+   Saved: state.isle.shells = { day, done: { area id: 1 } }. Shells on the sand and a half-made string are not saved. */
+const SW = { shells: [], beads: null, n: 0, wave: 0, area: null, geo: null };
+const SHELL_ISLE = (A) => A && !A.secret && A.id[0] === 'c';
+const shellS = () => state.isle.shells || (state.isle.shells = { day: -1, done: {} });
+const SHELL_STAY = 6.5, SHELL_GAP = 1.6, SHELL_NEED = 5;
+/* a sand spot by the water on this square, off roads and away from what stands there */
+function shellSpot(A, k0) {
+  for (let k = 0; k < 80; k++) {
+    const x = A.cx + (hash(k0 + k, 8200 + A.i * 13 + A.j) - 0.5) * 9.4, z = A.cz + (hash(k0 + k, 8201 + A.i * 7 - A.j) - 0.5) * 9.4, w = walkSdf(x, z);
+    if (areaAt(x, z) !== A || w > -0.35 || w < -1.6 || campNear(x, z, 1.2)) continue;
+    if (nodes.some((n) => n.st !== 'gone' && Math.hypot(n.x - x, n.z - z) < 1.0) || SW.shells.some((s) => Math.hypot(s.x - x, s.z - z) < 1.2)) continue;
+    return [x, z];
+  }
+  return null;
+}
+function shellMake(x, z, k) {
+  if (!SW.geo) { const q = new T.SphereGeometry(0.25, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2); q.scale(1, 0.6, 1.1); SW.geo = q; }
+  const col = ['#ffd2dc', '#fff1c9', '#cfe8ff'][k % 3], g = new T.Group();
+  const m = new T.Mesh(SW.geo, new T.MeshStandardMaterial({ color: col, roughness: 0.35, metalness: 0.1, emissive: col, emissiveIntensity: 0.35 })); m.castShadow = true; g.add(m);
+  for (let r = 0; r < 5; r++) { const s = new T.Mesh(new T.BoxGeometry(0.018, 0.05, 0.46), new T.MeshBasicMaterial({ color: '#c99a8a' })); s.rotation.y = (r - 2) * 0.32; s.position.y = 0.08; g.add(s); } /* the ribs */
+  g.position.set(x, 0.04, z); g.rotation.y = hash(k, 8210) * 6.28; g.scale.setScalar(0.01); sc.add(g);
+  return { g, x, z, t: 0, got: 0 };
+}
+/* the string over Pip's head: five beads, lit one by one */
+function shellBeads() {
+  const g = new T.Group(), L = [];
+  for (let k = 0; k < SHELL_NEED; k++) { const a = (k / (SHELL_NEED - 1) - 0.5) * 2.2, b = new T.Mesh(new T.SphereGeometry(0.075, 10, 8), new T.MeshStandardMaterial({ color: '#ffffff', roughness: 0.25, transparent: true, opacity: 0.3, emissive: '#fff4e0', emissiveIntensity: 0 }));
+    b.position.set(Math.sin(a) * 0.42, Math.cos(a) * 0.2, 0); g.add(b); L.push(b); }
+  g.userData.b = L; g.visible = false; sc.add(g); return g;
+}
+function shellClear(splash) { SW.shells.forEach((s) => { if (splash && !s.got) burst(s.x, 0.2, s.z, 3); sc.remove(s.g); }); SW.shells = []; }
+function shellStep(dt) {
+  if (!state.isle || inCave) return; const S = shellS(), day = Math.floor(state.clock / DAY), pp = pip.position;
+  if (S.day !== day) { S.day = day; S.done = {}; }
+  if (!SW.beads) SW.beads = shellBeads();
+  const A = areaAt(pp.x, pp.z), here = SHELL_ISLE(A) && HAS[A.id] && !S.done[A.id] && !enSleep && !rising ? A : null;
+  if (here !== SW.area) { shellClear(false); SW.area = here; SW.n = 0; SW.wave = 0.8; }
+  const B = SW.beads; B.visible = !!here && SW.n > 0; B.position.set(pp.x, 2.05 + (pp.y || 0), pp.z); B.quaternion.copy(cam.quaternion);
+  B.userData.b.forEach((b, k) => { const on = k < SW.n; b.material.opacity = on ? 1 : 0.3; b.material.emissiveIntensity = on ? 0.6 + Math.sin(time * 6 + k) * 0.2 : 0; });
+  if (!here) return;
+  /* the waves: a set of shells, then a splash, then the next set somewhere else */
+  if (!SW.shells.length) { SW.wave -= dt; if (SW.wave <= 0) {
+    for (let k = 0; k < 3; k++) { const at = shellSpot(here, Math.floor(time * 7) + k * 31); if (at) SW.shells.push(shellMake(at[0], at[1], k)); }
+    if (SW.shells.length) { Snd.play('whoosh', { gain: 0.22 }); SW.shells.forEach((s) => burst(s.x, 0.15, s.z, 3)); } SW.wave = SHELL_GAP; } return; }
+  let left = 0;
+  SW.shells.forEach((s) => { s.t += dt; if (s.got) return; left++;
+    const grow = Math.min(1, s.t / 0.35), sink = s.t > SHELL_STAY - 0.8 ? Math.max(0, (SHELL_STAY - s.t) / 0.8) : 1; s.g.scale.setScalar(Math.max(0.01, grow * sink * (1 + Math.sin(time * 5 + s.x) * 0.06)));
+    if (Math.hypot(pp.x - s.x, pp.z - s.z) < 0.7) { s.got = 1; sc.remove(s.g); SW.n++; Snd.play('ding', { gain: 0.3, f: ['C6', 'D6', 'E6', 'G6', 'A6'][Math.min(4, SW.n - 1)] }); burst(s.x, 0.4, s.z, 4); }
+  });
+  if (SW.n >= SHELL_NEED) { /* a full string: it shines and turns into two pearls */
+    S.done[here.id] = 1; state.isle.store.pearl = (state.isle.store.pearl || 0) + 2; invDirty = true; xpGain(XP_FOR.clam || 1); bldBadge(); save();
+    const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex('pearl', 2), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(pp.x, 2.2, pp.z); sc.add(sp); FD.floats.push({ sp, t: 0, y: 0.7 });
+    Snd.play('success', { gain: 0.4 }); burst(pp.x, 2.1, pp.z, 12); shellClear(true); SW.n = 0; SW.area = null; return;
+  }
+  if (!left || SW.shells[0].t > SHELL_STAY) { if (left) Snd.play('whoosh', { gain: 0.18, f: 300 }); shellClear(true); SW.wave = SHELL_GAP; } /* the wave takes the rest back */
+}
+ISLE_STEPS.push(shellStep);
 /* ---------- tall grass (Leon, 2026-11-25: each island should differ in how Pip gets about, not only in looks) ----------
    The meadow's way of moving: belts of grass taller than Pip stand across it, three clumps deep, and Pip cuts a lane
    through by hand. A clump is a node that cannot be walked through; cut, it is gone for good (state.isle.cut), so a lane
@@ -9089,7 +9416,7 @@ function gardenGateOpen(n) {
 /* the hedge plug shrinks away: the way north is open */
 function gardenDoor() { GD.doorOpen = 0.001; }
 /* honey from a hive: the Queen's own gives a big comb, and once she is found every hive gives double */
-const hiveGives = (n, c) => (n.kind !== 'hive' ? c : n.queen ? 5 : gardenOpen() ? c * 2 : c);
+const hiveGives = (n, c) => (n.vein ? 3 : n.choir ? 4 : n.kind !== 'hive' ? c : n.queen ? 5 : n.bee ? (gardenOpen() ? 4 : 2) : gardenOpen() ? c * 2 : c); /* a wild hive a bee led Pip to (beetrail.js) gives more */
 function gardenStep(dt) {
   if (!GD.g) return; const pp = pip.position;
   if (GD.pop) { GD.pop = Math.min(1, GD.pop + dt * 1.5); GD.g.scale.setScalar(GD.pop); if (GD.pop >= 1) GD.pop = 0; }

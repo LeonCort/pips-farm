@@ -50,6 +50,10 @@ loop.js
 hamlets.js
 gifts.js
 finds.js
+beetrail.js
+orehunt.js
+frogsong.js
+shellwave.js
 tall.js
 mesa.js
 garden.js
