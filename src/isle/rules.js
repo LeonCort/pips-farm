@@ -329,6 +329,7 @@ const CARGO = { on: 0, z: -1.0, x0: -5.7, x1: -8.5, berth: [-9.45, -1.0], pile: 
 const TRAVEL_HOME = { x: 2.7, z: 2.6 }, CAVE_FRIEND = { x: 8.8, z: 29.2 };
 const SPOT_AT = { tent: [-4.5, -1.5], fire: [-1.75, 0.75], dog: [-0.75, -2.7], gear: [-2.9, 2.9] }; /* gear has its bench in the start square: rain comes before the smithy does (Leon 2026-11-25, playtest) */ /* the upgrade rings in the camp (spots.js) */
 Object.keys(HAMLET_AT).forEach((id) => { const c = HAMLET_AT[id].crate; SPOT_AT['ham_' + id] = [c[0], c[1] + 1.3]; });
+SPOT_AT.tool3 = [HOUSES.mason.x + 1.35, HOUSES.mason.z + 1.3]; SPOT_AT.tool4 = [HOUSES.diver.x + 1.5, HOUSES.diver.z]; /* the mason and the pearl diver forge the next pair of tools at their door (tiers.js TOOL_FORGE) */
 const KENNEL = { x: -1.3, z: -3.7 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
   isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0, sickle: 0, shovel: 0 }, chests: {}, ruins: {}, store: { log: 0, stone: 0, berry: 0 } } }; }

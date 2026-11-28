@@ -644,7 +644,7 @@ function isleInit() {
   AREAS.forEach((A) => { if (HAS[A.id] && A.bridge) bridgeBuild(A, true); if (HAS[A.id] || drawn(A.i, A.j)) areaFill(A, false); });
   nodes.forEach((n) => { n.pop = 0; n.g.scale.setScalar(1); });
   chests.forEach((c) => { c.pop = 1; c.g.scale.setScalar(1); });
-  I.store = I.store || { log: 0, stone: 0, berry: 0 }; tierMigrate(I); if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit(); xpBuild(); peopleInit(); gearInit(); mapInit(); spotInit(); giftSync(false);
+  I.store = I.store || { log: 0, stone: 0, berry: 0 }; tierMigrate(I); toolPics(); TOOL.re(); if (typeof I.en !== 'number') I.en = enMax(); invBuild(); enBuild(); bldInit(); xpBuild(); peopleInit(); gearInit(); mapInit(); spotInit(); giftSync(false);
   isleSigns();
   pip.position.set(0, 0, 0.4); target.copy(pip.position); camFocus.copy(pip.position);
   dog.g.position.set(-1.2, 0, -0.6); petsInit();
@@ -796,12 +796,11 @@ const TOOL = (() => {
   const mk = (kind, g0) => { const g = g0 || new T.Group(), L = [], tc = (h) => toolCol(h, kind);
     let q = new T.CylinderGeometry(0.028, 0.032, 0.56, 7); q.translate(0, -0.6, 0); L.push(fac(q, '#a8774f', 1700));
     q = new T.CylinderGeometry(0.036, 0.036, 0.08, 7); q.translate(0, -0.36, 0); L.push(fac(q, '#6e4426', 1701)); /* grip */
-    if (kind === 'axe') { q = new T.BoxGeometry(0.06, 0.12, 0.13); q.translate(0, -0.84, 0.06); L.push(fac(q, () => tc('#8b939c'), 1702));
-      q = new T.BoxGeometry(0.05, 0.22, 0.1); q.translate(0, -0.84, 0.16); L.push(fac(q, (cx, cy, cz) => cz > 0.19 ? tc('#eef2f5') : tc('#b9c1c9'), 1703)); }
+    let tt = 1; try { tt = toolTierNow(); } catch (e) {}
+    if (kind === 'axe' || kind === 'pick') toolShape(kind, tt, L, tc); /* a tool of each family and tier (tiers.js) */
     else if (kind === 'shovel') { q = new T.BoxGeometry(0.03, 0.2, 0.16); q.translate(0, -0.96, 0); L.push(fac(q, (cx, cy) => tc(cy < -1.02 ? '#eef2f5' : '#b9c1c9'), 1708)); }
     else if (kind === 'sickle') { const c = new T.TorusGeometry(0.13, 0.022, 5, 12, Math.PI * 1.2); c.rotateY(Math.PI / 2); c.translate(0, -0.9, 0.1); L.push(fac(c, () => tc('#d4dade'), 1709)); }
-    else { q = new T.CylinderGeometry(0.035, 0.035, 0.08, 7); q.translate(0, -0.86, 0); L.push(fac(q, () => tc('#6e7680'), 1704));
-      [1, -1].forEach((k) => { const c = new T.ConeGeometry(0.045, 0.26, 6); c.rotateX(k * Math.PI / 2 + k * 0.25); c.translate(0, -0.85 + 0.03, k * 0.14); L.push(fac(c, () => tc('#b9c1c9'), 1705 + k)); }); }
+
     let sh = 0; try { sh = kind === 'axe' || kind === 'pick' ? toolSharp(kind) : 0; } catch (e) {}
     merged(L, MAT, g); g.scale.setScalar(1.35 * (1 + 0.08 * sh)); /* a sharpened tool is a little bigger */ g.position.y = 0.12; g.visible = false; return g; };
   const o = { axe: mk('axe'), pick: mk('pick'), shovel: mk('shovel'), sickle: mk('sickle') };
