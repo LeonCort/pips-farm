@@ -300,7 +300,7 @@ function skgStep(dt) {
   { const want = SKG.fly ? 1 : SKG.pend ? 0.6 : 0; if (want && !SKG.cam) SKG.cam = { d: CURVE.dist, a: CURVE.ahead, e: 0 };
     if (SKG.cam) { const C = SKG.cam; C.e += (want - C.e) * Math.min(1, dt * 1.5); CURVE.dist = C.d + 5.5 * C.e; CURVE.ahead = C.a + 1.8 * C.e; if (!want && C.e < 0.01) { CURVE.dist = C.d; CURVE.ahead = C.a; SKG.cam = null; } } }
   /* the kite waits at whichever end Pip is */
-  if (!SKG.fly) { const at = SKG.in ? SKG.tieG : SKG.tie; K.position.set(at[0], at[1], at[2]); K.rotation.set(0, SKG.in ? Math.atan2(SKG_WIND[0], SKG_WIND[1]) : -0.62, 0); K.userData.line.visible = true; skgKitePose(K, SKG.in ? 2.5 : 1.5, SKG.in ? 1.5 : 2.7, 1); }
+  if (!SKG.fly) { const at = SKG.in ? SKG.tieG : SKG.tie; K.position.set(at[0], at[1], at[2]); K.rotation.set(0, SKG.in ? Math.atan2(SKG_WIND[0], SKG_WIND[1]) : -0.62, 0); K.userData.line.visible = true; skgKitePose(K, SKG.in ? 2.5 : 0.9, SKG.in ? 1.5 : 3.1, 1); }
   if (SKG.veil) { const v = SKG.veil; v.visible = !inCave; v.position.y = reduced ? 0 : Math.sin(time * 0.5) * 0.08; v.rotation.y = reduced ? 0 : time * 0.03; if (HAS.s5) { v.scale.multiplyScalar(Math.max(0, 1 - dt * 1.6)); v.scale.y = v.scale.x; if (v.scale.x < 0.03) { sc.remove(v); SKG.veil = null; } } }
   if (!SKG.g) return; const g = SKG.g, W = SKG.w;
   if (SKG.pop) { SKG.pop = Math.min(1, SKG.pop + dt * 1.3); const s = SKG.pop; g.scale.setScalar(s < 0.75 ? s / 0.75 * 1.06 : 1.06 - (s - 0.75) / 0.25 * 0.06); if (SKG.pop >= 1) { SKG.pop = 0; g.scale.setScalar(1); } }
