@@ -43,7 +43,7 @@ const AREAS = [
   { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 34, berry: 16, stone: 20 }, bridge: { from: 'm2', x0: 17.4, z0: -16, x1: 22.6, z1: -16 },
     ice: { dx: 0.5, dz: -0.4, nx: 7, nz: 6, stop: [[0, 2], [6, 2], [3, 0], [3, 5], [0, 3], [1, 4], [4, 3]], gem: [[3, 2]] } },
   { id: 'w1', i: 6, j: -9, biome: 'snow', cost: { log: 40, stone: 30, crystal: 8 }, ruin: [-2.5, 1.5, 0], finds: [['frostflower', -4.6, -0.4]] },
-  { id: 'w2', chest: { coin: 20, crystal: 6 }, i: 9, j: -6, biome: 'snow', cost: { log: 44, stone: 34, berry: 20 }, finds: [['frostflower', -4.2, -3.8], ['frostflower', 1.0, -2.2]] },
+  { id: 'w2', chest: { coin: 20, crystal: 6 }, i: 9, j: -6, biome: 'snow', cost: { log: 44, stone: 34, berry: 20, crystal: 4 }, finds: [['frostflower', -4.2, -3.8], ['frostflower', 1.0, -2.2]] },
   { id: 'w3', chest: { coin: 25, crystal: 8 }, i: 9, j: -9, biome: 'snow', cost: { log: 50, stone: 40, crystal: 10 }, finds: [['frostflower', -4.2, 2.6], ['frostflower', 3.8, -3.8]] },
   { id: 'w4', chest: { coin: 35, crystal: 12 }, i: 9, j: -12, biome: 'snow', cost: { log: 60, stone: 44, crystal: 12 }, finds: [['frostflower', -4.2, 3.8], ['frostflower', 2.4, -0.6]] },
   /* the marsh island, west of the bakery over a bridge (marsh.js). holes: squares of the block that stay water. A channel
@@ -64,8 +64,8 @@ const AREAS = [
      cut in three by two streams of lava (EMBER below) */
   { id: 'e0', i: 6, j: 6, biome: 'ember', cost: { pearl: 4, log: 50, stone: 40 }, ruin: [-3.8, 4.2, 0.2], finds: [['cinder', 4.6, 0.6], ['cinder', 4.9, 3.4], ['cinder', 3.6, 5.0]], bridge: { from: 'c0', x0: 28, z0: 17.4, x1: 28, z1: 22.6 } },
   /* the rest of the ember island: ash fields round the volcano's foot (biome 'ash': set out by seed like any other land) */
-  { id: 'e1', chest: { coin: 30, ember: 1, gear: 'lantern' }, i: 9, j: 6, biome: 'ash', cost: { log: 56, stone: 46, crystal: 10 }, finds: [['cinder', 3.2, -3.4], ['cinder', -3.0, 3.6]] },
-  { id: 'e2', chest: { coin: 34, crystal: 10 }, i: 6, j: 9, biome: 'ash', cost: { stone: 60, log: 50, crystal: 12 }, finds: [['cinder', -3.6, 3.0], ['cinder', 2.6, 3.8]] },
+  { id: 'e1', chest: { coin: 30, ember: 1, gear: 'lantern' }, i: 9, j: 6, biome: 'ash', cost: { log: 56, stone: 46, crystal: 10, ember: 2 }, finds: [['cinder', 3.2, -3.4], ['cinder', -3.0, 3.6]] },
+  { id: 'e2', chest: { coin: 34, crystal: 10 }, i: 6, j: 9, biome: 'ash', cost: { stone: 60, log: 50, crystal: 12, ember: 2 }, finds: [['cinder', -3.6, 3.0], ['cinder', 2.6, 3.8]] },
   { id: 'e3', chest: { coin: 40, ember: 2 }, chestAt: [-3.2, 2.6], i: 9, j: 9, biome: 'ash', cost: { stone: 64, log: 54, ember: 2 }, finds: [['cinder', 3.4, 3.2], ['cinder', -3.4, -2.6], ['cinder', 0.4, 4.2]], ponds: [[0.4, 0, 1.8]] },
   { id: 'e4', chest: { coin: 50, ember: 2, pearl: 2 }, i: 12, j: 6, biome: 'ash', cost: { stone: 70, log: 60, ember: 3 }, finds: [['cinder', 3.8, -2.8], ['cinder', 2.4, 3.6], ['cinder', -3.0, -3.6]] },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */

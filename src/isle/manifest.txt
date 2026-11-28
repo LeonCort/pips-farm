@@ -54,6 +54,8 @@ beetrail.js
 orehunt.js
 frogsong.js
 shellwave.js
+snowroll.js
+urnfire.js
 tall.js
 mesa.js
 garden.js

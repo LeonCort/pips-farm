@@ -57,10 +57,13 @@ function scootStep() {
    (drawn where it is BEHIND something), so Pip's own body never sets it off. */
 const SIL = { sp: null };
 function silStep() {
-  if (!SIL.sp) { const c = document.createElement('canvas'); c.width = 128; c.height = 176; const x = c.getContext('2d'); x.lineJoin = 'round'; x.lineWidth = 7; x.strokeStyle = 'rgba(34,48,60,.9)'; x.fillStyle = 'rgba(255,246,228,.9)';
-    x.beginPath(); x.roundRect(36, 86, 56, 62, 20); x.fill(); x.stroke(); x.beginPath(); x.roundRect(42, 140, 18, 28, 8); x.fill(); x.stroke(); x.beginPath(); x.roundRect(68, 140, 18, 28, 8); x.fill(); x.stroke();
-    x.beginPath(); x.arc(64, 56, 36, 0, 7); x.fill(); x.stroke(); x.beginPath(); x.arc(64, 50, 36, Math.PI, 0); x.closePath(); x.fillStyle = 'rgba(242,154,46,.9)'; x.fill(); x.stroke();
-    const m = new T.SpriteMaterial({ map: new T.CanvasTexture(c), transparent: true, opacity: 0.85, depthFunc: T.GreaterDepth, depthWrite: false, fog: false });
+  if (!SIL.sp) { const c = document.createElement('canvas'); c.width = 128; c.height = 176; const x = c.getContext('2d'); x.lineJoin = 'round';
+    /* only the outline (Leon 2026-11-28: the filled cut-out was too strong, the outline is what shows where Pip is):
+       every part is stroked twice, dark then light, and then the inside of the whole shape is cut away */
+    const shape = () => { x.beginPath(); x.roundRect(36, 86, 56, 62, 20); x.roundRect(42, 140, 18, 28, 8); x.roundRect(68, 140, 18, 28, 8); x.moveTo(100, 56); x.arc(64, 56, 36, 0, 7); };
+    shape(); x.lineWidth = 12; x.strokeStyle = 'rgba(34,48,60,.85)'; x.stroke(); x.lineWidth = 6; x.strokeStyle = 'rgba(255,246,228,1)'; x.stroke();
+    x.globalCompositeOperation = 'destination-out'; shape(); x.fillStyle = '#000'; x.fill(); x.globalCompositeOperation = 'source-over';
+    const m = new T.SpriteMaterial({ map: new T.CanvasTexture(c), transparent: true, opacity: 0.95, depthFunc: T.GreaterDepth, depthWrite: false, fog: false });
     SIL.sp = new T.Sprite(m); SIL.sp.scale.set(0.95, 1.3, 1); SIL.sp.renderOrder = 999; sc.add(SIL.sp); }
   const p = pip.position, dx = cam.position.x - p.x, dy = cam.position.y - (p.y + 0.72), dz = cam.position.z - p.z, l = Math.hypot(dx, dy, dz) || 1, k = 0.75;
   SIL.sp.visible = !inHouse && !enSleep && pip.visible; SIL.sp.position.set(p.x + dx / l * k, p.y + 0.72 + dy / l * k, p.z + dz / l * k);
