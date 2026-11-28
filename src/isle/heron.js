@@ -234,7 +234,7 @@ function heronCroak(k, soft) { const f = HR.frogs[k]; if (!f) return; f.croak = 
 function heronChoirStep(dt, near) {
   const S = heronS(), p = pip.position, F = HR.frogs;
   /* which pad Pip stands on: he has to be out on the pad itself, off the bank */
-  let on = -1; if (near && !HR.busy && !SC.ride && p.y < -0.2) F.forEach((f, k) => { const q = HERON.pads[k]; if (Math.hypot(p.x - q[0], p.z - q[1]) < q[2]) on = k; });
+  let on = -1; if (near && !HR.busy && !SC.ride && p.y < -0.12) F.forEach((f, k) => { const q = HERON.pads[k]; if (Math.hypot(p.x - q[0], p.z - q[1]) < q[2]) on = k; });
   if (on !== HR.on) { HR.on = on; if (on >= 0 && !HR.sing) { heronCroak(on); HR.idle = 0; HR.demo = null;
     if (!S.choir) { if (on === HERON_ORDER[HR.prog]) { F[on].lit = 1; HR.prog++; if (HR.prog >= HERON_ORDER.length) { HR.sing = { t: -0.7, k: -1 }; HR.prog = 0; } }
       else { HR.prog = 0; F.forEach((f, k) => { f.lit = 0; f.hop = 0.001 - k * 0.07; }); Snd.play('pop', { gain: 0.3, f: 420 }, 0.2); Snd.play('pop', { gain: 0.3, f: 360 }, 0.32); HR.idle = 2.2; } } } }
