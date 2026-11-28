@@ -50,6 +50,7 @@ const mineLook = (x, z) => { const A = areaAt(x, z); return (A && MINE_LOOK[A.id
 const MINE_RAIL = [[10.2, 34.9], [9.3, 34.9], [7.0, 34.9], [5.0, 34.7], [3.2, 34.1], [0.8, 32.6], [-1.6, 30.6], [-3.6, 29.6], [-5.0, 29.4], [-7.0, 29.4], [-8.6, 29.5], [-10.3, 29.5]];
 const MINE_CART = { a: [9.3, 34.9], b: [-9.4, 29.5], ringA: [9.3, 33.55], ringB: [-9.4, 30.85] };
 const MINE_LAKE = { x: 0, z: 44.4, r: 2.5, mat: [0, 45.75] };
+const MINE_Y = 0.045; /* the mine's stone floor lies this far over the ground; mats, rings and Pip stand on it */
 const CV = { g: null, lights: [], spots: [], solid: [], mats: [], da: 0, dim: 1, lamp: null, rail: null, drain: 0, clat: 0, heading: 0, lean: 0, hum: 0, twk: null, gain: [] };
 const cvQ = (q) => (q.index ? q.toNonIndexed() : q);
 /* how far a point is inside the mine's floor (below 0: on it). all: every door counts as open (for building the walls) */
@@ -163,6 +164,7 @@ function mineNode(kind, x, z, sd, tier) {
   if (tier && tier !== n.tier) { const s = tier > n.tier ? 1.18 : 0.87; n.tier = tier; n.hp = nodeHits(n); n.full *= s; n.main.scale.setScalar(n.full); }
   return n;
 }
+function mineChest(x, z, loot, idx) { const c = makeChest(x, z, loot, idx); c.ring.position.y = MINE_Y + 0.035; c.g.position.y = MINE_Y; return c; }
 /* the cart: an iron-bound wooden tub on four wheels, a lantern on a pole at its front (+z) */
 function mineCartMesh() {
   const g = new T.Group(), L = [], GL = []; let q;
@@ -189,7 +191,7 @@ function mineBuild() {
   CV.glowMat = new T.MeshBasicMaterial({ vertexColors: true });
   const WALL = (x, z) => mineLook(x, z)[0];
   /* the floor: one sheet of stone over all six rooms, each room in its own colour; darker under the walls, gravel under the rail, wet round the lake */
-  { q = new T.PlaneGeometry(37.6, 26.4, 75, 53); q.rotateX(-Math.PI / 2); q.translate(0, 0, 38); const P = q.attributes.position; for (let i = 0; i < P.count; i++) P.setY(i, 0.013 + hash(Math.round(P.getX(i) * 4), Math.round(P.getZ(i) * 4), 77) * 0.016);
+  { q = new T.PlaneGeometry(37.6, 26.4, 75, 53); q.rotateX(-Math.PI / 2); q.translate(0, 0, 38); const P = q.attributes.position; for (let i = 0; i < P.count; i++) P.setY(i, 0.05 + hash(Math.round(P.getX(i) * 4), Math.round(P.getZ(i) * 4), 77) * 0.016); /* the ground under it rolls up to 0.04 */
     const gr = new T.Color('#4f4a46'), wet = new T.Color('#2f4658'), bed = new T.Color('#27394a'), lk = MINE_LAKE;
     const m = new T.Mesh(cvPaint(q, (x, y, z, i) => { const c = tone(mineLook(x, z)[1], i, 0.6), s = mineSdf(x, z, true), dl = Math.hypot(x - lk.x, z - lk.z);
       if (s > -1.0) c.multiplyScalar(0.72 + 0.28 * clamp(-s, 0, 1)); if (mineRailD(x, z) < 0.6) c.lerp(gr, 0.6);
@@ -203,7 +205,7 @@ function mineBuild() {
     for (let s = 0; s < 6; s++) { q = new T.BoxGeometry(1.4, 0.18 + s * 0.18, 0.32); q.translate(sx, (0.18 + s * 0.18) / 2, sz + s * 0.3); L.push(fac(q, (cx, cy, cz, i) => tone('#a69c8a', i + s, 0.5), 2300 + s)); }
     const shaft = new T.Mesh(new T.CylinderGeometry(0.55, 0.95, 2.6, 14, 1, true), new T.MeshBasicMaterial({ color: '#fff3c4', transparent: true, opacity: 0.12, depthWrite: false, side: T.DoubleSide })); shaft.position.set(sx, 1.9, sz + 1.1); g.add(shaft);
     CAVE_IN.x = sx; CAVE_IN.z = sz - 2.1; CV.lights.push({ x: sx, y: 0.6, z: sz + 0.2, r: 3.6 });
-    const M = A.mat = stairMat('up', sx, sz - 0.9); M.ok = () => inCave; M.to = () => CAVE_OUT; M.cave = false; CV.mats.push(M);
+    const M = A.mat = stairMat('up', sx, sz - 0.9, MINE_Y); M.ok = () => inCave; M.to = () => CAVE_OUT; M.cave = false; CV.mats.push(M);
     cvLamp(L, GL, 7.75, 30.55, 0.3, 0.2, 3000); cvLamp(L, GL, 10.6, 36.2, -0.3, -0.15, 3010); cvFrame(L, 7.2, 32, Math.PI / 2, 2.0, 2.05, 3020);
     cvStalag(L, 16.3, 27.9, 1.5, 0.42, WALL(16, 28), 3030); cvStalag(L, 15.6, 27.5, 0.9, 0.3, WALL(16, 28), 3031); cvStalag(L, 8.0, 36.0, 0.8, 0.3, WALL(8, 36), 3032);
     cvRock(L, 11.2, 34.9, 0.3, 0.34, '#8a8074', 3035); q = new T.BoxGeometry(0.16, 0.42, 0.9); q.translate(10.55, 0.21, 34.9); L.push(fac(q, '#6e4a2c', 3036)); /* the buffer at the rail's end */
@@ -225,20 +227,20 @@ function mineBuild() {
 
   /* ---- the rail, the two tunnels through the rock, the two parked carts ---- */
   { const cur = new T.CatmullRomCurve3(MINE_RAIL.map((p) => new T.Vector3(p[0], 0, p[1])), false, 'catmullrom', 0.5), P = cur.getSpacedPoints(96), R = [];
-    CV.rail = P.map((p) => [p.x, 0.03, p.z]);
+    CV.rail = P.map((p) => [p.x, MINE_Y + 0.02, p.z]);
     for (let k = 0; k + 1 < P.length; k++) { const a = P[k], b = P[k + 1], dx = b.x - a.x, dz = b.z - a.z, len = Math.hypot(dx, dz), ang = Math.atan2(dz, dx), nx = -dz / len, nz = dx / len;
-      [-0.27, 0.27].forEach((o) => { q = new T.BoxGeometry(len + 0.03, 0.07, 0.06); q.rotateY(-ang); q.translate((a.x + b.x) / 2 + nx * o, 0.085, (a.z + b.z) / 2 + nz * o); R.push(cvPaint(q, (cx, cy) => new T.Color(cy > 0.1 ? '#aab2bb' : '#6c737d'))); });
-      if (k % 2 === 0) { q = new T.BoxGeometry(0.13, 0.05, 0.86); q.rotateY(-ang); q.translate(a.x, 0.045, a.z); R.push(cvPaint(q, (cx, cy, cz, i) => tone('#6e4a2c', k + i, 0.6))); } }
+      [-0.27, 0.27].forEach((o) => { q = new T.BoxGeometry(len + 0.03, 0.07, 0.06); q.rotateY(-ang); q.translate((a.x + b.x) / 2 + nx * o, 0.125, (a.z + b.z) / 2 + nz * o); R.push(cvPaint(q, (cx, cy) => new T.Color(cy > 0.14 ? '#aab2bb' : '#6c737d'))); });
+      if (k % 2 === 0) { q = new T.BoxGeometry(0.13, 0.05, 0.86); q.rotateY(-ang); q.translate(a.x, 0.085, a.z); R.push(cvPaint(q, (cx, cy, cz, i) => tone('#6e4a2c', k + i, 0.6))); } }
     const rm = merged(R, MAT, g); rm.castShadow = false;
     CV.planks = new T.Group(); g.add(CV.planks); const PL = [];
     [[6.0, 34.85, 7.3], [-6.0, 29.4, -7.3]].forEach(([x, z, mx], k) => { q = new T.BoxGeometry(2.7, 0.5, 2.3); jit(q, 0.06, 3300 + k); q.translate(x, 1.85, z); L.push(fac(q, (cx, cy, cz, i) => tone('#3d3733', i, 0.6), 3300 + k));
       cvFrame(L, x + 1.25, z, Math.PI / 2, 1.5, 1.5, 3310 + k * 20); cvFrame(L, x - 1.25, z, Math.PI / 2, 1.5, 1.5, 3320 + k * 20);
       [-0.6, 0.6].forEach((rz, j) => { q = new T.BoxGeometry(0.07, 0.2, 1.9); q.rotateX(rz); q.translate(mx, 0.8, z); PL.push(fac(q, (cx, cy, cz, i) => tone(j ? '#c99f6c' : '#b08454', i, 0.3), 3350 + k * 2 + j)); }); });
     merged(PL.map(cvQ), MAT, CV.planks);
-    CV.cartA = mineCartMesh(); CV.cartA.position.set(MINE_CART.a[0], 0.03, MINE_CART.a[1]); CV.cartA.rotation.y = -Math.PI / 2; g.add(CV.cartA);
-    CV.cartB = mineCartMesh(); CV.cartB.position.set(MINE_CART.b[0], 0.03, MINE_CART.b[1]); CV.cartB.rotation.y = Math.PI / 2; g.add(CV.cartB);
+    CV.cartA = mineCartMesh(); CV.cartA.position.set(MINE_CART.a[0], MINE_Y + 0.02, MINE_CART.a[1]); CV.cartA.rotation.y = -Math.PI / 2; g.add(CV.cartA);
+    CV.cartB = mineCartMesh(); CV.cartB.position.set(MINE_CART.b[0], MINE_Y + 0.02, MINE_CART.b[1]); CV.cartB.rotation.y = Math.PI / 2; g.add(CV.cartB);
     CV.lights.push({ x: MINE_CART.a[0], y: 1.1, z: MINE_CART.a[1], r: 2.4, fl: 5 }, { x: MINE_CART.b[0], y: 1.1, z: MINE_CART.b[1], r: 2.4, fl: 6 });
-    const A = MINE_CART; ringMake({ x: A.ringA[0], z: A.ringA[1], y: 0.03, icon: 'cart', cave: 1, ok: () => !!mineS().cart, go: () => mineRide(false) }); ringMake({ x: A.ringB[0], z: A.ringB[1], y: 0.03, icon: 'cart', cave: 1, ok: () => !!mineS().cart, go: () => mineRide(true) }); }
+    const A = MINE_CART; ringMake({ x: A.ringA[0], z: A.ringA[1], y: MINE_Y, icon: 'cart', cave: 1, ok: () => !!mineS().cart, go: () => mineRide(false) }); ringMake({ x: A.ringB[0], z: A.ringB[1], y: MINE_Y, icon: 'cart', cave: 1, ok: () => !!mineS().cart, go: () => mineRide(true) }); }
 
   /* ---- the lake room: dark water, something huge glittering under it; a little jetty; the picture of what would drain it ---- */
   { const K = MINE_LAKE, wl = WALL(0, 44);
@@ -251,20 +253,20 @@ function mineBuild() {
     CV.spireMat = crystalMat.clone(); CV.spireMat.emissive = new T.Color('#3fa0d8'); CV.spireMat.emissiveIntensity = 0.75; const SP = [];
     [[-1.75, -1.15, 1.9, 0], [-0.65, -1.9, 2.6, 1], [0.85, -1.8, 2.1, 2], [1.9, -0.85, 1.5, 3], [-2.1, 0.15, 1.2, 1], [2.1, 0.5, 1.0, 0], [-1.3, 1.6, 0.7, 2], [1.4, 1.5, 0.6, 3]].forEach(([dx, dz, h, c], k) => {
       cvCluster(SP, dx, dz, h, [['#ffd9ec', '#f29ac0', '#ffffff'], ['#d8f6ff', '#7fd3ef', '#ffffff'], ['#fff0c0', '#f7c948', '#ffffff'], ['#e7dbff', '#9f7ff0', '#ffffff']][c], 3500 + k * 10, 3); CV.solid.push([K.x + dx, K.z + dz, 0.2 + h * 0.2, () => !!mineS().lake]); });
-    CV.spires = merged(SP, CV.spireMat, g); CV.spires.position.set(K.x, 0.03, K.z); CV.spires.castShadow = false;
+    CV.spires = merged(SP, CV.spireMat, g); CV.spires.position.set(K.x, 0.06, K.z); CV.spires.castShadow = false;
     const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), gr = x.createRadialGradient(64, 64, 4, 64, 64, 62); gr.addColorStop(0, 'rgba(190,240,255,0.95)'); gr.addColorStop(0.4, 'rgba(110,200,255,0.4)'); gr.addColorStop(1, 'rgba(80,160,255,0)'); x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
     for (let k = 0; k < 10; k++) { x.save(); x.translate(64, 64); x.rotate(k * 0.628 + 0.2); x.fillStyle = 'rgba(230,250,255,' + (k % 2 ? 0.5 : 0.28) + ')'; x.beginPath(); x.moveTo(0, -5); x.lineTo(k % 2 ? 58 : 44, 0); x.lineTo(0, 5); x.closePath(); x.fill(); x.restore(); }
-    q = new T.CircleGeometry(K.r * 0.95, 32); q.rotateX(-Math.PI / 2); CV.glint = new T.Mesh(q, new T.MeshBasicMaterial({ map: new T.CanvasTexture(c), transparent: true, depthWrite: false, blending: T.AdditiveBlending })); CV.glint.position.set(K.x, 0.1, K.z); g.add(CV.glint);
+    q = new T.CircleGeometry(K.r * 0.95, 32); q.rotateX(-Math.PI / 2); CV.glint = new T.Mesh(q, new T.MeshBasicMaterial({ map: new T.CanvasTexture(c), transparent: true, depthWrite: false, blending: T.AdditiveBlending })); CV.glint.position.set(K.x, 0.13, K.z); g.add(CV.glint);
     q = new T.CircleGeometry(1, 40); q.rotateX(-Math.PI / 2); { const P = q.attributes.position; for (let i = 1; i < P.count; i++) { const a = Math.atan2(P.getZ(i), P.getX(i)), r = K.r + 0.1 + Math.sin(a * 3 + 1) * 0.07 + Math.sin(a * 7) * 0.04; P.setXYZ(i, Math.cos(a) * r, 0, Math.sin(a) * r); } }
-    CV.water = new T.Mesh(q, new T.MeshStandardMaterial({ color: '#0e2a3d', roughness: 0.12, metalness: 0.35, transparent: true, opacity: 0.78, depthWrite: false })); CV.water.position.set(K.x, 0.15, K.z); CV.water.renderOrder = 2; g.add(CV.water);
+    CV.water = new T.Mesh(q, new T.MeshStandardMaterial({ color: '#0e2a3d', roughness: 0.12, metalness: 0.35, transparent: true, opacity: 0.78, depthWrite: false })); CV.water.position.set(K.x, 0.18, K.z); CV.water.renderOrder = 2; g.add(CV.water);
     CV.hint = isleSprite(isleBubble('drain'), 1.2); CV.hint.position.set(K.x, 2.0, K.z - 0.4); g.add(CV.hint);
     /* the way down, bare once the water is gone: a round shaft with a stair winding into it, light coming up */
-    const pit = CV.pit = new T.Group(); pit.position.set(K.x, 0.05, K.z); g.add(pit);
+    const pit = CV.pit = new T.Group(); pit.position.set(K.x, 0.09, K.z); g.add(pit);
     q = new T.CircleGeometry(0.98, 28); q.rotateX(-Math.PI / 2); pit.add(new T.Mesh(q, new T.MeshBasicMaterial({ color: '#0c1420' })));
     for (let s = 0; s < 8; s++) { q = new T.RingGeometry(0.3, 0.96, 4, 1, 1.2 - s * 0.72, 0.66); q.rotateX(-Math.PI / 2); const m = new T.Mesh(q, new T.MeshBasicMaterial({ color: new T.Color('#9fb6c8').multiplyScalar(1 - s * 0.115) })); m.position.y = 0.006; pit.add(m); }
     const PR = []; for (let k = 0; k < 12; k++) { const a = k / 12 * 6.283; cvRock(PR, Math.cos(a) * 1.1, Math.sin(a) * 1.1, 0.2 + hash(k, 3600) * 0.08, 0.2, '#6f8294', 3601 + k); } merged(PR.map(cvQ), MAT, pit);
     const sh = new T.Mesh(new T.CylinderGeometry(1.25, 0.8, 3.2, 16, 1, true), new T.MeshBasicMaterial({ color: '#9fe4ff', transparent: true, opacity: 0.13, depthWrite: false, side: T.DoubleSide, blending: T.AdditiveBlending })); sh.position.y = 1.6; pit.add(sh); CV.pitSh = sh;
-    const M = CV.lakeMat = stairMat('down', K.mat[0], K.mat[1]); M.ok = () => inCave && !!mineS().lake && !CV.drain && !!CATH.in; M.to = () => CATH.in; M.cave = true; CV.mats.push(M);
+    const M = CV.lakeMat = stairMat('down', K.mat[0], K.mat[1], MINE_Y); M.ok = () => inCave && !!mineS().lake && !CV.drain && !!CATH.in; M.to = () => CATH.in; M.cave = true; CV.mats.push(M);
     CV.solid.push([K.x, K.z, K.r + 0.3, () => !mineS().lake], [K.x, K.z, 1.2, () => !!mineS().lake]);
     CV.lights.push({ x: K.x, y: 0.2, z: K.z, r: 3.4 }, { x: K.x, y: 0.4, z: K.z, r: 5.2, on: () => !!mineS().lake }); CV.spots.push({ x: K.x, y: 1.5, z: K.z, c: '#6fd0ff', i: 1.3 });
     [['crystal', 3.7, 47.3, 2], ['crystal', -3.8, 47.2, 2], ['crystal', 3.3, 40.6, 2], ['rock', -2.6, 40.3]].forEach(([k, x, z, t], n) => mineNode(k, x, z, 3620 + n, t)); mineLake(); }
@@ -274,7 +276,7 @@ function mineBuild() {
     [[12.0, 39.75, 2.3], [15.75, 41.3, 1.9], [16.5, 44.9, 2.5], [8.7, 40.9, 1.6], [9.0, 47.6, 1.0], [15.2, 47.8, 1.1], [13.6, 39.9, 1.2]].forEach(([x, z, h], k) => { cvCluster(C, x, z, h, V, 3700 + k * 10); CV.solid.push([x, z, 0.3 + h * 0.14]); CV.lights.push({ x, y: h * 0.6, z, r: 1.6 + h * 0.9 }); });
     CV.spots.push({ x: 12.4, y: 2.2, z: 43.6, c: '#b48cff', i: 1.4 });
     [[9.7, 41.9], [11.5, 41.0], [14.1, 41.5], [15.4, 46.4], [13.5, 47.4], [11.3, 47.6], [9.3, 45.9], [12.2, 44.4]].forEach(([x, z], n) => mineNode('crystal', x, z, 3780 + n, 2));
-    if (!state.isle.chests.mine1) makeChest(15.1, 43.3, { coin: 30, crystal: 8 }, 'mine1'); }
+    if (!state.isle.chests.mine1) mineChest(15.1, 43.3, { coin: 30, crystal: 8 }, 'mine1'); }
 
   /* ---- the glow cavern: mushrooms that are their own light, glow-worms drifting, star crystals; a chest in the nook behind the biggest mushroom ---- */
   { const wl = WALL(-12, 44);
@@ -285,11 +287,11 @@ function mineBuild() {
     CV.spots.push({ x: -12.6, y: 2.0, z: 43.4, c: '#58e6c0', i: 1.3 });
     const W = new T.BufferGeometry(), P = new Float32Array(36 * 3); W.setAttribute('position', new T.BufferAttribute(P, 3)); CV.worms = new T.Points(W, new T.PointsMaterial({ color: '#b8ffe0', size: 0.11, transparent: true, opacity: 0.9, depthWrite: false, blending: T.AdditiveBlending })); CV.worms.frustumCulled = false; g.add(CV.worms);
     [['glow', -15.3, 43.9], ['glow', -10.4, 47.3], ['crystal', -13.4, 47.6, 3], ['crystal', -9.6, 41.4, 3], ['crystal', -12.9, 41.0, 3]].forEach(([k, x, z, t], n) => mineNode(k, x, z, 3930 + n, t));
-    if (!state.isle.chests.mine2) makeChest(-16.25, 47.55, { coin: 40, copper: 4, crystal: 6 }, 'mine2'); }
+    if (!state.isle.chests.mine2) mineChest(-16.25, 47.55, { coin: 40, copper: 4, crystal: 6 }, 'mine2'); }
 
   /* ---- the deep gallery: the lift up to the stone island, the cart's far station, star crystals ---- */
   { const A = AREA_BY.cave3; findFill(A, false);
-    LIFT.g = liftModel(LIFT.low.x, LIFT.low.z, 2650); g.add(LIFT.g); const Q = LIFT.lowMat = stairMat('up', LIFT.low.x, LIFT.low.z + 1.3); Q.ok = () => inCave && !!HAS.s0; Q.to = () => LIFT.topOut; Q.cave = false; CV.mats.push(Q); CV.solid.push([LIFT.low.x, LIFT.low.z, 0.95]);
+    LIFT.g = liftModel(LIFT.low.x, LIFT.low.z, 2650); g.add(LIFT.g); const Q = LIFT.lowMat = stairMat('up', LIFT.low.x, LIFT.low.z + 1.3, MINE_Y); LIFT.g.position.y = MINE_Y; Q.ok = () => inCave && !!HAS.s0; Q.to = () => LIFT.topOut; Q.cave = false; CV.mats.push(Q); CV.solid.push([LIFT.low.x, LIFT.low.z, 0.95]);
     cvLantern(L, GL, LIFT.low.x - 0.62, 2.05, LIFT.low.z + 0.62, 4000); cvLamp(L, GL, -8.0, 31.0, -0.3, 0.1, 4010); cvLamp(L, GL, -16.2, 34.2, 0.3, -0.1, 4020); cvFrame(L, -12, 36.75, 0, 2.0, 2.05, 4030);
     q = new T.BoxGeometry(0.16, 0.42, 0.9); q.translate(-10.65, 0.21, 29.5); L.push(fac(q, '#6e4a2c', 4040)); cvStalag(L, -16.3, 27.8, 1.3, 0.4, WALL(-16, 28), 4041); cvStalag(L, -7.9, 36.1, 0.9, 0.3, WALL(-8, 36), 4042);
     [['crystal', -14.3, 35.9, 3], ['crystal', -8.0, 33.0, 3], ['crystal', -10.6, 35.0, 3], ['rock', -10.6, 32.4], ['rock', -8.6, 27.8]].forEach(([k, x, z, t], n) => mineNode(k, x, z, 4050 + n, t)); }
@@ -318,7 +320,7 @@ function caveBuild() { mineBuild(); }
 /* the lake as it is: full (0) or drained (1), or somewhere between while it runs out */
 function mineLake() {
   const e = mineS().lake ? 1 : CV.drain, s = e * e * (3 - 2 * e), K = MINE_LAKE; if (!CV.water) return;
-  CV.water.visible = e < 1; CV.water.position.y = 0.15 - s * 0.1; CV.water.scale.setScalar(Math.max(0.05, 1 - s * 0.82)); CV.water.material.opacity = 0.78 * (1 - s * s);
+  CV.water.visible = e < 1; CV.water.position.y = 0.18 - s * 0.1; CV.water.scale.setScalar(Math.max(0.05, 1 - s * 0.82)); CV.water.material.opacity = 0.78 * (1 - s * s);
   CV.spires.scale.set(1, 0.035 + 0.965 * s, 1); CV.hint.visible = e === 0; CV.pit.visible = e > 0.55; CV.pit.scale.setScalar(Math.min(1, Math.max(0.01, (e - 0.55) / 0.3)));
   CV.glint.scale.setScalar(1 - s * 0.45);
 }
@@ -332,20 +334,20 @@ function mineRide(back) {
   if (!CV.ride) CV.ride = mineCartMesh(); const pts = back ? CV.rail.slice().reverse() : CV.rail, a = back ? MINE_CART.b : MINE_CART.a, k0 = pts.findIndex((p) => Math.hypot(p[0] - a[0], p[2] - a[1]) < 0.35), b = back ? MINE_CART.a : MINE_CART.b;
   let k1 = pts.length - 1; while (k1 > 0 && Math.hypot(pts[k1][0] - b[0], pts[k1][2] - b[1]) > 0.35) k1--;
   CV.cartA.visible = CV.cartB.visible = false; CV.clat = 0; CV.heading = null; CV.lean = 0; CV.riding = 1; Snd.play('thud', { gain: 0.3 });
-  rideGo({ pts: pts.slice(Math.max(0, k0), k1 + 1), speed: 6.2, mesh: CV.ride, seat: 0.34, endY: 0, snd: 'whoosh',
+  rideGo({ pts: pts.slice(Math.max(0, k0), k1 + 1), speed: 6.2, mesh: CV.ride, seat: 0.34, endY: MINE_Y, snd: 'whoosh',
     each: (R, dt) => { const m = CV.ride, h = pip.rotation.y; if (CV.heading == null) CV.heading = h; let dh = h - CV.heading; while (dh > Math.PI) dh -= 6.283; while (dh < -Math.PI) dh += 6.283; CV.heading = h;
       CV.lean += (clamp(-dh / Math.max(dt, 0.005) * 0.22, -0.3, 0.3) * Math.min(1, R.v / 4) - CV.lean) * Math.min(1, dt * 5); m.rotation.z = reduced ? 0 : CV.lean; m.position.y += reduced ? 0 : Math.abs(Math.sin(R.d * 5.7)) * 0.018;
       pip.rotation.z = reduced ? 0 : CV.lean * 0.8; if (R.d - CV.clat > 0.62) { CV.clat = R.d; Snd.play('tock', { gain: 0.16, f: 150 + (Math.round(R.d) % 2) * 40 }); if (!reduced && R.v > 4) splash(m.position.x, 0.12, m.position.z, 1); } },
-    onEnd: () => { CV.cartA.visible = CV.cartB.visible = true; CV.riding = 0; pip.rotation.z = 0; const r = back ? MINE_CART.ringA : MINE_CART.ringB; pip.position.set(r[0], 0, r[1]); target.copy(pip.position); SC.rings.forEach((q) => { if (q.o.icon === 'cart') { q.armed = false; q.w = 0; } }); Snd.play('thud', { gain: 0.35 }); Snd.play('ding', { gain: 0.3 }, 0.1); } });
+    onEnd: () => { CV.cartA.visible = CV.cartB.visible = true; CV.riding = 0; pip.rotation.z = 0; const r = back ? MINE_CART.ringA : MINE_CART.ringB; pip.position.set(r[0], MINE_Y, r[1]); target.copy(pip.position); SC.rings.forEach((q) => { if (q.o.icon === 'cart') { q.armed = false; q.w = 0; } }); Snd.play('thud', { gain: 0.35 }); Snd.play('ding', { gain: 0.3 }, 0.1); } });
 }
 /* a round mat with a stairs picture: 'down' into the cave, 'up' out of it; a gold arc fills while Pip stands on it */
-function stairMat(dir, x, z) {
+function stairMat(dir, x, z, y) {
   const R = 0.6, c = document.createElement('canvas'); c.width = c.height = 256; const q = c.getContext('2d');
   q.fillStyle = dir === 'down' ? '#3b3348' : '#f4e3b0'; q.beginPath(); q.arc(128, 128, 124, 0, 7); q.fill();
   isleIcon(q, dir === 'down' ? 'stairsDown' : 'stairsUp', 128, 132, 3.4);
-  const pad = new T.Mesh(new T.CircleGeometry(R, 40), new T.MeshBasicMaterial({ map: new T.CanvasTexture(c), transparent: true })); pad.rotation.x = -Math.PI / 2; pad.position.set(x, 0.05, z); sc.add(pad);
+  const pad = new T.Mesh(new T.CircleGeometry(R, 40), new T.MeshBasicMaterial({ map: new T.CanvasTexture(c), transparent: true })); pad.rotation.x = -Math.PI / 2; pad.position.set(x, 0.05 + (y || 0), z); sc.add(pad);
   const fg = new T.RingGeometry(R - 0.02, R + 0.1, 40, 1, Math.PI / 2, -Math.PI * 2);
-  const f = new T.Mesh(fg, new T.MeshBasicMaterial({ color: '#f4b23a', side: T.DoubleSide })); f.rotation.x = -Math.PI / 2; f.position.set(x, 0.06, z); sc.add(f); fg.setDrawRange(0, 0);
+  const f = new T.Mesh(fg, new T.MeshBasicMaterial({ color: '#f4b23a', side: T.DoubleSide })); f.rotation.x = -Math.PI / 2; f.position.set(x, 0.06 + (y || 0), z); sc.add(f); fg.setDrawRange(0, 0);
   return { x, z, R, pad, fg, w: 0, dir };
 }
 /* the way down, in h3: a stone frame round a dark hole with steps going down */
@@ -412,7 +414,8 @@ function caveStep(dt) {
     if (!riding2()) { let s = mineSdf(pp.x, pp.z);
       for (let k = 0; k < 8 && s > -0.3; k++) { const e = 0.05, gx = mineSdf(pp.x + e, pp.z) - mineSdf(pp.x - e, pp.z), gz = mineSdf(pp.x, pp.z + e) - mineSdf(pp.x, pp.z - e), l = Math.hypot(gx, gz); if (l < 1e-5) break; const st = s + 0.32; pp.x -= gx / l * st; pp.z -= gz / l * st; s = mineSdf(pp.x, pp.z); }
       if (Math.abs(pp.x - 12) < 0.95 && pp.z > 36.15 && pp.z < 38) pp.z = 36.15; /* the foot of the stairs */
-      CV.solid.forEach((q) => { if (!q[3] || q[3]()) minePush(pp, q[0], q[1], q[2]); }); }
+      CV.solid.forEach((q) => { if (!q[3] || q[3]()) minePush(pp, q[0], q[1], q[2]); }); if (!GO.hold) pp.y = MINE_Y; }
+    signs.forEach((s) => { if (s.kind === 'lift' && s.ring.position.y < 0.05) { s.ring.position.y = MINE_Y + 0.035; s.ghost.position.y = MINE_Y + 0.05; s.g.position.y = MINE_Y; } });
     /* the cart is Pip's once the long way has been walked to the deep gallery */
     if (!S.cart && S.g2 && pp.x < -7.6 && pp.z < 36.2 && pp.z > 26) { S.cart = 1; mineLook2(); burst(-7.3, 0.9, 29.4, 10); burst(MINE_CART.ringB[0], 0.4, MINE_CART.ringB[1], 8); Snd.play('thud', { gain: 0.45 }); Snd.play('success', { gain: 0.45 }, 0.2); save(); }
     /* the sluice wheel on the marsh island has drawn the water off: the lake runs out before Pip's eyes, the first time Pip is back */
