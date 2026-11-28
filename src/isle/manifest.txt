@@ -52,6 +52,7 @@ gifts.js
 finds.js
 beetrail.js
 orehunt.js
+frogsong.js
 tall.js
 mesa.js
 garden.js

@@ -49,9 +49,9 @@ const AREAS = [
   /* the marsh island, west of the bakery over a bridge (marsh.js). holes: squares of the block that stay water. A channel
      runs through the first square from north to south: the only way over is the pole raft. The second has a pond. */
   { id: 'r0', i: -5, j: 2, biome: 'marsh', cost: { log: 30, stone: 18, berry: 14 }, holes: [[1, 0], [1, 1], [1, 2]], finds: [['reeds', -4.7, -3.4], ['reeds', -3.1, -0.4], ['reeds', -4.8, 1.6]], bridge: { from: 'h2', x0: -5.4, z0: 16.6, x1: -10.6, z1: 16.6 } },
-  { id: 'r1', i: -8, j: 2, biome: 'marsh', cost: { log: 36, stone: 24, crystal: 4 }, holes: [[1, 1]], ruin: [4.3, -3.0, 0.1], finds: [['reeds', -2.7, -1.6], ['reeds', 2.8, 1.2], ['reeds', 0.8, 3.0], ['reeds', -1.2, -3.1]] },
+  { id: 'r1', i: -8, j: 2, biome: 'marsh', cost: { log: 36, stone: 24, crystal: 4, reed: 2 }, holes: [[1, 1]], ruin: [4.3, -3.0, 0.1], finds: [['reeds', -2.7, -1.6], ['reeds', 2.8, 1.2], ['reeds', 0.8, 3.0], ['reeds', -1.2, -3.1]] },
   { id: 'r2', chest: { coin: 18, reed: 3, gear: 'boots' }, chestAt: [3.6, -3.6], i: -8, j: 5, biome: 'marsh', cost: { log: 40, stone: 26, berry: 18 }, holes: [[1, 1]], finds: [['reeds', -2.6, 0.4], ['reeds', 1.2, -2.6], ['reeds', -0.6, 3.6]] },
-  { id: 'r3', chest: { coin: 22, crystal: 4 }, chestAt: [2.8, 0.2], i: -11, j: 2, biome: 'marsh', cost: { log: 46, stone: 30, crystal: 6 }, holes: [[0, 1]], finds: [['reeds', -1.4, -1.8], ['reeds', -1.2, 2.2]] },
+  { id: 'r3', chest: { coin: 22, crystal: 4 }, chestAt: [2.8, 0.2], i: -11, j: 2, biome: 'marsh', cost: { log: 46, stone: 30, crystal: 6, reed: 3 }, holes: [[0, 1]], finds: [['reeds', -1.4, -1.8], ['reeds', -1.2, 2.2]] },
   { id: 'r4', chest: { coin: 28, reed: 4 }, chestAt: [-3.4, -3.4], i: -11, j: 5, biome: 'marsh', cost: { log: 52, stone: 34, reed: 4 }, holes: [[1, 1], [2, 2]], finds: [['reeds', -2.7, 0.2], ['reeds', 0.2, -2.7], ['reeds', 2.6, 1.4], ['reeds', 1.0, 2.8]] },
   /* the coral beach, east of the village green over a bridge (coral.js). Its second square is an islet across a strait:
      the way there is a row of stepping stones that the tide covers and bares again (bridge.tide) */

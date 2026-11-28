@@ -815,7 +815,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261128155411">
+<meta name="app-ver" content="20261128161302">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1196,9 +1196,9 @@ const AREAS = [
   /* the marsh island, west of the bakery over a bridge (marsh.js). holes: squares of the block that stay water. A channel
      runs through the first square from north to south: the only way over is the pole raft. The second has a pond. */
   { id: 'r0', i: -5, j: 2, biome: 'marsh', cost: { log: 30, stone: 18, berry: 14 }, holes: [[1, 0], [1, 1], [1, 2]], finds: [['reeds', -4.7, -3.4], ['reeds', -3.1, -0.4], ['reeds', -4.8, 1.6]], bridge: { from: 'h2', x0: -5.4, z0: 16.6, x1: -10.6, z1: 16.6 } },
-  { id: 'r1', i: -8, j: 2, biome: 'marsh', cost: { log: 36, stone: 24, crystal: 4 }, holes: [[1, 1]], ruin: [4.3, -3.0, 0.1], finds: [['reeds', -2.7, -1.6], ['reeds', 2.8, 1.2], ['reeds', 0.8, 3.0], ['reeds', -1.2, -3.1]] },
+  { id: 'r1', i: -8, j: 2, biome: 'marsh', cost: { log: 36, stone: 24, crystal: 4, reed: 2 }, holes: [[1, 1]], ruin: [4.3, -3.0, 0.1], finds: [['reeds', -2.7, -1.6], ['reeds', 2.8, 1.2], ['reeds', 0.8, 3.0], ['reeds', -1.2, -3.1]] },
   { id: 'r2', chest: { coin: 18, reed: 3, gear: 'boots' }, chestAt: [3.6, -3.6], i: -8, j: 5, biome: 'marsh', cost: { log: 40, stone: 26, berry: 18 }, holes: [[1, 1]], finds: [['reeds', -2.6, 0.4], ['reeds', 1.2, -2.6], ['reeds', -0.6, 3.6]] },
-  { id: 'r3', chest: { coin: 22, crystal: 4 }, chestAt: [2.8, 0.2], i: -11, j: 2, biome: 'marsh', cost: { log: 46, stone: 30, crystal: 6 }, holes: [[0, 1]], finds: [['reeds', -1.4, -1.8], ['reeds', -1.2, 2.2]] },
+  { id: 'r3', chest: { coin: 22, crystal: 4 }, chestAt: [2.8, 0.2], i: -11, j: 2, biome: 'marsh', cost: { log: 46, stone: 30, crystal: 6, reed: 3 }, holes: [[0, 1]], finds: [['reeds', -1.4, -1.8], ['reeds', -1.2, 2.2]] },
   { id: 'r4', chest: { coin: 28, reed: 4 }, chestAt: [-3.4, -3.4], i: -11, j: 5, biome: 'marsh', cost: { log: 52, stone: 34, reed: 4 }, holes: [[1, 1], [2, 2]], finds: [['reeds', -2.7, 0.2], ['reeds', 0.2, -2.7], ['reeds', 2.6, 1.4], ['reeds', 1.0, 2.8]] },
   /* the coral beach, east of the village green over a bridge (coral.js). Its second square is an islet across a strait:
      the way there is a row of stepping stones that the tide covers and bares again (bridge.tide) */
@@ -8210,7 +8210,7 @@ const LOOP_MON = {
   windmill: { isle: 'meadow', need: () => HAS.m3 && (folk().baker || 0) >= 2, area: 'm3', cost: { log: 40, berry: 20, stone: 15, honey: 6 } },
   lighthouse: { isle: 'stone', need: () => HAS.s2 && (folk().mason || 0) >= 2, area: 's2', cost: { stone: 50, log: 20, crystal: 6, iron: 4 } },
   tower: { isle: 'winter', need: () => HAS.w1 && (folk().knitter || 0) >= 2, area: 'w1', cost: { crystal: 15, stone: 30, log: 30 } },
-  sluice: { isle: 'marsh', need: () => HAS.r0 && HAS.r1 && HAS.r2 && (folk().fisher || 0) >= 2, area: 'r2', cost: { log: 60, stone: 30, reed: 8 } },
+  sluice: { isle: 'marsh', need: () => HAS.r0 && HAS.r1 && HAS.r2 && (folk().fisher || 0) >= 2, area: 'r2', cost: { log: 60, stone: 30, reed: 10 } },
   bell: { isle: 'coral', need: () => HAS.c0 && HAS.c1 && (folk().diver || 0) >= 2, area: 'c0', cost: { stone: 60, crystal: 10, pearl: 5 } },
   hearth: { isle: 'ember', need: () => HAS.e0 && (folk().glass || 0) >= 2, area: 'e0', cost: { stone: 70, crystal: 16, ember: 4 } },
   /* the last wonder: its plot shows as soon as the harbour stands, so the goal is in sight all game, but it takes a find
@@ -9076,6 +9076,93 @@ function oreStep(dt) {
   }
 }
 ISLE_STEPS.push(oreStep);
+/* ---------- the Marsh's craft: the frog choir (Leon 2026-11-28: each island gets a new fun way of gathering, played a lot
+   on its own island and now and then later, so the time there is play and not grinding) ----------
+   Reeds are the Marsh's own material. Every Marsh square Pip owns has a ring of frogs on stones round a big lily stone.
+   When Pip steps on the lily stone, the frogs sing a little tune: one after another each lights up, hops and croaks its
+   own note. Pip walks to the frogs in the same order. A wrong frog just shakes its head and the tune plays again (never a
+   fail). When the whole tune is right, the frogs leap into the water and a thick bundle of reeds stands where they sat
+   (four reeds). The tune is three notes on the first square of the day, one note longer on each next square.
+   Saved: state.isle.frogs = { day, done: { area id: 1 } }. A reed bundle is not saved. */
+const FS = { choir: {}, play: null };
+const FROG_ISLE = (A) => A && !A.secret && A.id[0] === 'r';
+const frogS = () => state.isle.frogs || (state.isle.frogs = { day: -1, done: {} });
+const FROG_R = 1.7; /* how far the frogs sit from the lily stone */
+const FROG_NOTE = ['C5', 'E5', 'G5', 'A5', 'C6'], FROG_COL = ['#7cc56a', '#e6c44a', '#6fb3e0', '#e07aa8', '#b08ae0'];
+function frogFree(A, x, z, r, w) { const B = areaAt(x, z);
+  if ((A ? B !== A : !B || !HAS[B.id]) || walkSdf(x, z) > (w || -0.9) || campNear(x, z, 1.5)) return false; /* the frogs may sit on any owned ground next door */
+  return !nodes.some((n) => n.st !== "gone" && Math.hypot(n.x - x, n.z - z) < r + (n.kind === "tree" ? 1.3 : 0)); /* not under a tree crown, so the frogs are easy to see */
+}
+/* the choir's place: a lily stone with room for four frogs round it */
+function frogSpot(A) {
+  for (let k = 0; k < 160; k++) {
+    const x = A.cx + (hash(k, 8000 + A.i * 13 + A.j) - 0.5) * 8, z = A.cz + (hash(k, 8001 + A.i * 7 - A.j) - 0.5) * 7;
+    if (!frogFree(A, x, z, 1.0)) continue;
+    for (let r = 0; r < 6; r++) { const rot = r / 6 * 1.57;
+      if ([0, 1, 2, 3].every((q) => { const a = q / 4 * 6.28 + rot; return frogFree(null, x + Math.cos(a) * FROG_R, z + Math.sin(a) * FROG_R, 0.6, -0.4); })) return [x, z, rot]; }
+  }
+  return null;
+}
+function frogModel(col) {
+  const g = new T.Group(), L = []; let q = new T.SphereGeometry(0.2, 10, 8); q.scale(1, 0.72, 1.15); q.translate(0, 0.16, 0); L.push(fac(q, () => new T.Color(col), 8010));
+  [-1, 1].forEach((s) => { q = new T.SphereGeometry(0.07, 8, 6); q.translate(s * 0.09, 0.3, 0.12); L.push(fac(q, () => new T.Color('#ffffff'), 8011 + s));
+    q = new T.SphereGeometry(0.035, 6, 5); q.translate(s * 0.095, 0.31, 0.175); L.push(fac(q, () => new T.Color('#22303c'), 8013 + s));
+    q = new T.SphereGeometry(0.06, 6, 5); q.scale(1.4, 0.5, 1.2); q.translate(s * 0.17, 0.04, 0.12); L.push(fac(q, () => new T.Color(col).multiplyScalar(0.8), 8015 + s)); });
+  q = new T.SphereGeometry(0.1, 8, 6); q.scale(1.3, 0.35, 0.6); q.translate(0, 0.13, 0.2); L.push(fac(q, () => new T.Color('#f3e7b5'), 8017)); /* the throat that puffs */
+  merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g); return g;
+}
+function frogStoneGeo(r) { const q = new T.CylinderGeometry(r, r * 1.1, 0.16, 9); q.translate(0, 0.08, 0); return q; }
+function frogMake(A) {
+  const at = frogSpot(A); if (!at) return null; const g = new T.Group(); g.position.set(at[0], 0, at[1]); sc.add(g);
+  const L = []; let q = frogStoneGeo(0.62); L.push(fac(q, () => new T.Color('#9aa79a'), 8020));
+  q = new T.CircleGeometry(0.5, 14); q.rotateX(-Math.PI / 2); q.translate(0, 0.17, 0); L.push(fac(q, () => new T.Color('#4f9a52'), 8021)); /* the big lily leaf on top */
+  const frogs = [];
+  for (let k = 0; k < 4; k++) { const a = k / 4 * 6.28 + at[2], x = Math.cos(a) * FROG_R, z = Math.sin(a) * FROG_R;
+    q = frogStoneGeo(0.32); q.translate(x, 0, z); L.push(fac(q, () => new T.Color('#8b968b'), 8022 + k));
+    const f = frogModel(FROG_COL[k]); f.position.set(x, 0.16, z); f.rotation.y = Math.atan2(-x, -z); g.add(f); frogs.push({ g: f, x: at[0] + x, z: at[1] + z, lit: 0, hop: 0, no: 0 }); }
+  merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g); lookFoot(at[0], at[1], 0.7, 0.7);
+  return { id: A.id, x: at[0], z: at[1], g, frogs };
+}
+/* a frog sings: it hops, its throat puffs, its note plays */
+function frogSing(f, k) { f.lit = 1; f.hop = 1; Snd.play('ding', { gain: 0.32, f: FROG_NOTE[k] }); Snd.play('pop', { gain: 0.15, f: 260 + k * 60 }); }
+function frogStep(dt) {
+  if (!state.isle || inCave) return; const S = frogS(), day = Math.floor(state.clock / DAY), pp = pip.position;
+  if (S.day !== day) { S.day = day; S.done = {}; Object.values(FS.choir).forEach((C) => { if (C && C.gone) { C.gone = 0; C.frogs.forEach((f) => { f.g.visible = true; f.g.position.y = 0.16; }); } }); }
+  AREAS.forEach((A) => { if (FROG_ISLE(A) && HAS[A.id] && FS.choir[A.id] === undefined) FS.choir[A.id] = frogMake(A); });
+  /* the frogs themselves: hop and glow back down, a gone frog stays under */
+  Object.values(FS.choir).forEach((C) => { if (!C) return; C.frogs.forEach((f) => {
+    if (C.gone || S.done[C.id]) { f.g.visible = false; return; } f.g.visible = true;
+    f.hop = Math.max(0, f.hop - dt * 3); f.lit = Math.max(0, f.lit - dt * 1.6); f.no = Math.max(0, f.no - dt * 2.5);
+    f.g.position.y = 0.16 + Math.sin(f.hop * Math.PI) * 0.35; f.g.scale.set(1 + f.lit * 0.25, 1 + f.lit * 0.1, 1 + f.lit * 0.25); f.g.rotation.z = Math.sin(f.no * 20) * 0.35 * f.no; }); });
+  /* stepping on a lily stone starts that choir's tune */
+  if (!FS.play && !enSleep) Object.values(FS.choir).forEach((C) => {
+    if (!C || FS.play || S.done[C.id] || Math.hypot(pp.x - C.x, pp.z - C.z) > 0.7) return;
+    const len = Math.min(5, 3 + Object.keys(S.done).length), tune = [];
+    for (let k = 0; k < len; k++) { let v = Math.floor(hash(k + day * 11, 8030 + C.id.charCodeAt(1)) * 4) % 4; if (v === tune[k - 1]) v = (v + 1) % 4; tune.push(v); } /* never the same frog twice in a row */
+    FS.play = { C, tune, st: 'sing', k: 0, t: -0.4, at: 0, on: false }; Snd.play('blip', { gain: 0.25, f: 520 });
+  });
+  const P = FS.play; if (!P) return; const C = P.C;
+  if (P.st === 'sing') { /* the frogs sing the tune once, a note every 0.55 s */
+    P.t += dt; if (P.t >= 0) { if (P.k < P.tune.length) { frogSing(C.frogs[P.tune[P.k]], P.tune[P.k]); P.k++; P.t = -0.55; } else { P.st = 'copy'; P.at = 0; P.on = -1; } }
+  } else if (P.st === 'copy') { /* Pip walks to the frogs in the same order */
+    let near = -1; C.frogs.forEach((f, k) => { if (Math.hypot(pp.x - f.x, pp.z - f.z) < 0.85) near = k; });
+    if (near >= 0 && near !== P.on) {
+      if (near === P.tune[P.at]) { frogSing(C.frogs[near], near); P.at++; if (P.at >= P.tune.length) { P.st = 'won'; P.t = 0; } }
+      else { C.frogs[near].no = 1; Snd.play('blip', { gain: 0.2, f: 220 }); P.st = 'sing'; P.k = 0; P.t = -1.2; P.at = 0; } /* not that one: listen again */
+    }
+    P.on = near;
+    if (Math.hypot(pp.x - C.x, pp.z - C.z) > 7) FS.play = null; /* Pip walked away: the tune starts over next time */
+  } else if (P.st === 'won') { /* all the frogs sing together, leap into the water, and the reeds stand there */
+    P.t += dt;
+    if (P.t < 0.05) { C.frogs.forEach((f, k) => frogSing(f, k)); Snd.play('success', { gain: 0.4 }); }
+    if (P.t > 0.9) {
+      S.done[C.id] = 1; save(); C.frogs.forEach((f) => burst(f.x, 0.4, f.z, 4));
+      const a = Math.atan2(pp.z - C.z, pp.x - C.x) + Math.PI, n = makeNode('reeds', C.x + Math.cos(a) * 1.0, C.z + Math.sin(a) * 1.0, 8100 + day % 97);
+      n.choir = 1; n.pop = 0.001; n.g.scale.setScalar(0.01); Snd.play('secret', { gain: 0.4 }); FS.play = null;
+    }
+  }
+}
+ISLE_STEPS.push(frogStep);
 /* ---------- tall grass (Leon, 2026-11-25: each island should differ in how Pip gets about, not only in looks) ----------
    The meadow's way of moving: belts of grass taller than Pip stand across it, three clumps deep, and Pip cuts a lane
    through by hand. A clump is a node that cannot be walked through; cut, it is gone for good (state.isle.cut), so a lane
@@ -9266,7 +9353,7 @@ function gardenGateOpen(n) {
 /* the hedge plug shrinks away: the way north is open */
 function gardenDoor() { GD.doorOpen = 0.001; }
 /* honey from a hive: the Queen's own gives a big comb, and once she is found every hive gives double */
-const hiveGives = (n, c) => (n.vein ? 3 : n.kind !== 'hive' ? c : n.queen ? 5 : n.bee ? (gardenOpen() ? 4 : 2) : gardenOpen() ? c * 2 : c); /* a wild hive a bee led Pip to (beetrail.js) gives more */
+const hiveGives = (n, c) => (n.vein ? 3 : n.choir ? 4 : n.kind !== 'hive' ? c : n.queen ? 5 : n.bee ? (gardenOpen() ? 4 : 2) : gardenOpen() ? c * 2 : c); /* a wild hive a bee led Pip to (beetrail.js) gives more */
 function gardenStep(dt) {
   if (!GD.g) return; const pp = pip.position;
   if (GD.pop) { GD.pop = Math.min(1, GD.pop + dt * 1.5); GD.g.scale.setScalar(GD.pop); if (GD.pop >= 1) GD.pop = 0; }
