@@ -815,7 +815,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="dev">
+<meta name="app-ver" content="20261128194033">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2948,10 +2948,10 @@ function nodeStep(n, dt) {
     if (n.grow >= 1) { n.st = 'ready'; n.sleepG = 0; n.hp = nodeHits(n); } }
 }
 function nodeHit(n, side) {
-  n.hp -= hitPow(n); if (!side && toolTier(n.kind) >= 3 && toolKind(n.kind)) wideHit(n, toolTier(n.kind) >= 4 ? 3 : 1); n.shake = byHand(n.kind) ? 0.12 : 0.28; hpShow(n);
+  const hv = heavyMul(); n.hp -= hitPow(n) * hv; if (!side && toolTier(n.kind) >= 3 && toolKind(n.kind)) wideHit(n, toolTier(n.kind) >= 4 ? 3 : 1); n.shake = byHand(n.kind) ? 0.12 : hv > 1 ? 0.45 : 0.28; hpShow(n);
   const sx = n.x + (pip.position.x - n.x) * 0.4, sz = n.z + (pip.position.z - n.z) * 0.4;
-  if (n.kind === 'tree' || n.kind === 'planks') Snd.play('tock', { gain: 0.55, f: 240 + Math.random() * 40 }); else if (PICKY[n.kind]) Snd.play(n.kind === 'clay' ? 'stamp' : 'impact', { gain: 0.35 }); else Snd.play('swish', { gain: 0.4 });
-  if (n.kind !== 'bush' && n.kind !== 'grass') splash(sx, 0.6, sz, 3);
+  if (n.kind === 'tree' || n.kind === 'planks') Snd.play('tock', { gain: 0.55, f: 240 + Math.random() * 40 }); else if (PICKY[n.kind]) { Snd.play(n.kind === 'clay' ? 'stamp' : 'impact', { gain: hv > 1 ? 0.5 : 0.35 }); if (hv > 1 && !side) Snd.play('thud', { gain: 0.3 }); } else Snd.play('swish', { gain: 0.4 });
+  if (n.kind !== 'bush' && n.kind !== 'grass') splash(sx, 0.6, sz, hv > 1 && !side ? 6 : 3);
   if (n.hp > 0.01) return;
   dropOut(n); n.t = sleepRegrow(n);
   if (n.gate === 'garden') { gardenGateOpen(n); return; } if (ISLE_GATE[n.gate]) { ISLE_GATE[n.gate](n); return; }
@@ -2980,7 +2980,7 @@ function isleStep(dt) {
   nodes.forEach((n) => { if (n.st !== 'ready' || !mesaLevel(n)) return; const d = Math.hypot(pip.position.x - n.x, pip.position.z - n.z) - NODE_R[n.kind]; if (d < 0.75 && d < bd) { bd = d; best = n; } });
   if (best && gated(best)) { if (pickHintT <= 0 && hitT <= 0) { pickHintT = 2.5; tierBounce(best); } best = null; } /* too weak a tool: it bounces off, and shows the tool it needs */
   if (best && canWork(best) && hitT <= 0 && !enSleep) {
-    if (enHas(best.kind)) { hitT = best.kind === 'bush' || best.kind === 'grass' || best.kind === 'shroom' ? 0.5 : 0.55; workStart(best); enUse(best.kind); }
+    if (enHas(best.kind)) { hitT = best.kind === 'bush' || best.kind === 'grass' || best.kind === 'shroom' ? 0.5 : 0.55; workStart(best); enUse(best.kind); if (HEAVY[work.anim]) { hitT *= HEAVY[work.anim]; for (let k = 1; k < HEAVY[work.anim]; k++) enUse(best.kind); } }
     else if (pickHintT <= 0) { pickHintT = 2.5; enTired(); }
   }
   workStep(dt);
@@ -3192,7 +3192,22 @@ const TOOL = (() => {
 /* each tool of each family moves its own way (Leon 2026-11-28: "we need new animations for each new tool").
    u runs 0..1 over one go; a/b = the two arms (b defaults to a), lean = body tip forward, yaw = body turn, hop = lift, shake = a fast judder;
    at = when the hit lands. */
-const TOOL_ANIM_D = { axe1: 0.5, axe2: 0.6, axe3: 0.66, axe4: 0.62, pick1: 0.5, pick2: 0.56, pick3: 0.6, pick4: 0.66 };
+const TOOL_ANIM_D = { axe1: 0.5, axe2: 0.6, axe3: 0.66, axe4: 0.62, pick1: 1.1, pick2: 1.1, pick3: 0.6, pick4: 1.1 };
+/* Leon 2026-11-28: on stone the quick little jabs looked wrong. Every pick but the rock drill now swings slow and heavy:
+   a long wind-up, a hang at the top, one hard slam and a bounce back. Each slam counts for HEAVY hits, so a rock takes
+   as long and costs as much energy as before, just in fewer, bigger blows. */
+const HEAVY = { pick1: 2, pick2: 2, pick4: 2 };
+const toolAnimFor = (kind) => { if (kind === 'bush' || kind === 'grass' || kind === 'shroom' || byHand(kind)) return 'hand'; let tt = 1; try { tt = toolTierNow(); } catch (e) {} return (kind === 'tree' || kind === 'planks' ? 'axe' : NEED[kind] === 'pick' ? 'pick' : 'base') + tt; };
+const heavyMul = () => (work && HEAVY[work.anim]) || 1;
+/* the heavy pick swing: u 0..1. Wind up slow (0..0.5), hang at the top (..0.62), slam (..0.7, the hit), the pick bounces
+   off the stone and Pip dips with the blow (..0.84), then settles back. top = how far back the arms go. */
+function toolHeavy(u, top, slam) {
+  if (u < 0.5) { const e = ease(u / 0.5); return { a: -0.35 - (top - 0.35) * e, lean: -0.16 * e * slam, hop: 0.03 * e }; }
+  if (u < 0.62) { const e = (u - 0.5) / 0.12; return { a: -top - 0.08 * Math.sin(e * Math.PI), lean: -0.16 * slam - 0.03 * Math.sin(e * Math.PI), hop: 0.03 }; }
+  if (u < 0.7) { const e = (u - 0.62) / 0.08; return { a: -top + (top - 0.85) * e * e * e, lean: -0.16 * slam + 0.56 * slam * e * e, hop: 0.03 * (1 - e) }; }
+  if (u < 0.84) { const e = (u - 0.7) / 0.14, k = Math.sin(e * Math.PI); return { a: -0.85 - 0.3 * k, lean: 0.4 * slam - 0.1 * k, hop: -0.07 * k }; }
+  const e = ease((u - 0.84) / 0.16); return { a: -0.85 + 0.5 * e, lean: 0.4 * slam * (1 - e) };
+}
 function toolChop(u, top, slam) { /* the overhead swing: up and back, then down hard */
   if (u < 0.55) { const e = ease(u / 0.55); return { a: -0.35 - (top - 0.35) * e, lean: -0.12 * e * slam }; }
   if (u < 0.72) { const e = (u - 0.55) / 0.17; return { a: -top + (top - 0.9) * e * e, lean: -0.12 * slam + 0.42 * slam * e }; }
@@ -3211,22 +3226,22 @@ function toolMove(w, u) {
       let yaw; if (u < 0.42) yaw = -1.05 * ease(u / 0.42); else if (u < 0.62) yaw = -1.05 + 2.0 * ease((u - 0.42) / 0.2); else yaw = 0.95 * (1 - ease((u - 0.62) / 0.38));
       if (u > 0.42) sfx('s', 'whoosh', { gain: 0.25 });
       return { a: -1.5, b: -1.45, lean: 0.1 + (u > 0.42 && u < 0.62 ? 0.12 : 0), yaw, at: 0.55 }; }
-    case 'pick2': { /* the mattock: two quick chops, tap-TAP, the second one counts */
-      const h = u < 0.45 ? u / 0.45 : (u - 0.45) / 0.55, m = toolChop(h, u < 0.45 ? 2.0 : 2.6, 1);
-      if (u >= 0.45 * 0.72) sfx('t1', 'tock', { gain: 0.3, f: 520 });
-      m.at = 0.45 + 0.55 * 0.72; return m; }
+    case 'pick2': { /* the mattock: Pip winds it back over the shoulder, turned a little to the side, and brings the wide blade down in one big blow */
+      const m = toolHeavy(u, 3.05, 1.25); m.yaw = u < 0.62 ? -0.35 * ease(Math.min(1, u / 0.5)) : u < 0.7 ? -0.35 * (1 - (u - 0.62) / 0.08) : 0;
+      if (u >= 0.6) sfx('w', 'whoosh', { gain: 0.18, f: 300 }); m.at = 0.7; return m; }
     case 'pick3': { /* the rock drill: lean in, hold it down on the rock and rattle */
       const In = ease(Math.min(1, u / 0.2)), out = u > 0.85 ? ease((u - 0.85) / 0.15) : 0;
       if (u > 0.2) sfx('d', 'buzz', { gain: 0.3, f: 140 });
       return { a: -0.9 * In - 0.35 * (1 - In) + out * 0.5, lean: 0.22 * In * (1 - out), shake: u > 0.2 && u < 0.85 ? 0.06 : 0, hop: u > 0.2 && u < 0.85 ? Math.abs(Math.sin(time * 60)) * 0.025 : 0, at: 0.82 }; }
     case 'pick4': { /* the chime hammer: a hop up with the hammer high, and a ringing slam on landing */
-      const m = toolChop(u, 3.0, 1.2); m.hop = u < 0.66 ? Math.sin(Math.min(1, u / 0.66) * Math.PI) * 0.32 : 0;
-      if (u >= 0.72) sfx('c', 'bell', { gain: 0.3, f: 'E6' }); m.at = 0.72; return m; }
-    default: { const m = toolChop(u, 2.9, 1); m.at = 0.72; return m; } /* the hand axe, the pickaxe, the shovel, the sickle */
+      const m = toolHeavy(u, 3.1, 1.3); if (u < 0.7) m.hop = Math.sin(Math.min(1, u / 0.7) * Math.PI) * 0.34;
+      if (u >= 0.7) sfx('c', 'bell', { gain: 0.3, f: 'E6' }); m.at = 0.7; return m; }
+    case 'pick1': { const m = toolHeavy(u, 3.0, 1.1); if (u >= 0.6) sfx('w', 'whoosh', { gain: 0.14, f: 360 }); m.at = 0.7; return m; } /* the hand pick: slow and heavy, straight overhead */
+    default: { const m = toolChop(u, 2.9, 1); m.at = 0.72; return m; } /* the hand axe, the shovel, the sickle */
   }
 }
 let work = null, toolHold = 0;
-function workStart(n) { work = { n, t: 0, hit: false, kind: n.kind }; }
+function workStart(n) { work = { n, t: 0, hit: false, kind: n.kind, anim: toolAnimFor(n.kind) }; }
 const ease = (u) => u * u * (3 - 2 * u);
 function workStep(dt) {
   const R = limbs.filter((l) => l.arm), arm = R.find((l) => l.g.position.x < 0) || R[0], other = R.find((l) => l !== arm);
@@ -3234,7 +3249,7 @@ function workStep(dt) {
   toolHold = Math.max(0, toolHold - dt);
   if (!work) { TOOL.axe.visible = TOOL.pick.visible = TOOL.shovel.visible = TOOL.sickle.visible = false; pb.rotation.x *= Math.max(0, 1 - dt * 8); pb.rotation.y *= Math.max(0, 1 - dt * 8); return; }
   const w = work, n = w.n, hand = w.kind === 'bush' || w.kind === 'grass' || w.kind === 'shroom' || byHand(w.kind);
-  if (!w.anim) { let tt = 1; try { tt = toolTierNow(); } catch (e) {} w.anim = hand ? 'hand' : (w.kind === 'tree' || w.kind === 'planks' ? 'axe' : NEED[w.kind] === 'pick' ? 'pick' : 'base') + tt; }
+  if (!w.anim) w.anim = toolAnimFor(w.kind);
   const D = hand ? 0.48 : TOOL_ANIM_D[w.anim] || 0.5;
   w.t += dt / D; const u = Math.min(1, w.t);
   pip.rotation.y = Math.atan2(n.x - pip.position.x, n.z - pip.position.z);
