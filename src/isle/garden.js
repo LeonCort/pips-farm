@@ -62,7 +62,7 @@ function gardenGateOpen(n) {
 /* the hedge plug shrinks away: the way north is open */
 function gardenDoor() { GD.doorOpen = 0.001; }
 /* honey from a hive: the Queen's own gives a big comb, and once she is found every hive gives double */
-const hiveGives = (n, c) => (n.kind !== 'hive' ? c : n.queen ? 5 : gardenOpen() ? c * 2 : c);
+const hiveGives = (n, c) => (n.kind !== 'hive' ? c : n.queen ? 5 : n.bee ? (gardenOpen() ? 4 : 2) : gardenOpen() ? c * 2 : c); /* a wild hive a bee led Pip to (beetrail.js) gives more */
 function gardenStep(dt) {
   if (!GD.g) return; const pp = pip.position;
   if (GD.pop) { GD.pop = Math.min(1, GD.pop + dt * 1.5); GD.g.scale.setScalar(GD.pop); if (GD.pop >= 1) GD.pop = 0; }

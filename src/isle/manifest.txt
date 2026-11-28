@@ -50,6 +50,7 @@ loop.js
 hamlets.js
 gifts.js
 finds.js
+beetrail.js
 tall.js
 mesa.js
 garden.js

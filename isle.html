@@ -815,7 +815,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261128151946">
+<meta name="app-ver" content="20261128153809">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1175,8 +1175,8 @@ const AREAS = [
   { id: 'm0', chest: { coin: 8, berry: 6 }, i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, finds: [['hive', -3.6, -2.0], ['hive', 3.7, -3.5], ['hive', 4.3, 4.9]], tall: [[-5.4, 1.5, 5.4, 3.9]], bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
   { id: 'm1', chest: { coin: 10, berry: 8, gear: 'coat' }, chestAt: [-0.4, 3.4], i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', -2.0, -3.4], ['hive', -3.0, 2.6]], tall: [[1.5, -5.4, 3.9, 5.4]] },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, berry: 12, stone: 10 }, ruin: [0.4, 0, 0.2] },
-  { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14 }, tall: [[-5.4, 1.5, 5.4, 3.9]] },
-  { id: 'm4', chest: { coin: 15, honey: 2 }, chestAt: [3.2, 2.6], i: -4, j: -8, biome: 'meadow', cost: { log: 30, berry: 20, stone: 14 }, finds: [['hive', 3.4, -3.6], ['hive', -3.8, 3.2]], tall: [[3.4, -5.4, 5.4, -1.6]], ponds: [[-1.6, 0.6, 2.0]] },
+  { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14, honey: 3 }, tall: [[-5.4, 1.5, 5.4, 3.9]] },
+  { id: 'm4', chest: { coin: 15, honey: 2 }, chestAt: [3.2, 2.6], i: -4, j: -8, biome: 'meadow', cost: { log: 30, berry: 20, stone: 14, honey: 4 }, finds: [['hive', 3.4, -3.6], ['hive', -3.8, 3.2]], tall: [[3.4, -5.4, 5.4, -1.6]], ponds: [[-1.6, 0.6, 2.0]] },
   /* the stone island has no bridge: the only way there is the mine's tunnel under the sea, and the lift at its end (cave.js) */
   { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.4, 0], mesas: [{ id: 's0a', dx: -2.8, dz: -2.6, w: 4.6, d: 4.0, h: 1.3, finds: [['iron', -0.8, -0.3], ['iron', 0.9, 0.1]] }] },
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3], mesas: [{ id: 's1a', dx: -2.7, dz: 2.6, w: 5.0, d: 4.6, h: 1.3, lx: 1.4, finds: [['iron', 1.2, 0.5]] }, { id: 's1b', par: 's1a', dx: -3.7, dz: 1.9, w: 2.8, d: 2.9, h: 1.2, finds: [['iron', 0, -0.1]] }] },
@@ -3160,6 +3160,42 @@ const TOOL = (() => {
   o.re = () => ['axe', 'pick', 'shovel', 'sickle'].forEach((k) => { const g = o[k], v = g.visible; while (g.children.length) g.remove(g.children[0]); mk(k, g); g.visible = v; });
   return o;
 })();
+/* each tool of each family moves its own way (Leon 2026-11-28: "we need new animations for each new tool").
+   u runs 0..1 over one go; a/b = the two arms (b defaults to a), lean = body tip forward, yaw = body turn, hop = lift, shake = a fast judder;
+   at = when the hit lands. */
+const TOOL_ANIM_D = { axe1: 0.5, axe2: 0.6, axe3: 0.66, axe4: 0.62, pick1: 0.5, pick2: 0.56, pick3: 0.6, pick4: 0.66 };
+function toolChop(u, top, slam) { /* the overhead swing: up and back, then down hard */
+  if (u < 0.55) { const e = ease(u / 0.55); return { a: -0.35 - (top - 0.35) * e, lean: -0.12 * e * slam }; }
+  if (u < 0.72) { const e = (u - 0.55) / 0.17; return { a: -top + (top - 0.9) * e * e, lean: -0.12 * slam + 0.42 * slam * e }; }
+  const e = ease((u - 0.72) / 0.28); return { a: -0.9 + 0.5 * e, lean: 0.3 * slam * (1 - e) };
+}
+function toolMove(w, u) {
+  const sfx = (k, name, o) => { if (!w[k]) { w[k] = 1; Snd.play(name, o); } };
+  switch (w.anim) {
+    case 'axe2': { /* the double axe: a big heavy swing from far behind, and Pip bounces with the blow */
+      const m = toolChop(u, 3.15, 1.4); m.hop = u > 0.7 && u < 0.86 ? Math.sin((u - 0.7) / 0.16 * Math.PI) * 0.1 : 0; m.at = 0.72; return m; }
+    case 'axe3': { /* the bow saw: arms out front, three strokes back and forth, the body rocking along */
+      const s = Math.sin(u * Math.PI * 6), k = Math.floor(u * 3);
+      sfx('s' + k, 'swish', { gain: 0.22, f: 900 + k * 120 });
+      return { a: -1.4 + s * 0.28, b: -1.4 - s * 0.12, lean: 0.12 + s * 0.06, yaw: s * 0.14, at: 0.92 }; }
+    case 'axe4': { /* the great saw: Pip winds round to one side and sweeps it through the trunk in one long pull */
+      let yaw; if (u < 0.42) yaw = -1.05 * ease(u / 0.42); else if (u < 0.62) yaw = -1.05 + 2.0 * ease((u - 0.42) / 0.2); else yaw = 0.95 * (1 - ease((u - 0.62) / 0.38));
+      if (u > 0.42) sfx('s', 'whoosh', { gain: 0.25 });
+      return { a: -1.5, b: -1.45, lean: 0.1 + (u > 0.42 && u < 0.62 ? 0.12 : 0), yaw, at: 0.55 }; }
+    case 'pick2': { /* the mattock: two quick chops, tap-TAP, the second one counts */
+      const h = u < 0.45 ? u / 0.45 : (u - 0.45) / 0.55, m = toolChop(h, u < 0.45 ? 2.0 : 2.6, 1);
+      if (u >= 0.45 * 0.72) sfx('t1', 'tock', { gain: 0.3, f: 520 });
+      m.at = 0.45 + 0.55 * 0.72; return m; }
+    case 'pick3': { /* the rock drill: lean in, hold it down on the rock and rattle */
+      const In = ease(Math.min(1, u / 0.2)), out = u > 0.85 ? ease((u - 0.85) / 0.15) : 0;
+      if (u > 0.2) sfx('d', 'buzz', { gain: 0.3, f: 140 });
+      return { a: -0.9 * In - 0.35 * (1 - In) + out * 0.5, lean: 0.22 * In * (1 - out), shake: u > 0.2 && u < 0.85 ? 0.06 : 0, hop: u > 0.2 && u < 0.85 ? Math.abs(Math.sin(time * 60)) * 0.025 : 0, at: 0.82 }; }
+    case 'pick4': { /* the chime hammer: a hop up with the hammer high, and a ringing slam on landing */
+      const m = toolChop(u, 3.0, 1.2); m.hop = u < 0.66 ? Math.sin(Math.min(1, u / 0.66) * Math.PI) * 0.32 : 0;
+      if (u >= 0.72) sfx('c', 'bell', { gain: 0.3, f: 'E6' }); m.at = 0.72; return m; }
+    default: { const m = toolChop(u, 2.9, 1); m.at = 0.72; return m; } /* the hand axe, the pickaxe, the shovel, the sickle */
+  }
+}
 let work = null, toolHold = 0;
 function workStart(n) { work = { n, t: 0, hit: false, kind: n.kind }; }
 const ease = (u) => u * u * (3 - 2 * u);
@@ -3167,21 +3203,19 @@ function workStep(dt) {
   const R = limbs.filter((l) => l.arm), arm = R.find((l) => l.g.position.x < 0) || R[0], other = R.find((l) => l !== arm);
   if (arm) [TOOL.axe, TOOL.pick, TOOL.shovel, TOOL.sickle].forEach((t) => { if (t.parent !== arm.g) arm.g.add(t); });
   toolHold = Math.max(0, toolHold - dt);
-  if (!work) { TOOL.axe.visible = TOOL.pick.visible = TOOL.shovel.visible = TOOL.sickle.visible = false; pb.rotation.x *= Math.max(0, 1 - dt * 8); return; }
-  const w = work, n = w.n, hand = w.kind === 'bush' || w.kind === 'grass' || w.kind === 'shroom' || byHand(w.kind), D = hand ? 0.48 : 0.5;
+  if (!work) { TOOL.axe.visible = TOOL.pick.visible = TOOL.shovel.visible = TOOL.sickle.visible = false; pb.rotation.x *= Math.max(0, 1 - dt * 8); pb.rotation.y *= Math.max(0, 1 - dt * 8); return; }
+  const w = work, n = w.n, hand = w.kind === 'bush' || w.kind === 'grass' || w.kind === 'shroom' || byHand(w.kind);
+  if (!w.anim) { let tt = 1; try { tt = toolTierNow(); } catch (e) {} w.anim = hand ? 'hand' : (w.kind === 'tree' || w.kind === 'planks' ? 'axe' : NEED[w.kind] === 'pick' ? 'pick' : 'base') + tt; }
+  const D = hand ? 0.48 : TOOL_ANIM_D[w.anim] || 0.5;
   w.t += dt / D; const u = Math.min(1, w.t);
   pip.rotation.y = Math.atan2(n.x - pip.position.x, n.z - pip.position.z);
   TOOL.axe.visible = w.kind === 'tree' || w.kind === 'planks'; TOOL.pick.visible = !byHand(w.kind) && NEED[w.kind] === 'pick'; TOOL.shovel.visible = !byHand(w.kind) && NEED[w.kind] === 'shovel'; TOOL.sickle.visible = !byHand(w.kind) && NEED[w.kind] === 'sickle';
-  let a, b, lean;
+  let a, b, lean, yaw = 0, hop = 0, shake = 0;
   if (hand) { const s = Math.sin(u * Math.PI * 2); a = -1.25 + s * 0.35; b = -1.25 - s * 0.35; lean = 0.18 * Math.sin(u * Math.PI); if (!w.hit && u > 0.5) { w.hit = true; if (n.st === 'ready') nodeHit(n); } }
-  else {
-    if (u < 0.55) { const e = ease(u / 0.55); a = -0.35 - 2.55 * e; lean = -0.12 * e; }
-    else if (u < 0.72) { const e = (u - 0.55) / 0.17; a = -2.9 + 2.0 * e * e; lean = -0.12 + 0.42 * e; }
-    else { const e = ease((u - 0.72) / 0.28); a = -0.9 + 0.5 * e; lean = 0.3 * (1 - e); }
-    b = a; if (!w.hit && u >= 0.72) { w.hit = true; if (n.st === 'ready') nodeHit(n); }
-  }
-  if (!reduced) { if (arm) arm.g.rotation.x = a; if (other) other.g.rotation.x = b; pb.rotation.x = lean; }
-  if (u >= 1) { work = null; toolHold = 0.4; }
+  else { const m = toolMove(w, u); a = m.a; b = m.b === undefined ? a : m.b; lean = m.lean; yaw = m.yaw || 0; hop = m.hop || 0; shake = m.shake || 0;
+    if (!w.hit && u >= m.at) { w.hit = true; if (n.st === 'ready') nodeHit(n); } }
+  if (!reduced) { if (arm) arm.g.rotation.x = a; if (other) other.g.rotation.x = b; pb.rotation.x = lean; pb.rotation.y = yaw; pb.position.y += hop; if (shake) pb.rotation.z = Math.sin(time * 85) * shake; }
+  if (u >= 1) { work = null; toolHold = 0.4; pb.rotation.y = 0; }
 }
 
 /* ---------- start over: a button in the settings sheet; hold it until the ring is full, then the island starts fresh (copied from the farm's catalog.js) ----------
@@ -8173,7 +8207,7 @@ const LOOP_FOLK = {
 };
 const LOOP_MON = {
   harbor: { isle: 'home', need: () => ['h0', 'h1', 'h2', 'h3'].every((a) => HAS[a]) && (folk().smith || 0) >= 3, area: 'h2', cost: { log: 30, stone: 20 } },
-  windmill: { isle: 'meadow', need: () => HAS.m3 && (folk().baker || 0) >= 2, area: 'm3', cost: { log: 40, berry: 20, stone: 15 } },
+  windmill: { isle: 'meadow', need: () => HAS.m3 && (folk().baker || 0) >= 2, area: 'm3', cost: { log: 40, berry: 20, stone: 15, honey: 6 } },
   lighthouse: { isle: 'stone', need: () => HAS.s2 && (folk().mason || 0) >= 2, area: 's2', cost: { stone: 50, log: 20, crystal: 6 } },
   tower: { isle: 'winter', need: () => HAS.w1 && (folk().knitter || 0) >= 2, area: 'w1', cost: { crystal: 15, stone: 30, log: 30 } },
   sluice: { isle: 'marsh', need: () => HAS.r0 && HAS.r1 && HAS.r2 && (folk().fisher || 0) >= 2, area: 'r2', cost: { log: 60, stone: 30, reed: 8 } },
@@ -8899,6 +8933,89 @@ function findStep(dt) {
 /* the finds an area holds, at fixed spots (rules.js) */
 function findFill(A, fresh) { (A.finds || []).forEach(([k, dx, dz], q) => { const n = makeNode(k, A.cx + dx, A.cz + dz, AREAS.indexOf(A) * 997 + 900 + q); if (fresh) { n.pop = 0.001; n.g.scale.setScalar(0.01); } }); }
 const findKeep = (a, x, z) => !!a.finds && a.finds.some((f) => Math.hypot(x - a.cx - f[1], z - a.cz - f[2]) < 1.5);
+/* ---------- the Meadow's craft: bee trails (Leon 2026-11-28: each island gets a new fun way of gathering, played a lot
+   on its own island, and now and then later, so the time there is play and not grinding) ----------
+   Honey is the Meadow's own material: its later parts and the windmill ask for it. Every Meadow square Pip owns has a
+   flower patch. When Pip walks up to it, a bee rises from the flowers and buzzes off across the island, leaving a glittering
+   trail. It waits whenever Pip falls behind. Where it stops, a wild hive pops up by the grass: Pip takes the comb (two honey,
+   four once the Bee Queen's garden is open), and the bee flies home. Each patch sends one bee a day.
+   Saved: state.isle.bees = { day, done: { area id: 1 } }. A wild hive is not saved: it is there until Pip takes it or
+   leaves the game. */
+const BT = { patch: {}, bee: null, sparks: [], geo: null };
+const BEE_ISLE = (A) => A && !A.secret && A.id[0] === 'm';
+const beeS = () => state.isle.bees || (state.isle.bees = { day: -1, done: {} });
+/* a free spot on owned Meadow ground: off roads, away from what stands there */
+function beeFree(x, z, r) {
+  const A = areaAt(x, z); if (!BEE_ISLE(A) || !HAS[A.id] || walkSdf(x, z) > -1.1 || campNear(x, z, 1.5) || tallKeep(A, x, z)) return false; /* out of the tall grass, so the hive is easy to see */
+  return !nodes.some((n) => n.st !== 'gone' && Math.hypot(n.x - x, n.z - z) < r);
+}
+function beePatchAt(A) { for (let k = 0; k < 40; k++) { const x = A.cx + (hash(k, 7300 + A.i * 13 + A.j) - 0.5) * 8.5, z = A.cz + (hash(k, 7400 + A.i * 7 - A.j) - 0.5) * 8.5; if (beeFree(x, z, 1.3)) return [x, z]; } return null; }
+/* the patch: a ring of bright flowers round one big golden one */
+function beePatchMake(A) {
+  const at = beePatchAt(A); if (!at) return null; const g = new T.Group(), L = []; g.position.set(at[0], 0, at[1]); sc.add(g); let q;
+  for (let k = 0; k < 9; k++) { const a = k / 9 * 6.28 + hash(k, 7500) * 0.5, r = 0.35 + hash(k, 7501) * 0.25, h = 0.22 + hash(k, 7502) * 0.14, col = ['#f07aa8', '#ffd84a', '#b78af0', '#ffffff'][k % 4];
+    q = new T.CylinderGeometry(0.012, 0.014, h, 4); q.translate(Math.cos(a) * r, h / 2, Math.sin(a) * r); L.push(fac(q, () => new T.Color('#4f8a3a'), 7510 + k));
+    q = new T.SphereGeometry(0.06, 7, 5); q.scale(1, 0.55, 1); q.translate(Math.cos(a) * r, h + 0.02, Math.sin(a) * r); L.push(fac(q, () => new T.Color(col), 7520 + k)); }
+  q = new T.CylinderGeometry(0.018, 0.02, 0.42, 5); q.translate(0, 0.21, 0); L.push(fac(q, () => new T.Color('#4f8a3a'), 7540));
+  for (let k = 0; k < 6; k++) { q = new T.SphereGeometry(0.07, 6, 4); q.scale(1.4, 0.35, 0.8); q.translate(0.08, 0.44, 0); q.rotateY(k / 6 * 6.28); L.push(fac(q, () => new T.Color('#ffc21e'), 7541 + k)); }
+  q = new T.SphereGeometry(0.055, 7, 5); q.translate(0, 0.46, 0); L.push(fac(q, () => new T.Color('#8a4a22'), 7550));
+  merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g); lookFoot(at[0], at[1], 0.6, 0.6);
+  return { id: A.id, x: at[0], z: at[1], g };
+}
+/* a bee: a striped body, a head, two wings that flap */
+function beeModel() {
+  const g = new T.Group(), L = []; let q = new T.SphereGeometry(0.11, 10, 8); q.scale(1.35, 1, 1); L.push(fac(q, (cx) => new T.Color(Math.floor((cx + 0.15) / 0.06) % 2 ? '#2b2420' : '#ffc21e'), 7560));
+  q = new T.SphereGeometry(0.07, 8, 6); q.translate(0.15, 0.02, 0); L.push(fac(q, () => new T.Color('#2b2420'), 7561));
+  merged(L, MAT, g); const wm = new T.MeshBasicMaterial({ color: '#eaf6ff', transparent: true, opacity: 0.8, side: T.DoubleSide }), W = [];
+  [-1, 1].forEach((s) => { const w = new T.Mesh(new T.CircleGeometry(0.09, 8), wm); w.scale.set(1.3, 0.7, 1); w.rotation.x = Math.PI / 2; w.position.set(-0.02, 0.1, s * 0.08); g.add(w); W.push(w); });
+  g.userData.w = W; g.scale.setScalar(1.25); sc.add(g); return g;
+}
+/* where today's bee goes from a patch: a spot on owned Meadow ground, some way off, the same all day */
+function beeGoal(P) {
+  const day = Math.floor(state.clock / DAY);
+  for (let k = 0; k < 60; k++) { const a = hash(k + day * 3, 7600 + P.id.charCodeAt(1)) * 6.28, d = 6 + hash(k + day, 7601) * 8, x = P.x + Math.cos(a) * d, z = P.z + Math.sin(a) * d; if (beeFree(x, z, 1.4)) return [x, z]; }
+  return null;
+}
+function beeStart(P) {
+  const goal = beeGoal(P); if (!goal) return; const g = beeModel(); g.position.set(P.x, 0.5, P.z);
+  BT.bee = { P, g, goal, st: 'go', t: 0, hive: null }; beeS().done[P.id] = 1; save();
+  Snd.play('buzz', { gain: 0.35 }); Snd.play('pop', { gain: 0.3, f: 760 }); burst(P.x, 0.6, P.z, 4);
+}
+function beeSpark(x, y, z) {
+  if (!BT.geo) BT.geo = new T.SphereGeometry(0.045, 5, 4);
+  const m = new T.Mesh(BT.geo, new T.MeshBasicMaterial({ color: '#ffe27a', transparent: true, opacity: 0.95 })); m.position.set(x, y, z); sc.add(m); BT.sparks.push({ m, t: 0 });
+}
+function beeStep(dt) {
+  if (!state.isle || inCave) return; const S = beeS(), day = Math.floor(state.clock / DAY), pp = pip.position;
+  if (S.day !== day) { S.day = day; S.done = {}; }
+  /* a patch for every owned Meadow square */
+  AREAS.forEach((A) => { if (BEE_ISLE(A) && HAS[A.id] && BT.patch[A.id] === undefined) BT.patch[A.id] = beePatchMake(A); });
+  /* the sparkles of the trail fade */
+  for (let k = BT.sparks.length - 1; k >= 0; k--) { const s = BT.sparks[k]; s.t += dt; s.m.material.opacity = Math.max(0, 0.95 - s.t / 2.2); s.m.position.y -= dt * 0.05; if (s.t > 2.2) { sc.remove(s.m); s.m.material.dispose(); BT.sparks.splice(k, 1); } }
+  /* walking up to a patch that has not sent its bee today */
+  if (!BT.bee && !enSleep) Object.keys(BT.patch).forEach((id) => { const P = BT.patch[id]; if (!P || S.done[id] || BT.bee) return; if (Math.hypot(pp.x - P.x, pp.z - P.z) < 1.8) beeStart(P); });
+  const B = BT.bee; if (!B) return; const g = B.g; B.t += dt;
+  g.userData.w.forEach((w, k) => { w.rotation.y = Math.sin(time * 60 + k * Math.PI) * 0.6; });
+  if (B.st === 'go') { /* off to the hive spot, waiting for Pip whenever Pip lags behind */
+    const dx = B.goal[0] - g.position.x, dz = B.goal[1] - g.position.z, d = Math.hypot(dx, dz), lag = Math.hypot(pp.x - g.position.x, pp.z - g.position.z), v = lag > 3.6 ? 0 : Math.min(2.4, 0.6 + d);
+    if (d > 0.05) { g.position.x += dx / d * Math.min(d, v * dt); g.position.z += dz / d * Math.min(d, v * dt); g.rotation.y = Math.atan2(-dz, dx); }
+    if (v === 0) { g.rotation.y += Math.sin(time * 3) * dt * 2; } /* hovering, turned back toward Pip */
+    g.position.y = 1.1 + Math.sin(time * 5) * 0.12 + Math.min(1, B.t) * 0.2;
+    if ((B.sp = (B.sp || 0) + dt) > 0.12 && v > 0) { B.sp = 0; beeSpark(g.position.x, g.position.y - 0.05, g.position.z); }
+    if (lag > 3.6 && (B.bz = (B.bz || 0) + dt) > 1.6) { B.bz = 0; Snd.play('buzz', { gain: 0.2 }); } /* come on! */
+    if (d < 0.1) { /* the wild hive */
+      const n = makeNode('hive', B.goal[0], B.goal[1], 7700 + day % 97); n.bee = 1; n.pop = 0.001; n.g.scale.setScalar(0.01); B.hive = n; B.st = 'wait'; B.t = 0;
+      Snd.play('secret', { gain: 0.4 }); burst(B.goal[0], 0.8, B.goal[1], 10); }
+  } else if (B.st === 'wait') { /* round and round the hive until Pip takes the comb */
+    const a = time * 2.4; g.position.set(B.goal[0] + Math.cos(a) * 0.7, 1.0 + Math.sin(time * 4) * 0.1, B.goal[1] + Math.sin(a) * 0.7); g.rotation.y = -a - Math.PI / 2;
+    if (B.hive.st !== 'ready') { B.st = 'home'; B.t = 0; B.hive.beeGone = 1; }
+  } else { /* home to its patch, and the empty hive goes */
+    const P = B.P, dx = P.x - g.position.x, dz = P.z - g.position.z, d = Math.hypot(dx, dz); g.position.x += dx / Math.max(d, 0.01) * Math.min(d, 3 * dt); g.position.z += dz / Math.max(d, 0.01) * Math.min(d, 3 * dt); g.position.y = 1.0 + B.t * 0.6; g.rotation.y = Math.atan2(-dz, dx);
+    if (B.t > 1.6 && B.hive) { B.hive.dead = 1; B.hive = null; }
+    if (d < 0.2 || B.t > 6) { sc.remove(g); BT.bee = null; }
+  }
+}
+ISLE_STEPS.push(beeStep);
 /* ---------- tall grass (Leon, 2026-11-25: each island should differ in how Pip gets about, not only in looks) ----------
    The meadow's way of moving: belts of grass taller than Pip stand across it, three clumps deep, and Pip cuts a lane
    through by hand. A clump is a node that cannot be walked through; cut, it is gone for good (state.isle.cut), so a lane
@@ -9089,7 +9206,7 @@ function gardenGateOpen(n) {
 /* the hedge plug shrinks away: the way north is open */
 function gardenDoor() { GD.doorOpen = 0.001; }
 /* honey from a hive: the Queen's own gives a big comb, and once she is found every hive gives double */
-const hiveGives = (n, c) => (n.kind !== 'hive' ? c : n.queen ? 5 : gardenOpen() ? c * 2 : c);
+const hiveGives = (n, c) => (n.kind !== 'hive' ? c : n.queen ? 5 : n.bee ? (gardenOpen() ? 4 : 2) : gardenOpen() ? c * 2 : c); /* a wild hive a bee led Pip to (beetrail.js) gives more */
 function gardenStep(dt) {
   if (!GD.g) return; const pp = pip.position;
   if (GD.pop) { GD.pop = Math.min(1, GD.pop + dt * 1.5); GD.g.scale.setScalar(GD.pop); if (GD.pop >= 1) GD.pop = 0; }

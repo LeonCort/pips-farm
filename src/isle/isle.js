@@ -808,6 +808,42 @@ const TOOL = (() => {
   o.re = () => ['axe', 'pick', 'shovel', 'sickle'].forEach((k) => { const g = o[k], v = g.visible; while (g.children.length) g.remove(g.children[0]); mk(k, g); g.visible = v; });
   return o;
 })();
+/* each tool of each family moves its own way (Leon 2026-11-28: "we need new animations for each new tool").
+   u runs 0..1 over one go; a/b = the two arms (b defaults to a), lean = body tip forward, yaw = body turn, hop = lift, shake = a fast judder;
+   at = when the hit lands. */
+const TOOL_ANIM_D = { axe1: 0.5, axe2: 0.6, axe3: 0.66, axe4: 0.62, pick1: 0.5, pick2: 0.56, pick3: 0.6, pick4: 0.66 };
+function toolChop(u, top, slam) { /* the overhead swing: up and back, then down hard */
+  if (u < 0.55) { const e = ease(u / 0.55); return { a: -0.35 - (top - 0.35) * e, lean: -0.12 * e * slam }; }
+  if (u < 0.72) { const e = (u - 0.55) / 0.17; return { a: -top + (top - 0.9) * e * e, lean: -0.12 * slam + 0.42 * slam * e }; }
+  const e = ease((u - 0.72) / 0.28); return { a: -0.9 + 0.5 * e, lean: 0.3 * slam * (1 - e) };
+}
+function toolMove(w, u) {
+  const sfx = (k, name, o) => { if (!w[k]) { w[k] = 1; Snd.play(name, o); } };
+  switch (w.anim) {
+    case 'axe2': { /* the double axe: a big heavy swing from far behind, and Pip bounces with the blow */
+      const m = toolChop(u, 3.15, 1.4); m.hop = u > 0.7 && u < 0.86 ? Math.sin((u - 0.7) / 0.16 * Math.PI) * 0.1 : 0; m.at = 0.72; return m; }
+    case 'axe3': { /* the bow saw: arms out front, three strokes back and forth, the body rocking along */
+      const s = Math.sin(u * Math.PI * 6), k = Math.floor(u * 3);
+      sfx('s' + k, 'swish', { gain: 0.22, f: 900 + k * 120 });
+      return { a: -1.4 + s * 0.28, b: -1.4 - s * 0.12, lean: 0.12 + s * 0.06, yaw: s * 0.14, at: 0.92 }; }
+    case 'axe4': { /* the great saw: Pip winds round to one side and sweeps it through the trunk in one long pull */
+      let yaw; if (u < 0.42) yaw = -1.05 * ease(u / 0.42); else if (u < 0.62) yaw = -1.05 + 2.0 * ease((u - 0.42) / 0.2); else yaw = 0.95 * (1 - ease((u - 0.62) / 0.38));
+      if (u > 0.42) sfx('s', 'whoosh', { gain: 0.25 });
+      return { a: -1.5, b: -1.45, lean: 0.1 + (u > 0.42 && u < 0.62 ? 0.12 : 0), yaw, at: 0.55 }; }
+    case 'pick2': { /* the mattock: two quick chops, tap-TAP, the second one counts */
+      const h = u < 0.45 ? u / 0.45 : (u - 0.45) / 0.55, m = toolChop(h, u < 0.45 ? 2.0 : 2.6, 1);
+      if (u >= 0.45 * 0.72) sfx('t1', 'tock', { gain: 0.3, f: 520 });
+      m.at = 0.45 + 0.55 * 0.72; return m; }
+    case 'pick3': { /* the rock drill: lean in, hold it down on the rock and rattle */
+      const In = ease(Math.min(1, u / 0.2)), out = u > 0.85 ? ease((u - 0.85) / 0.15) : 0;
+      if (u > 0.2) sfx('d', 'buzz', { gain: 0.3, f: 140 });
+      return { a: -0.9 * In - 0.35 * (1 - In) + out * 0.5, lean: 0.22 * In * (1 - out), shake: u > 0.2 && u < 0.85 ? 0.06 : 0, hop: u > 0.2 && u < 0.85 ? Math.abs(Math.sin(time * 60)) * 0.025 : 0, at: 0.82 }; }
+    case 'pick4': { /* the chime hammer: a hop up with the hammer high, and a ringing slam on landing */
+      const m = toolChop(u, 3.0, 1.2); m.hop = u < 0.66 ? Math.sin(Math.min(1, u / 0.66) * Math.PI) * 0.32 : 0;
+      if (u >= 0.72) sfx('c', 'bell', { gain: 0.3, f: 'E6' }); m.at = 0.72; return m; }
+    default: { const m = toolChop(u, 2.9, 1); m.at = 0.72; return m; } /* the hand axe, the pickaxe, the shovel, the sickle */
+  }
+}
 let work = null, toolHold = 0;
 function workStart(n) { work = { n, t: 0, hit: false, kind: n.kind }; }
 const ease = (u) => u * u * (3 - 2 * u);
@@ -815,21 +851,19 @@ function workStep(dt) {
   const R = limbs.filter((l) => l.arm), arm = R.find((l) => l.g.position.x < 0) || R[0], other = R.find((l) => l !== arm);
   if (arm) [TOOL.axe, TOOL.pick, TOOL.shovel, TOOL.sickle].forEach((t) => { if (t.parent !== arm.g) arm.g.add(t); });
   toolHold = Math.max(0, toolHold - dt);
-  if (!work) { TOOL.axe.visible = TOOL.pick.visible = TOOL.shovel.visible = TOOL.sickle.visible = false; pb.rotation.x *= Math.max(0, 1 - dt * 8); return; }
-  const w = work, n = w.n, hand = w.kind === 'bush' || w.kind === 'grass' || w.kind === 'shroom' || byHand(w.kind), D = hand ? 0.48 : 0.5;
+  if (!work) { TOOL.axe.visible = TOOL.pick.visible = TOOL.shovel.visible = TOOL.sickle.visible = false; pb.rotation.x *= Math.max(0, 1 - dt * 8); pb.rotation.y *= Math.max(0, 1 - dt * 8); return; }
+  const w = work, n = w.n, hand = w.kind === 'bush' || w.kind === 'grass' || w.kind === 'shroom' || byHand(w.kind);
+  if (!w.anim) { let tt = 1; try { tt = toolTierNow(); } catch (e) {} w.anim = hand ? 'hand' : (w.kind === 'tree' || w.kind === 'planks' ? 'axe' : NEED[w.kind] === 'pick' ? 'pick' : 'base') + tt; }
+  const D = hand ? 0.48 : TOOL_ANIM_D[w.anim] || 0.5;
   w.t += dt / D; const u = Math.min(1, w.t);
   pip.rotation.y = Math.atan2(n.x - pip.position.x, n.z - pip.position.z);
   TOOL.axe.visible = w.kind === 'tree' || w.kind === 'planks'; TOOL.pick.visible = !byHand(w.kind) && NEED[w.kind] === 'pick'; TOOL.shovel.visible = !byHand(w.kind) && NEED[w.kind] === 'shovel'; TOOL.sickle.visible = !byHand(w.kind) && NEED[w.kind] === 'sickle';
-  let a, b, lean;
+  let a, b, lean, yaw = 0, hop = 0, shake = 0;
   if (hand) { const s = Math.sin(u * Math.PI * 2); a = -1.25 + s * 0.35; b = -1.25 - s * 0.35; lean = 0.18 * Math.sin(u * Math.PI); if (!w.hit && u > 0.5) { w.hit = true; if (n.st === 'ready') nodeHit(n); } }
-  else {
-    if (u < 0.55) { const e = ease(u / 0.55); a = -0.35 - 2.55 * e; lean = -0.12 * e; }
-    else if (u < 0.72) { const e = (u - 0.55) / 0.17; a = -2.9 + 2.0 * e * e; lean = -0.12 + 0.42 * e; }
-    else { const e = ease((u - 0.72) / 0.28); a = -0.9 + 0.5 * e; lean = 0.3 * (1 - e); }
-    b = a; if (!w.hit && u >= 0.72) { w.hit = true; if (n.st === 'ready') nodeHit(n); }
-  }
-  if (!reduced) { if (arm) arm.g.rotation.x = a; if (other) other.g.rotation.x = b; pb.rotation.x = lean; }
-  if (u >= 1) { work = null; toolHold = 0.4; }
+  else { const m = toolMove(w, u); a = m.a; b = m.b === undefined ? a : m.b; lean = m.lean; yaw = m.yaw || 0; hop = m.hop || 0; shake = m.shake || 0;
+    if (!w.hit && u >= m.at) { w.hit = true; if (n.st === 'ready') nodeHit(n); } }
+  if (!reduced) { if (arm) arm.g.rotation.x = a; if (other) other.g.rotation.x = b; pb.rotation.x = lean; pb.rotation.y = yaw; pb.position.y += hop; if (shake) pb.rotation.z = Math.sin(time * 85) * shake; }
+  if (u >= 1) { work = null; toolHold = 0.4; pb.rotation.y = 0; }
 }
 
 /* ---------- start over: a button in the settings sheet; hold it until the ring is full, then the island starts fresh (copied from the farm's catalog.js) ----------
