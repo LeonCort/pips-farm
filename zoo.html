@@ -138,14 +138,14 @@ button:focus-visible { outline: 3px solid var(--sea); outline-offset: 3px; }
 #menu .fxQBtn b { display: none; }
 /* order and groups: play, picture, help, start over */
 #menu #soundBtn { order: 1; } #menu #wardBtn { order: 2; } #menu #ctrlBtn { order: 3; }
-#menu #fpsBtn { order: 10; } #menu #gfxBtn { order: 11; } #menu #drawBtn { order: 12; } #menu #fxQBtn { order: 13; } #menu #grassBtn { order: 14; } #menu #sunBtn { order: 15; }
+#menu #fpsBtn { order: 10; } #menu #gfxBtn { order: 11; } #menu #drawBtn { order: 12; } #menu #camBtn { order: 12; } #menu #fxQBtn { order: 13; } #menu #grassBtn { order: 14; } #menu #sunBtn { order: 15; }
 #menu #updBtn { order: 20; } #menu #logBtn { order: 21; } #menu #homeBtn { order: 22; } #menu #devBtn { order: 23; }
 #menu #restartBtn { order: 30; }
 #menu #fpsBtn, #menu #updBtn, #menu #logBtn:first-child, #menu #restartBtn { margin-top: 14px; }
 #menu #fpsBtn::before, #menu #updBtn::before, #menu #restartBtn::before { content: ''; position: absolute; left: 0; top: -12px; width: min(270px, calc(86vw - 40px)); border-top: 2px dashed var(--line); }
 #menu #updBtn[hidden] + #logBtn { margin-top: 14px; }
 #menu .sheetTop > #soundBtn::after { content: 'Ljud'; } #menu .sheetTop > #wardBtn::after { content: 'Kläder och hår'; } #menu .sheetTop > #ctrlBtn::after { content: 'Styrning'; }
-#menu .sheetTop > #fpsBtn::after { content: 'Bilder per sekund'; } #menu .sheetTop > #gfxBtn::after { content: 'Grafik: lätt / full / ultra'; } #menu .sheetTop > #drawBtn::after { content: 'Hur långt man ser'; } #menu .sheetTop > #fxQBtn::after { content: 'Ljuseffekter'; }
+#menu .sheetTop > #fpsBtn::after { content: 'Bilder per sekund'; } #menu .sheetTop > #gfxBtn::after { content: 'Grafik: lätt / full / ultra'; } #menu .sheetTop > #drawBtn::after { content: 'Hur långt man ser'; } #menu .sheetTop > #camBtn::after { content: 'Kamera 1: vanlig'; } #menu .sheetTop > #camBtn[data-m="1"]::after { content: 'Kamera 2: låg'; } #menu .sheetTop > #fxQBtn::after { content: 'Ljuseffekter'; }
 #menu .sheetTop > #updBtn::after { content: 'Sök uppdatering'; } #menu .sheetTop > #logBtn::after { content: 'Kopiera loggen'; } #menu .sheetTop > #logBtn.ok::after { content: 'Kopierad!'; color: #2f7d4f; }
 #menu .sheetTop > #homeBtn::after { content: 'Välj spel'; } #menu .sheetTop > #devBtn::after { content: 'Utvecklarläge'; } #menu .sheetTop > #restartBtn::after { content: 'Börja om (håll inne)'; color: #b8401f; }
 #menu #menuClose::after { content: none; }
@@ -791,6 +791,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
       <button type="button" class="round ctrlBtn" id="ctrlBtn" aria-label="Steering"><svg class="drag" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" fill="none" stroke="#22303c" stroke-width="3" stroke-dasharray="4 4"/><circle cx="31" cy="18" r="8" fill="#e9684a" stroke="#22303c" stroke-width="3"/><path d="M24 24 L30 19" stroke="#22303c" stroke-width="3" stroke-linecap="round"/></svg><svg class="tapI" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="7" fill="#e9684a" stroke="#22303c" stroke-width="3"/><circle cx="24" cy="24" r="15" fill="none" stroke="#22303c" stroke-width="3"/><path d="M24 3 v5 M24 40 v5 M3 24 h5 M40 24 h5" stroke="#22303c" stroke-width="3" stroke-linecap="round"/></svg></button>
       <button type="button" class="round fpsBtn" id="fpsBtn" aria-label="Frame rate"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 33 A17 17 0 1 1 40 33" fill="#fff6e4" stroke="#22303c" stroke-width="3" stroke-linecap="round"/><path class="leaf" d="M24 30 L33 17" stroke="#e9684a" stroke-width="4" stroke-linecap="round"/><circle cx="24" cy="30" r="3.5" fill="#22303c"/></svg><b>30</b></button>
       <button type="button" class="round drawBtn" id="drawBtn" aria-label="Draw distance"><svg viewBox="0 0 48 48" aria-hidden="true"><path class="h3" d="M4 30 Q14 14 24 24 Q33 13 44 26" fill="none" stroke="#22303c" stroke-width="3" stroke-linecap="round"/><path class="h2" d="M4 35 Q14 23 24 31 Q34 22 44 33" fill="#cfe3b0" stroke="#22303c" stroke-width="3" stroke-linecap="round"/><path class="h1" d="M4 41 Q16 31 26 38 Q36 31 44 40 V44 H4 Z" fill="#8fbf6a" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/></svg><b>2</b></button>
+      <button type="button" class="round camBtn" id="camBtn" aria-label="Camera view" aria-pressed="false"><svg viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="15" width="30" height="22" rx="5" fill="#fff6e4" stroke="#22303c" stroke-width="3"/><path d="M36 22 L44 17 V35 L36 30 Z" fill="#cfe3b0" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/><circle cx="15" cy="12" r="4.5" fill="#f2c14a" stroke="#22303c" stroke-width="2.5"/><circle cx="27" cy="12" r="4.5" fill="#f2c14a" stroke="#22303c" stroke-width="2.5"/></svg><b></b></button>
       <button type="button" class="round devBtn" id="devBtn" aria-label="Developer mode" aria-pressed="false"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M30 9 a9 9 0 0 0 -8 12 L9 34 a3.5 3.5 0 0 0 5 5 L27 26 a9 9 0 0 0 12 -8 l-6 3 -5 -2 -1 -5 z" fill="#fff6e4" stroke="#22303c" stroke-width="3" stroke-linejoin="round"/></svg></button>
       <button type="button" class="round updBtn" id="updBtn" aria-label="Check for updates" hidden><svg viewBox="0 0 48 48" aria-hidden="true"><g class="arr"><path d="M38 20 A15 15 0 0 0 11 15" fill="none" stroke="#22303c" stroke-width="4" stroke-linecap="round"/><path d="M8 8 L10 17 L19 15" fill="none" stroke="#22303c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 28 A15 15 0 0 0 37 33" fill="none" stroke="#22303c" stroke-width="4" stroke-linecap="round"/><path d="M40 40 L38 31 L29 33" fill="none" stroke="#22303c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g><path class="chk" d="M12 25 L21 34 L37 15" fill="none" stroke="#2f7d4f" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><g class="bad"><path d="M15 15 L33 33 M33 15 L15 33" stroke="#9a8f80" stroke-width="5" stroke-linecap="round"/></g></svg><span class="dot" aria-hidden="true"></span></button>
       <a class="round homeBtn" id="homeBtn" href="./" aria-label="Choose game" hidden><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M8 24 L24 9 L40 24 M13 20 V39 H35 V20" fill="#fff6e4" stroke="#22303c" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/><rect x="20" y="27" width="8" height="12" fill="#e9684a" stroke="#22303c" stroke-width="3"/></svg></a>
@@ -814,7 +815,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261128121509">
+<meta name="app-ver" content="20261128123115">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1290,7 +1291,10 @@ const CURVE_DEF = { strength: 0.0135, side: 0, pitch: 37, dist: 12, ahead: 1, sh
 const CURVE = Object.assign({}, CURVE_DEF, { fogNear: 50, fogFar: 88, detail: 49, wxFog: 1, ultra: false, shopW: 0, u: { origin: { value: new T.Vector3() }, strength: { value: 0 }, side: { value: CURVE_DEF.side }, horD: { value: 1e6 } } });
 /* dev mode (settings menu): shows the tuning panel and the fps counter; tweaks are saved on this device only and apply only while dev mode is on */
 let devOn = false; try { devOn = localStorage.getItem('pips-dev') === '1'; } catch (e) {}
-function curveLoadDev() { Object.assign(CURVE, CURVE_DEF); if (!devOn) return; try { const s = JSON.parse(localStorage.getItem('pips-curve2') || 'null'); if (s) Object.keys(CURVE_DEF).forEach((k) => { if (typeof s[k] === typeof CURVE_DEF[k]) CURVE[k] = s[k]; }); } catch (e) {} }
+/* camera mode (settings menu, Leon 2026-11-28): 0 = the game's own camera, 1 = Leon's tuned view; saved on this device */
+const CURVE_ALT = { strength: 0.012, side: 0.35, pitch: 36, dist: 13.5, ahead: 1.1, shopPitch: 60, shopDist: 14, shopAhead: 0.8, awnFade: 0.55 };
+let camMode = 0; try { camMode = localStorage.getItem('pips-cam') === '1' ? 1 : 0; } catch (e) {}
+function curveLoadDev() { Object.assign(CURVE, CURVE_DEF, camMode ? CURVE_ALT : {}); if (!devOn) return; try { const s = JSON.parse(localStorage.getItem('pips-curve2') || 'null'); if (s) Object.keys(CURVE_DEF).forEach((k) => { if (typeof s[k] === typeof CURVE_DEF[k]) CURVE[k] = s[k]; }); } catch (e) {} }
 curveLoadDev();
 const CURVE_GLSL = '\nuniform vec3 uCurveOrigin; uniform float uCurveStrength; uniform float uCurveSide;\nfloat worldCurveDrop(vec3 w) { float dz = w.z - uCurveOrigin.z; float dx = w.x - uCurveOrigin.x; return (dz * dz + dx * dx * uCurveSide) * uCurveStrength; }\n/* world up in view space without viewMatrix (three only sets that for some materials): V = MV * inverse(M) */\nvec3 curveUpView() { vec3 a0 = modelMatrix[0].xyz, a1 = modelMatrix[1].xyz, a2 = modelMatrix[2].xyz; vec3 c12 = cross(a1, a2); vec3 x = vec3(c12.y, cross(a2, a0).y, cross(a0, a1).y) / dot(a0, c12); return mat3(modelViewMatrix) * x; }\n';
 {
@@ -1412,6 +1416,11 @@ function fpsTick() {
   fpsMin = 1e9;
 }
 { const row = document.querySelector('#curvePan .row'); if (row) { const l = document.createElement('label'); l.style.cssText = 'margin:0;flex:1'; l.innerHTML = '<input type="checkbox" data-fps> FPS'; row.insertBefore(l, row.children[1]); const c = l.querySelector('input'); c.checked = fpsShow; c.addEventListener('change', () => { fpsShow = c.checked; fpsEl.hidden = !(fpsShow && devOn); try { localStorage.setItem('pips-fpsmeter', fpsShow ? '1' : '0'); } catch (e) {} }); } }
+/* the camera switch in the settings menu: the game's own view, or the second view (CURVE_ALT) */
+function setCam(m) { camMode = m ? 1 : 0; try { localStorage.setItem('pips-cam', String(camMode)); } catch (e) {} curveLoadDev();
+  const b = document.getElementById('camBtn'); if (b) { b.dataset.m = camMode; b.setAttribute('aria-pressed', String(!!camMode)); } }
+{ const b = document.getElementById('camBtn'); if (b) { b.dataset.m = camMode; b.setAttribute('aria-pressed', String(!!camMode)); b.addEventListener('click', () => { setCam(!camMode); Snd.play('pop', { gain: 0.4, f: camMode ? 760 : 520 }); }); }
+  const st = document.createElement('style'); st.textContent = '.camBtn{position:relative}.camBtn b{position:absolute;left:0;right:0;bottom:3px;font:800 13px/1 system-ui,sans-serif;color:var(--ink);text-align:center}.camBtn[data-m="0"] b::before{content:"1"}.camBtn[data-m="1"] b::before{content:"2"}'; document.head.appendChild(st); }
 /* the dev switch in the settings menu */
 function setDev(on) { devOn = on; try { localStorage.setItem('pips-dev', on ? '1' : '0'); } catch (e) {} curveLoadDev();
   const b = document.getElementById('devBtn'); if (b) { b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }
