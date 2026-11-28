@@ -53,6 +53,7 @@ finds.js
 beetrail.js
 orehunt.js
 frogsong.js
+shellwave.js
 tall.js
 mesa.js
 garden.js
