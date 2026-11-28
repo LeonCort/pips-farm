@@ -392,9 +392,11 @@ function loopStep(dt) {
     if (P.pop2 && P.house) { P.pop2 = Math.min(1, P.pop2 + dt * 1.6); P.house.scale.setScalar(P.pop2 < 0.7 ? P.pop2 / 0.7 * 1.08 : 1.08 - (P.pop2 - 0.7) / 0.3 * 0.08); if (P.pop2 >= 1) { P.pop2 = 0; P.house.scale.setScalar(1); } }
     if (P.move) { const M = P.move; M.t += dt;
       if (M.t < 1.0) g.position.y = Math.abs(Math.sin(M.t * Math.PI * 2)) * 0.35;
+      else if (M.w === undefined) { const [x, z] = loopSpot(id); M.w = walkStart(g, x, z); M.t = 1.0; } /* two happy hops, then off home on foot (walkhome.js) */
+      else if (M.w) { if (walkStep(M.w, g, dt)) { P.move = null; walkEnd(g); loopPlace(id); g.rotation.y = Math.atan2(pp.x - g.position.x, pp.z - g.position.z); P.hop = 1; P.arr = 25; Snd.play('pop', { gain: 0.35, f: 640 }); isleSigns(); save(); } }
       else if (M.t < 1.35) { g.scale.setScalar(Math.max(0.01, 1 - (M.t - 1.0) / 0.35)); if (!M.puff) { M.puff = 1; Snd.play('whoosh', { gain: 0.4 }); burst(g.position.x, 0.8, g.position.z, 6); } }
       else { P.move = null; g.position.y = 0; loopPlace(id); P.pop = 0.001; g.scale.setScalar(0.01); P.arr = 25; Snd.play('pop', { gain: 0.4, f: 640 }); burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); save(); } }
-    if (P.away && HAS[HOUSES[id].area || 'h1'] && F >= 2 && !P.move && !rising) { loopPlace(id); P.pop = 0.001; g.scale.setScalar(0.01); P.arr = 25; isleSigns(); }
+    if (P.away && HAS[HOUSES[id].area || 'h1'] && F >= 2 && !P.move && !rising) { P.away = 0; P.move = { t: 1.0 }; } /* the street is bought: off from the fire to the house */
     P.arr = Math.max(0, P.arr - dt);
     if (!g.visible || P.move) return;
     P.hop = Math.max(0, P.hop - dt * 1.6); g.position.y = P.hop > 0 ? Math.abs(Math.sin(P.hop * Math.PI * 3)) * 0.3 : (LP.partyT > 0 && F >= 3 ? Math.abs(Math.sin(time * 6 + id.length)) * 0.25 : 0);
