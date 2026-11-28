@@ -74,6 +74,7 @@ map.js
 spots.js
 ferry.js
 docks.js
+cargo.js
 show.js
 snowfx.js
 ../engine/input.js

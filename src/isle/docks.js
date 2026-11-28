@@ -8,7 +8,23 @@
    run, go: the way the boat sails off). Nothing new is saved: a dock stands wherever its wonder does. */
 const DK = { d: {}, trip: null, at: null, fade: null, L: 1.7 };
 const dockBusy = () => !!DK.trip;
-const dockSeat = (d) => tmpV.set(d.boat.position.x + d.go[0] * 0.25, d.boat.position.y - 0.12, d.boat.position.z + d.go[1] * 0.25);
+const dockSeat = (d) => { const r = d.boat.rotation.y; return tmpV.set(d.boat.position.x - Math.cos(r) * 0.25, d.boat.position.y - 0.12, d.boat.position.z + Math.sin(r) * 0.25); };
+/* ---------- sailing a lane (Leon, 2026-11-28: "the boat doesn't go into any other objects") ----------
+   A boat no longer sails straight off along go and back in from behind its dock (the camp's boat came in through the farm
+   boat). Each dock has a lane: points from its mooring out to open water (DOCKS[id].lane, or straight out along go). The
+   boat sails out along it, and a boat coming in sails the same lane backwards, so it always comes from open sea. The bow
+   turns smoothly toward where it is going. The cargo boats (cargo.js) sail their lane the same way. */
+const boatYaw = (dx, dz) => Math.atan2(dz, -dx); /* a boat's rotation.y when its bow points along (dx, dz) */
+function laneMake(pts) { const P = pts.map((p) => [p[0], p[1]]), S = [0]; for (let k = 1; k < P.length; k++) S.push(S[k - 1] + Math.hypot(P[k][0] - P[k - 1][0], P[k][1] - P[k - 1][1])); return { P, S, L: S[S.length - 1] }; }
+/* the point s along a lane (past either end it runs straight on), and the way the lane runs there */
+function laneAt(ln, s, out) {
+  const P = ln.P, S = ln.S; let k = 1; while (k < P.length - 1 && S[k] < s) k++;
+  const a = P[k - 1], b = P[k], l = S[k] - S[k - 1] || 1, u = (s - S[k - 1]) / l, dx = (b[0] - a[0]) / l, dz = (b[1] - a[1]) / l;
+  out.x = a[0] + (b[0] - a[0]) * u; out.z = a[1] + (b[1] - a[1]) * u; out.dx = dx; out.dz = dz; return out;
+}
+/* turn a boat's bow toward (dx, dz), at most rate radians a second */
+function boatTurn(boat, dx, dz, dt, rate) { let d = boatYaw(dx, dz) - boat.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); boat.rotation.y += Math.sign(d) * Math.min(Math.abs(d), rate * dt); }
+const LANE_P = { x: 0, z: 0, dx: 0, dz: 0 };
 function dockMake(id) {
   if (DK.d[id] || !DOCKS[id]) return; const D = DOCKS[id], [ox, oz] = D.out, [gx, gz] = D.go, L = [], g = new T.Group(); let q;
   g.position.set(D.x, 0, D.z); g.rotation.y = Math.atan2(oz, -ox); sc.add(g); /* in the group the planks run toward -x, like the farm boat's dock */
@@ -25,7 +41,8 @@ function dockMake(id) {
   const fill = new T.Mesh(new T.CircleGeometry(0.38, 32), new T.MeshBasicMaterial({ color: '#f4b23a', transparent: true, opacity: 0.85 })); fill.rotation.x = -Math.PI / 2; fill.position.set(rp[0], 0.185, rp[1]); fill.scale.setScalar(0.001); sc.add(fill);
   const boat = new T.Group(), mp = W(DK.L + 0.6, 0); propBoat(boat); boat.position.set(mp[0], -0.08, mp[1]); boat.rotation.y = Math.atan2(gz, -gx); sc.add(boat);
   const land = W(-0.9, 0);
-  DK.d[id] = { id, D, g, sgn, ring, fill, boat, rx: rp[0], rz: rp[1], mx: mp[0], mz: mp[1], lx: land[0], lz: land[1], go: D.go, w: 0, armed: Math.hypot(pip.position.x - rp[0], pip.position.z - rp[1]) > 1.0, ph: Object.keys(DK.d).length * 1.3 };
+  const lane = laneMake([[mp[0], mp[1]]].concat(D.lane || [[mp[0] + gx * 9, mp[1] + gz * 9]]));
+  DK.d[id] = { id, D, g, sgn, ring, fill, boat, lane, rx: rp[0], rz: rp[1], mx: mp[0], mz: mp[1], lx: land[0], lz: land[1], go: D.go, w: 0, armed: Math.hypot(pip.position.x - rp[0], pip.position.z - rp[1]) > 1.0, ph: Object.keys(DK.d).length * 1.3 };
   DOCK_ON[id] = 1;
 }
 /* off to another dock (the travel pictures call this) */
@@ -45,15 +62,19 @@ function dockStep(dt) {
     return;
   }
   const a = T0.a, b = T0.b; T0.t += dt; target.copy(pp); work = null;
-  if (T0.st === 'board') { const q = Math.min(1, T0.t / 0.7); pp.lerpVectors(T0.from, dockSeat(a), q); pp.y += Math.sin(q * Math.PI) * 0.6; pip.rotation.y = Math.atan2(a.go[0], a.go[1]); if (q >= 1) { T0.st = 'sail'; T0.t = 0; Snd.play('whoosh', { gain: 0.35, f: 300 }); } }
-  else if (T0.st === 'sail') { T0.v = Math.min(4, T0.v + dt * 2.5); a.boat.position.x += a.go[0] * T0.v * dt; a.boat.position.z += a.go[1] * T0.v * dt; pp.copy(dockSeat(a)); pip.rotation.y = Math.atan2(a.go[0], a.go[1]);
-    if (T0.t > 1.0) DK.fade.style.opacity = '1';
-    if (T0.t > 1.75) { /* out of sight: the boat is back at its dock, and the other dock's boat sails in with Pip in it */
-      a.boat.position.set(a.mx, -0.08, a.mz); b.boat.position.set(b.mx - b.go[0] * 7, -0.08, b.mz - b.go[1] * 7); pp.copy(dockSeat(b)); camFocus.set(b.rx, 0, b.rz);
+  const face = (d) => { const r = d.boat.rotation.y; pip.rotation.y = Math.atan2(-Math.cos(r), Math.sin(r)); };
+  if (T0.st === 'board') { const q = Math.min(1, T0.t / 0.7); pp.lerpVectors(T0.from, dockSeat(a), q); pp.y += Math.sin(q * Math.PI) * 0.6; face(a); if (q >= 1) { T0.st = 'sail'; T0.t = 0; T0.s = 0; Snd.play('whoosh', { gain: 0.35, f: 300 }); } }
+  else if (T0.st === 'sail') { /* out along the lane; a boat that came in bow first turns round as it goes */
+    const P = laneAt(a.lane, T0.s, LANE_P), r = a.boat.rotation.y, al = Math.max(0, -Math.cos(r) * P.dx + Math.sin(r) * P.dz);
+    T0.v = Math.min(4, T0.v + dt * 2.5 * (0.25 + 0.75 * al)); T0.s += T0.v * dt; laneAt(a.lane, T0.s, LANE_P); a.boat.position.x = LANE_P.x; a.boat.position.z = LANE_P.z; boatTurn(a.boat, LANE_P.dx, LANE_P.dz, dt, 3.2); pp.copy(dockSeat(a)); face(a);
+    if (T0.t > 1.0 + (1 - al) * 0.6) DK.fade.style.opacity = '1';
+    if (T0.t > 1.75 + (1 - al) * 0.6) { /* out of sight: the boat is back at its dock, and the other dock's boat sails in along its lane with Pip in it */
+      a.boat.position.set(a.mx, -0.08, a.mz); a.boat.rotation.y = boatYaw(a.go[0], a.go[1]);
+      T0.s = Math.min(b.lane.L, 7.5); laneAt(b.lane, T0.s, LANE_P); b.boat.position.set(LANE_P.x, -0.08, LANE_P.z); b.boat.rotation.y = boatYaw(-LANE_P.dx, -LANE_P.dz); pp.copy(dockSeat(b)); camFocus.set(b.rx, 0, b.rz);
       if (typeof dog !== 'undefined' && dog && dog.g) dog.g.position.set(b.lx, 0, b.lz); Object.keys(DK.d).forEach((k) => { DK.d[k].armed = false; });
       T0.st = 'arrive'; T0.t = 0; } }
   else if (T0.st === 'arrive') { if (T0.t > 0.25) DK.fade.style.opacity = '0';
-    const r = (b.mx - b.boat.position.x) * b.go[0] + (b.mz - b.boat.position.z) * b.go[1], st = Math.min(r, Math.max(1.6, Math.min(4.5, r * 1.6)) * dt); b.boat.position.x += b.go[0] * st; b.boat.position.z += b.go[1] * st; pp.copy(dockSeat(b)); pip.rotation.y = Math.atan2(b.go[0], b.go[1]);
+    const r = T0.s, st = Math.min(r, Math.max(1.6, Math.min(4.5, r * 1.6)) * dt); T0.s -= st; laneAt(b.lane, T0.s, LANE_P); b.boat.position.x = LANE_P.x; b.boat.position.z = LANE_P.z; boatTurn(b.boat, -LANE_P.dx, -LANE_P.dz, dt, 3.2); pp.copy(dockSeat(b)); face(b);
     if (r - st < 0.01) { T0.st = 'land'; T0.t = 0; T0.from = pp.clone(); } }
   else if (T0.st === 'land') { const q = Math.min(1, T0.t / 0.7); pp.lerpVectors(T0.from, tmpV.set(b.rx, 0.16, b.rz), q); pp.y += Math.sin(q * Math.PI) * 0.6;
     if (q >= 1) { target.copy(pp); DK.trip = null; Snd.play('pop', { gain: 0.4, f: 520 }); Snd.play('sparkle', { gain: 0.3 }); } }

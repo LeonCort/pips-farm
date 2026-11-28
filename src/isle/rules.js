@@ -171,7 +171,7 @@ function coastMake() {
     (a.finds || []).forEach((f) => P(f[1], f[2], 1.9)); if (a.ruin) P(a.ruin[0], a.ruin[1], 2.8); if (a.lift) P(a.lift[0], a.lift[1], 3.2); if (a.stairs) P(a.stairs[0], a.stairs[1], 2.6); if (a.chest) { const c = chestAt(a); K.push([c[0], c[1], 1.8]); }
     (a.mesas || []).forEach((m) => { if (!m.par) P(m.dx, m.dz, Math.hypot(m.w, m.d) / 2 + 0.8); }); if (a.ice) P(a.ice.dx, a.ice.dz, Math.hypot(a.ice.nx, a.ice.nz) / 2 + 1.2); });
   SHORTS.forEach((S) => { const b = S.bridge; K.push([b.x0, b.z0, 3], [b.x1, b.z1, 3]); });
-  K.push([FERRY.x - 1.5, FERRY.z, 4], [TENT.x, TENT.z, 2.2], [RAFT.e[0], RAFT.e[1], 3.4], [RAFT.w[0], RAFT.w[1], 3.4], [EMBER.cone[0], EMBER.cone[1], EMBER.cone[2] + 2]); EMBER.lava.forEach((L) => L.forEach((q) => K.push([q[0], q[1], 2.2]))); EMBER.cross.forEach((c) => K.push([c.ring[0], c.ring[1], 2])); EMBER.river.pts.forEach((q) => K.push([q[0], q[1], 2]));
+  K.push([FERRY.x - 1.5, FERRY.z, 4], [CARGO.x0 - 1, CARGO.z, 3], [TENT.x, TENT.z, 2.2], [RAFT.e[0], RAFT.e[1], 3.4], [RAFT.w[0], RAFT.w[1], 3.4], [EMBER.cone[0], EMBER.cone[1], EMBER.cone[2] + 2]); EMBER.lava.forEach((L) => L.forEach((q) => K.push([q[0], q[1], 2.2]))); EMBER.cross.forEach((c) => K.push([c.ring[0], c.ring[1], 2])); EMBER.river.pts.forEach((q) => K.push([q[0], q[1], 2]));
   Object.values(DOCKS).forEach((D) => K.push([D.x, D.z, 2.6]));
   for (let k = 0; k <= 4; k++) K.push([GARDEN.x0 + (GARDEN.x1 - GARDEN.x0) * k / 4, GARDEN.z0, 2.2], [GARDEN.x0, GARDEN.z0 + (GARDEN.z1 - GARDEN.z0) * k / 4, 2.2]);
   Object.values(LOOP_SITES).forEach((m) => K.push([m.x, m.z, 2.6], [m.x + m.sx, m.z + m.sz, 1.2], [m.x + m.mx, m.z + m.mz, 1.4])); Object.values(HAMLET_AT).forEach((H) => { H.h.forEach((h) => K.push([h[0], h[1], 1.7])); K.push([H.crate[0], H.crate[1], 2]); });
@@ -219,6 +219,7 @@ function walkSdf(x, z) {
   d = Math.min(d, segD(x, z, FERRY.x, FERRY.z, FERRY.x - 3.0, FERRY.z) - 0.55); /* the farm boat's dock: its pad is out on the planks (ferry.js) */
   for (const a of AREAS) if (a.bridge && HAS[a.id] && (!a.bridge.tide || TIDE.low)) { const b = a.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
   for (const S of SHORTS) if (S.on) { const b = S.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
+  if (CARGO.on) d = Math.min(d, segD(x, z, CARGO.x0, CARGO.z, CARGO.x1 + 0.25, CARGO.z) - 0.5); /* the cargo quay's planks */
   for (const k in DOCK_ON) { const D = DOCKS[k]; d = Math.min(d, segD(x, z, D.x - D.out[0] * 0.5, D.z - D.out[1] * 0.5, D.x + D.out[0] * 1.55, D.z + D.out[1] * 1.55) - 0.5); } /* out along a dock's planks */
   if (HAS.r0) { d = Math.min(d, segD(x, z, RAFT.e[0] + 1.5, RAFT.e[1], RAFT.e[0] + 0.5, RAFT.e[1]) - 0.6, segD(x, z, RAFT.w[0] - 1.5, RAFT.w[1], RAFT.w[0] - 0.5, RAFT.w[1]) - 0.6); /* the raft's two jetties, and the raft while it lies still */
     if (RAFT.on) d = Math.min(d, Math.hypot(x - RAFT.x, z - RAFT.z) - 0.85); }
@@ -319,8 +320,12 @@ Object.keys(HAMLET_AT).forEach((id) => { const A = HAMLET_AT[id]; A.more.forEach
 const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to the farm leaves (ferry.js) */
 /* the docks the island boat sails between (docks.js): where the planks leave the shore, the way they run (out), and the
    way the boat sails off (go: along the shore, the channels between the islands are narrow) */
-const DOCKS = { camp: { x: -6, z: -4.4, out: [-1, 0], go: [0, -1] }, windmill: { x: 0.4, z: -34, out: [0, -1], go: [1, 0] }, lighthouse: { x: -34, z: 0.5, out: [-1, 0], go: [0, -1] }, tower: { x: 29.4, z: -38, out: [0, -1], go: [-1, 0] },
+const DOCKS = { camp: { x: -6, z: -4.4, out: [-1, 0], go: [0, -1], lane: [[-8.3, -6.6], [-11.5, -7.7], [-16.5, -6.8]] }, /* lane: the way out to open water (docks.js; default: straight along go) */ windmill: { x: 0.4, z: -34, out: [0, -1], go: [1, 0] }, lighthouse: { x: -34, z: 0.5, out: [-1, 0], go: [0, -1] }, tower: { x: 29.4, z: -38, out: [0, -1], go: [-1, 0] },
   sluice: { x: -21.6, z: 27.2, out: [1, 0], go: [0, 1] }, bell: { x: 31.8, z: 6, out: [0, -1], go: [1, 0] }, hearth: { x: 22, z: 33.0, out: [-1, 0], go: [0, 1] } }, DOCK_ON = {};
+/* the shipping lane (cargo.js, Leon 2026-11-28): the villages' cargo boats sail in from the west channel between Stone and
+   the Marsh, across the bay, and nose in at the end of the quay on the camp's west shore, between the camp's dock and the
+   farm boat. pile: where the crates stack on the quay planks. lane: from the berth out to sea. */
+const CARGO = { on: 0, z: -1.0, x0: -5.7, x1: -8.5, berth: [-9.45, -1.0], pile: { x: -6.55, z: -1.0 }, lane: [[-11.4, -1.0], [-14.5, 0.3], [-20, 3.3], [-29, 4.0]] };
 const TRAVEL_HOME = { x: 2.7, z: 2.6 }, CAVE_FRIEND = { x: 8.8, z: 29.2 };
 const SPOT_AT = { tent: [-4.5, -1.5], fire: [-1.75, 0.75], dog: [-0.75, -2.7], gear: [-2.9, 2.9] }; /* gear has its bench in the start square: rain comes before the smithy does (Leon 2026-11-25, playtest) */ /* the upgrade rings in the camp (spots.js) */
 Object.keys(HAMLET_AT).forEach((id) => { const c = HAMLET_AT[id].crate; SPOT_AT['ham_' + id] = [c[0], c[1] + 1.3]; });
