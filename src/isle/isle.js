@@ -110,10 +110,13 @@ function isleGroundTo(idx, t) { /* move the listed ground points from their sea 
   for (let n = 0; n < idx.length; n++) { const i = idx[n], x = p.getX(i), z = p.getZ(i), y = R.y0[n] + (R.y1[n] - R.y0[n]) * e; p.setY(i, y); const c = groundCol(x, y, z, vkey(x, y, z)); col.setXYZ(i, c.r, c.g, c.b); }
   p.needsUpdate = true; col.needsUpdate = true;
 }
-/* lift the ground in a box round (cx, cz) to what hAt now says (call after the land has changed); done runs when it is up */
+/* lift the ground in a box round (cx, cz) to what hAt now says (call after the land has changed); done runs when it is up
+   The ground is a loose triangle list, so one corner is stored once per triangle that meets there: the small bump on
+   flat land comes from the corner's place, not its number, or the copies get different heights and the land shows
+   hair-thin bright seams between its triangles (and down the cliffs) until the next load. */
 function riseArea(cx, cz, hx, hz, done) {
   const p = ground.geometry.attributes.position, idx = [], y0 = [], y1 = [];
-  for (let k = 0; k < p.count; k++) { const x = p.getX(k), z = p.getZ(k); if (Math.abs(x - cx) > hx || Math.abs(z - cz) > hz) continue; const ht = hAt(x, z); if (Math.abs(ht - p.getY(k)) < 0.05 && ht !== 0) continue; idx.push(k); y0.push(p.getY(k)); y1.push(ht === 0 ? 0.02 * hash(k, 5) : ht); }
+  for (let k = 0; k < p.count; k++) { const x = p.getX(k), z = p.getZ(k); if (Math.abs(x - cx) > hx || Math.abs(z - cz) > hz) continue; const ht = hAt(x, z); if (Math.abs(ht - p.getY(k)) < 0.05 && ht !== 0) continue; idx.push(k); y0.push(p.getY(k)); y1.push(ht === 0 ? 0.02 * hash(Math.round(x * 16), Math.round(z * 16)) : ht); }
   rising = { cx, cz, hx: hx - 1.4, hz: hz - 1.4, t: 0, idx, y0, y1, sp: 0, done };
   Snd.play('riser', { gain: 0.5 }); Snd.play('whoosh', { gain: 0.4 });
 }
