@@ -18,6 +18,9 @@ const SG_HULL = { x0: 48.6, x1: 55.6, z: -4.6, hw: 1.3, deck: 1.8 };
 const SG_BOX = [{ x: 52.1, z: -4.65, w: 7.2, d: 2.7 }, { x: 50.3, z: -2.8, w: 2.2, d: 1.0 }, { x: 52.7, z: -2.9, w: 2.0, d: 0.8 }]; /* what Pip walks round on the sand: the hull and the two ledges */
 const SG_LEDGE = [{ x0: 49.2, x1: 51.4, z0: -3.2, z1: -2.35, h: 0.6 }, { x0: 51.7, x1: 53.7, z0: -3.25, z1: -2.55, h: 1.2 }, { x0: 50.5, x1: 54.9, z0: -5.3, z1: -3.8, h: 1.8 }];
 /* the bubble clams: where each lies, the level it lies on (-1 the sand), and where its bubble sets Pip down */
+/* a ledge is handed to the rock tables' own walking rules (mesa.js: MS.on) while Pip stands on it, so every other step of the frame sees Pip at that height */
+SG_LEDGE.forEach((L) => { L.x = (L.x0 + L.x1) / 2; L.z = (L.z0 + L.z1) / 2; L.w = L.x1 - L.x0 + 0.34; L.d = L.z1 - L.z0 + 0.34; L.y0 = 0; L.lx = 0; L.par = null; L.sg = 1; });
+const sgOn = (L) => { SG.on = L; MS.on = L; MS.want = null; };
 const SG_CLAMS = [{ x: 48.4, z: -2.75, lv: -1, to: 0, at: [49.75, -2.8] }, { x: 50.9, z: -2.8, lv: 0, to: 1, at: [52.2, -2.9] }, { x: 53.25, z: -2.9, lv: 1, to: 2, at: [53.1, -4.5] }, { x: 56.2, z: -1.5, lv: -1, to: -1, joke: 1 }];
 const SG_SOLID = [[48.4, -2.75, 0.5], [56.2, -1.5, 0.52], [49.4, 0.2, 0.62], [52.2, 0.3, 0.55]]; /* clams Pip walks round on the sand: [x, z, r] */
 const SG = { g: null, pop: 0, out: null, on: null, bub: null, trip: null, clams: [], fish: [], t: 0, mats: [], uT: { value: 0 }, bellT: 0, bellArm: true, seen: {} };
@@ -308,7 +311,7 @@ function sgRide(inn) {
   const [ox, oz] = SG_AT.ringOut, [sx, sz] = SG_AT.sea, [rx, rz] = SG_AT.rest, [ix, iz] = SG_AT.ringIn, [lx, lz] = SG_AT.land, [bx, bz] = SG_AT.back, mid = [[sx - 0.1, -0.16, sz - 0.9], [sx - 0.2, -1.0, sz - 1.5], [sx - 0.35, 2.2, sz - 2.7], [sx - 0.7, 2.5, 1.2], [rx + 0.8, 1.45, rz + 0.9]];
   const pts = inn ? [[ox, 0, oz], [(ox + sx) / 2, 0.8, (oz + sz) / 2], [sx, -0.16, sz]].concat(mid, [[rx, 0.4, rz], [(rx + lx) / 2, 0.9, (rz + lz) / 2], [lx, 0.05, lz]])
     : [[ix, 0.05, iz], [(ix + rx) / 2, 0.95, (iz + rz) / 2], [rx, 0.4, rz]].concat(mid.slice().reverse(), [[sx, -0.16, sz], [(bx + sx) / 2, 0.8, (bz + sz) / 2 - 0.4], [bx, 0, bz]]);
-  SG.trip = { inn, y0: 0, wet: null }; SG.on = null;
+  SG.trip = { inn, y0: 0, wet: null }; sgOn(null);
   if (!rideGo({ pts, speed: 3.0, snd: 'whoosh', endY: 0, each: sgRideEach, onEnd: () => { SG.trip = null; Snd.play('pop', { gain: 0.35, f: 520 }); } })) SG.trip = null;
 }
 function sgRideEach(R, dt) {
@@ -336,26 +339,26 @@ function sgBubStep(dt) {
   if (!B.popped) { SG.ball.visible = true; SG.ball.position.set(pp.x, pp.y + 0.85, pp.z); SG.ball.scale.set(1.05 * e * (1 + (reduced ? 0 : Math.sin(time * 9) * 0.03)), 1.12 * e * (1 + (reduced ? 0 : Math.cos(time * 8) * 0.03)), 1.05 * e); }
   if (!B.go) { target.copy(pp); work = null; if (B.t < 0.45 || SC.ride) return; B.go = true; const L = D.to >= 0 ? SG_LEDGE[D.to] : null;
     const pts = D.joke ? [[B.x, B.y0, B.z], [B.x, B.y0 + 1.5, B.z + 0.001], [B.x, B.y0, B.z + 0.002]] : [[B.x, B.y0, B.z], [(B.x + D.at[0]) / 2, Math.max(B.y0, L.h) + 0.95, (B.z + D.at[1]) / 2], [D.at[0], L.h, D.at[1]]];
-    SG.on = null; SG.fly = true;
+    sgOn(null); SG.fly = true;
     rideGo({ pts, speed: 1.9, endY: D.joke ? 0 : L.h, each: (R) => { if (D.joke && !B.popped && R.d > R.L[1]) { B.popped = true; sgPop(pp.x, pp.y + 1, pp.z, true); } },
-      onEnd: () => { if (!B.popped) sgPop(pp.x, pp.y + 0.9, pp.z, false); SG.on = D.joke ? null : L; SG.fly = false; SG.bub = null; B.c.want = 0.3; } }); }
+      onEnd: () => { if (!B.popped) sgPop(pp.x, pp.y + 0.9, pp.z, false); sgOn(D.joke ? null : L); SG.fly = false; SG.bub = null; B.c.want = 0.3; } }); }
 }
 /* off a ledge: Pip floats down to the sand in front of it */
-function sgDown(L) { const pp = pip.position, x = clamp(pp.x, 47.4, 56.6), z = Math.max(-1.85, L.z1 + 0.9); SG.on = null; SG.fly = true; Snd.play('swish', { gain: 0.3 });
-  if (!rideGo({ pts: [[pp.x, L.h, pp.z], [(pp.x + x) / 2, L.h + 0.3, (pp.z + z) / 2], [x, 0.04, z]], speed: 2.4, endY: 0, onEnd: () => { SG.fly = false; Snd.play('pop', { gain: 0.3, f: 460 }); } })) { SG.fly = false; SG.on = L; } }
+function sgDown(L) { const pp = pip.position, x = clamp(pp.x, 47.4, 56.6), z = Math.max(-1.85, L.z1 + 0.9); sgOn(null); SG.fly = true; Snd.play('swish', { gain: 0.3 });
+  if (!rideGo({ pts: [[pp.x, L.h, pp.z], [(pp.x + x) / 2, L.h + 0.3, (pp.z + z) / 2], [x, 0.04, z]], speed: 2.4, endY: 0, onEnd: () => { SG.fly = false; Snd.play('pop', { gain: 0.3, f: 460 }); } })) { SG.fly = false; sgOn(L); } }
 
 /* ---- after the bell: what stays changed on the coral island ---- */
 function sgAfterMake() {
-  const a = SG.after = { babies: [], fish: [], pts: null }; for (let k = 0; k < 3; k++) a.babies.push(sgTurtleMake(0.4 - k * 0.04));
+  const a = SG.after = { babies: [], fish: [], pts: null }; for (let k = 0; k < 3; k++) a.babies.push(sgTurtleMake(0.56 - k * 0.06));
   [['#ff8a3c', '#ffffff'], ['#ffd84d', '#3a6fd0'], ['#4fb6ff', '#fff0a8'], ['#ff6f9f', '#fff6e4']].forEach(([c, d], k) => { const m = new T.Mesh(sgFishGeo(c, d, 4800 + k), MAT); m.scale.setScalar(2.1); m.userData.noBatch = 1; sc.add(m); a.fish.push({ m, x: [50.2, 56.2, 44.6, 60.2][k], z: [4.2, 3.6, 4.6, 12.5][k], t: k * 1.7, T: 5 + k * 1.3, dir: k * 1.9 }); });
-  const N = 24, P = new Float32Array(N * 3); a.geo = new T.BufferGeometry(); a.geo.setAttribute('position', new T.BufferAttribute(P, 3)); a.pts = new T.Points(a.geo, new T.PointsMaterial({ map: sgStar(), size: 0.75, transparent: true, depthWrite: false, blending: T.AdditiveBlending, color: '#fff3c0' })); a.pts.frustumCulled = false; a.pts.userData.noBatch = 1; sc.add(a.pts); a.n = -1;
+  const N = 24, P = new Float32Array(N * 3); a.geo = new T.BufferGeometry(); a.geo.setAttribute('position', new T.BufferAttribute(P, 3)); a.pts = new T.Points(a.geo, new T.PointsMaterial({ map: sgStar(), size: 1.5, transparent: true, depthWrite: false, blending: T.AdditiveBlending, color: '#fff3c0' })); a.pts.frustumCulled = false; a.pts.userData.noBatch = 1; sc.add(a.pts); a.n = -1;
 }
 function sgAfterStep(dt) {
   if (!SG.after) sgAfterMake(); const a = SG.after, pp = pip.position, near = Math.hypot(pp.x - 46, pp.z - 6) < 34 && !inCave;
   a.babies.forEach((b) => { b.visible = near && !!HAS.c3; }); a.fish.forEach((f) => { f.m.visible = false; }); a.pts.visible = near; if (!near) return;
   /* three little turtles follow each other round the lagoon */
   const A3 = AREA_BY.c3, P0 = A3.ponds[0], cx = A3.cx + P0[0], cz = A3.cz + P0[1];
-  a.babies.forEach((b, k) => { const an = time * 0.42 - k * 0.75, r = 1.25 + Math.sin(time * 0.3 + k) * 0.25; b.position.set(cx + Math.cos(an) * r, -0.56 + (reduced ? 0 : Math.sin(time * 2 + k) * 0.02), cz + Math.sin(an) * r * 0.9); b.rotation.y = Math.atan2(-Math.sin(an), Math.cos(an) * 0.9); sgTurtleSwim(b, 6, k); });
+  a.babies.forEach((b, k) => { const an = time * 0.42 - k * 0.75, r = 1.25 + Math.sin(time * 0.3 + k) * 0.25; b.position.set(cx + Math.cos(an) * r, -0.52 + (reduced ? 0 : Math.sin(time * 2 + k) * 0.02), cz + Math.sin(an) * r * 0.9); b.rotation.y = Math.atan2(-Math.sin(an), Math.cos(an) * 0.9); sgTurtleSwim(b, 6, k); });
   /* coloured fish jump in the bay */
   a.fish.forEach((f, k) => { f.t += dt; if (f.t > f.T) { f.t = 0; f.dir = hash(k, time) * 6.283; f.sp = true; } const u = f.t / 1.1; if (u >= 1 || reduced) return; const y = -0.5 + Math.sin(u * Math.PI) * 1.15, dx = Math.cos(f.dir), dz = Math.sin(f.dir), q = u - 0.5;
     f.m.visible = y > -0.5; f.m.position.set(f.x + dx * q * 1.5, y, f.z + dz * q * 1.5); f.m.rotation.set(0, 0, 0); f.m.rotation.order = 'YXZ'; f.m.rotation.y = Math.atan2(dx, dz); f.m.rotation.x = -Math.cos(u * Math.PI) * 1.1;
@@ -390,10 +393,12 @@ function sgStep(dt) {
   g.visible = show; SG.fish.forEach((F) => { F.m.visible = show && !SG.pop && !far; }); SG.bubs.visible = show && !SG.pop && !far;
   /* walls: nobody walks into the standing water from the beach; inside, Pip keeps to the sand in front of the wreck and round its ends */
   if (!inCave && !SC.ride && !enSleep) {
-    if (SG.on) { const L = SG.on, m = 0.16; if (!sgIn(pp.x, pp.z)) SG.on = null; else { const tx = clamp(target.x, L.x0 + m, L.x1 - m), tz = clamp(target.z, L.z0 + m, L.z1 - m), off = Math.hypot(target.x - tx, target.z - tz);
-      pp.x = clamp(pp.x, L.x0 + m, L.x1 - m); pp.z = clamp(pp.z, L.z0 + m, L.z1 - m); pp.y = L.h;
-      if (off > 0.4 && Math.hypot(pp.x - tx, pp.z - tz) < 0.12 && !SG.bub && !GO.hold) { SG.offT = (SG.offT || 0) + dt; if (SG.offT > 0.22) { SG.offT = 0; sgDown(L); } } else SG.offT = 0; } }
-    else if (inside) { pp.x = clamp(pp.x, SGX - 4.45, SGX + 4.45); pp.z = clamp(pp.z, SGZ - 2.15, SGZ + 4.55); target.x = clamp(target.x, SGX - 4.85, SGX + 4.85); target.z = clamp(target.z, SGZ - 2.5, SGZ + 4.95); SG_BOX.forEach((b) => mesaOut(b, pp, 0.3));
+    if (SG.on && MS.on !== SG.on) SG.on = null; /* carried off some other way */
+    if (SG.on && MS.want && MS.want[1] < SG.on.z0 - 0.1) { const c = SG.clams.find((q) => q.D.lv === SG_LEDGE.indexOf(SG.on)); if (c) { target.set(c.x - 0.55, 0, c.z); MS.want = null; } } /* a tap further up the wreck: on to this ledge's clam */
+    if (SG.on) { const L = SG.on, hx = L.w / 2 - 0.32, hz = L.d / 2 - 0.32, tx = clamp(target.x, L.x - hx, L.x + hx), tz = clamp(target.z, L.z - hz, L.z + hz), out = Math.hypot(target.x - tx, target.z - tz), down = MS.want || out > 0.3;
+      if (down && Math.hypot(pp.x - tx, pp.z - tz) < 0.14 && !SG.bub && !GO.hold) { SG.offT = (SG.offT || 0) + dt; if (SG.offT > 0.22) { SG.offT = 0; sgDown(L); } } else SG.offT = 0; }
+    else if (inside && state.ctrl === 'tap' && target.z < -3.3 && target.x > 48.3 && target.x < 53.7 && Math.hypot(target.x - pp.x, target.z - pp.z) > 0.3) target.set(SG_CLAMS[0].x + 0.5, 0, SG_CLAMS[0].z + 0.35); /* a tap on the wreck: to the first bubble clam */
+    if (SG.on) {}     else if (inside) { pp.x = clamp(pp.x, SGX - 4.45, SGX + 4.45); pp.z = clamp(pp.z, SGZ - 2.15, SGZ + 4.55); target.x = clamp(target.x, SGX - 4.85, SGX + 4.85); target.z = clamp(target.z, SGZ - 2.5, SGZ + 4.95); SG_BOX.forEach((b) => mesaOut(b, pp, 0.3));
       SG_SOLID.forEach(([x, z, r]) => { const dx = pp.x - x, dz = pp.z - z, d = Math.hypot(dx, dz); if (d < r && d > 0.001) { pp.x = x + dx / d * r; pp.z = z + dz / d * r; } }); pp.y = 0.04; }
     else if (HAS.c5) mesaOut({ x: SGX, z: SGZ, w: 11.8, d: 11.8 }, pp, 0.25);
   }
