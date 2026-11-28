@@ -29,7 +29,7 @@ const ferryFade = (() => { const d = document.createElement('div'); d.setAttribu
 const ferrySeat = () => tmpV.set(ferryBoat.position.x - 0.25, ferryBoat.position.y - 0.12, ferryBoat.position.z);
 /* is the farm page there to sail to? (a single test page has no farm: then the boat comes straight back) */
 let ferryOk = null;
-try { fetch(FB.page, { method: 'HEAD' }).then((r) => (r.ok || r.status !== 405 ? r : fetch(FB.page))).then((r) => { ferryOk = r.ok; }).catch(() => { ferryOk = false; }); } catch (e) { ferryOk = false; }
+try { fetch(FB.page, { method: 'HEAD' }).then((r) => (r.ok || r.status !== 405 ? r : fetch(FB.page))).then((r) => { ferryOk = r.ok && !ISLE_OPEN; /* the open island stays home: the boat sails a round trip, so it never lands on the real farm */ }).catch(() => { ferryOk = false; }); } catch (e) { ferryOk = false; }
 function ferryArrive() {
   if (!/[?&]from=farm\b/.test(location.search)) return;
   try { history.replaceState(null, '', location.pathname); } catch (e) {}

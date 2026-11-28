@@ -44,6 +44,7 @@ people.js
 bakery.js
 village.js
 isledog.js
+walkhome.js
 gear.js
 look.js
 loop.js
