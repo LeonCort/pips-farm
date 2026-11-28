@@ -87,11 +87,16 @@ function bldStep(dt) {
   /* Pip walks round the tent, not through it */
   if (!enSleep) { const r = [0, 0.7, 0.92, 1.05][bldLv('tent')], dx = pip.position.x - TENT.x, dz = pip.position.z - TENT.z, d = Math.hypot(dx, dz); if (d < r && d > 1e-4) { pip.position.x = TENT.x + dx / d * r; pip.position.z = TENT.z + dz / d * r; } }
   bldT -= dt; if (bldT <= 0) { bldT = 0.5; bldBadge(); }
+  /* cards opened at a spot (anvil, oven, bench, rings) close by themselves when Pip walks away from it (Leon, 2026-11-28) */
+  if (BM.at && BM.menu && !BM.menu.hidden && Math.hypot(pip.position.x - BM.at.x, pip.position.z - BM.at.z) > BM.at.r) { BM.menu.hidden = true; BM.at = null; Snd.play('tock', { gain: 0.25, f: 380 }); }
 }
 let bldT = 0;
 
 /* ---- the button and the cards ---- */
 const BM = {};
+/* open the cards; at = [x, z] of the spot that opened them, or nothing for the hammer button. Spot cards let taps through
+   to the world, so a child can simply walk Pip away, and they close once Pip is out of reach of the spot. */
+function bldOpen(keys, at) { BM.keys = keys; BM.at = at ? { x: at[0], z: at[1], r: 1.2 } : null; BM.menu.classList.toggle('walk', !!at); bldFill(); BM.menu.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); }
 function bldPic(t, sz) { const c = document.createElement('canvas'); c.width = c.height = sz; isleIcon(c.getContext('2d'), t, sz / 2, sz / 2, sz / 64 * 1.25); return c; }
 function bldBuild() {
   if (BM.btn) return bldFill();
@@ -121,15 +126,16 @@ function bldBuild() {
     + '.bldCard{border:6px solid transparent;background:linear-gradient(#fdf3dc,#f3e2bf) padding-box,linear-gradient(165deg,#c4935f,#6e4426 55%,#a8723f) border-box;box-shadow:0 7px 0 rgba(70,40,18,.4),0 14px 22px rgba(70,40,18,.3);color:#3a2414;position:relative}'
     + '.bldCard::after{content:"";position:absolute;inset:4px;border-radius:16px;border:2px dashed rgba(150,105,60,.45);pointer-events:none}'
     + '.bldCard .cost span{border-color:#6e4426;background:#fffaf0}.bldCard .dots b{border-color:#6e4426}.bldCard .go{border-color:#4a2e1a;position:relative;z-index:1}.bldCard .go.can{background:linear-gradient(#8cc46a,#5f9a48);box-shadow:0 4px 0 #3f6a30}'
-    + '.bldMenu{background:rgba(58,36,20,.45)}';
+    + '.bldMenu{background:rgba(58,36,20,.45)}'
+    + '.bldMenu.walk{background:none;pointer-events:none}.bldMenu.walk .row{pointer-events:none}.bldMenu.walk .bldCard,.bldMenu.walk .x{pointer-events:auto}';
   document.head.appendChild(st);
   const b = document.createElement('button'); b.type = 'button'; b.className = 'bldBtn'; b.setAttribute('aria-label', 'Bygg'); b.appendChild(bldPic('hammer', 96)); b.appendChild(document.createElement('i')); document.body.appendChild(b); BM.btn = b;
   const m = document.createElement('div'); m.className = 'bldMenu'; m.hidden = true; m.setAttribute('role', 'dialog'); m.setAttribute('aria-label', 'Bygg');
   const row = document.createElement('div'); row.className = 'row'; m.appendChild(row); BM.row = row;
   const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.setAttribute('aria-label', 'Stäng'); x.textContent = '✕'; m.appendChild(x);
   document.body.appendChild(m); BM.menu = m;
-  const close = () => { m.hidden = true; Snd.play('tock', { gain: 0.25, f: 380 }); };
-  b.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); BM.keys = null; bldFill(); m.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); });
+  const close = () => { m.hidden = true; BM.at = null; Snd.play('tock', { gain: 0.25, f: 380 }); };
+  b.addEventListener('click', (e) => { e.stopPropagation(); Snd.init(); bldOpen(null); });
   x.addEventListener('click', (e) => { e.stopPropagation(); close(); });
   m.addEventListener('pointerdown', (e) => { e.stopPropagation(); if (e.target === m) close(); });
   bldFill();
@@ -209,7 +215,7 @@ function bldUp(k) {
   else { fireShape(bldLv('fire')); bldPop = { g: campFlame.g, t: 0 }; burst(FIRE.x, 0.8, FIRE.z, 10); }
   enShow = -1; enBarW();
   Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.1);
-  BM.menu.hidden = true; bldBadge(); /* the camera stays on Pip: jumping it to the tent or fire and gliding back shook the screen (Leon, 2026-11-28) */
+  BM.menu.hidden = true; BM.at = null; bldBadge(); /* the camera stays on Pip: jumping it to the tent or fire and gliding back shook the screen (Leon, 2026-11-28) */
 }
 /* the energy bar grows with the tent */
 function enBarW() { const b = ENB.el && ENB.el.querySelector('.bar'); if (b) b.style.width = Math.min(220, 120 * enMax() / 100) + 'px'; }

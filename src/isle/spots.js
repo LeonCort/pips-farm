@@ -51,5 +51,5 @@ function spotStep(dt) {
     const inR = Math.hypot(pp.x - S.x, pp.z - S.z) < 0.5; if (!inR) { S.in = false; S.still = 0; return; }
     S.still = still ? S.still + dt : 0; if (S.in || S.still < 0.25 || enSleep || rising || !BM.menu || !BM.menu.hidden) return;
     const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; /* a new star's card first */
-    BM.keys = S.keys.slice(); bldFill(); BM.menu.hidden = false; S.in = true; Snd.play('pop', { gain: 0.3, f: 520 }); });
+    bldOpen(S.keys.slice(), [S.x, S.z]); S.in = true; });
 }
