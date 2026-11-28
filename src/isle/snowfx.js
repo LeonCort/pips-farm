@@ -68,7 +68,8 @@ function snxMap() {
   const W = SNX.W, d = SNX.map, b = SNX.box, feet = LOOK.all.concat(LOOK.feet).filter((f) => !f[5]);
   for (let j = 0; j < W; j++) for (let i = 0; i < W; i++) { const x = b.x + (i + 0.5) / W * b.z, z = b.y + (j + 0.5) / W * b.w, A = areaAt(x, z), on = A && HAS[A.id] && A.biome === 'snow' && !A.cave, o = (j * W + i) * 4;
     let deep = on && !mons().tower; /* the star tower's warmth has melted the deep snow (wonders.js) */ if (deep) for (const f of feet) { const u = (x - f[0]) / (f[2] + 0.25), v = (z - f[1]) / (f[3] + 0.25); if (u * u + v * v < 1) { deep = false; break; } }
-    d[o] = on ? 255 : 0; d[o + 1] = deep ? 255 : 0; d[o + 2] = 0; d[o + 3] = 255; }
+    const warm = on ? hollowWarm(x, z) : 0; /* the Summer Hollow, and what it thaws (hollow.js) */
+    d[o] = on ? Math.round(255 * (1 - warm)) : 0; d[o + 1] = deep && warm < 0.06 ? 255 : 0; d[o + 2] = 0; d[o + 3] = 255; }
   SNX.tex.needsUpdate = true; if (typeof grMask === 'function' && typeof GR !== 'undefined' && GR.tex) grMask();
 }
 function snxAt(x, z) { const b = SNX.box, W = SNX.W, i = Math.floor((x - b.x) / b.z * W), j = Math.floor((z - b.y) / b.w * W); return i >= 0 && j >= 0 && i < W && j < W && SNX.map[(j * W + i) * 4] > 127; }
