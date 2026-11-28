@@ -196,6 +196,7 @@ function bldUp(k) {
     if (miss.length) setTimeout(() => mapOpen(miss[0]), 420); return; }
   Object.keys(c).forEach((t) => { spendN(t, c[t]).forEach((m) => { fly(m, () => pip.localToWorld(tmpV.set(0, 2.2, 0)), () => sc.remove(m), 0.3); }); });
   state.isle.bld[k] = bldLv(k) + 1; save();
+  if ((k === 'axe' || k === 'pick' || GEAR[k]) && BLD[k].pic[bldLv(k)] !== BLD[k].pic[bldLv(k) - 1]) foundIt(BLD[k].pic[bldLv(k)]); /* a new tool or piece of gear is held up */
   if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(TENT.x, 1.2, TENT.z, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
   else if (k === 'axe' || k === 'pick') toolUp(k);
   else if (k === 'oven') ovenLevelUp();

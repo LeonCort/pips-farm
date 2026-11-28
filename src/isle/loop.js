@@ -36,7 +36,7 @@ const LOOP_MON = {
   hearth: { isle: 'ember', need: () => HAS.e0 && (folk().glass || 0) >= 2, area: 'e0', cost: { stone: 70, crystal: 16, ember: 4 } },
   /* the last wonder: its plot shows as soon as the harbour stands, so the goal is in sight all game, but it takes a find
      from every island (honey: meadow, iron: stone, reeds: marsh, pearls: coral, ember: volcano, crystals: winter and mine) */
-  belfry: { isle: 'home', need: () => HAS.h3 && !!mons().harbor, area: 'h3', cost: { honey: 4, iron: 4, reed: 4, pearl: 4, ember: 4, crystal: 20 } }
+  belfry: { isle: 'home', need: () => HAS.h3 && !!mons().harbor && goldAll(), /* the bell is cast from the seven golden gifts: its plot waits until all seven stand on their pedestals (gold.js) */ area: 'h3', cost: { honey: 4, iron: 4, reed: 4, pearl: 4, ember: 4, crystal: 20 } }
 };
 const ISLE_OF = (id) => (!id ? null : /^cave/.test(id) ? 'cave' : { h: 'home', m: 'meadow', s: 'stone', w: 'winter', r: 'marsh', c: 'coral', e: 'ember' }[id[0]]);
 const ISLE_PIC = { home: 'camp', meadow: 'windmill', stone: 'lighthouse', winter: 'tower', marsh: 'sluice', coral: 'bell', ember: 'hearth' };
@@ -283,6 +283,7 @@ function travelGo(id) { dockGo(id); }
 /* ---- keys: a picture in the corner while held; the bridge that needs one shows it in a locked bubble ---- */
 function keyGive(k, x, z) {
   if (lkeys()[k]) return; lkeys()[k] = 1; save(); keyHud();
+  foundIt(k);
   const sp = isleSprite(isleBubble(k), 0.9); sp.position.set(x, 1.6, z); sc.add(sp); LP.gift = { sp, t: 0 };
   Snd.play('success', { gain: 0.5, f: 'G5' }); Snd.play('sparkle', { gain: 0.45 }, 0.2);
 }

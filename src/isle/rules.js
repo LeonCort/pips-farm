@@ -17,6 +17,8 @@ const gIn = (i, j) => i >= GI0 && i < GI0 + GWN && j >= GI0 && j < GI0 + GWN;
 const gCell = (x) => Math.round(x / GS);
 /* the areas: i, j = the square at the low corner of the 3 by 3 block. start: land from the beginning. bridge: reached over a
    bridge from another area (x0, z0 to x1, z1), and drawn from the start so it can be seen across the water. chest: a tool inside. */
+/* the hidden worlds plug in here (secret.js says how) */
+const ISLE_STEPS = [], ISLE_KEEPS = [], ISLE_KEYS = [], ISLE_GATE = {}, SECRET_FILL = {}, ISLE_ICON = {};
 const NO_BASKET = true; /* nothing is carried on the island: Pip has no carrying frame on the back (engine/pip2.js) */
 const AREAS = [
   { id: 'h0', i: -1, j: -1, biome: 'home', start: 1 },
@@ -24,7 +26,7 @@ const AREAS = [
   { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 10, stone: 4, berry: 4 } },
   { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag', ruin: [2.3, 1.0, -0.25], stairs: [-2.6, 2.2] },
   { id: 'm0', chest: { coin: 8, berry: 6 }, i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, finds: [['hive', -3.6, -2.0], ['hive', 3.7, -3.5], ['hive', 4.3, 4.9]], tall: [[-5.4, 1.5, 5.4, 3.9]], bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
-  { id: 'm1', chest: { coin: 10, berry: 8 }, chestAt: [-0.4, 3.4], i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', -2.0, -3.4], ['hive', -3.0, 2.6]], tall: [[1.5, -5.4, 3.9, 5.4]] },
+  { id: 'm1', chest: { coin: 10, berry: 8, gear: 'coat' }, chestAt: [-0.4, 3.4], i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', -2.0, -3.4], ['hive', -3.0, 2.6]], tall: [[1.5, -5.4, 3.9, 5.4]] },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, berry: 12, stone: 10 }, ruin: [0.4, 0, 0.2] },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14 }, tall: [[-5.4, 1.5, 5.4, 3.9]] },
   { id: 'm4', chest: { coin: 15, honey: 2 }, chestAt: [3.2, 2.6], i: -4, j: -8, biome: 'meadow', cost: { log: 30, berry: 20, stone: 14 }, finds: [['hive', 3.4, -3.6], ['hive', -3.8, 3.2]], tall: [[3.4, -5.4, 5.4, -1.6]], ponds: [[-1.6, 0.6, 2.0]] },
@@ -36,19 +38,19 @@ const AREAS = [
   { id: 's3', chest: { coin: 18, iron: 2 }, chestAt: [-2.6, -0.6], i: -11, j: -5, biome: 'stone', cost: { stone: 40, log: 26, berry: 16 }, mesas: [{ id: 's3a', dx: 2.4, dz: 2.6, w: 4.8, d: 4.2, h: 1.3, finds: [['iron', -0.9, 0.2], ['iron', 1.0, -0.3]] }], finds: [['iron', -3.6, -3.4]] },
   { id: 's4', chest: { coin: 22, crystal: 5 }, chestAt: [3.6, 2.4], i: -11, j: -8, biome: 'clay', cost: { stone: 50, log: 30, crystal: 6 }, finds: [['iron', 3.0, -2.6], ['iron', -3.4, 2.8]], ponds: [[0.6, 0.8, 1.7]],
     /* the High Table (mesa.js): the tallest rock on the island, its ladder broken. A rope ladder of marsh reed opens it: the island's sealed place, for the visit after the marsh */
-    mesas: [{ id: 's4a', dx: -2.9, dz: -2.7, w: 4.8, d: 4.0, h: 2.3, seal: { reed: 6, log: 14 }, chest: [{ coin: 40, iron: 4 }, -1.3, -0.9], finds: [['iron', 1.2, -0.6], ['iron', 0.3, 0.9], ['iron', -1.2, 0.8]] }] },
+    mesas: [{ id: 's4a', dx: -2.9, dz: -2.7, w: 4.8, d: 4.0, h: 2.3, seal: { reed: 6, log: 14 }, chest: [{ coin: 40, iron: 4 }, 1.5, -1.0], finds: [['iron', -0.2, -1.3], ['iron', 1.4, 1.0], ['iron', -0.7, 1.1]] }] }, /* the west end of its top is kept for the giant's kite (sky.js) */
   /* the winter island, east of the orchard, over a bridge */
   { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 34, berry: 16, stone: 20 }, bridge: { from: 'm2', x0: 17.4, z0: -16, x1: 22.6, z1: -16 },
     ice: { dx: 0.5, dz: -0.4, nx: 7, nz: 6, stop: [[0, 2], [6, 2], [3, 0], [3, 5], [0, 3], [1, 4], [4, 3]], gem: [[3, 2]] } },
-  { id: 'w1', i: 6, j: -9, biome: 'snow', cost: { log: 40, stone: 30, crystal: 8 }, ruin: [-2.5, 1.5, 0] },
-  { id: 'w2', chest: { coin: 20, crystal: 6 }, i: 9, j: -6, biome: 'snow', cost: { log: 44, stone: 34, berry: 20 } },
-  { id: 'w3', chest: { coin: 25, crystal: 8 }, i: 9, j: -9, biome: 'snow', cost: { log: 50, stone: 40, crystal: 10 } },
-  { id: 'w4', chest: { coin: 35, crystal: 12 }, i: 9, j: -12, biome: 'snow', cost: { log: 60, stone: 44, crystal: 12 } },
+  { id: 'w1', i: 6, j: -9, biome: 'snow', cost: { log: 40, stone: 30, crystal: 8 }, ruin: [-2.5, 1.5, 0], finds: [['frostflower', -4.6, -0.4]] },
+  { id: 'w2', chest: { coin: 20, crystal: 6 }, i: 9, j: -6, biome: 'snow', cost: { log: 44, stone: 34, berry: 20 }, finds: [['frostflower', -4.2, -3.8], ['frostflower', 1.0, -2.2]] },
+  { id: 'w3', chest: { coin: 25, crystal: 8 }, i: 9, j: -9, biome: 'snow', cost: { log: 50, stone: 40, crystal: 10 }, finds: [['frostflower', -4.2, 2.6], ['frostflower', 3.8, -3.8]] },
+  { id: 'w4', chest: { coin: 35, crystal: 12 }, i: 9, j: -12, biome: 'snow', cost: { log: 60, stone: 44, crystal: 12 }, finds: [['frostflower', -4.2, 3.8], ['frostflower', 2.4, -0.6]] },
   /* the marsh island, west of the bakery over a bridge (marsh.js). holes: squares of the block that stay water. A channel
      runs through the first square from north to south: the only way over is the pole raft. The second has a pond. */
   { id: 'r0', i: -5, j: 2, biome: 'marsh', cost: { log: 30, stone: 18, berry: 14 }, holes: [[1, 0], [1, 1], [1, 2]], finds: [['reeds', -4.7, -3.4], ['reeds', -3.1, -0.4], ['reeds', -4.8, 1.6]], bridge: { from: 'h2', x0: -5.4, z0: 16.6, x1: -10.6, z1: 16.6 } },
   { id: 'r1', i: -8, j: 2, biome: 'marsh', cost: { log: 36, stone: 24, crystal: 4 }, holes: [[1, 1]], ruin: [4.3, -3.0, 0.1], finds: [['reeds', -2.7, -1.6], ['reeds', 2.8, 1.2], ['reeds', 0.8, 3.0], ['reeds', -1.2, -3.1]] },
-  { id: 'r2', chest: { coin: 18, reed: 3 }, chestAt: [3.6, -3.6], i: -8, j: 5, biome: 'marsh', cost: { log: 40, stone: 26, berry: 18 }, holes: [[1, 1]], finds: [['reeds', -2.6, 0.4], ['reeds', 2.7, -0.6], ['reeds', 0.3, 2.8]] },
+  { id: 'r2', chest: { coin: 18, reed: 3, gear: 'boots' }, chestAt: [3.6, -3.6], i: -8, j: 5, biome: 'marsh', cost: { log: 40, stone: 26, berry: 18 }, holes: [[1, 1]], finds: [['reeds', -2.6, 0.4], ['reeds', 2.7, -0.6], ['reeds', 0.3, 2.8]] },
   { id: 'r3', chest: { coin: 22, crystal: 4 }, chestAt: [2.8, 0.2], i: -11, j: 2, biome: 'marsh', cost: { log: 46, stone: 30, crystal: 6 }, holes: [[0, 1]], finds: [['reeds', -1.4, -1.8], ['reeds', -1.2, 2.2]] },
   { id: 'r4', chest: { coin: 28, reed: 4 }, chestAt: [-3.4, -3.4], i: -11, j: 5, biome: 'marsh', cost: { log: 52, stone: 34, reed: 4 }, holes: [[1, 1], [2, 2]], finds: [['reeds', -2.7, 0.2], ['reeds', 0.2, -2.7], ['reeds', 2.6, 1.4], ['reeds', 1.0, 2.8]] },
   /* the coral beach, east of the village green over a bridge (coral.js). Its second square is an islet across a strait:
@@ -62,7 +64,7 @@ const AREAS = [
      cut in three by two streams of lava (EMBER below) */
   { id: 'e0', i: 6, j: 6, biome: 'ember', cost: { pearl: 4, log: 50, stone: 40 }, ruin: [-3.8, 4.2, 0.2], finds: [['cinder', 4.6, 0.6], ['cinder', 4.9, 3.4], ['cinder', 3.6, 5.0]], bridge: { from: 'c0', x0: 28, z0: 17.4, x1: 28, z1: 22.6 } },
   /* the rest of the ember island: ash fields round the volcano's foot (biome 'ash': set out by seed like any other land) */
-  { id: 'e1', chest: { coin: 30, ember: 1 }, i: 9, j: 6, biome: 'ash', cost: { log: 56, stone: 46, crystal: 10 }, finds: [['cinder', 3.2, -3.4], ['cinder', -3.0, 3.6]] },
+  { id: 'e1', chest: { coin: 30, ember: 1, gear: 'lantern' }, i: 9, j: 6, biome: 'ash', cost: { log: 56, stone: 46, crystal: 10 }, finds: [['cinder', 3.2, -3.4], ['cinder', -3.0, 3.6]] },
   { id: 'e2', chest: { coin: 34, crystal: 10 }, i: 6, j: 9, biome: 'ash', cost: { stone: 60, log: 50, crystal: 12 }, finds: [['cinder', -3.6, 3.0], ['cinder', 2.6, 3.8]] },
   { id: 'e3', chest: { coin: 40, ember: 2 }, chestAt: [-3.2, 2.6], i: 9, j: 9, biome: 'ash', cost: { stone: 64, log: 54, ember: 2 }, finds: [['cinder', 3.4, 3.2], ['cinder', -3.4, -2.6], ['cinder', 0.4, 4.2]], ponds: [[0.4, 0, 1.8]] },
   { id: 'e4', chest: { coin: 50, ember: 2, pearl: 2 }, i: 12, j: 6, biome: 'ash', cost: { stone: 70, log: 60, ember: 3 }, finds: [['cinder', 3.8, -2.8], ['cinder', 2.4, 3.6], ['cinder', -3.0, -3.6]] },
@@ -70,16 +72,24 @@ const AREAS = [
   { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 },
   /* the mine runs on west under the sea: a gallery behind rubble, then the lift room behind a rockfall */
   { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1, finds: [['copper', -3.5, -3.4], ['copper', -1.0, -4.0], ['copper', 2.6, -3.3], ['copper', 3.4, 3.3], ['copper', -3.2, 3.5]] },
-  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, finds: [['glow', 2.6, -3.6], ['glow', -0.8, -4.1], ['glow', 3.5, 3.4]] }
+  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, finds: [['glow', 2.6, -3.6], ['glow', -0.8, -4.1], ['glow', 3.5, 3.4]] },
+  /* the hidden worlds (Leon, 2026-11-28; secret.js): no sign, not on the map, each rises from the sea when its island's sealed
+     place is opened with something from another island. ALWAYS add new areas at the end: every area's random layout hangs on its place in this list. */
+  { id: 'm5', i: -4, j: -11, biome: 'meadow', secret: 1 }, /* the Garden of Giant Flowers, behind the Bee Queen's garden (giant.js) */
+  { id: 's5', i: -14, j: -8, biome: 'stone', secret: 1 }, /* the Giant's Sky Garden, west of the High Table (sky.js) */
+  { id: 'w5', i: 12, j: -9, biome: 'snow', season: 'summer', secret: 1 }, /* the Summer Hollow, behind the ice wall (hollow.js) */
+  { id: 'r5', i: -8, j: 8, biome: 'marsh', secret: 1, ponds: [[-5.2, -4.8, 2.3], [-2.6, -4.8, 2.3], [0, -4.8, 2.3], [2.6, -4.8, 2.3], [5.2, -4.8, 2.3], [0.3, 3.9, 2.9]] }, /* Heron Isle and the Firefly Tree, across Lily Lake (heron.js): the first five ponds are the lake between the marsh and the isle, the last is the frogs' bay */
+  { id: 'c5', i: 12, j: -2, biome: 'coral', secret: 1 }, /* the Sea Garden, under the lagoon (seagarden.js) */
+  { id: 'e5', i: 12, j: 9, biome: 'ash', secret: 1 } /* the Glass Forest, past the great lava river (glass.js) */
 ];
 /* shortcuts (Leon, 2026-11-27): the first way to a far place may be long, but once Pip has reached it a short way back
    opens by itself. Each is a plank bridge between two areas that builds itself, free, when both are owned (isle.js).
    The stone island: the mine and its lift are the first way there; after that a bridge runs to the west meadow. */
 /* the Bee Queen's walled garden in the far corner of the meadow (garden.js): the wall's box, the gate's place along the east wall, the hive and the chest inside */
-const GARDEN = { A: 'm4', x0: -16.9, x1: -11.3, z0: -32.9, z1: -29.5, gate: -31.2, hive: [-15.6, -31.2], chest: [-13.2, -32.3] };
+const GARDEN = { A: 'm4', x0: -16.9, x1: -11.3, z0: -32.9, z1: -29.5, gate: -31.2, hive: [-15.6, -31.2], chest: [-12.6, -32.2], door: -14.4 }; /* door: the round hedge door in the north wall, to the Garden of Giant Flowers (giant.js) */
 const SHORTS = [{ id: 'sm', need: ['s0', 'm1'], bridge: { x0: -22.6, z0: -12.2, x1: -17.4, z1: -12.2 } }];
 /* the special finds (finds.js): what each find node gives, how many, and the tool level it needs */
-const FINDS = ['honey', 'copper', 'iron', 'glow', 'reed', 'pearl', 'ember'];
+const FINDS = ['honey', 'copper', 'iron', 'glow', 'reed', 'pearl', 'ember', 'frost'];
 const FIND_NODE = { hive: { t: 'honey', n: 1, tier: 1 }, copper: { t: 'copper', n: 2, tier: 1 }, iron: { t: 'iron', n: 2, tier: 2 }, glow: { t: 'glow', n: 1, tier: 3 }, reeds: { t: 'reed', n: 2, tier: 1, hand: 1 }, clam: { t: 'pearl', n: 1, tier: 1, hand: 1 }, cinder: { t: 'ember', n: 1, tier: 3 } };
 /* the ember island (ember.js): the volcano in its corner, the two lava streams (the points each runs through), and where
    each can be cooled into a crossing (a, b: the ends of the slab; ring: where Pip stands to cool it; n: crystals it takes) */
@@ -93,6 +103,7 @@ function emberLava(x, z) {
 }
 const TIDE = { low: true, u: 0 }; /* the coral beach's tide (coral.js): low = the stepping stones are bare */
 FIND_NODE.hive.hand = 1;
+FIND_NODE.frostflower = { t: 'frost', n: 1, tier: 1, hand: 1 }; /* frost flowers in the winter island's snow (hollow.js) */
 /* the marsh raft (marsh.js): where it lies at the east bank and at the west bank, and where it is now (on: lying still, so Pip may step on) */
 const RAFT = { e: [-14.95, 7.6], w: [-17.05, 16.4], x: -14.95, z: 7.6, on: true };
 /* a square's chest: a tool (a word) or a treasure (what is inside). Every square holds something worth the price (Leon,
@@ -138,7 +149,9 @@ function gSdfBox(on, x, z) {
    straight line, and its sign stands there), in the mine, and round everything that stands near a shore (COAST.keep). */
 const COAST = { st: 0.5, x0: (GI0 - 0.5) * GS - 2, n: 0, F: null,
   /* things set by hand near a shore that the lists below do not know: [x, z, r] */
-  keep: [[0, 0, 3.4]] };
+  keep: [[0, 0, 3.4], [54.6, 6.4, 2.6], [-52.6, -28, 8.2]] }; /* the Sky Garden keeps a square rim under its cloud bank (sky.js); the second: the diver's stand on the lagoon shore (seagarden.js) */
+for (let k = 0; k <= 6; k++) COAST.keep.push([46 + k * 2, -10, 1.7], [46 + k * 2, 2, 1.7], [58, -10 + k * 2, 1.7]); /* the Sea Garden's reef rim stands on a straight shore */
+for (let k = 0; k < 8; k++) COAST.keep.push([52 + Math.cos(k * 0.7854) * 5.2, -32 + Math.sin(k * 0.7854) * 5.2, 1.5]); COAST.keep.push([47.2, -37, 1.4], [47.2, -27, 1.4]); /* the Summer Hollow's rim and its two west corners (hollow.js) */
 const sstep = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 function coastMake() {
   const st = COAST.st, n = COAST.n = Math.ceil((GWN * GS + 4) / st) + 1, F = COAST.F = new Float32Array(n * n), K = COAST.keep.slice();
@@ -181,6 +194,14 @@ function gSdfOf(on, x, z) {
 const landSdf = (x, z) => gSdfOf((i, j) => gIn(i, j) && AREA_AT[gIdx(i, j)] >= 0, x, z);
 const gSdf = (x, z) => gSdfOf(owned, x, z);
 const drawSdf = (x, z) => gSdfOf(drawn, x, z);
+/* Heron Isle (heron.js; here, because the coast and the walking rules need it before that file is read): where the heron
+   waits on the marsh shore and where it lands on the isle (each: the heron, and the ring Pip stands on), the lily bud, the
+   Firefly Tree, the giant lily pads Pip can walk on ([x, z, r]; the first five are the frog choir's), and the stretches of
+   the isle's coast that must not wander */
+const HERON = { shore: [-25.7, 29.4], ring0: [-24.4, 28.9], bud: [-24.9, 31.2], land: [-32.5, 34.4], ring1: [-31.2, 35.0], tree: [-28, 34.8],
+  pads: [[-29.98, 39.33, 0.95], [-29.28, 37.88, 0.95], [-27.7, 37.04, 0.95], [-26.22, 38.0, 0.95], [-25.29, 39.3, 0.95], [-30.15, 41.35, 1], [-28.92, 41.55, 1], [-27.7, 41.4, 1], [-26.47, 41.55, 1], [-25.25, 41.35, 1]],
+  keep: [[-34, 31.2, 1.5], [-34, 33, 1.5], [-34, 34.6, 1.4], [-34, 38.6, 1.5], [-34, 40.6, 1.4], [-32.6, 42, 1.4], [-29.4, 42, 1.3], [-27.7, 42, 1.3], [-26, 42, 1.3], [-22, 31.2, 1.5], [-22, 33, 1.5], [-22, 34.9, 1.4], [-22, 38.3, 1.6], [-22, 40.8, 1.4], [-23.4, 42, 1.4]] };
+COAST.keep.push(...HERON.keep);
 /* where Pip may walk: owned areas, and the bridges built to them */
 function walkSdf(x, z) {
   let d = gSdf(x, z);
@@ -190,6 +211,7 @@ function walkSdf(x, z) {
   for (const k in DOCK_ON) { const D = DOCKS[k]; d = Math.min(d, segD(x, z, D.x - D.out[0] * 0.5, D.z - D.out[1] * 0.5, D.x + D.out[0] * 1.55, D.z + D.out[1] * 1.55) - 0.5); } /* out along a dock's planks */
   if (HAS.r0) { d = Math.min(d, segD(x, z, RAFT.e[0] + 1.5, RAFT.e[1], RAFT.e[0] + 0.5, RAFT.e[1]) - 0.6, segD(x, z, RAFT.w[0] - 1.5, RAFT.w[1], RAFT.w[0] - 0.5, RAFT.w[1]) - 0.6); /* the raft's two jetties, and the raft while it lies still */
     if (RAFT.on) d = Math.min(d, Math.hypot(x - RAFT.x, z - RAFT.z) - 0.85); }
+  if (HAS.r5 && z > 30) for (const q of HERON.pads) d = Math.min(d, Math.hypot(x - q[0], z - q[1]) - q[2]); /* the giant lily pads round Heron Isle */
   if (HAS.e0 && x > 21 && z > 21) d = Math.max(d, -emberLava(x, z) - 0.2, EMBER.cone[2] - Math.hypot(x - EMBER.cone[0], z - EMBER.cone[1]) - 0.2); /* lava and the volcano are no ground to walk on */
   return d;
 }
@@ -259,6 +281,7 @@ const TRAILS = [
   /* winter: round the frozen lake to the tower, along the south shore to the far squares, and a link between the two */
   [[23.2, -16.2], [23.4, -21], [23.8, -25.6], [26.4, -28.2], [29.4, -28.2], [32.2, -29.8], [34.5, -31.2], [37.6, -32.2]], [[27.8, -28.2], [27.4, -31.6], [27.6, -33.8], [28.8, -36.4], [29.4, -37.6]],
   [[23.2, -16.2], [27, -15.3], [32, -15.5], [36, -17], [38.4, -18.8], [37.6, -23], [38, -28], [37.6, -32.2], [38.4, -38.5], [39, -43]],
+  [[37.6, -32.2], [39.4, -33.8], [41.8, -33.5], [43.2, -32.3], [46.6, -32], [49.6, -32]], /* to the ice wall, and on into the Summer Hollow behind it (hollow.js) */
   /* marsh: the east bank down to the raft, the west bank past the ruin, and on round the ponds */
   [[-10.8, 16.4], [-10.8, 13], [-10.8, 9.6], [-12.2, 7.5], [-13.3, 7.6]], [[-11.4, 8.4], [-11.6, 6.4]],
   [[-18.7, 16.4], [-20, 16.9], [-21.8, 15.6], [-22.2, 12], [-21.9, 9.4], [-23, 7.2], [-28, 7.4], [-32, 8], [-34.5, 8.4], [-39, 7.8], [-43, 7.8]],

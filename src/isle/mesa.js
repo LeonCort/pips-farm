@@ -50,7 +50,7 @@ function sealS() { return state.isle.seals || (state.isle.seals = {}); }
 function sealWants(want) { MS.list.forEach((m) => { if (m.locked && HAS[m.A.id] && !m.pop) want.set('k:' + m.id, { kind: 'seal', m }); }); }
 function sealOpen(m) {
   sealS()[m.id] = 1; m.locked = false; sc.remove(m.g); mesaModel(m, false); burst(m.x + m.lx, 1.2, m.z + m.d / 2 + 0.5, 16);
-  Snd.play('success', { gain: 0.5 }); Snd.play('sparkle', { gain: 0.4 }, 0.2); xpGain(25); isleSigns(); save();
+  Snd.play('secret', { gain: 0.6 }, 0.1); xpGain(25); isleSigns(); save();
 }
 function mesaStep(dt) {
   if (!MS.list.length) return; const pp = pip.position;

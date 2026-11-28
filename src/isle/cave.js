@@ -34,7 +34,7 @@ function mineS() { return state.isle.mine || (state.isle.mine = {}); }
 function mineKeep(a, x, z) { return (Math.abs(z - a.cz) < 1.6 && Math.abs(x - a.cx) > 3.3) || (a.id === 'cave3' && Math.hypot(x - LIFT.low.x, z - LIFT.low.z - 0.5) < 2.6); }
 function mineGateOpen(n) {
   mineS()[n.gate] = 1; if (n.tag) { n.g.remove(n.tag); n.tag = null; } n.dead = 1; n.st = 'gone'; if (work && work.n === n) work = null;
-  burst(n.x, 1.2, n.z, 12); Snd.play('thud', { gain: 0.6 }); Snd.play('success', { gain: 0.45, f: 'E6' }, 0.15); xpGain(10); isleSigns(); save();
+  burst(n.x, 1.2, n.z, 12); Snd.play('thud', { gain: 0.6 }); Snd.play('secret', { gain: 0.55 }, 0.25); xpGain(10); isleSigns(); save();
 }
 /* a mine lift: four posts, a cross beam with a wheel and a rope, and a plank floor */
 function liftModel(x, z, seed) {

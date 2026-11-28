@@ -37,11 +37,11 @@ function mapDraw() {
   /* water inside an area: the marsh's channel and pond */
   AREAS.forEach((A) => { if (!A.holes || !HAS[A.id]) return; A.holes.forEach(([a, b]) => { const [px, pz] = mapXY((A.i + a) * GS - 1.5, (A.j + b) * GS - (A.holes.length > 1 ? 2.6 : 1.5)); x.beginPath(); x.roundRect(px, pz, 3 * S, (A.holes.length > 1 ? 5.2 : 3) * S, 1.2 * S); x.fillStyle = '#6fbfe0'; x.fill(); }); });
   /* land Pip does not own yet */
-  AREAS.forEach((A) => { if (A.cave || HAS[A.id]) return; sq(A, -0.35, 1.6); x.fillStyle = buy[A.id] ? 'rgba(255,246,228,.5)' : 'rgba(255,255,255,.22)'; x.fill();
+  AREAS.forEach((A) => { if (A.cave || A.secret || HAS[A.id]) return; sq(A, -0.35, 1.6); x.fillStyle = buy[A.id] ? 'rgba(255,246,228,.5)' : 'rgba(255,255,255,.22)'; x.fill();
     x.setLineDash([14, 12]); x.lineWidth = buy[A.id] ? 6 : 3; x.strokeStyle = buy[A.id] ? '#f4b23a' : 'rgba(255,255,255,.75)'; x.stroke(); x.setLineDash([]);
     const [px, pz] = mapXY(A.cx, A.cz); x.globalAlpha = buy[A.id] ? 1 : 0.6; isleIcon(x, 'lock', px, pz, 1.25); x.globalAlpha = 1; });
   /* what grows there */
-  AREAS.forEach((A) => { if (A.cave) return; const [px, pz] = mapXY(A.cx - 4.1, A.cz - 4.2); x.globalAlpha = HAS[A.id] ? 1 : 0.55; isleIcon(x, MAP_RES[A.biome], px, pz, 0.8); x.globalAlpha = 1; });
+  AREAS.forEach((A) => { if (A.cave || A.secret) return; const [px, pz] = mapXY(A.cx - 4.1, A.cz - 4.2); x.globalAlpha = HAS[A.id] ? 1 : 0.55; isleIcon(x, MAP_RES[A.biome], px, pz, 0.8); x.globalAlpha = 1; });
   /* the cave hill */
   { const A = AREA_BY.cave, [px, pz] = mapXY(A.cx, A.cz), [wx] = mapXY(AREA_BY.cave3.cx, A.cz); x.beginPath(); x.roundRect(wx - 5.6 * S, pz - 5.2 * S, px - wx + 11.2 * S, 10.4 * S, 5.2 * S); x.fillStyle = '#8a8074'; x.fill(); x.lineWidth = 3; x.strokeStyle = 'rgba(58,36,20,.5)'; x.stroke();
     x.beginPath(); x.ellipse(px - 8, pz - 10, 3.6 * S, 3.2 * S, 0, 0, 7); x.fillStyle = '#9c9184'; x.fill(); isleIcon(x, 'crystal', px - 3.2 * S, pz - 2.6 * S, 0.8); }

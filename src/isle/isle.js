@@ -23,6 +23,7 @@ let rising = null, hitT = 0, giveT = 0, pickHintT = 0;
 
 /* ---- pictures: drawn on a 2D canvas for the signs and bubbles ---- */
 function isleIcon(x, t, cx, cy, s) {
+  if (ISLE_ICON[t]) { x.save(); x.translate(cx, cy); x.scale(s, s); x.lineJoin = x.lineCap = 'round'; x.lineWidth = 3; x.strokeStyle = '#3a2414'; ISLE_ICON[t](x); x.restore(); return; } /* a hidden world's own picture: drawn round 0,0 in a box of about 44 */
   x.save(); x.translate(cx, cy); x.scale(s, s); x.lineWidth = 3; x.strokeStyle = PAL.ink; x.lineJoin = 'round'; x.lineCap = 'round';
   const blob = (f) => { x.fillStyle = f; x.fill(); x.stroke(); };
   if (t === 'log') { x.beginPath(); x.roundRect(-20, -9, 34, 18, 9); blob('#a8774f'); x.beginPath(); x.ellipse(14, 0, 6, 9, 0, 0, 7); blob('#e7c48f'); x.beginPath(); x.ellipse(14, 0, 2.2, 3.5, 0, 0, 7); x.strokeStyle = '#a8774f'; x.lineWidth = 1.6; x.stroke(); }
@@ -192,7 +193,7 @@ function areaClear(x, z) {
   for (const a of AREAS) { if (a.chest) { const c = chestAt(a); if (Math.hypot(x - c[0], z - c[1] - 0.4) < 1.5) return false; }
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
-    if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || gardenKeep(a, x, z) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z) || emberKeep(a, x, z)) return false;
+    if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || gardenKeep(a, x, z) || goldKeep(x, z) || ISLE_KEEPS.some((f) => f(a, x, z)) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z) || emberKeep(a, x, z)) return false;
     if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
@@ -215,6 +216,7 @@ function basicsFill(A, fresh) {
 }
 function areaFill(A, fresh) {
   if (SHOW && SHOW_YARD[A.id]) return; /* the asset yard keeps these two areas as an empty lawn */
+  if (A.secret) { if (SECRET_FILL[A.id]) SECRET_FILL[A.id](A, fresh); return; } /* a hidden world is laid by hand, piece by piece (secret.js) */
   if (A.start) { START_NODES.forEach(([k, x, z], q) => makeNode(k, x, z, 50 + q)); areaDecor(A); return; }
   const SP = 2.05, base = AREAS.indexOf(A) * 997; let c = 0;
   for (let gx = A.cx - 5.2; gx <= A.cx + 5.3; gx += SP) for (let gz = A.cz - 5.2; gz <= A.cz + 5.3; gz += SP) {
@@ -296,12 +298,13 @@ function chestStep(c, dt) {
   if (c.pop > 0 && c.pop < 1) { c.pop = Math.min(1, c.pop + dt * 2.2); const s = c.pop < 0.7 ? c.pop / 0.7 * 1.15 : 1.15 - (c.pop - 0.7) / 0.3 * 0.15; c.g.scale.setScalar(s); }
   if (!c.open && (c.mesa || null) === MS.on && Math.hypot(pip.position.x - c.x, pip.position.z - (c.z + 0.85)) < 0.9) {
     c.open = 0.001; state.isle.chests[c.idx] = 1;
-    if (typeof c.tool === 'string') { state.isle.tools[c.tool] = 1; c.sp.visible = true; }
+    if (typeof c.tool === 'string') { state.isle.tools[c.tool] = 1; c.sp.visible = true; foundIt(c.tool); }
     else { /* a treasure: what is inside floats up as counted pictures and goes straight to the counter */
-      Object.keys(c.tool).forEach((t, k) => { state.isle.store[t] = (state.isle.store[t] || 0) + c.tool[t];
+      const loot = Object.assign({}, c.tool); if (loot.gear) { gearFind(loot.gear); delete loot.gear; }
+      Object.keys(loot).forEach((t, k) => { state.isle.store[t] = (state.isle.store[t] || 0) + c.tool[t];
         const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, c.tool[t]), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(c.x, 1.5 + k * 0.8, c.z); sc.add(sp); FD.floats.push({ sp, t: 0, y: k * 0.8 }); });
       invDirty = true; burst(c.x, 0.7, c.z, 14); Snd.play('sparkle', { gain: 0.45 }); if (typeof bldBadge === 'function') bldBadge(); }
-    Snd.play('powerup', { gain: 0.5 }); burst(c.x, 1.0, c.z, 8); save();
+    Snd.play('treasure', { gain: 0.6 }); burst(c.x, 1.0, c.z, 8); save();
   }
   if (c.open) {
     c.open += dt; c.lid.rotation.x = -Math.min(1.9, c.open * 5);
@@ -395,7 +398,7 @@ function signSpot([ni, nj, a, b]) {
 function signWants() {
   const want = new Map(), used = new Set();
   AREAS.forEach((A) => {
-    if (HAS[A.id] || (rising && rising.area === A.id) || (building && building.A === A)) return;
+    if (A.secret || HAS[A.id] || (rising && rising.area === A.id) || (building && building.A === A)) return;
     if (A.bridge) { if (HAS[A.bridge.from]) want.set('b:' + A.id, { kind: 'bridge', A }); return; }
     if (A.lift) { if (mineS().g2) want.set('l:' + A.id, { kind: 'lift', A }); return; } /* the lift at the end of the mine (cave.js) */
     /* the owned square touching this area that is nearest its middle: the sign stands there, by the shared edge */
@@ -407,7 +410,7 @@ function signWants() {
     if (!best && C[0]) best = C[0].slice(0, 4);
     if (best) { used.add(best[0] + ',' + best[1]); want.set('a:' + A.id, { kind: 'area', A, at: best }); }
   });
-  peopleWants(want); sealWants(want);
+  peopleWants(want); sealWants(want); ISLE_KEYS.forEach((K) => { if (K.ok()) want.set('q:' + K.id, { kind: 'key', K }); });
   return want;
 }
 const areaGhostGeo = (() => { const g = new T.PlaneGeometry(GS * 3 - 0.6, GS * 3 - 0.6, 12, 12); g.rotateX(-Math.PI / 2); return g; })();
@@ -420,6 +423,7 @@ function isleSigns() {
       signMake({ key, kind: 'area', at: w.at, A, cost: A.cost, x, z, ghostGeo: areaGhostGeo, ghostTex, gx: A.cx, gz: A.cz }); }
     else if (w.kind === 'lift') { const q = new T.PlaneGeometry(1.5, 1.5, 2, 2); q.rotateX(-Math.PI / 2);
       signMake({ key, kind: 'lift', A, cost: A.cost, x: LIFT.low.x + 1.45, z: LIFT.low.z - 1.0, ghostGeo: q, ghostTex: ghostRound, gx: LIFT.low.x, gz: LIFT.low.z, gy: 0.05 }); }
+    else if (w.kind === 'key') { const K = w.K; signMake({ key, kind: 'key', K, A: null, cost: K.cost, x: K.x, z: K.z, ghostGeo: tinyGeo, ghostTex, gx: K.x, gz: K.z, gy: -5 }); }
     else if (w.kind === 'seal') { const m = w.m, z = m.z + m.d / 2 + 1.0, x = m.x + m.lx + (walkSdf(m.x + m.lx + 1.1, z) < walkSdf(m.x + m.lx - 1.1, z) ? 1.1 : -1.1); signMake({ key, kind: 'seal', m, A: null, cost: m.seal, x, z, ghostGeo: tinyGeo, ghostTex, gx: x, gz: z, gy: -5 }); }
     else if (!peopleSignMake(w, key)) { const B = A.bridge, L = Math.hypot(B.x1 - B.x0, B.z1 - B.z0), ux = (B.x1 - B.x0) / L, uz = (B.z1 - B.z0) / L, q = new T.PlaneGeometry(1.7, L, 2, 8); q.rotateX(-Math.PI / 2);
       signMake({ key, kind: 'bridge', A, cost: A.cost, x: B.x0 - ux * 0.6 - uz * 1.5, z: B.z0 - uz * 0.6 + ux * 1.5, ghostGeo: q, ghostTex, gx: (B.x0 + B.x1) / 2, gz: (B.z0 + B.z1) / 2, gy: -0.15, gr: Math.atan2(ux, uz) }); }
@@ -453,7 +457,7 @@ function signStep(s, dt) {
 }
 function isleBuy(s) {
   delete state.isle.paid[s.key]; [s.g, s.ring, s.ghost].forEach((m) => sc.remove(m)); signs.splice(signs.indexOf(s), 1);
-  if (s.kind === 'area') areaRise(s.A); else if (s.kind === 'lift') { loopBuy(s); liftOwn(s.A); } else if (s.kind === 'seal') sealOpen(s.m); else if (!peopleBuy(s)) bridgeBuild(s.A, false);
+  if (s.kind === 'area') areaRise(s.A); else if (s.kind === 'lift') { loopBuy(s); liftOwn(s.A); } else if (s.kind === 'seal') sealOpen(s.m); else if (s.kind === 'key') s.K.open(); else if (!peopleBuy(s)) bridgeBuild(s.A, false);
   signs.forEach(drawSign); save();
 }
 
@@ -569,7 +573,7 @@ function nodeHit(n, side) {
   if (n.kind !== 'bush' && n.kind !== 'grass') splash(sx, 0.6, sz, 3);
   if (n.hp > 0.01) return;
   dropOut(n); n.t = sleepRegrow(n);
-  if (n.gate === 'garden') { gardenGateOpen(n); return; }
+  if (n.gate === 'garden') { gardenGateOpen(n); return; } if (ISLE_GATE[n.gate]) { ISLE_GATE[n.gate](n); return; }
   if (n.gate) { mineGateOpen(n); return; }
   if (n.kind === 'planks') { n.st = 'gone'; n.main.visible = false; Snd.play('thud', { gain: 0.5 }); ruinOpen(n.ruin); return; }
   if (n.kind === 'tree') { n.st = 'fall'; n.fall = 0; n.stump.visible = true; Snd.play('thud', { gain: 0.5 }); }

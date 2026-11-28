@@ -7,16 +7,21 @@
    When Pip meets an obstacle, a bubble shows the gear it needs, and from then on that gear has a card in the build menu. */
 const GEAR = {
   torch: { cost: { honey: 3, log: 8, coin: 6 }, eff: ['web', 'bees', 'dark'] },
-  coat: { cost: { berry: 14, log: 6, coin: 12 }, eff: ['rain'] },
-  boots: { cost: { reed: 4, log: 16, coin: 18 }, eff: ['snowDeep'] },
-  lantern: { cost: { ember: 2, honey: 2, coin: 20 }, eff: ['dark'] }, /* the dark night (night.js) */
+  /* (Leon, 2026-11-28: "some just make it easier, for example, better boots... make it a more joyful experience when we find
+     something"): the comfort gear is no longer bought. found: the chest it lies in; Pip holds it up when the lid opens. */
+  coat: { cost: { berry: 14, log: 6, coin: 12 }, eff: ['rain'], found: 'm1' },
+  boots: { cost: { reed: 4, log: 16, coin: 18 }, eff: ['snowDeep'], found: 'r2' },
+  lantern: { cost: { ember: 2, honey: 2, coin: 20 }, eff: ['dark'], found: 'e1' }, /* the dark night (night.js) */
   /* the bigger islands (Leon, 2026-11-27: "a scooter or thing to move around the islands at a quicker pace"): after a few
      steps of walking Pip hops on and rolls, faster still along a trail (wear.js). Its card comes after the first long walk. */
   scooter: { cost: { copper: 3, log: 20, coin: 20 }, eff: ['trail'] }
 };
 Object.keys(GEAR).forEach((k) => { BLD[k] = { max: 2, cost: [null, null, GEAR[k].cost], pic: [null, k, k] }; });
 const gearHas = (k) => bldLv(k) >= 2;
-const gearKeys = () => Object.keys(GEAR).filter((k) => gearHas(k) || (state.isle.seen && state.isle.seen[k]));
+const gearKeys = () => Object.keys(GEAR).filter((k) => gearHas(k) || (!GEAR[k].found && state.isle.seen && state.isle.seen[k]));
+/* a chest gave a piece of gear; a save that opened that chest before the gear lay in it gets it too */
+function gearFind(k) { if (gearHas(k)) return; state.isle.bld[k] = 2; gearGot(k); foundIt(k); }
+function gearOld() { Object.keys(GEAR).forEach((k) => { const f = GEAR[k].found; if (f && state.isle.chests[f] && !gearHas(k)) state.isle.bld[k] = 2; }); }
 const GE = { bub: null, cool: {}, webs: [], bees: null, light: null, flame: null, smoke: [] };
 const WEB_AT = ['w0']; /* the bridges that start webbed */
 const BEES_AT = 'm2'; /* the cottage the bees guard */
@@ -164,10 +169,11 @@ function torchLight() {
 const gearWet = () => raining() && !inCave && !gearHas('coat');
 const gearEnMul = () => (gearWet() ? 2 : 1); /* rain without a coat: every job costs twice (isle.js enUse) */
 const gearRain = () => gearHas('coat'); /* the yellow slicker only shows once Pip owns the coat (rain.js) */
-const gearSnow = () => !inCave && zoneSeason === 'winter' && !gearHas('boots') && !mons().tower && (() => { const A = areaAt(pip.position.x, pip.position.z); return !!A && A.biome === 'snow'; })();
+const gearSnow = () => !inCave && zoneSeason === 'winter' && !gearHas('boots') && !mons().tower && (() => { const A = areaAt(pip.position.x, pip.position.z); return !!A && A.biome === 'snow' && !(hollowWarm(pip.position.x, pip.position.z) > 0.5); })(); /* the Summer Hollow and the thawed trails are no deep snow (hollow.js) */
 const gearSlow = () => (state.isle && GE.ready && gearSnow() ? 0.5 : 1); /* deep snow: half speed without boots (rules.js speed) */
 function gearInit() { const I = state.isle; I.seen = I.seen || {}; I.webs = I.webs || {}; I.calm = I.calm || {}; GE.ready = 1; webSync(); torchLight(); }
 function gearStep(dt) {
+  if (!GE.old) { GE.old = 1; gearOld(); }
   Object.keys(GE.cool).forEach((k) => { GE.cool[k] -= dt; });
   if (GE.bub) { GE.bub.t -= dt; const p = pip.position; GE.bub.position.set(p.x, 2.35 + Math.sin(time * 4) * 0.05, p.z); GE.bub.material.opacity = Math.min(1, GE.bub.t * 3); if (GE.bub.t <= 0) { sc.remove(GE.bub); GE.bub = null; } }
   webSync();

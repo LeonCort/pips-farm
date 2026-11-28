@@ -823,7 +823,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261127233917">
+<meta name="app-ver" content="20261128082304">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1047,6 +1047,13 @@ ask().then(function(v){if(v!==cur){set("new","Updating");setTimeout(function(){l
       coin: (t, o) => { tone(t, { f: 'B5', type: 'square', dur: 0.07, gain: 0.07 * o.g, a: 0.001, hold: 0.06 }); tone(t + 0.07, { f: 'E6', type: 'square', dur: 0.3, gain: 0.07 * o.g, a: 0.001, hold: 0.1 }); },
       jump: (t, o) => tone(t, { f: [[0, 260], [0.16, 820]], type: 'square', dur: 0.18, gain: 0.07 * o.g, a: 0.001, hold: 0.12 }),
       hurt: (t, o) => { tone(t, { f: [[0, 600], [0.25, 90]], type: 'square', dur: 0.28, gain: 0.08 * o.g, a: 0.001, hold: 0.2 }); noise(t, { dur: 0.2, filter: 'lowpass', f: 1800, gain: 0.15 * o.g, rate: 0.25 }); },
+      // discovery, in three sizes (Pips Island): a chest opens / a hidden way is found / a hidden world opens
+      treasure: (t, o) => { ['E5', 'A5', 'C#6', 'E6'].forEach((n, i) => { tone(t + i * 0.085, { f: n, type: 'triangle', dur: i === 3 ? 0.7 : 0.16, gain: 0.2 * o.g, a: 0.004, hold: i === 3 ? 0.18 : 0.08, verb: 0.25 }); tone(t + i * 0.085, { f: n, dur: i === 3 ? 0.6 : 0.12, gain: 0.07 * o.g, detune: 1200, verb: 0.3 }); }); ['A6', 'C#7', 'E7'].forEach((n, i) => tone(t + 0.36 + i * 0.06, { f: n, dur: 0.35, gain: 0.05 * o.g, verb: 0.4 })); },
+      secret: (t, o) => { ['A4', 'C5', 'E5', 'D#5', 'F#5', 'B5'].forEach((n, i) => { const last = i === 5, tt = t + i * 0.15 + (i > 2 ? 0.06 : 0); tone(tt, { f: n, type: 'triangle', dur: last ? 1.1 : 0.2, gain: 0.19 * o.g, a: 0.006, hold: last ? 0.3 : 0.1, verb: 0.35 }); tone(tt, { f: n, type: 'sine', dur: last ? 1.0 : 0.16, gain: 0.06 * o.g, detune: 1205, verb: 0.4 }); }); tone(t + 0.96, { f: 'E4', dur: 1.0, gain: 0.07 * o.g, a: 0.05, hold: 0.4, verb: 0.3 }); },
+      fanfare: (t, o) => { const brass = (tt, n, d, g) => { tone(tt, { f: n, type: 'sawtooth', dur: d, gain: g * o.g, a: 0.02, hold: d * 0.6, filter: 'lowpass', f2: [[0, 900], [0.08, 2600], [d, 1400]], q: 0.7, verb: 0.3 }); tone(tt, { f: n, type: 'triangle', dur: d, gain: g * 0.8 * o.g, a: 0.01, hold: d * 0.6, verb: 0.3 }); };
+        [['G4', 0], ['C5', 0.14], ['E5', 0.28], ['G5', 0.42]].forEach(([n, d]) => brass(t + d, n, 0.16, 0.1)); brass(t + 0.62, 'A5', 0.22, 0.1); brass(t + 0.86, 'B5', 0.22, 0.1);
+        ['C5', 'E5', 'G5', 'C6'].forEach((n) => brass(t + 1.12, n, 1.5, 0.075)); tone(t + 1.12, { f: 'C3', type: 'triangle', dur: 1.5, gain: 0.14 * o.g, a: 0.02, hold: 0.9, verb: 0.2 });
+        ['E6', 'G6', 'C7', 'E7', 'G7'].forEach((n, i) => tone(t + 1.3 + i * 0.09, { f: n, dur: 0.5, gain: 0.05 * o.g, verb: 0.45 })); },
       powerup: (t, o) => ['C5', 'E5', 'G5', 'C6', 'E6', 'G6', 'C7'].forEach((n, i) => tone(t + i * 0.045, { f: n, type: 'square', dur: 0.06, gain: 0.06 * o.g, a: 0.001, hold: 0.05 })),
       select: (t, o) => { S.blip(t, { ...o, f: 'A5', dur: 0.04 }); S.blip(t + 0.05, { ...o, f: 'E6', dur: 0.05 }); },
       text: (t, o) => { const n = o.n || 10, rate = o.rate || 0.05; for (let i = 0; i < n; i++) tone(t + i * rate, { f: i % 2 ? 'C6' : 'G5', type: 'square', dur: 0.025, gain: 0.04 * o.g, a: 0.001, hold: 0.015 }); },

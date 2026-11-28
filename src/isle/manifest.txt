@@ -53,6 +53,14 @@ finds.js
 tall.js
 mesa.js
 garden.js
+gold.js
+secret.js
+giant.js
+sky.js
+hollow.js
+heron.js
+seagarden.js
+glass.js
 ice.js
 marsh.js
 coral.js

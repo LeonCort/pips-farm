@@ -6,7 +6,7 @@
    is nothing left to buy there. (The smith's anvil and the baker's oven already work this way.) */
 const SPT = { list: [], t: 0, tex: {} };
 function spotNear(x, z, r) { if (Math.hypot(SPOT_AT.gear[0] - 0.75 - x, SPOT_AT.gear[1] - 0.75 - z) < r * 0.6 + 0.5) return true; return Object.keys(SPOT_AT).some((k) => Math.hypot(SPOT_AT[k][0] - x, SPOT_AT[k][1] - z) < r * 0.6); }
-function spotKeys(id) { if (HAM_KEY[id]) return mons()[HAM_KEY[id]] && HAM.v[HAM_KEY[id]] && bldLv(id) < BLD[id].max ? [id] : []; return id === 'gear' ? Object.keys(GEAR).filter((k) => !gearHas(k) && state.isle.seen && state.isle.seen[k]) : (bldLv(id) < BLD[id].max ? [id] : []); }
+function spotKeys(id) { if (HAM_KEY[id]) return mons()[HAM_KEY[id]] && HAM.v[HAM_KEY[id]] && bldLv(id) < BLD[id].max ? [id] : []; return id === 'gear' ? Object.keys(GEAR).filter((k) => !gearHas(k) && !GEAR[k].found && state.isle.seen && state.isle.seen[k]) : (bldLv(id) < BLD[id].max ? [id] : []); }
 function spotTex(pic, can) {
   const key = pic + (can ? '!' : ''); if (SPT.tex[key]) return SPT.tex[key];
   const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');

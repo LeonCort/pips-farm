@@ -34,7 +34,8 @@ const findFlat = (L) => merged(L.map((q) => (q.index ? q.toNonIndexed() : q)), M
 const FIND_GEO = {};
 function findGeo(k) {
   if (FIND_GEO[k]) return FIND_GEO[k]; const L = []; let q;
-  if (k === 'hive') { /* the honeycomb: a stack of golden six-sided cakes, dripping */
+  if (k.indexOf('frostflower') === 0) hollowFrostGeo(L, k); /* the winter island's frost flower (hollow.js) */
+  else if (k === 'hive') { /* the honeycomb: a stack of golden six-sided cakes, dripping */
     [[0, 0.5, 0.2, 0.1], [0.03, 0.61, 0.23, 0.1], [-0.02, 0.72, 0.19, 0.1], [0.02, 0.82, 0.13, 0.08]].forEach(([x, y, r, h], i) => { q = new T.CylinderGeometry(r, r * 0.95, h, 6); q.rotateY(i * 0.5); q.translate(x, y, 0); L.push(fac(q, (cx, cy, cz, f) => tone(i % 2 ? '#f7c948' : '#f2a13c', f, 0.35), 2800 + i)); });
     [[0.17, 0.5], [-0.14, 0.58], [0.05, 0.47]].forEach(([x, y], i) => { q = ico(0.045, 1, 2810 + i); q.scale(1, 1.7, 1); q.translate(x, y, 0.14 - i * 0.12); L.push(fac(q, () => new T.Color('#ffd76a'), 2810 + i)); });
   } else if (k === 'hiveBase') { /* an old stump the bees moved into */
@@ -69,14 +70,15 @@ let findGlowMat = null;
 function findNode(n, g) {
   const k = n.kind;
   if (k === 'glow') { findGlowMat = findGlowMat || (() => { const m = crystalMat.clone(); m.emissive = new T.Color('#c9962a'); m.emissiveIntensity = 0.75; return m; })(); n.main = new T.Mesh(findGeo(k), findGlowMat); }
-  else { n.main = new T.Mesh(findGeo(k), MAT); n.main.castShadow = true; n.main.receiveShadow = true; }
+  else { n.main = new T.Mesh(findGeo(k), k === 'frostflower' ? hollowFrostMat() : MAT); n.main.castShadow = true; n.main.receiveShadow = true; }
   n.full = k === 'reeds' ? 1.3 : FIND_NODE[k].hand ? 1 : 0.95 + hash(n.seed, 4) * 0.2; n.main.scale.setScalar(n.full); g.add(n.main);
-  if (k === 'hive' || k === 'reeds' || k === 'clam') { const b = new T.Mesh(findGeo(k + 'Base'), MAT); b.castShadow = true; b.receiveShadow = true; g.add(b); }
+  if (k === 'hive' || k === 'reeds' || k === 'clam' || k === 'frostflower') { const b = new T.Mesh(findGeo(k + 'Base'), MAT); b.castShadow = true; b.receiveShadow = true; g.add(b); }
 }
 /* the find goes straight to the store, and a picture with its number floats up where it was */
 function findGot(n) {
   const t = YIELD[n.kind][0], c = hiveGives(n, YIELD[n.kind][1]); state.isle.store[t] = (state.isle.store[t] || 0) + c; xpGain(XP_FOR[n.kind]);
   const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, c), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(n.x, n.g.position.y + 1.5, n.z); sc.add(sp); FD.floats.push({ sp, t: 0, y: n.g.position.y });
+  const F1 = state.isle.first || (state.isle.first = {}); if (!F1[t]) { F1[t] = 1; foundIt(t); } /* the first of each special find is held up */
   invDirty = true; Snd.play('sparkle', { gain: 0.45 }); burst(n.x, n.g.position.y + 1.0, n.z, 6); bldBadge(); save();
 }
 function findStep(dt) {
