@@ -660,7 +660,7 @@ function isleTest() {
     fill: (o) => { Object.keys(o).forEach((t) => { state.isle.store[t] = (state.isle.store[t] || 0) + o[t]; }); },
     own: (ids) => { ids.split(',').forEach((id) => { state.isle.areas[id] = 1; }); save(); },
     tp: (x, z) => { pip.position.set(x, 0, z); target.set(x, 0, z); camFocus.set(x, 0, z); }, building: !!building,
-    en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], bld: Object.assign({}, state.isle.bld), cave: inCave, spring: spring ? [spring.x, spring.z, spring.used] : null, springNow: () => { springT = 0; }, flutter: flutter ? flutter.caught : null, dayAt: (f) => { state.clock = Math.floor(state.clock / DAY) * DAY + f * DAY; }, down: stairsDown ? [stairsDown.x, stairsDown.z] : null, upMat: caveA && caveA.mat ? [caveA.mat.x, caveA.mat.z] : null, xp: Object.assign({}, xpS()), gain: (v) => xpGain(v), max: enMax(), up: (k) => bldUp(k), tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
+    en: () => +state.isle.en.toFixed(1), setEn: (v) => { state.isle.en = v; }, sleeping: !!enSleep, sleepT: enSleep ? +enSleep.t.toFixed(2) : -1, clock: state.clock, ring: [TENT_RING.x, TENT_RING.z], bld: Object.assign({}, state.isle.bld), cave: inCave, spring: spring ? [spring.x, spring.z, spring.used] : null, springNow: () => { springT = 0; }, flutter: flutter ? flutter.caught : null, dayAt: (f) => { state.clock = Math.floor(state.clock / DAY) * DAY + f * DAY; }, down: stairsDown ? [stairsDown.x, stairsDown.z] : null, upMat: caveA && caveA.mat ? [caveA.mat.x, caveA.mat.z] : null, xp: Object.assign({}, xpS()), gain: (v) => xpGain(v), max: enMax(), up: (k) => bldUp(k), tired: enLow(), pipVis: pip.visible, goal: isleGoal(),
     walk: (x, z) => +walkSdf(x, z).toFixed(2), folk: Object.assign({}, state.isle.folk), tier: toolTier(), smith: SM.g ? [+SM.g.position.x.toFixed(2), +SM.g.position.z.toFixed(2), SM.g.visible] : null, anvil: () => anvilOpen(), baker: BK.g ? [+BK.g.position.x.toFixed(2), +BK.g.position.z.toFixed(2), BK.g.visible] : null, bake: Object.assign({}, state.isle.bake), oven: () => ovenOpen(), village: VG.key, dog: () => dogTest(), gear: () => gearTest(), run: (src) => eval(src), dogLv: (n) => { state.isle.bld.dog = n; dogBagSync(); }, store: Object.assign({}, state.isle.store), counts: () => { const c = {}; nodes.forEach((n) => { c[n.kind] = (c[n.kind] || 0) + 1; }); return c; } };
 }
 
@@ -960,26 +960,65 @@ function enStep(dt) {
     if (R.w >= 1) { R.w = 0; R.fg.setDrawRange(0, 0); enSleepStart(); }
     enDraw(); return;
   }
-  /* asleep in the tent: the night runs by fast and the bar fills; then Pip crawls out in the morning */
-  const S = enSleep; S.t += dt; const q = Math.min(1, Math.max(0, (S.t - 0.6) / 3.0)), e = q * q * (3 - 2 * q);
-  if (S.t > 0.6) { state.clock = S.from + (S.to - S.from) * e; clockPinned = true; }
-  if (S.t > 0.6 && !S.grew) { S.grew = 1; sleepGrow(); }
+  /* asleep in the tent (Leon, 2026-11-28): Pip turns to the door, gets down on hands and knees and crawls in; the night runs
+     by fast and the bar fills; in the morning Pip crawls back out onto the mat and stands up. The hut (level 3) has a real
+     door, so there Pip just walks in. */
+  const S = enSleep; S.t += dt; const IN = S.inT, q = Math.min(1, Math.max(0, (S.t - IN) / 3.0)), e = q * q * (3 - 2 * q);
+  if (S.t > IN) { state.clock = S.from + (S.to - S.from) * e; clockPinned = true; }
+  if (S.t > IN && !S.grew) { S.grew = 1; sleepGrow(); }
   I.en = S.en0 + (enMax() - S.en0) * e;
-  const u = Math.min(1, S.t / 0.6); /* walk into the door, shrinking */
-  pip.position.set(R.x + (S.dx - R.x) * u, 0, R.z + (S.dz - R.z) * u); pip.scale.setScalar(Math.max(0.01, 1 - u * 0.9)); pip.visible = u < 1; target.copy(pip.position);
   if (!S.z) { S.z = new T.Sprite(new T.SpriteMaterial({ map: zTex, transparent: true, depthTest: false })); S.z.renderOrder = 6; S.z.scale.set(0.7, 0.46, 1); sc.add(S.z); }
-  S.z.visible = S.t > 0.6 && q < 0.97; S.z.position.set(TENT.x + 0.15, 1.6 + Math.sin(S.t * 2.2) * 0.12, TENT.z);
+  S.z.visible = S.t > IN && q < 0.97; S.z.position.set(TENT.x + 0.15, 1.6 + Math.sin(S.t * 2.2) * 0.12, TENT.z);
+  const OUT0 = IN + 3.4, OUT = S.hut ? 0.7 : 1.5; /* when the crawl out starts, and how long it takes */
+  if (S.t < IN) enCrawl(S, S.t / IN, true);
+  else if (S.t < OUT0) { pip.visible = false; target.copy(pip.position); }
+  else if (S.t < OUT0 + OUT) enCrawl(S, (S.t - OUT0) / OUT, false);
   enDraw();
-  if (q >= 1 && S.t > 4.0) {
-    sc.remove(S.z); pip.visible = true; pip.scale.setScalar(1); pip.position.set(R.x, 0, R.z); target.copy(pip.position); pip.rotation.y = 0.5; enSleep = null; I.en = enMax(); tierWake(); save();
+  if (q >= 1 && S.t >= OUT0 + OUT) {
+    sc.remove(S.z); enCrawlPose(0, 0); pip.visible = true; pip.scale.setScalar(1); pip.position.set(R.x, 0, R.z); target.copy(pip.position); pip.rotation.y = 0.5; enSleep = null; I.en = enMax(); tierWake(); save();
     Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.1);
     const el = $('toast'); if (el) { el.innerHTML = '<svg viewBox="0 0 48 48" aria-hidden="true">' + SUN_SVG + '</svg><b>God morgon!</b>'; el.hidden = false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); clearTimeout(enNapT); enNapT = setTimeout(() => { el.hidden = true; }, 3200); }
   }
+}
+/* Pip on hands and knees. k 0 is standing, 1 is the full crawl; c is the crawl cycle. The rig has no knees or elbows, so
+   the body tips forward from the hips, the legs are drawn shorter so they end at the knees, nearly straight down, the arms
+   hang straight down to the hands, and the head tips up to look ahead. Runs after the engine's walk pose, so it wins for this frame. */
+const CRAWL = { tip: 1.3, hip: 0.4, fold: 0.62 }; /* fold: the legs are drawn shorter, so they read as thighs down to the knees */
+function enCrawlPose(k, c) {
+  const A = CRAWL.tip * k, hip = 0.64 + (CRAWL.hip - 0.64) * k, sw = reduced ? 0 : k;
+  pb.rotation.x = A;
+  /* keep the hip at the right height, a little behind the feet' old spot: pb pivots at the feet, so move it */
+  pb.position.y = (hip - 0.64 * Math.cos(A)) * 0.8 + (sw ? Math.abs(Math.sin(c)) * 0.015 : 0); pb.position.z = -0.64 * Math.sin(A) * 0.8 + 0.12 * k;
+  pb.rotation.z = sw * Math.sin(c) * 0.04;
+  const lg = 1 + (CRAWL.fold - 1) * k, th = Math.acos(Math.min(1, hip / (0.64 * lg))); /* how far back the knees sit to touch the ground */
+  limbs.forEach((l) => {
+    if (!l.arm) l.g.scale.y = lg;
+    if (!k) { l.g.rotation.x = 0; return; }
+    const step = Math.sin(c) * l.s * sw;
+    l.g.rotation.x = l.arm ? -A - 0.08 * k + step * 0.32 : (th - A) * k + step * 0.22;
+  });
+  const h = pb.userData.head; if (h) h.rotation.x = -A * 0.78;
+}
+function enCrawl(S, u, goIn) {
+  u = Math.max(0, Math.min(1, u)); const R = TENT_RING, hut = S.hut;
+  /* in: turn and kneel (first 20%), crawl to the door and through (the rest). out: the same backwards in time, but facing out */
+  const down = hut ? 0 : goIn ? Math.min(1, u / 0.2) : Math.min(1, (1 - u) / 0.2), dd = down * down * (3 - 2 * down);
+  const mv = hut ? u : goIn ? Math.max(0, (u - 0.2) / 0.8) : Math.min(1, u / 0.8), m = goIn ? mv : 1 - mv; /* m: 0 on the mat, 1 inside */
+  const x = R.x + (S.dx - R.x) * m, z = R.z + (S.dz - R.z) * m;
+  pip.position.set(x, 0, z); target.copy(pip.position); pip.scale.setScalar(1);
+  pip.rotation.y = goIn ? Math.atan2(S.dx - R.x, S.dz - R.z) : Math.atan2(R.x - S.dx, R.z - S.dz);
+  /* hidden once well inside the door */
+  pip.visible = m < 0.82;
+  if (hut) { enCrawlPose(0, 0); const w = S.t * 11; pb.position.y = reduced ? 0 : Math.abs(Math.sin(w)) * 0.07; limbs.forEach((l) => { l.g.rotation.x = reduced ? 0 : Math.sin(w) * (l.arm ? 0.45 : 0.6) * l.s; }); return; }
+  const go = mv > 0 && mv < 1; S.c = go ? (S.c || 0) + (S.t - (S.lt || S.t)) * 9 : S.c || 0; S.lt = S.t; enCrawlPose(dd, S.c);
+  if (go && Math.floor(S.c / Math.PI) !== S.cs) { S.cs = Math.floor(S.c / Math.PI); Snd.play('tock', { gain: 0.07, f: 260 + (S.cs % 2) * 40 }); }
 }
 function enSleepStart() {
   /* at night (or late afternoon), sleep to the next morning; in the daytime, a short nap */
   const f = dayFrac(), day = Math.floor(state.clock / DAY);
   const to = f > 0.5 ? (day + 1) * DAY + DAY * 0.03 : f < 0.03 ? day * DAY + DAY * 0.03 : state.clock + DAY * 0.12;
-  enSleep = { t: 0, from: state.clock, to, en0: state.isle.en, dx: TENT.x + Math.sin(0.5) * 0.5, dz: TENT.z + Math.cos(0.5) * 0.5, z: null };
+  /* where Pip ends up inside: just behind the tent's door, or the hut's door (left of centre) */
+  const hut = bldLv('tent') >= 3, ox = hut ? -0.42 : 0, oz = hut ? 0.45 : 0.1, a = 0.5;
+  enSleep = { t: 0, from: state.clock, to, en0: state.isle.en, hut, inT: hut ? 0.7 : 1.7, dx: TENT.x + Math.cos(a) * ox + Math.sin(a) * oz, dz: TENT.z - Math.sin(a) * ox + Math.cos(a) * oz, z: null };
   work = null; Snd.play('pop', { gain: 0.35, f: 380 });
 }
