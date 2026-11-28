@@ -95,10 +95,14 @@ const FIND_NODE = { hive: { t: 'honey', n: 1, tier: 1 }, copper: { t: 'copper', 
    each can be cooled into a crossing (a, b: the ends of the slab; ring: where Pip stands to cool it; n: crystals it takes) */
 const EMBER = { cone: [32.2, 23.8, 2.4], lava: [[[30.6, 25.6], [27.2, 27.2], [24, 27.6], [21.4, 29.8]], [[32.0, 26.2], [30.2, 29.5], [29.6, 34.6]]],
   cross: [{ id: 'a', a: [25.6, 26.3], b: [25.6, 28.5], ring: [25.6, 25.75], n: 6 }, { id: 'b', a: [28.9, 31.4], b: [31.1, 31.7], ring: [28.3, 31.35], n: 10 }], cool: {} };
+/* the great lava river down the east edge of the ash fields (glass.js): the points it runs through, half its width, and
+   the row of stepping stones it sets into (a to b) once Pip has thrown the frost flowers in (cool) */
+EMBER.river = { pts: [[45.3, 34.5], [45.3, 36.8], [45.15, 38.8], [45.1, 41], [45.2, 43], [45.15, 44.8], [45.2, 46.9]], w: 0.85, a: [44.15, 41], b: [46.25, 41], cool: 0 };
 /* how far a point is from the nearest lava (below 0: in it), not counting where a cooled slab lies */
 function emberLava(x, z) {
   for (const c of EMBER.cross) if (EMBER.cool[c.id] && segD(x, z, c.a[0], c.a[1], c.b[0], c.b[1]) < 0.8) return 1;
   let d = 9; for (const L of EMBER.lava) for (let k = 0; k + 1 < L.length; k++) d = Math.min(d, segD(x, z, L[k][0], L[k][1], L[k + 1][0], L[k + 1][1]) - 0.75);
+  const R = EMBER.river; if (x > 43 && z > 33 && !(R.cool && segD(x, z, R.a[0], R.a[1], R.b[0], R.b[1]) < 0.7)) for (let k = 0; k + 1 < R.pts.length; k++) d = Math.min(d, segD(x, z, R.pts[k][0], R.pts[k][1], R.pts[k + 1][0], R.pts[k + 1][1]) - R.w - 0.13);
   return d;
 }
 const TIDE = { low: true, u: 0 }; /* the coral beach's tide (coral.js): low = the stepping stones are bare */
@@ -160,7 +164,7 @@ function coastMake() {
     (a.finds || []).forEach((f) => P(f[1], f[2], 1.9)); if (a.ruin) P(a.ruin[0], a.ruin[1], 2.8); if (a.lift) P(a.lift[0], a.lift[1], 3.2); if (a.stairs) P(a.stairs[0], a.stairs[1], 2.6); if (a.chest) { const c = chestAt(a); K.push([c[0], c[1], 1.8]); }
     (a.mesas || []).forEach((m) => { if (!m.par) P(m.dx, m.dz, Math.hypot(m.w, m.d) / 2 + 0.8); }); if (a.ice) P(a.ice.dx, a.ice.dz, Math.hypot(a.ice.nx, a.ice.nz) / 2 + 1.2); });
   SHORTS.forEach((S) => { const b = S.bridge; K.push([b.x0, b.z0, 3], [b.x1, b.z1, 3]); });
-  K.push([FERRY.x - 1.5, FERRY.z, 4], [TENT.x, TENT.z, 2.2], [RAFT.e[0], RAFT.e[1], 3.4], [RAFT.w[0], RAFT.w[1], 3.4], [EMBER.cone[0], EMBER.cone[1], EMBER.cone[2] + 2]); EMBER.lava.forEach((L) => L.forEach((q) => K.push([q[0], q[1], 2.2]))); EMBER.cross.forEach((c) => K.push([c.ring[0], c.ring[1], 2]));
+  K.push([FERRY.x - 1.5, FERRY.z, 4], [TENT.x, TENT.z, 2.2], [RAFT.e[0], RAFT.e[1], 3.4], [RAFT.w[0], RAFT.w[1], 3.4], [EMBER.cone[0], EMBER.cone[1], EMBER.cone[2] + 2]); EMBER.lava.forEach((L) => L.forEach((q) => K.push([q[0], q[1], 2.2]))); EMBER.cross.forEach((c) => K.push([c.ring[0], c.ring[1], 2])); EMBER.river.pts.forEach((q) => K.push([q[0], q[1], 2]));
   Object.values(DOCKS).forEach((D) => K.push([D.x, D.z, 2.6]));
   for (let k = 0; k <= 4; k++) K.push([GARDEN.x0 + (GARDEN.x1 - GARDEN.x0) * k / 4, GARDEN.z0, 2.2], [GARDEN.x0, GARDEN.z0 + (GARDEN.z1 - GARDEN.z0) * k / 4, 2.2]);
   Object.values(LOOP_SITES).forEach((m) => K.push([m.x, m.z, 2.6], [m.x + m.sx, m.z + m.sz, 1.2], [m.x + m.mx, m.z + m.mz, 1.4])); Object.values(HAMLET_AT).forEach((H) => { H.h.forEach((h) => K.push([h[0], h[1], 1.7])); K.push([H.crate[0], H.crate[1], 2]); });

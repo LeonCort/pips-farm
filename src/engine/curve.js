@@ -10,7 +10,10 @@ const CURVE_DEF = { strength: 0.0135, side: 0, pitch: 37, dist: 12, ahead: 1, sh
 const CURVE = Object.assign({}, CURVE_DEF, { fogNear: 50, fogFar: 88, detail: 49, wxFog: 1, ultra: false, shopW: 0, u: { origin: { value: new T.Vector3() }, strength: { value: 0 }, side: { value: CURVE_DEF.side }, horD: { value: 1e6 } } });
 /* dev mode (settings menu): shows the tuning panel and the fps counter; tweaks are saved on this device only and apply only while dev mode is on */
 let devOn = false; try { devOn = localStorage.getItem('pips-dev') === '1'; } catch (e) {}
-function curveLoadDev() { Object.assign(CURVE, CURVE_DEF); if (!devOn) return; try { const s = JSON.parse(localStorage.getItem('pips-curve2') || 'null'); if (s) Object.keys(CURVE_DEF).forEach((k) => { if (typeof s[k] === typeof CURVE_DEF[k]) CURVE[k] = s[k]; }); } catch (e) {} }
+/* camera mode (settings menu, Leon 2026-11-28): 0 = the game's own camera, 1 = Leon's tuned view; saved on this device */
+const CURVE_ALT = { strength: 0.012, side: 0.35, pitch: 36, dist: 13.5, ahead: 1.1, shopPitch: 60, shopDist: 14, shopAhead: 0.8, awnFade: 0.55 };
+let camMode = 0; try { camMode = localStorage.getItem('pips-cam') === '1' ? 1 : 0; } catch (e) {}
+function curveLoadDev() { Object.assign(CURVE, CURVE_DEF, camMode ? CURVE_ALT : {}); if (!devOn) return; try { const s = JSON.parse(localStorage.getItem('pips-curve2') || 'null'); if (s) Object.keys(CURVE_DEF).forEach((k) => { if (typeof s[k] === typeof CURVE_DEF[k]) CURVE[k] = s[k]; }); } catch (e) {} }
 curveLoadDev();
 const CURVE_GLSL = '\nuniform vec3 uCurveOrigin; uniform float uCurveStrength; uniform float uCurveSide;\nfloat worldCurveDrop(vec3 w) { float dz = w.z - uCurveOrigin.z; float dx = w.x - uCurveOrigin.x; return (dz * dz + dx * dx * uCurveSide) * uCurveStrength; }\n/* world up in view space without viewMatrix (three only sets that for some materials): V = MV * inverse(M) */\nvec3 curveUpView() { vec3 a0 = modelMatrix[0].xyz, a1 = modelMatrix[1].xyz, a2 = modelMatrix[2].xyz; vec3 c12 = cross(a1, a2); vec3 x = vec3(c12.y, cross(a2, a0).y, cross(a0, a1).y) / dot(a0, c12); return mat3(modelViewMatrix) * x; }\n';
 {

@@ -69,6 +69,11 @@ function fpsTick() {
   fpsMin = 1e9;
 }
 { const row = document.querySelector('#curvePan .row'); if (row) { const l = document.createElement('label'); l.style.cssText = 'margin:0;flex:1'; l.innerHTML = '<input type="checkbox" data-fps> FPS'; row.insertBefore(l, row.children[1]); const c = l.querySelector('input'); c.checked = fpsShow; c.addEventListener('change', () => { fpsShow = c.checked; fpsEl.hidden = !(fpsShow && devOn); try { localStorage.setItem('pips-fpsmeter', fpsShow ? '1' : '0'); } catch (e) {} }); } }
+/* the camera switch in the settings menu: the game's own view, or the second view (CURVE_ALT) */
+function setCam(m) { camMode = m ? 1 : 0; try { localStorage.setItem('pips-cam', String(camMode)); } catch (e) {} curveLoadDev();
+  const b = document.getElementById('camBtn'); if (b) { b.dataset.m = camMode; b.setAttribute('aria-pressed', String(!!camMode)); } }
+{ const b = document.getElementById('camBtn'); if (b) { b.dataset.m = camMode; b.setAttribute('aria-pressed', String(!!camMode)); b.addEventListener('click', () => { setCam(!camMode); Snd.play('pop', { gain: 0.4, f: camMode ? 760 : 520 }); }); }
+  const st = document.createElement('style'); st.textContent = '.camBtn{position:relative}.camBtn b{position:absolute;left:0;right:0;bottom:3px;font:800 13px/1 system-ui,sans-serif;color:var(--ink);text-align:center}.camBtn[data-m="0"] b::before{content:"1"}.camBtn[data-m="1"] b::before{content:"2"}'; document.head.appendChild(st); }
 /* the dev switch in the settings menu */
 function setDev(on) { devOn = on; try { localStorage.setItem('pips-dev', on ? '1' : '0'); } catch (e) {} curveLoadDev();
   const b = document.getElementById('devBtn'); if (b) { b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); }

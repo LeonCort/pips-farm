@@ -22,6 +22,7 @@ function springSpot() {
     if (walkSdf(x, z) > -1.1) continue; const A = areaAt(x, z); if (!A || !HAS[A.id] || A.cave) continue;
     if (nodes.some((n) => Math.hypot(n.x - x, n.z - z) < 1.3) || signs.some((s) => Math.hypot(s.x - x, s.z - z) < 1.5) || chests.some((c) => Math.hypot(c.x - x, c.z - z) < 1.5)) continue;
     if (Math.hypot(x - STORE.x, z - STORE.z) < 1.6 || Math.hypot(x - TENT_RING.x, z - TENT_RING.z) < 1.6 || campNear(x, z, 1.6) || roadKind(x, z)) continue;
+    if (A.secret || ISLE_KEEPS.some((f) => f(A, x, z))) continue; /* not inside a hidden world's laid pieces */
     if (ruins.some((R) => Math.hypot(R.x - x, R.z - z) < 2.2) || (stairsDown && Math.hypot(stairsDown.x - x, stairsDown.z - z) < 2)) continue;
     return [x, z];
   }
