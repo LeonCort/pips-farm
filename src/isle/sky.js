@@ -285,7 +285,7 @@ function skgAfter(dt) {
   /* the second kite: free now, it sails a long figure of eight over the stone island */
   if (!SKG.kite2) { SKG.kite2 = skgKiteMake('#f6c63c', '#5cc4f4'); SKG.kite2.scale.setScalar(1.25); sc.add(SKG.kite2); }
   const a = time * 0.16, K = SKG.kite2, x = -32 + Math.sin(a) * 9.5, z = -17 + Math.sin(a * 2) * 11, vx = Math.cos(a) * 9.5, vz = Math.cos(a * 2) * 22;
-  K.position.set(x, 3.4 + Math.sin(a * 3) * 0.5, z); K.rotation.y = Math.atan2(vx, vz); K.userData.line.visible = false; skgKitePose(K, 1.4, 0.2, 2);
+  K.position.set(x, 2.5 + Math.sin(a * 3) * 0.4, z); K.rotation.y = Math.atan2(vx, vz); K.userData.line.visible = false; skgKitePose(K, 1.4, 0.2, 2);
 }
 function skgStep(dt) {
   const pp = pip.position, m = SKG.m || MS.list.find((q) => q.id === 's4a');
