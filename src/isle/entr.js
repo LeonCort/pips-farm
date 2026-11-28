@@ -1,15 +1,19 @@
 /* ---------- the ways down to the mine (Leon, 2026-11-28: "they look a bit flat, the circle entrance is sometimes obscured
    by grass"; then: "if we are just planting something above, or applying a texture on top of the ground it won't work") ----------
-   A TEST of two real 3D shapes, side by side in h3, both leading to the same mine (ENTR in rules.js says where):
+   Two real 3D shapes for the mine's two ends (Leon, after trying both side by side: "I like both, for the first entrance
+   let's have the one that goes down on the settlement island", the other one for a mine mouth somewhere else):
      the stair cut   steps cut into the ground itself, between two stone walls that grow taller on the way down, to a dark
                      mouth in the end wall, below the grass line. Only a knee-high hump stands up, so nothing behind it is
-                     hidden from the camera.
+                     hidden from the camera. It stands in h3 on the settlement island (ENTR.pit in rules.js).
      the mound       a boulder taller than Pip with the mouth built into its south face, a timber frame, a lantern and rails.
+                     It is the mine's far end on the stone island, where the lift comes up (cave.js liftTopBuild). It is
+                     tall and the camera looks north, so it hides a strip behind it: it stands with its back to things
+                     that are tall themselves, and nothing to pick up is set out there.
    Neither has a mat to stand on: Pip walks in, and the screen fades when the mouth is reached (the torch is still needed).
    How the cut is real: the ground is one sheet of points. enCut pulls the points round the cut onto its outline and drops
    the ones inside, so the sheet has a true hole with upright sides; the stone lining stands in it. The sea lies under all
    land, so the sea's shader leaves a hole there (SEA.hole), and the paving round both (ISLAND.roads) keeps the tall grass off. */
-const EN = { g: null, on: 0, hint: 0, sp: [], dogIn: 0 };
+const EN = { g: null, on: 0, hint: 0, sp: [], dogIn: 0, mounds: [] };
 const enGlow = new T.MeshBasicMaterial({ color: '#ffd77a' }), enDark = new T.MeshBasicMaterial({ color: '#120e17', side: T.BackSide });
 const enWarmTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 4, 64, 64, 62);
   g.addColorStop(0, 'rgba(255,196,110,0.95)'); g.addColorStop(0.45, 'rgba(255,150,60,0.45)'); g.addColorStop(1, 'rgba(255,140,50,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new T.CanvasTexture(c); })();
@@ -106,8 +110,10 @@ function enPit() {
   w = enWarm(1.7, 1.5); w.rotation.x = -Math.PI / 2; w.position.set(x, -D + 0.02, z0 + 0.45); w.material.opacity = 0.7; g.add(w);
   enBubble(x, 1.75, z0 - 0.35);
 }
-function enMound() {
-  const M = ENTR.mound, s = M.s, L = [], g = EN.g, at = (q, x, y, z) => { q.scale(s, s, s); q.translate(M.x + x * s, y * s, M.z + z * s); return q; }; let q;
+/* a boulder mouth at (x, z), s times the drawn size; go() runs when Pip walks into its mouth */
+function enMound(x, z, s, go) {
+  const M = { x, z, s, go }, g = new T.Group(), L = [], at = (q, x, y, z) => { q.scale(s, s, s); q.translate(M.x + x * s, y * s, M.z + z * s); return q; }; let q;
+  sc.add(g); M.g = g; EN.mounds.push(M);
   const rock = (q, seed) => L.push(fac(q, (cx, cy, cz, i) => { const up = cy > 1.9 * s && hash(i, seed) > 0.35; return up ? groundCol(cx, 0, cz, i).multiplyScalar(0.6 + 0.25 * hash(i, 7)) : shadeY(['#a9a090', '#9a9184', '#b6ad9d'][i % 3], cy, 0, 2.6 * s, i + seed, 0.5); }, seed));
   /* the boulder: two shoulders, a back and a cap, set round the tunnel so it stays free */
   q = ico(1, 1, 2910, 0.1); q.scale(0.76, 1.35, 1.25); rock(at(q, -1.4, 0.8, -0.05), 2910);
@@ -133,36 +139,37 @@ function enMound() {
   /* crystals at its foot say what is inside */
   [[-2.0, 1.05, 0.62, 0.4], [2.05, 0.75, 0.5, 2.1]].forEach(([x, z, sc2, ry]) => { const c = new T.Mesh(CRYSTAL_GEO, crystalMat); c.scale.setScalar(sc2 * s); c.rotation.y = ry; c.position.set(M.x + x * s, 0, M.z + z * s); c.castShadow = true; g.add(c); });
   enBubble(M.x, 3.6 * s, M.z + 0.3 * s);
+  return M;
 }
 /* cave.js calls this where the stairs used to be built */
 function entrBuild(A, fresh) {
   if (EN.g) return; EN.g = new T.Group(); sc.add(EN.g);
-  enPit(); enMound();
+  enPit();
   const P = ENTR.pit; CAVE_OUT.x = P.x; CAVE_OUT.z = P.z1 + 0.9;
   /* what the rest of the game knows as "the stairs": the top of the stair cut (the map's badge, the dog's lead) */
   stairsDown = { x: P.x, z: P.z1 + 0.5, R: 0, w: 0, pop: 0, g: EN.g, fg: { setDrawRange() {} }, ok: () => false, to: () => CAVE_IN, cave: true };
   if (typeof GR !== 'undefined' && GR.tex) GR.t = Math.min(GR.t, 0.5);
 }
-function enGo(ox, oz) {
+function enGo(to) {
   if (!gearHas('torch')) { if (EN.hint <= 0) { EN.hint = 2.6; gearHint('torch'); } return; } /* down needs the torch (gear.js): its picture shows instead */
-  CAVE_OUT.x = ox; CAVE_OUT.z = oz; caveGo({ to: () => CAVE_IN, cave: true });
+  caveGo({ to: () => to, cave: true });
 }
 function entrStep(dt) {
-  if (!EN.g) return; const pp = pip.position, P = ENTR.pit, M = ENTR.mound, s = M.s; EN.hint = Math.max(0, EN.hint - dt);
+  if (!EN.g && !EN.mounds.length) return; const pp = pip.position, P = ENTR.pit; EN.hint = Math.max(0, EN.hint - dt);
   EN.sp.forEach((b) => { b.sp.visible = !inCave; b.sp.position.y = b.y + (reduced ? 0 : Math.sin(time * 2 + b.ph) * 0.05); });
   if (inCave) { EN.on = 0; return; }
   const moved = caveT && caveT.moved;
   /* the stair cut: a hole to walk round, open only at its south end; inside, Pip keeps between the walls and sinks step by step */
-  if (!moved) { const dx = pp.x - P.x, inZ = pp.z > P.z0 - 0.2 && pp.z < P.z1 + 0.05;
+  if (EN.g && !moved) { const dx = pp.x - P.x, inZ = pp.z > P.z0 - 0.2 && pp.z < P.z1 + 0.05;
     if (EN.on && (Math.abs(dx) > P.hw + 0.3 || !inZ)) { EN.on = 0; if (pp.y < 0) pp.y = 0; }
     if (!EN.on) { if (Math.abs(dx) < P.hw - 0.22 && pp.z > P.z1 - 0.5 && pp.z < P.z1 + 0.3) { if (pp.z < P.z1) EN.on = 1; } else mesaOut({ x: P.x, z: (P.z0 + P.z1) / 2 - 0.85, w: P.hw * 2 + 0.3, d: P.z1 - P.z0 + 1.7 }, pp, 0.22); }
     if (EN.on) { pp.x = clamp(pp.x, P.x - P.hw + 0.3, P.x + P.hw - 0.3); pp.z = Math.max(pp.z, P.z0 + 0.42); pp.y = enStepY(pp.z);
-      if (pp.z < P.z0 + 0.7 && !caveT) enGo(P.x, P.z1 + 0.9); } }
-  /* the mound: solid, but for the lane into its mouth */
-  if (!caveT) { const mx = (pp.x - M.x) / s, mz = (pp.z - M.z) / s;
-    if (Math.abs(mx) < 0.55 && mz > 0.3 && mz < 1.6) { if (mz < 1.25) pp.x = clamp(pp.x, M.x - 0.3 * s, M.x + 0.3 * s); if (mz < 0.8) { pp.z = Math.max(pp.z, M.z + 0.62 * s); enGo(M.x, M.z + 2.3 * s); } }
-    else mesaOut({ x: M.x, z: M.z - 0.3 * s, w: 4.3 * s, d: 3.0 * s }, pp, 0.2); }
+      if (pp.z < P.z0 + 0.7 && !caveT) enGo(CAVE_IN); } }
+  /* a mound: solid, but for the lane into its mouth */
+  if (!caveT) EN.mounds.forEach((M) => { const s = M.s, mx = (pp.x - M.x) / s, mz = (pp.z - M.z) / s; if (Math.abs(mx) > 4 || Math.abs(mz) > 4) return;
+    if (Math.abs(mx) < 0.55 && mz > 0.3 && mz < 1.6) { if (mz < 1.25) pp.x = clamp(pp.x, M.x - 0.3 * s, M.x + 0.3 * s); if (mz < 0.8) { pp.z = Math.max(pp.z, M.z + 0.62 * s); if (!caveT) M.go(); } }
+    else mesaOut({ x: M.x, z: M.z - 0.3 * s, w: 4.3 * s, d: 3.0 * s }, pp, 0.2); });
   /* the dog goes down the steps too */
-  if (typeof dog !== 'undefined' && dog.g) { const d = dog.g.position, inP = Math.abs(d.x - P.x) < P.hw && d.z > P.z0 && d.z < P.z1; if (inP) { d.y = enStepY(d.z); EN.dogIn = 1; } else if (EN.dogIn) { EN.dogIn = 0; d.y = 0; } }
+  if (EN.g && typeof dog !== 'undefined' && dog.g) { const d = dog.g.position, inP = Math.abs(d.x - P.x) < P.hw && d.z > P.z0 && d.z < P.z1; if (inP) { d.y = enStepY(d.z); EN.dogIn = 1; } else if (EN.dogIn) { EN.dogIn = 0; d.y = 0; } }
 }
 ISLE_STEPS.push(entrStep);

@@ -34,7 +34,7 @@ const AREAS = [
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14, honey: 3 }, tall: [[-5.4, 1.5, 5.4, 3.9]] },
   { id: 'm4', chest: { coin: 15, honey: 2 }, chestAt: [3.2, 2.6], i: -4, j: -8, biome: 'meadow', cost: { log: 30, berry: 20, stone: 14, honey: 4 }, finds: [['hive', 3.4, -3.6], ['hive', -3.8, 3.2]], tall: [[3.4, -5.4, 5.4, -1.6]], ponds: [[-1.6, 0.6, 2.0]] },
   /* the stone island has no bridge: the only way there is the mine's tunnel under the sea, and the lift at its end (cave.js) */
-  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.4, 0], mesas: [{ id: 's0a', dx: -2.8, dz: -2.6, w: 4.6, d: 4.0, h: 1.3, finds: [['iron', -0.8, -0.3], ['iron', 0.9, 0.1]] }] },
+  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.1, -0.3], mesas: [{ id: 's0a', dx: -2.8, dz: -2.6, w: 4.6, d: 4.0, h: 1.3, finds: [['iron', -0.8, -0.3], ['iron', 0.9, 0.1]] }] },
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3], mesas: [{ id: 's1a', dx: -2.7, dz: 2.6, w: 5.0, d: 4.6, h: 1.3, lx: 1.4, finds: [['iron', 1.2, 0.5]] }, { id: 's1b', par: 's1a', dx: -3.7, dz: 1.9, w: 2.8, d: 2.9, h: 1.2, finds: [['iron', 0, -0.1]] }] },
   { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 }, finds: [['iron', -3.2, -2.2]] },
   /* the islands grew (Leon, 2026-11-27: every island at least five squares): the stone island runs on west */
@@ -268,10 +268,11 @@ const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 1.95, walk: 1.5, mask
    the ground between x - hw and x + hw, from the rim at z1 (south) down to the mouth in the wall at z0 (north), D deep.
    mound: a boulder with the mouth built into its south face. Here, because the ground's paving is painted, and the coast
    and what grows are laid out, before that file is read. */
-const ENTR = { pit: { x: 11.2, z0: 13.3, z1: 16.1, hw: 0.8, D: 1.4 }, mound: { x: 7.9, z: 14.9, s: 0.9 } };
-ISLAND.roads.push([ENTR.pit.x, ENTR.pit.z0 + 1.0, ENTR.pit.x, ENTR.pit.z1 + 0.45, 1.4, 2], [ENTR.mound.x, ENTR.mound.z - 0.4, ENTR.mound.x, ENTR.mound.z + 2.2, 0.72, 1]);
-COAST.keep.push([ENTR.mound.x, ENTR.mound.z, 3.2], [ENTR.pit.x, ENTR.pit.z1, 2.4]);
-ISLE_KEEPS.push((a, x, z) => a.id === 'h3' && (Math.hypot(x - ENTR.mound.x, z - ENTR.mound.z - 0.4) < 3.0 || (Math.abs(x - ENTR.pit.x) < 2.3 && z > ENTR.pit.z0 - 2.4 && z < ENTR.pit.z1 + 1.8)));
+const ENTR = { pit: { x: 11.2, z0: 13.3, z1: 16.1, hw: 0.8, D: 1.4 }, mound: { s: 0.8 } }; /* the mound stands on the stone island's lift spot (s0.lift) */
+ISLAND.roads.push([ENTR.pit.x, ENTR.pit.z0 + 1.0, ENTR.pit.x, ENTR.pit.z1 + 0.45, 1.4, 2]);
+COAST.keep.push([ENTR.pit.x, ENTR.pit.z1, 2.4]);
+{ const A = AREA_BY.s0, x = A.cx + A.lift[0], z = A.cz + A.lift[1], s = ENTR.mound.s; ISLAND.roads.push([x, z + 0.3 * s, x, z + 2.3 * s, 0.72, 1]); }
+ISLE_KEEPS.push((a, x, z) => a.id === 'h3' && Math.abs(x - ENTR.pit.x) < 2.3 && z > ENTR.pit.z0 - 2.4 && z < ENTR.pit.z1 + 1.8);
 /* the settlement fills the whole first area (Leon, 2026-11-25): a cobbled plaza round the campfire in the middle, dirt roads to
    the bridge and to the two neighbour areas, and a home in each corner */
 const FIRE = { x: 0, z: 0 }, TENT = { x: -3.3, z: -2.9 };
@@ -310,8 +311,8 @@ const TRAILS = [
   [[-11.5, -17.6], [-11.6, -21], [-10.9, -24], [-10.7, -26.6], [-8.2, -28.2]],
   [[-0.5, -27.6], [0.2, -31], [0.4, -33.6]],
   /* stone: from the lift south to the lighthouse, north to the ruin, west round the mesas to the far squares */
-  [[-25.9, -16], [-26, -11.8], [-27.4, -7.6], [-29.4, -4.6]],
-  [[-25.9, -16.4], [-26, -21], [-25.4, -25.6], [-25.6, -30.6]],
+  [[-24.9, -14.9], [-26.2, -13.6], [-26, -11.8], [-27.4, -7.6], [-29.4, -4.6]], /* from the mine mouth */
+  [[-26.2, -13.6], [-27.4, -15.2], [-27.4, -17.8], [-26.2, -21], [-25.4, -25.6], [-25.6, -30.6]], /* round the boulder's west side */
   [[-26, -12], [-30.5, -11.6], [-33.6, -13.4], [-35, -17.4], [-38.6, -18.2], [-40.8, -21.4], [-41.6, -24.2], [-42.8, -27.5]], /* ends at the foot of the High Table's ladder */
   [[-29.4, -4.6], [-29.2, -1], [-31, 0.6], [-33.6, 0.5]],
   /* winter: round the frozen lake to the tower, along the south shore to the far squares, and a link between the two */

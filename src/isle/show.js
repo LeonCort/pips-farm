@@ -62,7 +62,8 @@ function showBuild() {
   SH.here.push({ name: 'Camp', x: 0.8, z: 1.4, tris: 0, grp: 'In their real place' }, { name: 'Smithy street', x: 13.5, z: 1.4, tris: 0, grp: 'In their real place' }, { name: 'Village green', x: 7.5, z: 10, tris: 0, grp: 'In their real place' },
     { name: 'Bakery street', x: 0.6, z: 16.2, tris: 0, grp: 'In their real place' }, { name: 'Friends street', x: 13.5, z: 8.6, tris: 0, grp: 'In their real place' }, { name: 'Farm boat dock', x: FERRY.x + 1, z: FERRY.z + 0.8, tris: 0, grp: 'In their real place' },
     { name: 'Bridge to the meadow', x: 0.9, z: -5.2, tris: 0, grp: 'In their real place' }, { name: 'Stone island', x: -27, z: -14, tris: 0, grp: 'In their real place' }, { name: 'Winter island', x: 27, z: -18, tris: 0, grp: 'In their real place' });
-  SH.here.unshift({ name: 'Mine: two ways down (test)', x: ENTR.pit.x - 1.6, z: ENTR.pit.z1 + 1.3, tris: showTris(EN.g), grp: 'In their real place' });
+  SH.here.unshift({ name: 'Mine: stair cut (home)', x: ENTR.pit.x, z: ENTR.pit.z1 + 1.6, tris: showTris(EN.g), grp: 'In their real place' });
+  if (EN.mounds[0]) SH.here.unshift({ name: 'Mine: boulder mouth (stone island)', x: EN.mounds[0].x, z: EN.mounds[0].z + 3.2, tris: showTris(EN.mounds[0].g), grp: 'In their real place' });
   const at = window.PIPS_SHOW_AT; /* a test page may start Pip somewhere else: [x, z] */
   showPanel(); showGo(at ? { x: at[0], z: at[1] } : { x: -6, z: -9.2 });
 }

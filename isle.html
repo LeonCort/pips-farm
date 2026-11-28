@@ -815,7 +815,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261128174824">
+<meta name="app-ver" content="20261128175620">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1181,7 +1181,7 @@ const AREAS = [
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14, honey: 3 }, tall: [[-5.4, 1.5, 5.4, 3.9]] },
   { id: 'm4', chest: { coin: 15, honey: 2 }, chestAt: [3.2, 2.6], i: -4, j: -8, biome: 'meadow', cost: { log: 30, berry: 20, stone: 14, honey: 4 }, finds: [['hive', 3.4, -3.6], ['hive', -3.8, 3.2]], tall: [[3.4, -5.4, 5.4, -1.6]], ponds: [[-1.6, 0.6, 2.0]] },
   /* the stone island has no bridge: the only way there is the mine's tunnel under the sea, and the lift at its end (cave.js) */
-  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.4, 0], mesas: [{ id: 's0a', dx: -2.8, dz: -2.6, w: 4.6, d: 4.0, h: 1.3, finds: [['iron', -0.8, -0.3], ['iron', 0.9, 0.1]] }] },
+  { id: 's0', i: -8, j: -5, biome: 'stone', cost: { log: 28, berry: 14, stone: 16 }, lift: [3.1, -0.3], mesas: [{ id: 's0a', dx: -2.8, dz: -2.6, w: 4.6, d: 4.0, h: 1.3, finds: [['iron', -0.8, -0.3], ['iron', 0.9, 0.1]] }] },
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3], mesas: [{ id: 's1a', dx: -2.7, dz: 2.6, w: 5.0, d: 4.6, h: 1.3, lx: 1.4, finds: [['iron', 1.2, 0.5]] }, { id: 's1b', par: 's1a', dx: -3.7, dz: 1.9, w: 2.8, d: 2.9, h: 1.2, finds: [['iron', 0, -0.1]] }] },
   { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 }, finds: [['iron', -3.2, -2.2]] },
   /* the islands grew (Leon, 2026-11-27: every island at least five squares): the stone island runs on west */
@@ -1415,10 +1415,11 @@ const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 1.95, walk: 1.5, mask
    the ground between x - hw and x + hw, from the rim at z1 (south) down to the mouth in the wall at z0 (north), D deep.
    mound: a boulder with the mouth built into its south face. Here, because the ground's paving is painted, and the coast
    and what grows are laid out, before that file is read. */
-const ENTR = { pit: { x: 11.2, z0: 13.3, z1: 16.1, hw: 0.8, D: 1.4 }, mound: { x: 7.9, z: 14.9, s: 0.9 } };
-ISLAND.roads.push([ENTR.pit.x, ENTR.pit.z0 + 1.0, ENTR.pit.x, ENTR.pit.z1 + 0.45, 1.4, 2], [ENTR.mound.x, ENTR.mound.z - 0.4, ENTR.mound.x, ENTR.mound.z + 2.2, 0.72, 1]);
-COAST.keep.push([ENTR.mound.x, ENTR.mound.z, 3.2], [ENTR.pit.x, ENTR.pit.z1, 2.4]);
-ISLE_KEEPS.push((a, x, z) => a.id === 'h3' && (Math.hypot(x - ENTR.mound.x, z - ENTR.mound.z - 0.4) < 3.0 || (Math.abs(x - ENTR.pit.x) < 2.3 && z > ENTR.pit.z0 - 2.4 && z < ENTR.pit.z1 + 1.8)));
+const ENTR = { pit: { x: 11.2, z0: 13.3, z1: 16.1, hw: 0.8, D: 1.4 }, mound: { s: 0.8 } }; /* the mound stands on the stone island's lift spot (s0.lift) */
+ISLAND.roads.push([ENTR.pit.x, ENTR.pit.z0 + 1.0, ENTR.pit.x, ENTR.pit.z1 + 0.45, 1.4, 2]);
+COAST.keep.push([ENTR.pit.x, ENTR.pit.z1, 2.4]);
+{ const A = AREA_BY.s0, x = A.cx + A.lift[0], z = A.cz + A.lift[1], s = ENTR.mound.s; ISLAND.roads.push([x, z + 0.3 * s, x, z + 2.3 * s, 0.72, 1]); }
+ISLE_KEEPS.push((a, x, z) => a.id === 'h3' && Math.abs(x - ENTR.pit.x) < 2.3 && z > ENTR.pit.z0 - 2.4 && z < ENTR.pit.z1 + 1.8);
 /* the settlement fills the whole first area (Leon, 2026-11-25): a cobbled plaza round the campfire in the middle, dirt roads to
    the bridge and to the two neighbour areas, and a home in each corner */
 const FIRE = { x: 0, z: 0 }, TENT = { x: -3.3, z: -2.9 };
@@ -1457,8 +1458,8 @@ const TRAILS = [
   [[-11.5, -17.6], [-11.6, -21], [-10.9, -24], [-10.7, -26.6], [-8.2, -28.2]],
   [[-0.5, -27.6], [0.2, -31], [0.4, -33.6]],
   /* stone: from the lift south to the lighthouse, north to the ruin, west round the mesas to the far squares */
-  [[-25.9, -16], [-26, -11.8], [-27.4, -7.6], [-29.4, -4.6]],
-  [[-25.9, -16.4], [-26, -21], [-25.4, -25.6], [-25.6, -30.6]],
+  [[-24.9, -14.9], [-26.2, -13.6], [-26, -11.8], [-27.4, -7.6], [-29.4, -4.6]], /* from the mine mouth */
+  [[-26.2, -13.6], [-27.4, -15.2], [-27.4, -17.8], [-26.2, -21], [-25.4, -25.6], [-25.6, -30.6]], /* round the boulder's west side */
   [[-26, -12], [-30.5, -11.6], [-33.6, -13.4], [-35, -17.4], [-38.6, -18.2], [-40.8, -21.4], [-41.6, -24.2], [-42.8, -27.5]], /* ends at the foot of the High Table's ladder */
   [[-29.4, -4.6], [-29.2, -1], [-31, 0.6], [-33.6, 0.5]],
   /* winter: round the frozen lake to the tower, along the south shore to the far squares, and a link between the two */
@@ -2573,7 +2574,7 @@ function areaClear(x, z) {
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
     if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || gardenKeep(a, x, z) || goldKeep(x, z) || ISLE_KEEPS.some((f) => f(a, x, z)) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z) || emberKeep(a, x, z)) return false;
-    if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
+    if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.7) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
   for (const S of SHORTS) { const b = S.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; }
@@ -4009,12 +4010,12 @@ function liftModel(x, z, seed) {
   const hole = new T.Mesh(new T.PlaneGeometry(1.1, 0.9), new T.MeshBasicMaterial({ color: '#1d1824' })); hole.rotation.x = -Math.PI / 2; hole.position.y = 0.04; g.add(hole);
   return g;
 }
-/* the lift's head on the stone island: the same frame, and a mat that takes Pip back down */
+/* the mine's far end on the stone island: the lift comes up inside a boulder with a mine mouth in its south face (entr.js).
+   Walking into the mouth takes Pip back down to the lift's foot. */
 function liftTopBuild(A, fresh) {
-  if (LIFT.top) return; const x = A.cx + A.lift[0], z = A.cz + A.lift[1];
-  LIFT.top = { x, z, g: liftModel(x, z - 0.35, 2700) }; LIFT.topOut = { x: x - 1.5, z: z + 0.9 };
-  const M = LIFT.topMat = stairMat('down', x, z + 0.95); M.ok = () => !inCave && !!HAS[A.id] && gearDark(); M.to = () => LIFT.lowOut; M.cave = true;
-  lookFoot(x, z - 0.35, 0.95, 0.8);
+  if (LIFT.top) return; const x = A.cx + A.lift[0], z = A.cz + A.lift[1], s = ENTR.mound.s;
+  LIFT.top = { x, z }; LIFT.topOut = { x, z: z + 2.3 * s };
+  enMound(x, z, s, () => { if (!inCave && HAS[A.id]) enGo(LIFT.lowOut); });
 }
 function liftOwn(A) {
   areaMark(A); state.isle.areas[A.id] = 1; xpGain(10); burst(LIFT.low.x, 1.6, LIFT.low.z, 14);
@@ -4349,8 +4350,7 @@ function caveStep(dt) {
         if (n.st === 'ready' && c < 30 && Math.abs(n.x - pp.x) < 13 && Math.abs(n.z - pp.z) < 11 && (reduced || Math.sin(time * 2.3 + n.seed) > -0.4)) P.setXYZ(c++, n.x + Math.sin(time * 1.7 + n.seed) * 0.22, 0.75 + Math.sin(time * 2.9 + n.seed) * 0.3 + (n.tier > 2 ? 0.2 : 0), n.z + Math.cos(time * 1.3 + n.seed) * 0.15); });
       for (let k = c; k < 30; k++) P.setXYZ(k, 0, -50, 0); P.needsUpdate = true; CV.twk.visible = true; } else if (CV.twk) CV.twk.visible = false;
   } else if (CV.lamp) CV.lamp.intensity = 0;
-  if (!inCave && LIFT.top) minePush(pp, LIFT.top.x, LIFT.top.z - 0.35, 0.95);
-  [stairsDown, LIFT.topMat].concat(CV.mats).forEach((M) => {
+  [stairsDown].concat(CV.mats).forEach((M) => {
     if (!M) return; const d = Math.hypot(pp.x - M.x, pp.z - M.z), still = Math.hypot(target.x - pp.x, target.z - pp.z) < 0.3;
     const on = d < M.R && still && !enSleep && !riding2() && M.ok();
     M.w = on ? Math.min(1, M.w + dt / 0.6) : Math.max(0, M.w - dt * 3); M.fg.setDrawRange(0, 6 * Math.round(40 * M.w));
@@ -12241,16 +12241,20 @@ function nightStep(dt) {
 }
 /* ---------- the ways down to the mine (Leon, 2026-11-28: "they look a bit flat, the circle entrance is sometimes obscured
    by grass"; then: "if we are just planting something above, or applying a texture on top of the ground it won't work") ----------
-   A TEST of two real 3D shapes, side by side in h3, both leading to the same mine (ENTR in rules.js says where):
+   Two real 3D shapes for the mine's two ends (Leon, after trying both side by side: "I like both, for the first entrance
+   let's have the one that goes down on the settlement island", the other one for a mine mouth somewhere else):
      the stair cut   steps cut into the ground itself, between two stone walls that grow taller on the way down, to a dark
                      mouth in the end wall, below the grass line. Only a knee-high hump stands up, so nothing behind it is
-                     hidden from the camera.
+                     hidden from the camera. It stands in h3 on the settlement island (ENTR.pit in rules.js).
      the mound       a boulder taller than Pip with the mouth built into its south face, a timber frame, a lantern and rails.
+                     It is the mine's far end on the stone island, where the lift comes up (cave.js liftTopBuild). It is
+                     tall and the camera looks north, so it hides a strip behind it: it stands with its back to things
+                     that are tall themselves, and nothing to pick up is set out there.
    Neither has a mat to stand on: Pip walks in, and the screen fades when the mouth is reached (the torch is still needed).
    How the cut is real: the ground is one sheet of points. enCut pulls the points round the cut onto its outline and drops
    the ones inside, so the sheet has a true hole with upright sides; the stone lining stands in it. The sea lies under all
    land, so the sea's shader leaves a hole there (SEA.hole), and the paving round both (ISLAND.roads) keeps the tall grass off. */
-const EN = { g: null, on: 0, hint: 0, sp: [], dogIn: 0 };
+const EN = { g: null, on: 0, hint: 0, sp: [], dogIn: 0, mounds: [] };
 const enGlow = new T.MeshBasicMaterial({ color: '#ffd77a' }), enDark = new T.MeshBasicMaterial({ color: '#120e17', side: T.BackSide });
 const enWarmTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 4, 64, 64, 62);
   g.addColorStop(0, 'rgba(255,196,110,0.95)'); g.addColorStop(0.45, 'rgba(255,150,60,0.45)'); g.addColorStop(1, 'rgba(255,140,50,0)'); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new T.CanvasTexture(c); })();
@@ -12347,8 +12351,10 @@ function enPit() {
   w = enWarm(1.7, 1.5); w.rotation.x = -Math.PI / 2; w.position.set(x, -D + 0.02, z0 + 0.45); w.material.opacity = 0.7; g.add(w);
   enBubble(x, 1.75, z0 - 0.35);
 }
-function enMound() {
-  const M = ENTR.mound, s = M.s, L = [], g = EN.g, at = (q, x, y, z) => { q.scale(s, s, s); q.translate(M.x + x * s, y * s, M.z + z * s); return q; }; let q;
+/* a boulder mouth at (x, z), s times the drawn size; go() runs when Pip walks into its mouth */
+function enMound(x, z, s, go) {
+  const M = { x, z, s, go }, g = new T.Group(), L = [], at = (q, x, y, z) => { q.scale(s, s, s); q.translate(M.x + x * s, y * s, M.z + z * s); return q; }; let q;
+  sc.add(g); M.g = g; EN.mounds.push(M);
   const rock = (q, seed) => L.push(fac(q, (cx, cy, cz, i) => { const up = cy > 1.9 * s && hash(i, seed) > 0.35; return up ? groundCol(cx, 0, cz, i).multiplyScalar(0.6 + 0.25 * hash(i, 7)) : shadeY(['#a9a090', '#9a9184', '#b6ad9d'][i % 3], cy, 0, 2.6 * s, i + seed, 0.5); }, seed));
   /* the boulder: two shoulders, a back and a cap, set round the tunnel so it stays free */
   q = ico(1, 1, 2910, 0.1); q.scale(0.76, 1.35, 1.25); rock(at(q, -1.4, 0.8, -0.05), 2910);
@@ -12374,37 +12380,38 @@ function enMound() {
   /* crystals at its foot say what is inside */
   [[-2.0, 1.05, 0.62, 0.4], [2.05, 0.75, 0.5, 2.1]].forEach(([x, z, sc2, ry]) => { const c = new T.Mesh(CRYSTAL_GEO, crystalMat); c.scale.setScalar(sc2 * s); c.rotation.y = ry; c.position.set(M.x + x * s, 0, M.z + z * s); c.castShadow = true; g.add(c); });
   enBubble(M.x, 3.6 * s, M.z + 0.3 * s);
+  return M;
 }
 /* cave.js calls this where the stairs used to be built */
 function entrBuild(A, fresh) {
   if (EN.g) return; EN.g = new T.Group(); sc.add(EN.g);
-  enPit(); enMound();
+  enPit();
   const P = ENTR.pit; CAVE_OUT.x = P.x; CAVE_OUT.z = P.z1 + 0.9;
   /* what the rest of the game knows as "the stairs": the top of the stair cut (the map's badge, the dog's lead) */
   stairsDown = { x: P.x, z: P.z1 + 0.5, R: 0, w: 0, pop: 0, g: EN.g, fg: { setDrawRange() {} }, ok: () => false, to: () => CAVE_IN, cave: true };
   if (typeof GR !== 'undefined' && GR.tex) GR.t = Math.min(GR.t, 0.5);
 }
-function enGo(ox, oz) {
+function enGo(to) {
   if (!gearHas('torch')) { if (EN.hint <= 0) { EN.hint = 2.6; gearHint('torch'); } return; } /* down needs the torch (gear.js): its picture shows instead */
-  CAVE_OUT.x = ox; CAVE_OUT.z = oz; caveGo({ to: () => CAVE_IN, cave: true });
+  caveGo({ to: () => to, cave: true });
 }
 function entrStep(dt) {
-  if (!EN.g) return; const pp = pip.position, P = ENTR.pit, M = ENTR.mound, s = M.s; EN.hint = Math.max(0, EN.hint - dt);
+  if (!EN.g && !EN.mounds.length) return; const pp = pip.position, P = ENTR.pit; EN.hint = Math.max(0, EN.hint - dt);
   EN.sp.forEach((b) => { b.sp.visible = !inCave; b.sp.position.y = b.y + (reduced ? 0 : Math.sin(time * 2 + b.ph) * 0.05); });
   if (inCave) { EN.on = 0; return; }
   const moved = caveT && caveT.moved;
   /* the stair cut: a hole to walk round, open only at its south end; inside, Pip keeps between the walls and sinks step by step */
-  if (!moved) { const dx = pp.x - P.x, inZ = pp.z > P.z0 - 0.2 && pp.z < P.z1 + 0.05;
+  if (EN.g && !moved) { const dx = pp.x - P.x, inZ = pp.z > P.z0 - 0.2 && pp.z < P.z1 + 0.05;
     if (EN.on && (Math.abs(dx) > P.hw + 0.3 || !inZ)) { EN.on = 0; if (pp.y < 0) pp.y = 0; }
     if (!EN.on) { if (Math.abs(dx) < P.hw - 0.22 && pp.z > P.z1 - 0.5 && pp.z < P.z1 + 0.3) { if (pp.z < P.z1) EN.on = 1; } else mesaOut({ x: P.x, z: (P.z0 + P.z1) / 2 - 0.85, w: P.hw * 2 + 0.3, d: P.z1 - P.z0 + 1.7 }, pp, 0.22); }
     if (EN.on) { pp.x = clamp(pp.x, P.x - P.hw + 0.3, P.x + P.hw - 0.3); pp.z = Math.max(pp.z, P.z0 + 0.42); pp.y = enStepY(pp.z);
-      if (pp.z < P.z0 + 0.7 && !caveT) enGo(P.x, P.z1 + 0.9); } }
-  /* the mound: solid, but for the lane into its mouth */
-  if (!caveT) { const mx = (pp.x - M.x) / s, mz = (pp.z - M.z) / s;
-    if (Math.abs(mx) < 0.55 && mz > 0.3 && mz < 1.6) { if (mz < 1.25) pp.x = clamp(pp.x, M.x - 0.3 * s, M.x + 0.3 * s); if (mz < 0.8) { pp.z = Math.max(pp.z, M.z + 0.62 * s); enGo(M.x, M.z + 2.3 * s); } }
-    else mesaOut({ x: M.x, z: M.z - 0.3 * s, w: 4.3 * s, d: 3.0 * s }, pp, 0.2); }
+      if (pp.z < P.z0 + 0.7 && !caveT) enGo(CAVE_IN); } }
+  /* a mound: solid, but for the lane into its mouth */
+  if (!caveT) EN.mounds.forEach((M) => { const s = M.s, mx = (pp.x - M.x) / s, mz = (pp.z - M.z) / s; if (Math.abs(mx) > 4 || Math.abs(mz) > 4) return;
+    if (Math.abs(mx) < 0.55 && mz > 0.3 && mz < 1.6) { if (mz < 1.25) pp.x = clamp(pp.x, M.x - 0.3 * s, M.x + 0.3 * s); if (mz < 0.8) { pp.z = Math.max(pp.z, M.z + 0.62 * s); if (!caveT) M.go(); } }
+    else mesaOut({ x: M.x, z: M.z - 0.3 * s, w: 4.3 * s, d: 3.0 * s }, pp, 0.2); });
   /* the dog goes down the steps too */
-  if (typeof dog !== 'undefined' && dog.g) { const d = dog.g.position, inP = Math.abs(d.x - P.x) < P.hw && d.z > P.z0 && d.z < P.z1; if (inP) { d.y = enStepY(d.z); EN.dogIn = 1; } else if (EN.dogIn) { EN.dogIn = 0; d.y = 0; } }
+  if (EN.g && typeof dog !== 'undefined' && dog.g) { const d = dog.g.position, inP = Math.abs(d.x - P.x) < P.hw && d.z > P.z0 && d.z < P.z1; if (inP) { d.y = enStepY(d.z); EN.dogIn = 1; } else if (EN.dogIn) { EN.dogIn = 0; d.y = 0; } }
 }
 ISLE_STEPS.push(entrStep);
 /* Pips Island: what Pip and the pet have earned is worn where it can be seen (Leon, 2026-11-27: "every upgrade must be
@@ -13330,7 +13337,8 @@ function showBuild() {
   SH.here.push({ name: 'Camp', x: 0.8, z: 1.4, tris: 0, grp: 'In their real place' }, { name: 'Smithy street', x: 13.5, z: 1.4, tris: 0, grp: 'In their real place' }, { name: 'Village green', x: 7.5, z: 10, tris: 0, grp: 'In their real place' },
     { name: 'Bakery street', x: 0.6, z: 16.2, tris: 0, grp: 'In their real place' }, { name: 'Friends street', x: 13.5, z: 8.6, tris: 0, grp: 'In their real place' }, { name: 'Farm boat dock', x: FERRY.x + 1, z: FERRY.z + 0.8, tris: 0, grp: 'In their real place' },
     { name: 'Bridge to the meadow', x: 0.9, z: -5.2, tris: 0, grp: 'In their real place' }, { name: 'Stone island', x: -27, z: -14, tris: 0, grp: 'In their real place' }, { name: 'Winter island', x: 27, z: -18, tris: 0, grp: 'In their real place' });
-  SH.here.unshift({ name: 'Mine: two ways down (test)', x: ENTR.pit.x - 1.6, z: ENTR.pit.z1 + 1.3, tris: showTris(EN.g), grp: 'In their real place' });
+  SH.here.unshift({ name: 'Mine: stair cut (home)', x: ENTR.pit.x, z: ENTR.pit.z1 + 1.6, tris: showTris(EN.g), grp: 'In their real place' });
+  if (EN.mounds[0]) SH.here.unshift({ name: 'Mine: boulder mouth (stone island)', x: EN.mounds[0].x, z: EN.mounds[0].z + 3.2, tris: showTris(EN.mounds[0].g), grp: 'In their real place' });
   const at = window.PIPS_SHOW_AT; /* a test page may start Pip somewhere else: [x, z] */
   showPanel(); showGo(at ? { x: at[0], z: at[1] } : { x: -6, z: -9.2 });
 }

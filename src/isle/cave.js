@@ -88,12 +88,12 @@ function liftModel(x, z, seed) {
   const hole = new T.Mesh(new T.PlaneGeometry(1.1, 0.9), new T.MeshBasicMaterial({ color: '#1d1824' })); hole.rotation.x = -Math.PI / 2; hole.position.y = 0.04; g.add(hole);
   return g;
 }
-/* the lift's head on the stone island: the same frame, and a mat that takes Pip back down */
+/* the mine's far end on the stone island: the lift comes up inside a boulder with a mine mouth in its south face (entr.js).
+   Walking into the mouth takes Pip back down to the lift's foot. */
 function liftTopBuild(A, fresh) {
-  if (LIFT.top) return; const x = A.cx + A.lift[0], z = A.cz + A.lift[1];
-  LIFT.top = { x, z, g: liftModel(x, z - 0.35, 2700) }; LIFT.topOut = { x: x - 1.5, z: z + 0.9 };
-  const M = LIFT.topMat = stairMat('down', x, z + 0.95); M.ok = () => !inCave && !!HAS[A.id] && gearDark(); M.to = () => LIFT.lowOut; M.cave = true;
-  lookFoot(x, z - 0.35, 0.95, 0.8);
+  if (LIFT.top) return; const x = A.cx + A.lift[0], z = A.cz + A.lift[1], s = ENTR.mound.s;
+  LIFT.top = { x, z }; LIFT.topOut = { x, z: z + 2.3 * s };
+  enMound(x, z, s, () => { if (!inCave && HAS[A.id]) enGo(LIFT.lowOut); });
 }
 function liftOwn(A) {
   areaMark(A); state.isle.areas[A.id] = 1; xpGain(10); burst(LIFT.low.x, 1.6, LIFT.low.z, 14);
@@ -428,8 +428,7 @@ function caveStep(dt) {
         if (n.st === 'ready' && c < 30 && Math.abs(n.x - pp.x) < 13 && Math.abs(n.z - pp.z) < 11 && (reduced || Math.sin(time * 2.3 + n.seed) > -0.4)) P.setXYZ(c++, n.x + Math.sin(time * 1.7 + n.seed) * 0.22, 0.75 + Math.sin(time * 2.9 + n.seed) * 0.3 + (n.tier > 2 ? 0.2 : 0), n.z + Math.cos(time * 1.3 + n.seed) * 0.15); });
       for (let k = c; k < 30; k++) P.setXYZ(k, 0, -50, 0); P.needsUpdate = true; CV.twk.visible = true; } else if (CV.twk) CV.twk.visible = false;
   } else if (CV.lamp) CV.lamp.intensity = 0;
-  if (!inCave && LIFT.top) minePush(pp, LIFT.top.x, LIFT.top.z - 0.35, 0.95);
-  [stairsDown, LIFT.topMat].concat(CV.mats).forEach((M) => {
+  [stairsDown].concat(CV.mats).forEach((M) => {
     if (!M) return; const d = Math.hypot(pp.x - M.x, pp.z - M.z), still = Math.hypot(target.x - pp.x, target.z - pp.z) < 0.3;
     const on = d < M.R && still && !enSleep && !riding2() && M.ok();
     M.w = on ? Math.min(1, M.w + dt / 0.6) : Math.max(0, M.w - dt * 3); M.fg.setDrawRange(0, 6 * Math.round(40 * M.w));

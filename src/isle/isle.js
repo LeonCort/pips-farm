@@ -197,7 +197,7 @@ function areaClear(x, z) {
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
     if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || gardenKeep(a, x, z) || goldKeep(x, z) || ISLE_KEEPS.some((f) => f(a, x, z)) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z) || emberKeep(a, x, z)) return false;
-    if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
+    if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.7) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
   for (const S of SHORTS) { const b = S.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; }
