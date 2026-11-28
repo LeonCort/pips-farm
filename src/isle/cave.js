@@ -88,12 +88,12 @@ function liftModel(x, z, seed) {
   const hole = new T.Mesh(new T.PlaneGeometry(1.1, 0.9), new T.MeshBasicMaterial({ color: '#1d1824' })); hole.rotation.x = -Math.PI / 2; hole.position.y = 0.04; g.add(hole);
   return g;
 }
-/* the lift's head on the stone island: the same frame, and a mat that takes Pip back down */
+/* the mine's far end on the stone island: the lift comes up inside a boulder with a mine mouth in its south face (entr.js).
+   Walking into the mouth takes Pip back down to the lift's foot. */
 function liftTopBuild(A, fresh) {
-  if (LIFT.top) return; const x = A.cx + A.lift[0], z = A.cz + A.lift[1];
-  LIFT.top = { x, z, g: liftModel(x, z - 0.35, 2700) }; LIFT.topOut = { x: x - 1.5, z: z + 0.9 };
-  const M = LIFT.topMat = stairMat('down', x, z + 0.95); M.ok = () => !inCave && !!HAS[A.id] && gearDark(); M.to = () => LIFT.lowOut; M.cave = true;
-  lookFoot(x, z - 0.35, 0.95, 0.8);
+  if (LIFT.top) return; const x = A.cx + A.lift[0], z = A.cz + A.lift[1], s = ENTR.mound.s;
+  LIFT.top = { x, z }; LIFT.topOut = { x, z: z + 2.3 * s };
+  enMound(x, z, s, () => { if (!inCave && HAS[A.id]) enGo(LIFT.lowOut); });
 }
 function liftOwn(A) {
   areaMark(A); state.isle.areas[A.id] = 1; xpGain(10); burst(LIFT.low.x, 1.6, LIFT.low.z, 14);
@@ -350,20 +350,9 @@ function stairMat(dir, x, z, y) {
   const f = new T.Mesh(fg, new T.MeshBasicMaterial({ color: '#f4b23a', side: T.DoubleSide })); f.rotation.x = -Math.PI / 2; f.position.set(x, 0.06 + (y || 0), z); sc.add(f); fg.setDrawRange(0, 0);
   return { x, z, R, pad, fg, w: 0, dir };
 }
-/* the way down, in h3: a stone frame round a dark hole with steps going down */
+/* the way down, in h3: built in entr.js (a stair cut into the ground and a boulder with a mouth, side by side as a test) */
 let stairsDown = null;
-function stairsBuild(A, fresh) {
-  const x = A.cx + A.stairs[0], z = A.cz + A.stairs[1], g = new T.Group(); g.position.set(x, 0, z); sc.add(g); const L = [];
-  const hole = new T.Mesh(new T.PlaneGeometry(1.25, 1.5), new T.MeshBasicMaterial({ color: '#1d1824' })); hole.rotation.x = -Math.PI / 2; hole.position.set(0, 0.03, -0.15); g.add(hole);
-  for (let s = 0; s < 4; s++) { const q = new T.PlaneGeometry(1.15, 0.26); q.rotateX(-Math.PI / 2); q.translate(0, 0.035, 0.42 - s * 0.3); const m = new T.Mesh(q, new T.MeshBasicMaterial({ color: new T.Color('#8a8074').multiplyScalar(1 - s * 0.22) })); g.add(m); }
-  [-0.78, 0.78].forEach((px, k) => { const q = new T.BoxGeometry(0.28, 1.25, 0.32); jit(q, 0.02, 2500 + k); q.translate(px, 0.62, -0.9); L.push(fac(q, (cx, cy, cz, i) => shadeY('#9a9184', cy, 0, 1.3, i, 0.5), 2500 + k)); });
-  let q = new T.BoxGeometry(1.9, 0.3, 0.38); jit(q, 0.02, 2502); q.translate(0, 1.36, -0.9); L.push(fac(q, (cx, cy, cz, i) => (cy > 1.45 && hash(i, 3) > 0.4 ? new T.Color('#6f9a4a') : shadeY('#a39a8c', cy, 1.2, 1.5, i, 0.5)), 2502));
-  for (let k = 0; k < 6; k++) { const a = k / 6 * 6.28, b = ico(0.16 + hash(k, 8) * 0.1, 0, 2510 + k); b.scale(1.2, 0.6, 1); b.translate(Math.cos(a) * 0.95, 0.06, Math.sin(a) * 1.0 - 0.15); L.push(fac(b, tone('#a9a090', k, 0.6), 2510 + k)); }
-  merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g);
-  stairsDown = stairMat('down', x, z + 1.15); stairsDown.g = g; CAVE_OUT.x = x; CAVE_OUT.z = z + 2.25;
-  stairsDown.ok = () => !inCave && gearDark(); stairsDown.to = () => CAVE_IN; stairsDown.cave = true; /* down needs the torch (gear.js) */
-  if (fresh) { g.scale.setScalar(0.01); stairsDown.pop = 0.001; }
-}
+function stairsBuild(A, fresh) { entrBuild(A, fresh); }
 /* ---- the dark. One small canvas over the picture (a quarter of the screen's size, like the night's: night.js), painted
    each frame while Pip is in the mine: dark all over, and every light cuts its own soft circle out of it: Pip's torch (the
    lantern reaches twice as far), the lanterns on their posts, crystals and star crystals that are ready to mine, the
@@ -439,8 +428,7 @@ function caveStep(dt) {
         if (n.st === 'ready' && c < 30 && Math.abs(n.x - pp.x) < 13 && Math.abs(n.z - pp.z) < 11 && (reduced || Math.sin(time * 2.3 + n.seed) > -0.4)) P.setXYZ(c++, n.x + Math.sin(time * 1.7 + n.seed) * 0.22, 0.75 + Math.sin(time * 2.9 + n.seed) * 0.3 + (n.tier > 2 ? 0.2 : 0), n.z + Math.cos(time * 1.3 + n.seed) * 0.15); });
       for (let k = c; k < 30; k++) P.setXYZ(k, 0, -50, 0); P.needsUpdate = true; CV.twk.visible = true; } else if (CV.twk) CV.twk.visible = false;
   } else if (CV.lamp) CV.lamp.intensity = 0;
-  if (!inCave && LIFT.top) minePush(pp, LIFT.top.x, LIFT.top.z - 0.35, 0.95);
-  [stairsDown, LIFT.topMat].concat(CV.mats).forEach((M) => {
+  [stairsDown].concat(CV.mats).forEach((M) => {
     if (!M) return; const d = Math.hypot(pp.x - M.x, pp.z - M.z), still = Math.hypot(target.x - pp.x, target.z - pp.z) < 0.3;
     const on = d < M.R && still && !enSleep && !riding2() && M.ok();
     M.w = on ? Math.min(1, M.w + dt / 0.6) : Math.max(0, M.w - dt * 3); M.fg.setDrawRange(0, 6 * Math.round(40 * M.w));

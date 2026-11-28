@@ -115,8 +115,8 @@ function isleGroundTo(idx, t) { /* move the listed ground points from their sea 
    flat land comes from the corner's place, not its number, or the copies get different heights and the land shows
    hair-thin bright seams between its triangles (and down the cliffs) until the next load. */
 function riseArea(cx, cz, hx, hz, done) {
-  const p = ground.geometry.attributes.position, idx = [], y0 = [], y1 = [];
-  for (let k = 0; k < p.count; k++) { const x = p.getX(k), z = p.getZ(k); if (Math.abs(x - cx) > hx || Math.abs(z - cz) > hz) continue; const ht = hAt(x, z); if (Math.abs(ht - p.getY(k)) < 0.05 && ht !== 0) continue; idx.push(k); y0.push(p.getY(k)); y1.push(ht === 0 ? 0.02 * hash(Math.round(x * 16), Math.round(z * 16)) : ht); }
+  const p = ground.geometry.attributes.position, idx = [], y0 = [], y1 = [], pin = ground.userData.pin;
+  for (let k = 0; k < p.count; k++) { const x = p.getX(k), z = p.getZ(k); if (Math.abs(x - cx) > hx || Math.abs(z - cz) > hz) continue; if (pin && pin.has(k)) continue; /* a point dropped into a cut in the ground stays there (entr.js) */ const ht = hAt(x, z); if (Math.abs(ht - p.getY(k)) < 0.05 && ht !== 0) continue; idx.push(k); y0.push(p.getY(k)); y1.push(ht === 0 ? 0.02 * hash(Math.round(x * 16), Math.round(z * 16)) : ht); }
   rising = { cx, cz, hx: hx - 1.4, hz: hz - 1.4, t: 0, idx, y0, y1, sp: 0, done };
   Snd.play('riser', { gain: 0.5 }); Snd.play('whoosh', { gain: 0.4 });
 }
@@ -197,7 +197,7 @@ function areaClear(x, z) {
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
     if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || gardenKeep(a, x, z) || goldKeep(x, z) || ISLE_KEEPS.some((f) => f(a, x, z)) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z) || emberKeep(a, x, z)) return false;
-    if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
+    if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.7) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
   for (const S of SHORTS) { const b = S.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; }
