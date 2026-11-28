@@ -38,7 +38,7 @@ const AREAS = [
   { id: 's3', chest: { coin: 18, iron: 2 }, chestAt: [-2.6, -0.6], i: -11, j: -5, biome: 'stone', cost: { stone: 40, log: 26, berry: 16 }, mesas: [{ id: 's3a', dx: 2.4, dz: 2.6, w: 4.8, d: 4.2, h: 1.3, finds: [['iron', -0.9, 0.2], ['iron', 1.0, -0.3]] }], finds: [['iron', -3.6, -3.4]] },
   { id: 's4', chest: { coin: 22, crystal: 5 }, chestAt: [3.6, 2.4], i: -11, j: -8, biome: 'clay', cost: { stone: 50, log: 30, crystal: 6 }, finds: [['iron', 3.0, -2.6], ['iron', -3.4, 2.8]], ponds: [[0.6, 0.8, 1.7]],
     /* the High Table (mesa.js): the tallest rock on the island, its ladder broken. A rope ladder of marsh reed opens it: the island's sealed place, for the visit after the marsh */
-    mesas: [{ id: 's4a', dx: -2.9, dz: -2.7, w: 4.8, d: 4.0, h: 2.3, seal: { reed: 6, log: 14 }, chest: [{ coin: 40, iron: 4 }, -1.3, -0.9], finds: [['iron', 1.2, -0.6], ['iron', 0.3, 0.9], ['iron', -1.2, 0.8]] }] },
+    mesas: [{ id: 's4a', dx: -2.9, dz: -2.7, w: 4.8, d: 4.0, h: 2.3, seal: { reed: 6, log: 14 }, chest: [{ coin: 40, iron: 4 }, 1.5, -1.0], finds: [['iron', -0.2, -1.3], ['iron', 1.4, 1.0], ['iron', -0.7, 1.1]] }] }, /* the west end of its top is kept for the giant's kite (sky.js) */
   /* the winter island, east of the orchard, over a bridge */
   { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 34, berry: 16, stone: 20 }, bridge: { from: 'm2', x0: 17.4, z0: -16, x1: 22.6, z1: -16 },
     ice: { dx: 0.5, dz: -0.4, nx: 7, nz: 6, stop: [[0, 2], [6, 2], [3, 0], [3, 5], [0, 3], [1, 4], [4, 3]], gem: [[3, 2]] } },
@@ -148,7 +148,7 @@ function gSdfBox(on, x, z) {
    straight line, and its sign stands there), in the mine, and round everything that stands near a shore (COAST.keep). */
 const COAST = { st: 0.5, x0: (GI0 - 0.5) * GS - 2, n: 0, F: null,
   /* things set by hand near a shore that the lists below do not know: [x, z, r] */
-  keep: [[0, 0, 3.4]] };
+  keep: [[0, 0, 3.4], [-52.6, -28, 8.2]] }; /* the Sky Garden (sky.js) keeps a square rim under its cloud bank */
 const sstep = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 function coastMake() {
   const st = COAST.st, n = COAST.n = Math.ceil((GWN * GS + 4) / st) + 1, F = COAST.F = new Float32Array(n * n), K = COAST.keep.slice();
