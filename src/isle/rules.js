@@ -78,7 +78,7 @@ const AREAS = [
   { id: 'm5', i: -4, j: -11, biome: 'meadow', secret: 1 }, /* the Garden of Giant Flowers, behind the Bee Queen's garden (giant.js) */
   { id: 's5', i: -14, j: -8, biome: 'stone', secret: 1 }, /* the Giant's Sky Garden, west of the High Table (sky.js) */
   { id: 'w5', i: 12, j: -9, biome: 'snow', season: 'summer', secret: 1 }, /* the Summer Hollow, behind the ice wall (hollow.js) */
-  { id: 'r5', i: -8, j: 8, biome: 'marsh', secret: 1 }, /* Heron Isle and the Firefly Tree, across Lily Lake (heron.js) */
+  { id: 'r5', i: -8, j: 8, biome: 'marsh', secret: 1, ponds: [[-5.2, -4.8, 2.3], [-2.6, -4.8, 2.3], [0, -4.8, 2.3], [2.6, -4.8, 2.3], [5.2, -4.8, 2.3], [0.3, 3.9, 2.9]] }, /* Heron Isle and the Firefly Tree, across Lily Lake (heron.js): the first five ponds are the lake between the marsh and the isle, the last is the frogs' bay */
   { id: 'c5', i: 12, j: -2, biome: 'coral', secret: 1 }, /* the Sea Garden, under the lagoon (seagarden.js) */
   { id: 'e5', i: 12, j: 9, biome: 'ash', secret: 1 } /* the Glass Forest, past the great lava river (glass.js) */
 ];
@@ -194,6 +194,14 @@ function gSdfOf(on, x, z) {
 const landSdf = (x, z) => gSdfOf((i, j) => gIn(i, j) && AREA_AT[gIdx(i, j)] >= 0, x, z);
 const gSdf = (x, z) => gSdfOf(owned, x, z);
 const drawSdf = (x, z) => gSdfOf(drawn, x, z);
+/* Heron Isle (heron.js; here, because the coast and the walking rules need it before that file is read): where the heron
+   waits on the marsh shore and where it lands on the isle (each: the heron, and the ring Pip stands on), the lily bud, the
+   Firefly Tree, the giant lily pads Pip can walk on ([x, z, r]; the first five are the frog choir's), and the stretches of
+   the isle's coast that must not wander */
+const HERON = { shore: [-25.7, 29.4], ring0: [-24.4, 28.9], bud: [-24.9, 31.2], land: [-32.5, 34.4], ring1: [-31.2, 35.0], tree: [-28, 34.8],
+  pads: [[-29.98, 39.33, 0.95], [-29.28, 37.88, 0.95], [-27.7, 37.04, 0.95], [-26.22, 38.0, 0.95], [-25.29, 39.3, 0.95], [-30.15, 41.35, 1], [-28.92, 41.55, 1], [-27.7, 41.4, 1], [-26.47, 41.55, 1], [-25.25, 41.35, 1]],
+  keep: [[-34, 31.2, 1.5], [-34, 33, 1.5], [-34, 34.6, 1.4], [-34, 38.6, 1.5], [-34, 40.6, 1.4], [-32.6, 42, 1.4], [-29.4, 42, 1.3], [-27.7, 42, 1.3], [-26, 42, 1.3], [-22, 31.2, 1.5], [-22, 33, 1.5], [-22, 34.9, 1.4], [-22, 38.3, 1.6], [-22, 40.8, 1.4], [-23.4, 42, 1.4]] };
+COAST.keep.push(...HERON.keep);
 /* where Pip may walk: owned areas, and the bridges built to them */
 function walkSdf(x, z) {
   let d = gSdf(x, z);
@@ -203,6 +211,7 @@ function walkSdf(x, z) {
   for (const k in DOCK_ON) { const D = DOCKS[k]; d = Math.min(d, segD(x, z, D.x - D.out[0] * 0.5, D.z - D.out[1] * 0.5, D.x + D.out[0] * 1.55, D.z + D.out[1] * 1.55) - 0.5); } /* out along a dock's planks */
   if (HAS.r0) { d = Math.min(d, segD(x, z, RAFT.e[0] + 1.5, RAFT.e[1], RAFT.e[0] + 0.5, RAFT.e[1]) - 0.6, segD(x, z, RAFT.w[0] - 1.5, RAFT.w[1], RAFT.w[0] - 0.5, RAFT.w[1]) - 0.6); /* the raft's two jetties, and the raft while it lies still */
     if (RAFT.on) d = Math.min(d, Math.hypot(x - RAFT.x, z - RAFT.z) - 0.85); }
+  if (HAS.r5 && z > 30) for (const q of HERON.pads) d = Math.min(d, Math.hypot(x - q[0], z - q[1]) - q[2]); /* the giant lily pads round Heron Isle */
   if (HAS.e0 && x > 21 && z > 21) d = Math.max(d, -emberLava(x, z) - 0.2, EMBER.cone[2] - Math.hypot(x - EMBER.cone[0], z - EMBER.cone[1]) - 0.2); /* lava and the volcano are no ground to walk on */
   return d;
 }
