@@ -92,10 +92,10 @@ function heronSmallPad(L, x, z, r, sd) { const q = new T.CylinderGeometry(r, r, 
 /* a water lily: three rings of pointed petals. open 0 is a tight bud, 1 lies wide. kind: 'bud' (the giant rosy one on the
    lake), 'moon' (the golden moon lily), 'pink' and 'white' (the small ones on the water) */
 function heronBloom(L, kind, open, s, x, y, z, sd) {
-  const i0 = L.length, C = { bud: [['#8cc466', '#ffb3cd'], ['#ffc2d6', '#ffe1ea'], ['#ffe9f0', '#ffffff']], moon: [['#fff3c4', '#ffd75a'], ['#fffbe8', '#ffe9a0'], ['#ffffff', '#fff6d0']], pink: [['#f29ab8', '#f7bfd2'], ['#f7bfd2', '#ffe1ea'], ['#ffe9f0', '#ffffff']], white: [['#eef6ea', '#ffffff'], ['#ffffff', '#fff6e4'], ['#fff6e4', '#ffffff']] }[kind];
+  const i0 = L.length, C = { bud: [['#9ad072', '#ffa9c8'], ['#ffbdd4', '#ffe1ea'], ['#ffe9f0', '#ffffff']], moon: [['#fff3c4', '#ffd75a'], ['#fffbe8', '#ffe9a0'], ['#ffffff', '#fff6d0']], pink: [['#f29ab8', '#f7bfd2'], ['#f7bfd2', '#ffe1ea'], ['#ffe9f0', '#ffffff']], white: [['#eef6ea', '#ffffff'], ['#ffffff', '#fff6e4'], ['#fff6e4', '#ffffff']] }[kind];
   [[8, 0.62, 0.19, -0.3 + open * 1.5, 0, 0.2], [7, 0.56, 0.17, -0.24 + open * 1.08, 0.39, 0.13], [5, 0.47, 0.14, -0.15 + open * 0.62, 0.2, 0.07]].forEach(([n, len, r, tilt, ph, rb], ring) => { for (let k = 0; k < n; k++) {
     let q = new T.OctahedronGeometry(1, 0); q.scale(r, len / 2, r * 0.42); q.translate(0, len / 2, 0); q.rotateX(tilt); q.translate(0, 0.02, rb); q.rotateY(k / n * 6.2832 + ph);
-    L.push(fac(q, (cx, cy, cz, i) => new T.Color(C[ring][0]).lerp(new T.Color(C[ring][1]), clamp(cy / len * (kind === 'bud' && !ring ? 2.4 : 1.3) - 0.2, 0, 1)), sd + ring * 10 + k)); } });
+    L.push(fac(q, (cx, cy, cz, i) => new T.Color(C[ring][0]).lerp(new T.Color(C[ring][1]), clamp((Math.hypot(cx, cy, cz) - rb) / len * (kind === 'bud' && !ring ? 3.2 : 1.5) - 0.25, 0, 1)), sd + ring * 10 + k)); } });
   if (open > 0.25) { let q = ico(0.11, 1, sd + 40); q.scale(1, 0.55, 1); q.translate(0, 0.05, 0); L.push(fac(q, (cx, cy, cz, i) => tone('#f6c63c', i, 0.3), sd + 40));
     for (let k = 0; k < 7; k++) { q = new T.ConeGeometry(0.018, 0.16, 3); q.translate(0, 0.08, 0); q.rotateX(0.5); q.rotateY(k / 7 * 6.2832); q.translate(0, 0.05, 0); L.push(fac(q, '#ffe07a', sd + 41 + k)); } }
   for (let k = i0; k < L.length; k++) { L[k].scale(s, s, s); L[k].translate(x, y, z); }
@@ -113,7 +113,7 @@ function heronShoreBuild() {
   heronPad(L, bx, bz, 0.95, 7300, -0.4);
   [[-0.9, 1.1, 0.26], [0.2, 1.9, 0.3], [-0.5, 2.7, 0.22], [0.9, 1.0, 0.2], [1.5, 0.3, 0.28], [-1.6, 0.2, 0.24], [0.7, 3.2, 0.18], [-1.4, 2.0, 0.17], [2.3, 1.3, 0.2], [-2.5, 0.9, 0.22]].forEach(([dx, dz, r], k) => { heronSmallPad(L, bx + dx, bz + dz, r, 7310 + k); if (k % 3 === 0) heronBloom(L, k % 2 ? 'white' : 'pink', 0.9, 0.22, bx + dx + 0.03, -0.4, bz + dz, 7330 + k * 60); });
   heronMesh(L, g, false);
-  HR.budM = new T.Mesh(new T.BufferGeometry(), MAT); HR.budM.castShadow = true; g.add(HR.budM); HR.budO = -1; heronBudSet(heronS().open ? 1 : 0);
+  HR.budM = new T.Mesh(new T.BufferGeometry(), MAT); HR.budM.castShadow = true; HR.budM.receiveShadow = false; g.add(HR.budM); HR.budO = -1; heronBudSet(heronS().open ? 1 : 0);
   const B = HR.bird = heronModel(); sc.add(B.g); heronStand(0, true); heronPose(B, 0, 0, 0);
   lookFoot(HERON.shore[0], HERON.shore[1], 0.45, 0.45);
   HR.rings = [0, 1].map((k) => { const p = k ? HERON.ring1 : HERON.ring0, r = ringMake({ x: p[0], z: p[1], icon: 'heron', ok: () => HAS.r5 && !rising && HR.at === k && !HR.busy && !SC.ride && !HR.openT, go: () => heronRide(1 - k) }); r.ring.rotation.x = -Math.PI / 2; return r; });
@@ -212,7 +212,7 @@ SECRET_FILL.r5 = function heronFill(A, fresh) {
   heronMesh(L, g, true);
   /* the tree, and the golden moon lily at its roots (a bud until the choir has sung) */
   const tree = HR.tree = new T.Group(); tree.position.set(tx, 0, tz); g.add(tree); heronWillow(tree); LOOK.solid.push([tx, tz, 0.5]); lookFoot(tx, tz, 2.3, 2.3, 0.3);
-  HR.lily = new T.Mesh(new T.BufferGeometry(), MAT); HR.lily.castShadow = true; g.add(HR.lily); HR.lilyO = -1; heronLilySet(heronS().choir ? 1 : 0);
+  HR.lily = new T.Mesh(new T.BufferGeometry(), MAT); HR.lily.castShadow = true; HR.lily.receiveShadow = false; g.add(HR.lily); HR.lilyO = -1; heronLilySet(heronS().choir ? 1 : 0);
   { const P = []; [[-0.35, 0.25], [0.4, 0.2], [0.05, 0.5]].forEach(([dx, dz], k) => { q = new T.CylinderGeometry(0.3, 0.3, 0.025, 9, 1, false, k * 2, 5.6); q.translate(HERON_LILY[0] + dx, 0.03 + k * 0.012, HERON_LILY[1] + dz); P.push(fac(q, (cx, cy, cz, i) => tone('#5fae5a', i + k, 0.4), 9300 + k)); }); heronMesh(P, g, false); }
   HR.lilyGlow = new T.Sprite(new T.SpriteMaterial({ map: heronGlow(), transparent: true, depthWrite: false, blending: T.AdditiveBlending, opacity: 0 })); HR.lilyGlow.position.set(HERON_LILY[0], 0.5, HERON_LILY[1]); HR.lilyGlow.scale.setScalar(2.4); g.add(HR.lilyGlow);
   /* the frogs, biggest in the west: each sits on the far side of its pad and looks out at us */
