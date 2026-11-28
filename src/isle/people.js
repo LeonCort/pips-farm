@@ -173,9 +173,11 @@ function peopleStep(dt) {
   /* moving to the camp: two happy hops, a puff, and she pops up by the camp (where the guide arrow then points) */
   if (SM.move) { const M = SM.move; M.t += dt;
     if (M.t < 1.0) { g.position.y = Math.abs(Math.sin(M.t * Math.PI * 2)) * 0.35; }
+    else if (M.w === undefined) { const [x, z] = smithSpot(); M.w = walkStart(g, x, z); M.t = 1.0; } /* two happy hops, then off home on foot (walkhome.js) */
+    else if (M.w) { if (walkStep(M.w, g, dt)) { SM.move = null; walkEnd(g); smithPlace(); g.rotation.y = Math.atan2(pp.x - g.position.x, pp.z - g.position.z); SM.hop = 1; SM.arr = 25; Snd.play('pop', { gain: 0.35, f: 640 }); isleSigns(); save(); } }
     else if (M.t < 1.35) { g.scale.setScalar(Math.max(0.01, 1 - (M.t - 1.0) / 0.35)); if (!M.puff) { M.puff = 1; Snd.play('whoosh', { gain: 0.4 }); burst(g.position.x, 0.8, g.position.z, 6); } }
     else { SM.move = null; g.position.y = 0; smithPlace(); SM.pop = 0.001; g.scale.setScalar(0.01); SM.arr = 25; Snd.play('pop', { gain: 0.4, f: 640 }); burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); save(); } }
-  if (SM.away && HAS.h1 && F.smith >= 2 && !SM.move && !rising) { smithPlace(); SM.pop = 0.001; g.scale.setScalar(0.01); SM.arr = 25; burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); }
+  if (SM.away && HAS.h1 && F.smith >= 2 && !SM.move && !rising) { SM.away = 0; SM.move = { t: 1.0 }; } /* her corner is bought: off from the fire on foot */
   SM.arr = Math.max(0, SM.arr - dt);
   if (!g.visible) return;
   /* standing about: a little bob, turned to Pip when Pip is close */

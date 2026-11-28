@@ -280,7 +280,7 @@ const HOUSES = { mason: { x: 11, z: 4.9 }, knitter: { x: 14, z: 4.9 }, miner: { 
 const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2.6 }, windmill: { x: 2.6, z: -30, sx: -1.7, sz: 1.5, mx: -2.2, mz: 2.2 },
   lighthouse: { x: -31.4, z: -2.2, sx: 1.8, sz: 1.3, mx: 2.4, mz: -1.0 }, tower: { x: 30.6, z: -34, sx: -1.7, sz: 1.5, mx: -2.0, mz: -1.2 },
   /* the far islands' wonders (Leon 2026-11-27): a sluice wheel on the marsh channel, a tide bell on the coral beach, a great hearth by the volcano */
-  sluice: { x: -24.7, z: 24.3, sx: 0.9, sz: 1.8, mx: 0.9, mz: -2.0 }, /* Leon 2026-11-28: out on the marsh's south side by r2's pool, not next to the settlement */ bell: { x: 30.4, z: 12.9, sx: -1.7, sz: 0.9, mx: 0.2, mz: -2.0 }, hearth: { x: 27.6, z: 32.7, sx: -1.7, sz: 0.3, mx: -1.4, mz: -1.8 },
+  sluice: { x: -24.7, z: 24.3, sx: 0.9, sz: 1.8, mx: 0.9, mz: -2.0 }, /* Leon 2026-11-28: out on the marsh's south side by r2's pool, not next to the settlement */ bell: { x: 40.0, z: 9.5, sx: -1.7, sz: 0.9, mx: 0.2, mz: -2.0 } /* Leon 2026-11-28: out on the coral's second square (c2), not by the bridge from the settlement */, hearth: { x: 36.5, z: 28.0, sx: -1.7, sz: 0.3, mx: -1.4, mz: -1.8 } /* Leon 2026-11-28: out on the ember isle's second square (e1) */,
   belfry: { x: 13.0, z: 9.7, sx: -1.9, sz: 1.0, mx: 0, mz: 0 } }; /* the bell tower on the village green: the last wonder, made of one find from every island */
 /* the island villages (hamlets.js): once an island's monument stands, a few houses and neighbours move in beside it.
    Each house is [x, z, turn]; the crate is where the village stacks what it gathers. Nothing grows on these plots. */
@@ -338,7 +338,7 @@ const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to t
 /* the docks the island boat sails between (docks.js): where the planks leave the shore, the way they run (out), and the
    way the boat sails off (go: along the shore, the channels between the islands are narrow) */
 const DOCKS = { camp: { x: -6, z: -4.4, out: [-1, 0], go: [0, -1], lane: [[-8.3, -6.6], [-11.5, -7.7], [-16.5, -6.8]] }, /* lane: the way out to open water (docks.js; default: straight along go) */ windmill: { x: 0.4, z: -34, out: [0, -1], go: [1, 0] }, lighthouse: { x: -34, z: 0.5, out: [-1, 0], go: [0, -1] }, tower: { x: 29.4, z: -38, out: [0, -1], go: [-1, 0] },
-  sluice: { x: -21.6, z: 27.2, out: [1, 0], go: [0, 1] }, bell: { x: 31.8, z: 6, out: [0, -1], go: [1, 0] }, hearth: { x: 22, z: 33.0, out: [-1, 0], go: [0, 1] } }, DOCK_ON = {};
+  sluice: { x: -21.6, z: 27.2, out: [1, 0], go: [0, 1] }, bell: { x: 40.0, z: 6.3, out: [0, -1], go: [1, 0], lane: [[46, 4.0], [58, 4.0], [64, 4.5]] }, hearth: { x: 36.5, z: 22.0, out: [0, -1], go: [1, 0], lane: [[37.5, 19.6], [50, 20], [62, 20]] } }, DOCK_ON = {};
 /* the shipping lane (cargo.js, Leon 2026-11-28): the villages' cargo boats sail in from the west channel between Stone and
    the Marsh, across the bay, and nose in at the end of the quay on the camp's west shore, between the camp's dock and the
    farm boat. pile: where the crates stack on the quay planks. lane: from the berth out to sea. */

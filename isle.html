@@ -815,7 +815,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261128175407">
+<meta name="app-ver" content="20261128175526">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1427,7 +1427,7 @@ const HOUSES = { mason: { x: 11, z: 4.9 }, knitter: { x: 14, z: 4.9 }, miner: { 
 const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2.6 }, windmill: { x: 2.6, z: -30, sx: -1.7, sz: 1.5, mx: -2.2, mz: 2.2 },
   lighthouse: { x: -31.4, z: -2.2, sx: 1.8, sz: 1.3, mx: 2.4, mz: -1.0 }, tower: { x: 30.6, z: -34, sx: -1.7, sz: 1.5, mx: -2.0, mz: -1.2 },
   /* the far islands' wonders (Leon 2026-11-27): a sluice wheel on the marsh channel, a tide bell on the coral beach, a great hearth by the volcano */
-  sluice: { x: -24.7, z: 24.3, sx: 0.9, sz: 1.8, mx: 0.9, mz: -2.0 }, /* Leon 2026-11-28: out on the marsh's south side by r2's pool, not next to the settlement */ bell: { x: 30.4, z: 12.9, sx: -1.7, sz: 0.9, mx: 0.2, mz: -2.0 }, hearth: { x: 27.6, z: 32.7, sx: -1.7, sz: 0.3, mx: -1.4, mz: -1.8 },
+  sluice: { x: -24.7, z: 24.3, sx: 0.9, sz: 1.8, mx: 0.9, mz: -2.0 }, /* Leon 2026-11-28: out on the marsh's south side by r2's pool, not next to the settlement */ bell: { x: 40.0, z: 9.5, sx: -1.7, sz: 0.9, mx: 0.2, mz: -2.0 } /* Leon 2026-11-28: out on the coral's second square (c2), not by the bridge from the settlement */, hearth: { x: 36.5, z: 28.0, sx: -1.7, sz: 0.3, mx: -1.4, mz: -1.8 } /* Leon 2026-11-28: out on the ember isle's second square (e1) */,
   belfry: { x: 13.0, z: 9.7, sx: -1.9, sz: 1.0, mx: 0, mz: 0 } }; /* the bell tower on the village green: the last wonder, made of one find from every island */
 /* the island villages (hamlets.js): once an island's monument stands, a few houses and neighbours move in beside it.
    Each house is [x, z, turn]; the crate is where the village stacks what it gathers. Nothing grows on these plots. */
@@ -1485,7 +1485,7 @@ const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to t
 /* the docks the island boat sails between (docks.js): where the planks leave the shore, the way they run (out), and the
    way the boat sails off (go: along the shore, the channels between the islands are narrow) */
 const DOCKS = { camp: { x: -6, z: -4.4, out: [-1, 0], go: [0, -1], lane: [[-8.3, -6.6], [-11.5, -7.7], [-16.5, -6.8]] }, /* lane: the way out to open water (docks.js; default: straight along go) */ windmill: { x: 0.4, z: -34, out: [0, -1], go: [1, 0] }, lighthouse: { x: -34, z: 0.5, out: [-1, 0], go: [0, -1] }, tower: { x: 29.4, z: -38, out: [0, -1], go: [-1, 0] },
-  sluice: { x: -21.6, z: 27.2, out: [1, 0], go: [0, 1] }, bell: { x: 31.8, z: 6, out: [0, -1], go: [1, 0] }, hearth: { x: 22, z: 33.0, out: [-1, 0], go: [0, 1] } }, DOCK_ON = {};
+  sluice: { x: -21.6, z: 27.2, out: [1, 0], go: [0, 1] }, bell: { x: 40.0, z: 6.3, out: [0, -1], go: [1, 0], lane: [[46, 4.0], [58, 4.0], [64, 4.5]] }, hearth: { x: 36.5, z: 22.0, out: [0, -1], go: [1, 0], lane: [[37.5, 19.6], [50, 20], [62, 20]] } }, DOCK_ON = {};
 /* the shipping lane (cargo.js, Leon 2026-11-28): the villages' cargo boats sail in from the west channel between Stone and
    the Marsh, across the bay, and nose in at the end of the quay on the camp's west shore, between the camp's dock and the
    farm boat. pile: where the crates stack on the quay planks. lane: from the berth out to sea. */
@@ -7179,9 +7179,11 @@ function peopleStep(dt) {
   /* moving to the camp: two happy hops, a puff, and she pops up by the camp (where the guide arrow then points) */
   if (SM.move) { const M = SM.move; M.t += dt;
     if (M.t < 1.0) { g.position.y = Math.abs(Math.sin(M.t * Math.PI * 2)) * 0.35; }
+    else if (M.w === undefined) { const [x, z] = smithSpot(); M.w = walkStart(g, x, z); M.t = 1.0; } /* two happy hops, then off home on foot (walkhome.js) */
+    else if (M.w) { if (walkStep(M.w, g, dt)) { SM.move = null; walkEnd(g); smithPlace(); g.rotation.y = Math.atan2(pp.x - g.position.x, pp.z - g.position.z); SM.hop = 1; SM.arr = 25; Snd.play('pop', { gain: 0.35, f: 640 }); isleSigns(); save(); } }
     else if (M.t < 1.35) { g.scale.setScalar(Math.max(0.01, 1 - (M.t - 1.0) / 0.35)); if (!M.puff) { M.puff = 1; Snd.play('whoosh', { gain: 0.4 }); burst(g.position.x, 0.8, g.position.z, 6); } }
     else { SM.move = null; g.position.y = 0; smithPlace(); SM.pop = 0.001; g.scale.setScalar(0.01); SM.arr = 25; Snd.play('pop', { gain: 0.4, f: 640 }); burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); save(); } }
-  if (SM.away && HAS.h1 && F.smith >= 2 && !SM.move && !rising) { smithPlace(); SM.pop = 0.001; g.scale.setScalar(0.01); SM.arr = 25; burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); }
+  if (SM.away && HAS.h1 && F.smith >= 2 && !SM.move && !rising) { SM.away = 0; SM.move = { t: 1.0 }; } /* her corner is bought: off from the fire on foot */
   SM.arr = Math.max(0, SM.arr - dt);
   if (!g.visible) return;
   /* standing about: a little bob, turned to Pip when Pip is close */
@@ -7373,9 +7375,11 @@ function bakerStep(dt) {
   if (BK.pop) { BK.pop = Math.min(1, BK.pop + dt * 2); g.scale.setScalar(BK.pop < 0.7 ? BK.pop / 0.7 * 1.1 : 1.1 - (BK.pop - 0.7) / 0.3 * 0.1); if (BK.pop >= 1) { BK.pop = 0; g.scale.setScalar(1); } }
   if (BK.move) { const M = BK.move; M.t += dt;
     if (M.t < 1.0) g.position.y = Math.abs(Math.sin(M.t * Math.PI * 2)) * 0.35;
+    else if (M.w === undefined) { const [x, z] = bakerSpot(); M.w = walkStart(g, x, z); M.t = 1.0; } /* two happy hops, then off home on foot (walkhome.js) */
+    else if (M.w) { if (walkStep(M.w, g, dt)) { BK.move = null; walkEnd(g); bakerPlace(); g.rotation.y = Math.atan2(pp.x - g.position.x, pp.z - g.position.z); BK.hop = 1; BK.arr = 25; Snd.play('pop', { gain: 0.35, f: 640 }); isleSigns(); save(); } }
     else if (M.t < 1.35) { g.scale.setScalar(Math.max(0.01, 1 - (M.t - 1.0) / 0.35)); if (!M.puff) { M.puff = 1; Snd.play('whoosh', { gain: 0.4 }); burst(g.position.x, 0.8, g.position.z, 6); } }
     else { BK.move = null; g.position.y = 0; bakerPlace(); BK.pop = 0.001; g.scale.setScalar(0.01); BK.arr = 25; Snd.play('pop', { gain: 0.4, f: 640 }); burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); save(); } }
-  if (BK.away && HAS.h2 && F.baker >= 2 && !BK.move && !rising) { bakerPlace(); BK.pop = 0.001; g.scale.setScalar(0.01); BK.arr = 25; burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); }
+  if (BK.away && HAS.h2 && F.baker >= 2 && !BK.move && !rising) { BK.away = 0; BK.move = { t: 1.0 }; } /* her corner is bought: off from the fire on foot */
   BK.arr = Math.max(0, BK.arr - dt);
   if (eatSp.visible) { eatSp.t -= dt; eatSp.position.set(pp.x, 2.2 + (1.6 - eatSp.t) * 0.3, pp.z); eatSp.material.opacity = Math.min(1, eatSp.t * 2); if (eatSp.t <= 0) eatSp.visible = false; }
   pieT -= dt; if (pieT <= 0) { pieT = 0.5; pieEat(); }
@@ -7939,6 +7943,96 @@ function landKeep(p) {
   if (typeof GD !== 'undefined' && GD.walls) GD.walls.forEach((m) => { mesaOut(m, p, 0.25); });
 }
 ISLAND.petRoute = landRoute; ISLAND.petLand = landKeep; ISLAND.petLine = landLine;
+/* ---------- freed friends walk home (Leon, 2026-11-28: "when we free a villager they teleport, lets have them walk
+   back to the settlement") ----------
+   A friend Pip has helped used to do two happy hops, vanish in a puff and pop up at the camp. Now they set off on foot:
+   over the owned squares and the bridges, the same way the pets find (isledog.js), wading through the marsh's raft
+   channel and over a bridge the tide has covered. The stone island has no way home over land until the shortcut is
+   built, so the mason goes the way Pip came: down the lift, through the mine, and up the stairs by the village green.
+   The miner climbs the mine's stairs and comes out there too. A friend whose street is still under the sea walks to the
+   fire and waits, and walks on to the house once Pip buys that corner.
+   walkStart(g, x, z) plans the way for the model g (null: there is no way, so the old puff is used); walkStep(W, g, dt)
+   moves g along it and says true once it is there. Nothing is saved: a friend who was on the way when the game closed
+   is at home next time (their folk state was already set). */
+const WALK_V = 3.0; /* a bit slower than Pip, so Pip can walk along */
+const walkCaveCell = (i, j) => { const k = gIn(i, j) ? AREA_AT[gIdx(i, j)] : -1; return k >= 0 && !!AREAS[k].cave; };
+/* the squares of owned areas left out as water (the marsh's raft channel): a friend wades through */
+function walkHoles() { const H = new Set(); AREAS.forEach((a) => { if (a.holes && HAS[a.id]) a.holes.forEach((h) => H.add(gIdx(a.i + h[0], a.j + h[1]))); }); return H; }
+const walkPass = (i, j, H) => gIn(i, j) && ((owned(i, j) && !walkCaveCell(i, j)) || H.has(gIdx(i, j)));
+/* a point a friend may stand on: land Pip may walk on, a wading square, or out on a built bridge (under the tide too) */
+function walkOk(x, z, H, BR) {
+  const i = gCell(x), j = gCell(z); if (walkCaveCell(i, j)) return false;
+  if (typeof MS !== 'undefined' && MS.list.some((m) => !m.par && !m.pop && Math.abs(x - m.x) < m.w / 2 + 0.2 && Math.abs(z - m.z) < m.d / 2 + 0.2)) return false; /* round the rock tables */
+  if (walkSdf(x, z) < -0.1 || H.has(gIdx(i, j))) return true;
+  return BR.some((B) => segD(x, z, B.b.x0, B.b.z0, B.b.x1, B.b.z1) < 0.7);
+}
+function walkLine(x0, z0, x1, z1, H, BR) { const L = Math.hypot(x1 - x0, z1 - z0), n = Math.ceil(L / 0.4); for (let k = 1; k <= n; k++) { const u = k / n; if (!walkOk(x0 + (x1 - x0) * u, z0 + (z1 - z0) * u, H, BR)) return false; } return true; }
+/* the square to start a search from: the point's own, or the nearest passable one round it */
+function walkCell(x, z, H) {
+  const i = gCell(x), j = gCell(z); if (walkPass(i, j, H)) return [i, j]; let best = null, bd = 1e9;
+  for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) if (walkPass(i + a, j + b, H)) { const d = Math.hypot((i + a) * GS - x, (j + b) * GS - z); if (d < bd) { bd = d; best = [i + a, j + b]; } }
+  return best;
+}
+/* the way over land from (x0, z0) to (x1, z1) as points (cell centres and bridge ends), or null */
+function walkSurf(x0, z0, x1, z1) {
+  const H = walkHoles(), BR = landBridges(), A = walkCell(x0, z0, H), B = walkCell(x1, z1, H); if (!A || !B) return null;
+  const N = GWN * GWN, from = new Int32Array(N).fill(-2), via = new Array(N), Q = [A[0], A[1]]; from[gIdx(A[0], A[1])] = -1;
+  const link = (i, j) => { const o = []; BR.forEach((R) => { if (R.a[0] === i && R.a[1] === j) o.push([R.c, R, 0]); else if (R.c[0] === i && R.c[1] === j) o.push([R.a, R, 1]); }); return o; };
+  let hit = false;
+  for (let h = 0; h < Q.length && !hit; h += 2) { const i = Q[h], j = Q[h + 1], me = gIdx(i, j);
+    const go = (ni, nj, br) => { const n = gIdx(ni, nj); if (from[n] !== -2) return; from[n] = me; via[n] = br; Q.push(ni, nj); if (ni === B[0] && nj === B[1]) hit = true; };
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([a, b]) => { if (walkPass(i + a, j + b, H)) go(i + a, j + b, null); });
+    link(i, j).forEach(([c, R, back]) => go(c[0], c[1], back ? [[R.b.x1, R.b.z1], [R.b.x0, R.b.z0]] : [[R.b.x0, R.b.z0], [R.b.x1, R.b.z1]])); }
+  if (from[gIdx(B[0], B[1])] === -2 && !(A[0] === B[0] && A[1] === B[1])) return null;
+  const P = [[x1, z1]]; let n = gIdx(B[0], B[1]);
+  while (from[n] >= 0) { const i = Math.floor(n / GWN) + GI0, j = (n % GWN) + GI0; if (via[n]) { P.push(via[n][1], via[n][0]); } else P.push([i * GS, j * GS]); n = from[n]; }
+  P.reverse(); return { P, H, BR };
+}
+/* the whole trip: legs over land, and the mine in between when there is no way round above ground */
+function walkStart(g, x1, z1) {
+  const p = g.position, legs = [], out = typeof CAVE_OUT !== 'undefined' && stairsDown ? [CAVE_OUT.x, CAVE_OUT.z] : null;
+  if (inCave && walkCaveCell(gCell(p.x), gCell(p.z))) { /* the miner: to the foot of the stairs, up, and on from the top */
+    if (!out) return null; const S = walkSurf(out[0], out[1], x1, z1); if (!S) return null;
+    legs.push({ cave: [CAVE_IN.x, CAVE_IN.z] }, { tun: out }, S); }
+  else { const S = walkSurf(p.x, p.z, x1, z1);
+    if (S) legs.push(S);
+    else { if (!out || !LIFT.topOut) return null; const a = walkSurf(p.x, p.z, LIFT.topOut.x, LIFT.topOut.z), b = walkSurf(out[0], out[1], x1, z1); if (!a || !b) return null;
+      legs.push(a, { tun: out, down: [LIFT.top.x, LIFT.top.z] }, b); } }
+  return { legs, L: 0, k: 0, t: 0, look: 0, ph: Math.random() * 6, best: 1e9, stuck: 0, gone: 0, all: 0 };
+}
+const walkNear = (x, z, r) => Math.hypot(pip.position.x - x, pip.position.z - z) < (r || 14);
+function walkStep(W, g, dt) {
+  const p = g.position, Lg = W.legs[W.L]; W.all += dt; if (!Lg) return true;
+  /* down into the lift, or into the stairs: shrink away, a while under the hill, then up out of the stairs by the green */
+  if (Lg.tun) { W.t += dt;
+    if (!W.gone) { const s = Math.max(0.01, 1 - W.t / 0.45); g.scale.setScalar(s); p.y = -0.25 * (1 - s); if (W.t >= 0.45) { W.gone = 1; g.visible = false; if (walkNear(p.x, p.z)) Snd.play('whoosh', { gain: 0.3, f: 260 }); } return false; }
+    if (W.t < 4.5) return false;
+    if (W.gone === 1) { W.gone = 2; p.set(Lg.tun[0], 0, Lg.tun[1]); g.visible = true; W.t = 4.5; if (walkNear(p.x, p.z)) { Snd.play('pop', { gain: 0.35, f: 560 }); burst(p.x, 0.8, p.z, 6); } }
+    const u = Math.min(1, (W.t - 4.5) / 0.4); g.scale.setScalar(Math.max(0.01, u)); p.y = Math.sin(u * Math.PI) * 0.3; if (u >= 1) { g.scale.setScalar(1); p.y = 0; W.L++; W.t = 0; W.gone = 0; } return false; }
+  /* where to head: in the mine straight for the stairs; above ground the furthest point of the way in plain sight */
+  let tx, tz;
+  if (Lg.cave) { [tx, tz] = Lg.cave; }
+  else { const P = Lg.P; W.look -= dt;
+    if (W.look <= 0) { W.look = 0.25; for (let j = Math.min(P.length - 1, W.k + 6); j > W.k; j--) if (walkLine(p.x, p.z, P[j][0], P[j][1], Lg.H, Lg.BR)) { if (j !== W.k) { W.k = j; W.best = 1e9; } break; } }
+    [tx, tz] = P[W.k]; }
+  const dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz), last = Lg.cave || W.k >= Lg.P.length - 1;
+  if (d < (last ? 0.12 : 0.5)) { if (!last) { W.k++; W.best = 1e9; return false; } W.L++; W.k = 0; W.best = 1e9; return W.L >= W.legs.length; }
+  const st = Math.min(d, WALK_V * dt); p.x += dx / d * st; p.z += dz / d * st;
+  if (Lg.cave) { if (typeof mineSdf === 'function') { const s = mineSdf(p.x, p.z); if (s > -0.3) { const e = 0.05, gx = mineSdf(p.x + e, p.z) - mineSdf(p.x - e, p.z), gz = mineSdf(p.x, p.z + e) - mineSdf(p.x, p.z - e), l = Math.hypot(gx, gz); if (l > 1e-5) { p.x -= gx / l * (s + 0.3); p.z -= gz / l * (s + 0.3); } } } }
+  else if (typeof MS !== 'undefined') MS.list.forEach((m) => { if (!m.par && !m.pop) mesaOut(m, p, 0.25); });
+  /* a little waddle, turned the way they go; knee-deep where there is water */
+  W.ph += dt * 9; let yaw = Math.atan2(dx, dz) - g.rotation.y; yaw = Math.atan2(Math.sin(yaw), Math.cos(yaw)); g.rotation.y += yaw * Math.min(1, dt * 8);
+  const wet = !Lg.cave && walkSdf(p.x, p.z) > -0.05;
+  p.y = (Lg.cave ? MINE_Y : 0) + (wet ? -0.3 : 0) + Math.abs(Math.sin(W.ph)) * (wet ? 0.04 : 0.1); g.rotation.z = reduced ? 0 : Math.sin(W.ph) * 0.07;
+  if (wet && !reduced && Math.random() < dt * 4) splash(p.x, 0.05, p.z, 2);
+  /* stuck on a corner: a hop to the next point; a walk that takes ever so long ends there */
+  if (d < W.best - 0.05) { W.best = d; W.stuck = 0; } else W.stuck += dt;
+  if (W.stuck > 3) { W.stuck = 0; W.best = 1e9; p.x = tx; p.z = tz; burst(p.x, 0.8, p.z, 5); }
+  if (W.all > 120) { W.L = W.legs.length; return true; }
+  return false;
+}
+/* back on their feet where they stand still */
+function walkEnd(g) { g.position.y = 0; g.rotation.z = 0; g.scale.setScalar(1); g.visible = true; }
 /* ---------- gear against the islands' obstacles (Leon's vision for Pips Island, 2026-11-24) ----------
    No fighting: each obstacle has a piece of gear that gets Pip past it, bought in the build menu once Pip has met it.
      torch:      the cave stairs are pitch dark; spider webs cover the bridges to the stone island and the winter island;
@@ -8281,8 +8375,8 @@ const LOOP_MON = {
   lighthouse: { isle: 'stone', need: () => HAS.s2 && (folk().mason || 0) >= 2, area: 's2', cost: { stone: 50, log: 20, crystal: 6, iron: 4 } },
   tower: { isle: 'winter', need: () => HAS.w1 && (folk().knitter || 0) >= 2, area: 'w1', cost: { crystal: 20, stone: 30, log: 30 } },
   sluice: { isle: 'marsh', need: () => HAS.r0 && HAS.r1 && HAS.r2 && (folk().fisher || 0) >= 2, area: 'r2', cost: { log: 60, stone: 30, reed: 10 } },
-  bell: { isle: 'coral', need: () => HAS.c0 && HAS.c1 && (folk().diver || 0) >= 2, area: 'c0', cost: { stone: 60, crystal: 10, pearl: 7 } },
-  hearth: { isle: 'ember', need: () => HAS.e0 && (folk().glass || 0) >= 2, area: 'e0', cost: { stone: 70, crystal: 16, ember: 6 } },
+  bell: { isle: 'coral', need: () => HAS.c0 && HAS.c1 && HAS.c2 && (folk().diver || 0) >= 2, area: 'c2', cost: { stone: 60, crystal: 10, pearl: 7 } },
+  hearth: { isle: 'ember', need: () => HAS.e0 && HAS.e1 && (folk().glass || 0) >= 2, area: 'e1', cost: { stone: 70, crystal: 16, ember: 6 } },
   /* the last wonder: its plot shows as soon as the harbour stands, so the goal is in sight all game, but it takes a find
      from every island (honey: meadow, iron: stone, reeds: marsh, pearls: coral, ember: volcano, crystals: winter and mine) */
   belfry: { isle: 'home', need: () => HAS.h3 && !!mons().harbor && goldAll(), /* the bell is cast from the seven golden gifts: its plot waits until all seven stand on their pedestals (gold.js) */ area: 'h3', cost: { honey: 4, iron: 4, reed: 4, pearl: 4, ember: 4, crystal: 20 } }
@@ -8641,9 +8735,11 @@ function loopStep(dt) {
     if (P.pop2 && P.house) { P.pop2 = Math.min(1, P.pop2 + dt * 1.6); P.house.scale.setScalar(P.pop2 < 0.7 ? P.pop2 / 0.7 * 1.08 : 1.08 - (P.pop2 - 0.7) / 0.3 * 0.08); if (P.pop2 >= 1) { P.pop2 = 0; P.house.scale.setScalar(1); } }
     if (P.move) { const M = P.move; M.t += dt;
       if (M.t < 1.0) g.position.y = Math.abs(Math.sin(M.t * Math.PI * 2)) * 0.35;
+      else if (M.w === undefined) { const [x, z] = loopSpot(id); M.w = walkStart(g, x, z); M.t = 1.0; } /* two happy hops, then off home on foot (walkhome.js) */
+      else if (M.w) { if (walkStep(M.w, g, dt)) { P.move = null; walkEnd(g); loopPlace(id); g.rotation.y = Math.atan2(pp.x - g.position.x, pp.z - g.position.z); P.hop = 1; P.arr = 25; Snd.play('pop', { gain: 0.35, f: 640 }); isleSigns(); save(); } }
       else if (M.t < 1.35) { g.scale.setScalar(Math.max(0.01, 1 - (M.t - 1.0) / 0.35)); if (!M.puff) { M.puff = 1; Snd.play('whoosh', { gain: 0.4 }); burst(g.position.x, 0.8, g.position.z, 6); } }
       else { P.move = null; g.position.y = 0; loopPlace(id); P.pop = 0.001; g.scale.setScalar(0.01); P.arr = 25; Snd.play('pop', { gain: 0.4, f: 640 }); burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); save(); } }
-    if (P.away && HAS[HOUSES[id].area || 'h1'] && F >= 2 && !P.move && !rising) { loopPlace(id); P.pop = 0.001; g.scale.setScalar(0.01); P.arr = 25; isleSigns(); }
+    if (P.away && HAS[HOUSES[id].area || 'h1'] && F >= 2 && !P.move && !rising) { P.away = 0; P.move = { t: 1.0 }; } /* the street is bought: off from the fire to the house */
     P.arr = Math.max(0, P.arr - dt);
     if (!g.visible || P.move) return;
     P.hop = Math.max(0, P.hop - dt * 1.6); g.position.y = P.hop > 0 ? Math.abs(Math.sin(P.hop * Math.PI * 3)) * 0.3 : (LP.partyT > 0 && F >= 3 ? Math.abs(Math.sin(time * 6 + id.length)) * 0.25 : 0);
