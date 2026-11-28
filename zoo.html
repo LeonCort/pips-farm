@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261127215038">
+<meta name="app-ver" content="20261127233917">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1466,7 +1466,7 @@ function hAt(x, z) { const d = isleD(x, z); return d < 1 ? 0 : -Math.min(1.6, (d
 function segD(x, z, x0, z0, x1, z1) { const dx = x1 - x0, dz = z1 - z0, t = clamp(((x - x0) * dx + (z - z0) * dz) / (dx * dx + dz * dz), 0, 1); return Math.hypot(x - x0 - dx * t, z - z0 - dz * t); }
 function roadKind(x, z) {
   if (Math.hypot(x, z) < ISL.plaza) return 2;
-  let k = 0; for (const r of ROADS) if (segD(x, z, r[0], r[1], r[2], r[3]) < r[4]) { if (r[5] === 2) return 2; k = 1; }
+  let k = 0; for (const r of ROADS) { const w = r[4]; if (x < Math.min(r[0], r[2]) - w || x > Math.max(r[0], r[2]) + w || z < Math.min(r[1], r[3]) - w || z > Math.max(r[1], r[3]) + w) continue; /* a game may have many roads (the island's trails) */ if (segD(x, z, r[0], r[1], r[2], r[3]) < w) { if (r[5] === 2) return 2; k = 1; } }
   if (k) return k;
   if (RING) { const e = Math.hypot(x / RING.rx, z / RING.rz); if (Math.abs(e - 1) * (RING.rx + RING.rz) / 2 < RING.w) return 1; }
   return 0;
@@ -1518,10 +1518,12 @@ function paintGroundTex() {
   for (let py = 0; py < MH; py++) for (let px = 0; px < MW; px++) {
     const x = (px + 0.5) / MW * GRW + GRX0, z = (py + 0.5) / MH * GRH + GRZ0;
     const wx = x + Math.sin(z * 2.3 + x * 0.7) * 0.09 + Math.sin(z * 5.1) * 0.04, wz = z + Math.sin(x * 2.1 - z * 0.5) * 0.09 + Math.sin(x * 4.7) * 0.04;
-    const k = isleD(x, z) < 0.99 && (!ISL.roadOk || ISL.roadOk(x, z)) ? roadKind(wx, wz) : 0, o = (py * MW + px) * 4; K[py * MW + px] = k;
+    const k = (ISL.roadShow ? ISL.roadShow(x, z) : isleD(x, z) < 0.99 && (!ISL.roadOk || ISL.roadOk(x, z))) ? roadKind(wx, wz) : 0, o = (py * MW + px) * 4; K[py * MW + px] = k;
     id.data[o] = k === 1 ? 255 : 0; id.data[o + 1] = k === 2 ? 255 : 0; id.data[o + 3] = 255;
   }
   mx.putImageData(id, 0, 0); GMASK = { K, W: MW, H: MH };
+  /* a softer edge for a game whose mask is coarse for its world (the island): down to half size and up again, which blurs the stair steps (no canvas filter: tablets lack it) */
+  if (ISL.maskSoft) { const t = document.createElement('canvas'); t.width = MW >> 1; t.height = MH >> 1; const tx = t.getContext('2d'); tx.imageSmoothingEnabled = true; tx.drawImage(mc, 0, 0, MW >> 1, MH >> 1); mx.imageSmoothingEnabled = true; mx.drawImage(t, 0, 0, MW, MH); t.width = t.height = 1; }
   /* overgrown edges: grass blades reaching from the verge onto the dirt */
   mx.strokeStyle = '#000'; mx.lineWidth = 1.3; mx.lineCap = 'round'; mx.beginPath();
   for (let i = 0; i < 26000 * GN; i++) { const px = Math.floor(hash(i, 3.1) * MW), py = Math.floor(hash(i, 5.7) * MH), k = K[py * MW + px]; if (k !== 1) continue;

@@ -57,6 +57,7 @@ function mapDraw() {
   /* the stairs down, the boat to the farm, the camp */
   if (HAS.h3 && stairsDown) { const [px, pz] = mapXY(stairsDown.x, stairsDown.z); mapBadge(x, px, pz, 24, '#3b3348'); isleIcon(x, 'stairsDown', px, pz + 2, 0.75); }
   { const [px, pz] = mapXY(FERRY.x - 2.6, FERRY.z); isleIcon(x, 'travel', px, pz, 0.9); }
+  Object.keys(DK.d).forEach((k) => { const d = DK.d[k], [px, pz] = mapXY(d.mx, d.mz); mapBadge(x, px, pz, 17, '#e8f4fb'); isleIcon(x, 'travel', px, pz, 0.55); }); /* the docks the island boat sails between */
   { const [px, pz] = mapXY(FIRE.x, FIRE.z - 0.6); mapBadge(x, px, pz, 34); isleIcon(x, 'camp', px - 2, pz, 1.15); }
   /* the monuments: pale until built */
   Object.keys(LOOP_SITES).forEach((id) => { const st = LOOP_SITES[id], [px, pz] = mapXY(st.x, st.z), up = !!mons()[id]; x.globalAlpha = up ? 1 : 0.4; mapBadge(x, px, pz, 34, up ? '#fff6e4' : '#e9e2d2'); isleIcon(x, id, px, pz, 1.2); x.globalAlpha = 1;
@@ -88,7 +89,7 @@ function mapHintSpots(t) {
   else if (KINDS.indexOf(t) >= 0) AREAS.forEach((A) => { if (!A.cave && HAS[A.id] && MAP_RES[A.biome] === t) out.push({ t, x: A.cx, z: A.cz, need: null }); });
   return out;
 }
-function mapOpen(hint) { if (!MP.el || !MP.el.hidden) return; MP.hint = typeof hint === 'string' ? hint : null; if (enSleep || rising || LP.hop) return; if (BM.menu && !BM.menu.hidden) BM.menu.hidden = true; mapDraw(); MP.el.hidden = false; work = null; target.copy(pip.position); Snd.play('pop', { gain: 0.3, f: 520 }); }
+function mapOpen(hint) { if (!MP.el || !MP.el.hidden) return; MP.hint = typeof hint === 'string' ? hint : null; if (enSleep || rising || dockBusy()) return; if (BM.menu && !BM.menu.hidden) BM.menu.hidden = true; mapDraw(); MP.el.hidden = false; work = null; target.copy(pip.position); Snd.play('pop', { gain: 0.3, f: 520 }); }
 function mapShut() { if (MP.el.hidden) return; MP.el.hidden = true; Snd.play('pop', { gain: 0.25, f: 380 }); }
 function mapInit() {
   if (MP.btn || SHOW) return;

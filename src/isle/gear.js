@@ -9,7 +9,10 @@ const GEAR = {
   torch: { cost: { honey: 3, log: 8, coin: 6 }, eff: ['web', 'bees', 'dark'] },
   coat: { cost: { berry: 14, log: 6, coin: 12 }, eff: ['rain'] },
   boots: { cost: { reed: 4, log: 16, coin: 18 }, eff: ['snowDeep'] },
-  lantern: { cost: { ember: 2, honey: 2, coin: 20 }, eff: ['dark'] } /* the dark night (night.js) */
+  lantern: { cost: { ember: 2, honey: 2, coin: 20 }, eff: ['dark'] }, /* the dark night (night.js) */
+  /* the bigger islands (Leon, 2026-11-27: "a scooter or thing to move around the islands at a quicker pace"): after a few
+     steps of walking Pip hops on and rolls, faster still along a trail (wear.js). Its card comes after the first long walk. */
+  scooter: { cost: { copper: 3, log: 20, coin: 20 }, eff: ['trail'] }
 };
 Object.keys(GEAR).forEach((k) => { BLD[k] = { max: 2, cost: [null, null, GEAR[k].cost], pic: [null, k, k] }; });
 const gearHas = (k) => bldLv(k) >= 2;
@@ -35,7 +38,14 @@ function gearIcon(x, t) {
     x.beginPath(); x.arc(0, -17, 8, Math.PI, 0); x.lineWidth = 3; x.stroke(); x.beginPath(); x.roundRect(-11, -16, 22, 6, 2); blob('#4a4f57');
     x.beginPath(); x.roundRect(-9, -10, 18, 24, 3); blob('#ffe07a'); x.beginPath(); x.moveTo(0, 8); x.quadraticCurveTo(-6, 0, 0, -6); x.quadraticCurveTo(6, 0, 0, 8); x.fillStyle = '#f2a13c'; x.fill();
     x.beginPath(); x.roundRect(-13, 14, 26, 7, 2); blob('#4a4f57');
-  } else if (t === 'web') {
+  } else if (t === 'scooter') {
+    x.lineWidth = 7; x.strokeStyle = PAL.ink; x.beginPath(); x.moveTo(-16, 12); x.lineTo(8, 12); x.lineTo(14, -18); x.stroke(); x.lineWidth = 3.5; x.strokeStyle = '#e0503c'; x.stroke();
+    x.lineWidth = 7; x.strokeStyle = PAL.ink; x.beginPath(); x.moveTo(6, -19); x.lineTo(22, -17); x.stroke(); x.lineWidth = 3; x.strokeStyle = '#4a4f57'; x.stroke(); x.strokeStyle = PAL.ink;
+    [[-17, 17], [13, 17]].forEach(([a, b]) => { x.beginPath(); x.arc(a, b, 6.5, 0, 7); blob('#fff6e4'); x.beginPath(); x.arc(a, b, 2, 0, 7); x.fillStyle = PAL.ink; x.fill(); });
+  } else if (t === 'trail') {
+    x.beginPath(); x.roundRect(-22, -22, 44, 44, 10); blob('#9fd36a');
+    x.lineCap = 'round'; x.lineWidth = 12; x.strokeStyle = PAL.ink; x.beginPath(); x.moveTo(-12, 20); x.bezierCurveTo(-14, 2, 16, 6, 10, -20); x.stroke(); x.lineWidth = 7; x.strokeStyle = '#d9a86c'; x.stroke(); x.lineWidth = 3; x.strokeStyle = PAL.ink;
+
     x.lineWidth = 2.2; x.strokeStyle = '#6e7c88'; x.beginPath(); for (let q = 0; q < 8; q++) { const a = q / 8 * 6.283; x.moveTo(0, 0); x.lineTo(Math.cos(a) * 22, Math.sin(a) * 22); } x.stroke();
     [7, 14, 21].forEach((r) => { x.beginPath(); for (let q = 0; q <= 8; q++) { const a = q / 8 * 6.283; x.lineTo(Math.cos(a) * r, Math.sin(a) * r); } x.stroke(); });
     x.lineWidth = 3; x.strokeStyle = PAL.ink; x.beginPath(); x.arc(6, 4, 5, 0, 7); blob('#3a3340');
@@ -171,6 +181,7 @@ function gearStep(dt) {
   /* the hints for rain and snow, while Pip is out in it */
   const moving = Math.hypot(target.x - pip.position.x, target.z - pip.position.z) > 0.3;
   if (gearWet() && (work || moving) && !enSleep) gearHint('coat');
+  if (!gearHas('scooter') && !inCave && pipWalk > 4 && (areaAt(pip.position.x, pip.position.z) || { id: 'h' }).id[0] !== 'h') gearHint('scooter'); /* a long walk on a far island: time for wheels */
   if (gearSnow() && moving) { gearHint('boots'); if (!reduced && Math.random() < dt * 6) smokePuff(pip.position.x + (Math.random() - 0.5) * 0.4, 0.1, pip.position.z + (Math.random() - 0.5) * 0.4, '#ffffff'); }
 }
 function gearGot(k) {

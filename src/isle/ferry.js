@@ -58,4 +58,4 @@ function ferryStep(dt) {
   else if (T0.st === 'land') { const q = Math.min(1, T0.t / 0.7); pp.lerpVectors(T0.from, tmpV.set(FERRY.x + FERRY.pad + 1.3, 0, FERRY.z), q); pp.y += Math.sin(q * Math.PI) * 0.6; pip.rotation.y = Math.PI / 2;
     if (q >= 1) { pp.y = 0; target.copy(pp); FB.trip = null; Snd.play('pop', { gain: 0.4, f: 520 }); } }
 }
-const ferryBusy = () => !!FB.trip;
+const ferryBusy = () => !!FB.trip || dockBusy();

@@ -54,7 +54,10 @@ function hamCrate(id) {
 }
 function hamFolk(id, k) {
   const D = HAM_DEF[id], A = HAMLET_AT[id], V = HAM.v[id], g = new T.Group(), b = guestModel2(D.kind); b.scale.setScalar(1.15); g.add(b); sc.add(g);
-  const h = A.h[[0, 1, 3, 5][k]], door = [h[0] + Math.sin(h[2]) * 1.05, h[1] + Math.cos(h[2]) * 1.05], by = [A.crate[0] + [-0.75, 0.75, 0.2, -0.3][k], A.crate[1] + [0.35, 0.35, -0.75, -0.8][k]];
+  const h = A.h[[0, 1, 3, 5][k]], door = [h[0] + Math.sin(h[2]) * 1.05, h[1] + Math.cos(h[2]) * 1.05];
+  /* the first keeps the crate; the others stroll from their door out along the trail their cottage stands by, and back */
+  let by = [A.crate[0] + [-0.75, 0.75, 0.2, -0.3][k], A.crate[1] + [0.35, 0.35, -0.75, -0.8][k]];
+  if (k) { const q = trailNear(door[0], door[1]).p, l = Math.hypot(q[2], q[3]) || 1, w = trailNear(q[0] + q[2] / l * 3.4 * (k % 2 ? 1 : -1), q[1] + q[3] / l * 3.4 * (k % 2 ? 1 : -1)).p; by = [w[0], w[1]]; }
   V.folk.push({ g, a: k ? door : by, b: by, u: k ? 0 : 1, dir: 1, rest: k ? k * 1.7 : 1e9, k }); g.position.set(k ? door[0] : by[0], 0, k ? door[1] : by[1]); return g;
 }
 /* a lantern post, and for the biggest village a flag in the roof colour: what a bigger village has besides more houses */
