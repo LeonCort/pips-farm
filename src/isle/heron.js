@@ -13,7 +13,7 @@ const HR = { shore: null, g: null, bird: null, at: 0, fly: 0, rot: 0, bow: 0, bu
 const heronS = () => state.isle.heron || (state.isle.heron = {});
 const HERON_NOTE = [261.6, 329.6, 392, 440, 523.3], HERON_ORDER = [0, 2, 1, 3, 4], HERON_TUNE = [0, 2, 4, 2, 3, 4, 3, 1, 0, 2, 4];
 const HERON_FROG = [[2.0, '#4f9a3c'], [1.7, '#86c44a'], [1.45, '#3fae8c'], [1.2, '#c9d44a'], [1.0, '#e9903c']];
-const HERON_BAY = [-27.7, 39.9], HERON_Y = -0.385; /* the middle of the frogs' bay; how high a giant pad's top lies */
+const HERON_BAY = [-27.7, 39.9], HERON_Y = -0.33; /* the middle of the frogs' bay; how high a giant pad's top lies */
 const heronSide = (x, z) => (z > 30.4 && z < 44 && x > -35 && x < -21 ? 1 : 0); /* 1: on the isle's side of the lake */
 ISLE_ICON.heron = (x) => { const blob = (f) => { x.fillStyle = f; x.fill(); x.stroke(); };
   x.beginPath(); x.moveTo(-5, 8); x.lineTo(-5, 22); x.moveTo(1, 8); x.lineTo(2, 22); x.lineWidth = 2.6; x.stroke(); x.lineWidth = 3;
@@ -110,7 +110,7 @@ function heronSedge(L, x, z, sd, col) { for (let j = 0; j < 5; j++) { const h = 
 /* ---- the marsh shore: the heron, the bud on its pad, and a trail of small pads leading out over the lake ---- */
 function heronShoreBuild() {
   const g = HR.shore = new T.Group(); sc.add(g); const L = [], [bx, bz] = HERON.bud;
-  heronPad(L, bx, bz, 0.95, 7300, -0.4);
+  heronPad(L, bx, bz, 0.95, 7300, -0.36);
   [[-0.9, 1.1, 0.26], [0.2, 1.9, 0.3], [-0.5, 2.7, 0.22], [0.9, 1.0, 0.2], [1.5, 0.3, 0.28], [-1.6, 0.2, 0.24], [0.7, 3.2, 0.18], [-1.4, 2.0, 0.17], [2.3, 1.3, 0.2], [-2.5, 0.9, 0.22]].forEach(([dx, dz, r], k) => { heronSmallPad(L, bx + dx, bz + dz, r, 7310 + k); if (k % 3 === 0) heronBloom(L, k % 2 ? 'white' : 'pink', 0.9, 0.22, bx + dx + 0.03, -0.4, bz + dz, 7330 + k * 60); });
   heronMesh(L, g, false);
   HR.budM = new T.Mesh(new T.BufferGeometry(), MAT); HR.budM.castShadow = true; HR.budM.receiveShadow = false; g.add(HR.budM); HR.budO = -1; heronBudSet(heronS().open ? 1 : 0);
@@ -119,7 +119,7 @@ function heronShoreBuild() {
   HR.rings = [0, 1].map((k) => { const p = k ? HERON.ring1 : HERON.ring0, r = ringMake({ x: p[0], z: p[1], icon: 'heron', ok: () => HAS.r5 && !rising && HR.at === k && !HR.busy && !SC.ride && !HR.openT, go: () => heronRide(1 - k) }); r.ring.rotation.x = -Math.PI / 2; return r; });
   nightLamp(bx, bz, 3.2);
 }
-function heronBudSet(o) { if (Math.abs(o - HR.budO) < 0.004) return; HR.budO = o; const L = []; heronBloom(L, 'bud', o, 1.9 - o * 0.35, HERON.bud[0], -0.37, HERON.bud[1], 7400); const old = HR.budM.geometry; HR.budM.geometry = heronFlat(L); old.dispose(); }
+function heronBudSet(o) { if (Math.abs(o - HR.budO) < 0.004) return; HR.budO = o; const L = []; heronBloom(L, 'bud', o, 1.9 - o * 0.35, HERON.bud[0], -0.33, HERON.bud[1], 7400); const old = HR.budM.geometry; HR.budM.geometry = heronFlat(L); old.dispose(); }
 const heronSpot = (k) => (k ? HERON.land : HERON.shore), heronFace = (k) => (k ? 1.05 : Math.atan2(HERON.bud[0] - HERON.shore[0], HERON.bud[1] - HERON.shore[1]));
 function heronStand(k, snap) { const p = heronSpot(k), B = HR.bird; HR.at = k; B.g.position.set(p[0], 0, p[1]); if (snap) { HR.rot = heronFace(k); B.g.rotation.y = HR.rot; } }
 /* the way over the lake: out from the marsh shore, east along the lake, round the isle and its tree, in over the west arm */
@@ -166,16 +166,16 @@ function heronWillow(g) {
   /* the crown */
   const C = [], leaf = (sd, lo) => (cx, cy, cz, i) => leafY(['#8fbf5a', '#a3cc66', '#7fb052', '#b4d57a'][sd % 4], cy, lo, lo + 1.5, i, 0.5);
   [[0, 5.0, 0, 1.15], [0.8, 4.75, 0.3, 0.95], [-0.7, 4.7, 0.5, 0.95], [-0.3, 4.75, -0.8, 1.0], [0.6, 4.6, -0.7, 0.9]].forEach(([x, y, z, r], k) => { q = ico(r, 1, 7600 + k, 0.1); q.scale(1, 0.62, 1); q.translate(x, y, z); C.push(fac(q, leaf(k, y - 0.6), 7600 + k)); });
-  for (let k = 0; k < 9; k++) { const a = k / 9 * 6.2832, r = 0.95 + hash(k, 7611) * 0.25; q = ico(r, 1, 7620 + k, 0.1); q.scale(1, 0.55, 1); q.translate(Math.cos(a) * 1.75, 4.3 + hash(k, 7612) * 0.25, Math.sin(a) * 1.75); C.push(fac(q, leaf(k + 1, 3.8), 7620 + k)); }
+  for (let k = 0; k < 9; k++) { const a = k / 9 * 6.2832, r = 0.8 + hash(k, 7611) * 0.2; q = ico(r, 1, 7620 + k, 0.1); q.scale(1, 0.55, 1); q.translate(Math.cos(a) * 1.6, 4.3 + hash(k, 7612) * 0.25, Math.sin(a) * 1.6); C.push(fac(q, leaf(k + 1, 3.8), 7620 + k)); }
   heronMesh(C, g, true);
   /* the curtains: strands of long leaves, shorter to the south, where the bay and the golden lily are */
   const SL = [[], [], [], [], [], []], SP = [[], [], [], [], [], []], PY = 4.3;
   const strand = (a, r, y0, len, sd) => { const sec = Math.floor(((a % 6.2832) + 6.2832) % 6.2832 / 6.2832 * 6), n = Math.max(2, Math.round(len / 0.5)), seg = len / n; let x = Math.cos(a) * r, z = Math.sin(a) * r;
-    for (let j = 0; j < n; j++) { const y = y0 - j * seg, w = 0.085 - j * 0.006; q = new T.ConeGeometry(w, seg * 1.25, 3); q.scale(1, 1, 0.45); q.rotateX(Math.PI); q.rotateY(a + hash(sd, j) * 2); q.translate(x, y - seg * 0.55 - PY, z);
+    for (let j = 0; j < n; j++) { const y = y0 - j * seg, w = 0.125 - j * 0.008; q = new T.ConeGeometry(w, seg * 1.25, 3); q.scale(1, 1, 0.45); q.rotateX(Math.PI); q.rotateY(a + hash(sd, j) * 2); q.translate(x, y - seg * 0.55 - PY, z);
       SL[sec].push(fac(q, (cx, cy, cz, i) => tone(['#8fbf5a', '#9cc862', '#aed26e', '#bfdc7c', '#cbe487', '#d5ea92'][Math.min(5, j + (sd % 2))], i + sd, 0.35), sd * 7 + j));
       if (j > 0 || hash(sd, 77) > 0.5) SP[sec].push(x + (hash(sd, j + 9) - 0.5) * 0.08, y - PY - (hash(sd, j + 19)) * seg * 0.6, z + (hash(sd, j + 29) - 0.5) * 0.08);
       x += (hash(sd, j + 40) - 0.5) * 0.07 - Math.cos(a) * 0.02; z += (hash(sd, j + 50) - 0.5) * 0.07 - Math.sin(a) * 0.02; } };
-  for (let k = 0; k < 66; k++) { const a = k / 66 * 6.2832 + hash(k, 7701) * 0.06, south = Math.sin(a) > 0.35 ? 0.42 + 0.3 * (1 - Math.sin(a)) : 1; strand(a, 2.2 + hash(k, 7702) * 0.55, 4.25 + hash(k, 7703) * 0.3, (2.0 + hash(k, 7704) * 1.0) * south, 7710 + k); }
+  for (let k = 0; k < 84; k++) { const a = k / 84 * 6.2832 + hash(k, 7701) * 0.06, south = Math.sin(a) > 0.35 ? 0.42 + 0.3 * (1 - Math.sin(a)) : 1; strand(a, 2.25 + hash(k, 7702) * 0.6, 4.2 + hash(k, 7703) * 0.3, (2.3 + hash(k, 7704) * 1.0) * south, 7710 + k); }
   for (let k = 0; k < 30; k++) { const a = k / 30 * 6.2832 + 0.1, south = Math.sin(a) > 0.2 ? 0.5 : 1; strand(a, 1.25 + hash(k, 7801) * 0.5, 4.35 + hash(k, 7802) * 0.3, (1.3 + hash(k, 7803) * 0.8) * south, 7810 + k); }
   HR.sect = SL.map((S, k) => { const s = new T.Group(); s.position.set(0, PY, 0); g.add(s); heronMesh(S, s, true); const pts = heronPoints(SP[k], 0.2); s.add(pts); return { g: s, pts, n: SP[k].length / 3 }; });
 }
@@ -196,7 +196,7 @@ function heronFrog(k) {
 SECRET_FILL.r5 = function heronFill(A, fresh) {
   if (HR.g) return; const g = HR.g = new T.Group(); sc.add(g); const L = [], W = [], [tx, tz] = HERON.tree, R = (k, n) => hash(k, n + 8100); let q;
   /* the walking pads: the frogs' five and the causeway over the mouth of the bay */
-  HERON.pads.forEach((p, k) => { heronPad(W, p[0], p[1], k < 5 ? 0.74 + HERON_FROG[k][0] * 0.07 : 0.74 + R(k, 1) * 0.1, 8110 + k * 3, -0.4); });
+  HERON.pads.forEach((p, k) => { heronPad(W, p[0], p[1], k < 5 ? 0.74 + HERON_FROG[k][0] * 0.07 : 0.74 + R(k, 1) * 0.1, 8110 + k * 3, -0.345); });
   /* small pads and lilies on the lake and the bay, clear of the big ones */
   let n = 0; for (let k = 0; k < 500 && n < 74; k++) { const x = -35.6 + R(k, 2) * 15.2, z = 30.4 + R(k, 3) * 13.4, d = gSdf(x, z); if (d < 0.4 || d > 3.4) continue; if (HERON.pads.some((p) => Math.hypot(x - p[0], z - p[1]) < p[2] + 0.2) || Math.hypot(x - HERON.bud[0], z - HERON.bud[1]) < 3.4) continue; n++;
     const r = 0.17 + R(k, 4) * 0.17; heronSmallPad(W, x, z, r, 8200 + k); if (R(k, 5) > 0.52) heronBloom(W, R(k, 6) > 0.5 ? 'pink' : 'white', 0.75 + R(k, 7) * 0.25, 0.2 + R(k, 8) * 0.1, x + 0.03, -0.4, z, 8300 + k * 60); }
@@ -223,12 +223,12 @@ SECRET_FILL.r5 = function heronFill(A, fresh) {
   /* reeds to gather, and a chest on the east arm */
   HERON_REEDS.forEach(([x, z], k) => { const nd = makeNode('reeds', x, z, 9400 + k); if (fresh) { nd.pop = 0.001; nd.g.scale.setScalar(0.01); } });
   if (!state.isle.chests.r5) makeChest(-23.3, 38.3, { coin: 45, reed: 4, pearl: 1 }, 'r5');
-  nightLamp(tx, tz + 1.5, 9.5);
+  nightLamp(tx, tz + 1.5, 9.5); if (typeof grMask === 'function' && typeof GR !== 'undefined' && GR.tex) grMask();
   if (fresh) { tree.scale.setScalar(0.01); HR.grow = 0.001; HR.pan = Math.max(HR.pan, 0.001); HR.frogs.forEach((f) => { f.hop = 0.6 + f.s * 0.2; }); }
 };
 const HERON_REEDS = [[-32.7, 38.5], [-32.4, 40.5], [-23.2, 34.9], [-23.5, 40.9]], HERON_LILY = [HERON.tree[0] + 0.05, HERON.tree[1] + 1.0];
 function heronLilySet(o) { if (Math.abs(o - HR.lilyO) < 0.004) return; HR.lilyO = o; const L = []; heronBloom(L, 'moon', o, 0.8, HERON_LILY[0], 0.06, HERON_LILY[1], 9320); if (o > 0.6) L.forEach((p) => { const c = p.attributes.color; for (let i = 0; i < c.count; i++) c.setXYZ(i, c.getX(i) * 1.0, c.getY(i) * 0.93, c.getZ(i) * 0.72); }); const old = HR.lily.geometry; HR.lily.geometry = heronFlat(L); old.dispose(); }
-function heronRipple(x, z, s) { const r = HR.rip.find((q) => q.t > 1) || HR.rip[0]; if (!r) return; r.t = 0; r.s = s || 1; r.m.position.set(x, -0.4, z); r.m.visible = true; }
+function heronRipple(x, z, s) { const r = HR.rip.find((q) => q.t > 1) || HR.rip[0]; if (!r) return; r.t = 0; r.s = s || 1; r.m.position.set(x, -0.33, z); r.m.visible = true; }
 /* a frog sings its note: the croak, and a bell over it so the tune can be heard */
 function heronCroak(k, soft) { const f = HR.frogs[k]; if (!f) return; f.croak = 1; Snd.play('buzz', { gain: soft ? 0.4 : 0.75, f: HERON_NOTE[k] / 2, dur: 0.26 }); Snd.play('ding', { gain: soft ? 0.3 : 0.55, f: HERON_NOTE[k] }); heronRipple(HERON.pads[k][0], HERON.pads[k][1], 1.1); }
 function heronChoirStep(dt, near) {
@@ -305,7 +305,7 @@ function heronStep(dt) {
   if (HR.openT) { HR.openT += dt; heronBudSet(clamp(HR.openT / 1.4, 0, 1) * clamp(HR.openT / 1.4, 0, 1) * (3 - 2 * clamp(HR.openT / 1.4, 0, 1))); HR.bow = Math.sin(clamp((HR.openT - 0.2) / 1.5, 0, 1) * Math.PI);
     if (HR.openT > 0.2 && !HR.pan) HR.pan = 0.001; if (HR.openT > 1.7 && !HAS.r5 && !rising) secretOpen('r5'); if (HAS.r5 && HR.openT > 1.9) { HR.openT = 0; HR.bow = 0; } }
   if ((HR.pan || HR.openT || HR.sing) && xpUpT > 0) xpUpT = Math.max(xpUpT, 0.6); /* a new level waits until the moment is over */
-  if (HR.pan) { HR.pan += dt; const u = HR.pan, k = clamp(u / 1.2, 0, 1) * clamp((9 - u) / 1.6, 0, 1), e = k * k * (3 - 2 * k); camFocus.set(p.x + (-28.4 - p.x) * e, p.y, p.z + (35.2 - p.z) * e); if (u > 9 || (u > 1.3 && Math.hypot(target.x - p.x, target.z - p.z) > 0.3) || SC.ride) HR.pan = 0; }
+  if (HR.pan) { HR.pan += dt; const u = HR.pan, k = clamp(u / 1.2, 0, 1) * clamp((9 - u) / 1.6, 0, 1), e = k * k * (3 - 2 * k); camFocus.set(p.x + (-28.4 - p.x) * e, p.y, p.z + (35.2 - p.z) * e); if (!HR.panT || u < 1.3) HR.panT = [target.x, target.z]; if (u > 9 || Math.hypot(target.x - HR.panT[0], target.z - HR.panT[1]) > 0.3 || SC.ride) { HR.pan = 0; HR.panT = null; } }
   if (HR.grow) { HR.grow = Math.min(1, HR.grow + dt * 0.55); const u = HR.grow, e = 1 - Math.pow(1 - u, 3); HR.tree.scale.set(e * (1 + Math.sin(u * Math.PI) * 0.06), e * (1 + Math.sin(u * Math.PI) * 0.12), e * (1 + Math.sin(u * Math.PI) * 0.06)); if (HR.grow >= 1) { HR.grow = 0; HR.tree.scale.setScalar(1); } }
   /* the heron: where it stands, how it turns its head, and its flights */
   heronBusy(dt);
