@@ -139,7 +139,7 @@ function bakerBuy(s) {
   return false;
 }
 function ovenLevelUp() { BK.hop = 1; burst(OVEN.x, 1.3, OVEN.z, 10); bldPop = { g: ovenG, t: 0 }; }
-function ovenOpen() { if (!ovenUp() || !BM.menu) return; const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; BM.keys = ['oven', 'sweet']; bldFill(); BM.menu.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); }
+function ovenOpen() { if (!ovenUp() || !BM.menu) return; const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; bldOpen(['oven', 'sweet'], [OVEN_RING.x, OVEN_RING.z]); }
 function bakerGoal() {
   const F = state.isle.folk; if (!F || !BK.g) return null; const pp = pip.position;
   if (F.baker === 2 && BK.arr > 0 && !BK.away && Math.hypot(pp.x - BAKER_AT.x, pp.z - BAKER_AT.z) > 4) return [OVEN_RING.x, OVEN_RING.z];

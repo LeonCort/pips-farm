@@ -152,7 +152,7 @@ function toolUp(k) {
   /* the new pick flies up out of the anvil to Pip */
   const sp = isleSprite(isleBubble(BLD[k].pic[bldLv(k)]), 0.9); sp.position.set(ANVIL.x, 1.0, ANVIL.z); sc.add(sp); SM.gift = { sp, t: 0 };
 }
-function anvilOpen() { if (!forgeUp() || !BM.menu) return; const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; /* a new star's card first */ BM.keys = anvilKeys(); bldFill(); BM.menu.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); }
+function anvilOpen() { if (!forgeUp() || !BM.menu) return; const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; /* a new star's card first */ bldOpen(anvilKeys(), [ANVIL_RING.x, ANVIL_RING.z]); }
 
 function peopleGoal() {
   const bg = bakerGoal() || loopGoal(); if (bg) return bg;
