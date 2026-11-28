@@ -50,7 +50,7 @@ const AREAS = [
      runs through the first square from north to south: the only way over is the pole raft. The second has a pond. */
   { id: 'r0', i: -5, j: 2, biome: 'marsh', cost: { log: 30, stone: 18, berry: 14 }, holes: [[1, 0], [1, 1], [1, 2]], finds: [['reeds', -4.7, -3.4], ['reeds', -3.1, -0.4], ['reeds', -4.8, 1.6]], bridge: { from: 'h2', x0: -5.4, z0: 16.6, x1: -10.6, z1: 16.6 } },
   { id: 'r1', i: -8, j: 2, biome: 'marsh', cost: { log: 36, stone: 24, crystal: 4 }, holes: [[1, 1]], ruin: [4.3, -3.0, 0.1], finds: [['reeds', -2.7, -1.6], ['reeds', 2.8, 1.2], ['reeds', 0.8, 3.0], ['reeds', -1.2, -3.1]] },
-  { id: 'r2', chest: { coin: 18, reed: 3, gear: 'boots' }, chestAt: [3.6, -3.6], i: -8, j: 5, biome: 'marsh', cost: { log: 40, stone: 26, berry: 18 }, holes: [[1, 1]], finds: [['reeds', -2.6, 0.4], ['reeds', 2.7, -0.6], ['reeds', 0.3, 2.8]] },
+  { id: 'r2', chest: { coin: 18, reed: 3, gear: 'boots' }, chestAt: [3.6, -3.6], i: -8, j: 5, biome: 'marsh', cost: { log: 40, stone: 26, berry: 18 }, holes: [[1, 1]], finds: [['reeds', -2.6, 0.4], ['reeds', 1.2, -2.6], ['reeds', -0.6, 3.6]] },
   { id: 'r3', chest: { coin: 22, crystal: 4 }, chestAt: [2.8, 0.2], i: -11, j: 2, biome: 'marsh', cost: { log: 46, stone: 30, crystal: 6 }, holes: [[0, 1]], finds: [['reeds', -1.4, -1.8], ['reeds', -1.2, 2.2]] },
   { id: 'r4', chest: { coin: 28, reed: 4 }, chestAt: [-3.4, -3.4], i: -11, j: 5, biome: 'marsh', cost: { log: 52, stone: 34, reed: 4 }, holes: [[1, 1], [2, 2]], finds: [['reeds', -2.7, 0.2], ['reeds', 0.2, -2.7], ['reeds', 2.6, 1.4], ['reeds', 1.0, 2.8]] },
   /* the coral beach, east of the village green over a bridge (coral.js). Its second square is an islet across a strait:
@@ -69,10 +69,11 @@ const AREAS = [
   { id: 'e3', chest: { coin: 40, ember: 2 }, chestAt: [-3.2, 2.6], i: 9, j: 9, biome: 'ash', cost: { stone: 64, log: 54, ember: 2 }, finds: [['cinder', 3.4, 3.2], ['cinder', -3.4, -2.6], ['cinder', 0.4, 4.2]], ponds: [[0.4, 0, 1.8]] },
   { id: 'e4', chest: { coin: 50, ember: 2, pearl: 2 }, i: 12, j: 6, biome: 'ash', cost: { stone: 70, log: 60, ember: 3 }, finds: [['cinder', 3.8, -2.8], ['cinder', 2.4, 3.6], ['cinder', -3.0, -3.6]] },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
-  { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 },
-  /* the mine runs on west under the sea: a gallery behind rubble, then the lift room behind a rockfall */
-  { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1, finds: [['copper', -3.5, -3.4], ['copper', -1.0, -4.0], ['copper', 2.6, -3.3], ['copper', 3.4, 3.3], ['copper', -3.2, 3.5]] },
-  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, finds: [['glow', 2.6, -3.6], ['glow', -0.8, -4.1], ['glow', 3.5, 3.4]] },
+  { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1, secret: 1 },
+  /* the mine runs on west under the sea (cave.js lays every room by hand, hence secret: 1): the ore gallery behind rubble, and
+     the deep gallery with the lift at the far end of a long way round (three more rooms, at the end of this list) */
+  { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1, secret: 1, finds: [['copper', 2.6, -2.7], ['copper', 4.0, -1.4], ['copper', 0.6, -3.1], ['copper', -3.6, 2.6], ['copper', -2.4, 2.9], ['copper', -4.2, 0.8]] },
+  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, secret: 1, finds: [['glow', -0.8, -4.0], ['glow', 3.6, 3.4], ['glow', -3.9, 3.6], ['glow', -3.6, -3.6]] },
   /* the hidden worlds (Leon, 2026-11-28; secret.js): no sign, not on the map, each rises from the sea when its island's sealed
      place is opened with something from another island. ALWAYS add new areas at the end: every area's random layout hangs on its place in this list. */
   { id: 'm5', i: -4, j: -11, biome: 'meadow', secret: 1 }, /* the Garden of Giant Flowers, behind the Bee Queen's garden (giant.js) */
@@ -80,7 +81,13 @@ const AREAS = [
   { id: 'w5', i: 12, j: -9, biome: 'snow', season: 'summer', secret: 1 }, /* the Summer Hollow, behind the ice wall (hollow.js) */
   { id: 'r5', i: -8, j: 8, biome: 'marsh', secret: 1, ponds: [[-5.2, -4.8, 2.3], [-2.6, -4.8, 2.3], [0, -4.8, 2.3], [2.6, -4.8, 2.3], [5.2, -4.8, 2.3], [0.3, 3.9, 2.9]] }, /* Heron Isle and the Firefly Tree, across Lily Lake (heron.js): the first five ponds are the lake between the marsh and the isle, the last is the frogs' bay */
   { id: 'c5', i: 12, j: -2, biome: 'coral', secret: 1 }, /* the Sea Garden, under the lagoon (seagarden.js) */
-  { id: 'e5', i: 12, j: 9, biome: 'ash', secret: 1 } /* the Glass Forest, past the great lava river (glass.js) */
+  { id: 'e5', i: 12, j: 9, biome: 'ash', secret: 1 }, /* the Glass Forest, past the great lava river (glass.js) */
+  /* the mine grew (Leon, 2026-11-28): a second row of rooms south of the first, all under one hill, and under the lake the
+     Crystal Cathedral (cathedral.js). Laid by hand, never bought, not on the map. */
+  { id: 'cave4', i: 2, j: 10, biome: 'cave', cave: 1, secret: 1 }, /* the crystal grotto, a dead end */
+  { id: 'cave5', i: -1, j: 10, biome: 'cave', cave: 1, secret: 1 }, /* the lake room */
+  { id: 'cave6', i: -4, j: 10, biome: 'cave', cave: 1, secret: 1 }, /* the glow cavern */
+  { id: 'cave7', i: -1, j: 13, biome: 'cave', cave: 1, secret: 1 } /* the Crystal Cathedral, under the lake */
 ];
 /* shortcuts (Leon, 2026-11-27): the first way to a far place may be long, but once Pip has reached it a short way back
    opens by itself. Each is a plank bridge between two areas that builds itself, free, when both are owned (isle.js).
@@ -255,7 +262,7 @@ const HOUSES = { mason: { x: 11, z: 4.9 }, knitter: { x: 14, z: 4.9 }, miner: { 
 const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2.6 }, windmill: { x: 2.6, z: -30, sx: -1.7, sz: 1.5, mx: -2.2, mz: 2.2 },
   lighthouse: { x: -31.4, z: -2.2, sx: 1.8, sz: 1.3, mx: 2.4, mz: -1.0 }, tower: { x: 30.6, z: -34, sx: -1.7, sz: 1.5, mx: -2.0, mz: -1.2 },
   /* the far islands' wonders (Leon 2026-11-27): a sluice wheel on the marsh channel, a tide bell on the coral beach, a great hearth by the volcano */
-  sluice: { x: -12.5, z: 10.0, sx: 0.9, sz: 1.8, mx: 0.9, mz: -2.0 }, bell: { x: 30.4, z: 12.9, sx: -1.7, sz: 0.9, mx: 0.2, mz: -2.0 }, hearth: { x: 27.6, z: 32.7, sx: -1.7, sz: 0.3, mx: -1.4, mz: -1.8 },
+  sluice: { x: -24.7, z: 24.3, sx: 0.9, sz: 1.8, mx: 0.9, mz: -2.0 }, /* Leon 2026-11-28: out on the marsh's south side by r2's pool, not next to the settlement */ bell: { x: 30.4, z: 12.9, sx: -1.7, sz: 0.9, mx: 0.2, mz: -2.0 }, hearth: { x: 27.6, z: 32.7, sx: -1.7, sz: 0.3, mx: -1.4, mz: -1.8 },
   belfry: { x: 13.0, z: 9.7, sx: -1.9, sz: 1.0, mx: 0, mz: 0 } }; /* the bell tower on the village green: the last wonder, made of one find from every island */
 /* the island villages (hamlets.js): once an island's monument stands, a few houses and neighbours move in beside it.
    Each house is [x, z, turn]; the crate is where the village stacks what it gathers. Nothing grows on these plots. */
@@ -313,7 +320,7 @@ const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to t
 /* the docks the island boat sails between (docks.js): where the planks leave the shore, the way they run (out), and the
    way the boat sails off (go: along the shore, the channels between the islands are narrow) */
 const DOCKS = { camp: { x: -6, z: -4.4, out: [-1, 0], go: [0, -1] }, windmill: { x: 0.4, z: -34, out: [0, -1], go: [1, 0] }, lighthouse: { x: -34, z: 0.5, out: [-1, 0], go: [0, -1] }, tower: { x: 29.4, z: -38, out: [0, -1], go: [-1, 0] },
-  sluice: { x: -11.6, z: 6, out: [0, -1], go: [-1, 0] }, bell: { x: 31.8, z: 6, out: [0, -1], go: [1, 0] }, hearth: { x: 22, z: 33.0, out: [-1, 0], go: [0, 1] } }, DOCK_ON = {};
+  sluice: { x: -21.6, z: 27.2, out: [1, 0], go: [0, 1] }, bell: { x: 31.8, z: 6, out: [0, -1], go: [1, 0] }, hearth: { x: 22, z: 33.0, out: [-1, 0], go: [0, 1] } }, DOCK_ON = {};
 const TRAVEL_HOME = { x: 2.7, z: 2.6 }, CAVE_FRIEND = { x: 8.8, z: 29.2 };
 const SPOT_AT = { tent: [-4.5, -1.5], fire: [-1.75, 0.75], dog: [-0.75, -2.7], gear: [-2.9, 2.9] }; /* gear has its bench in the start square: rain comes before the smithy does (Leon 2026-11-25, playtest) */ /* the upgrade rings in the camp (spots.js) */
 Object.keys(HAMLET_AT).forEach((id) => { const c = HAMLET_AT[id].crate; SPOT_AT['ham_' + id] = [c[0], c[1] + 1.3]; });
