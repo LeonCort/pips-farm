@@ -257,7 +257,7 @@ function heronChoirStep(dt, near) {
 }
 function heronFliesStep(dt, near) {
   const [tx, tz] = HERON.tree, dusk = heronDusk(), day = 0.42 + 0.58 * dusk, P = HR.flies.geometry.attributes.position, C = HR.flies.geometry.attributes.color, D = HR.demo, sw = HR.swirl || 0;
-  HR.flies.material.size = 0.2 + 0.14 * dusk; HR.flies.visible = !inCave;
+  HR.flies.material.size = 0.22 + 0.3 * dusk; HR.flies.visible = !inCave;
   HR.fl.forEach((f, k) => { let x, y, z; const t = reduced ? 0 : time;
     if (sw && sw < 6) { const u = ((sw / 3.2 + f.ph / 6.28) % 1), a = f.a + sw * 3.2 + u * 9, r = 2.6 - u * 1.5 + Math.sin(u * 20 + k) * 0.15; x = tx + Math.cos(a) * r; z = tz + Math.sin(a) * r; y = 0.2 + u * 5.6; }
     else if (D && k < 16) { const fr = HR.frogs[HERON_ORDER[D.k]], a = f.ph + t * 5; x = fr.x + Math.cos(a) * 0.28 * fr.s * 0.6; z = fr.z + Math.sin(a) * 0.28 * fr.s * 0.6; y = HERON_Y + 0.25 * fr.s + 0.25 + Math.sin(t * 7 + k) * 0.08; }
@@ -268,16 +268,16 @@ function heronFliesStep(dt, near) {
   P.needsUpdate = true; C.needsUpdate = true;
   /* the lights in the willow twinkle, a wave running through them; the curtains sway */
   HR.sect.forEach((S, k) => { if (!reduced) { S.g.rotation.x = Math.sin(time * 0.8 + k * 1.1) * 0.022; S.g.rotation.z = Math.cos(time * 0.65 + k * 1.9) * 0.022; }
-    const c = S.pts.geometry.attributes.color, up = sw && sw < 6 ? 0.5 : 0; for (let i = 0; i < S.n; i++) { const b = clamp(day * (0.62 + 0.38 * Math.sin(time * (1.3 + (i % 7) * 0.33) + i * 2.4 + k)) + up, 0, 1.3); c.array[i * 3] = b; c.array[i * 3 + 1] = b * 0.95; c.array[i * 3 + 2] = b * 0.45; } c.needsUpdate = true; S.pts.material.size = 0.17 + 0.13 * dusk; });
+    const c = S.pts.geometry.attributes.color, up = sw && sw < 6 ? 0.5 : 0; for (let i = 0; i < S.n; i++) { const b = clamp(day * (0.62 + 0.38 * Math.sin(time * (1.3 + (i % 7) * 0.33) + i * 2.4 + k)) + up, 0, 1.3); c.array[i * 3] = b; c.array[i * 3 + 1] = b * 0.95; c.array[i * 3 + 2] = b * 0.45; } c.needsUpdate = true; S.pts.material.size = 0.18 + 0.26 * dusk; });
   HR.lilyGlow.material.opacity = heronS().choir || sw > 1.2 ? (0.3 + 0.4 * dusk) * (reduced ? 1 : 0.85 + Math.sin(time * 2.1) * 0.15) : 0.12 * dusk; HR.lilyGlow.visible = HR.lilyGlow.material.opacity > 0.02;
 }
 
 /* ---- the lasting change: moon lilies on every water of the marsh, sparkling by day, with fireflies over them at night ---- */
 function heronMarshLilies(A, fresh) {
   const base = 9500 + AREAS.indexOf(A) * 61, L = [], P = [], spots = []; let n = 0;
-  for (let k = 0; k < 420 && n < 9; k++) { const x = A.cx + (hash(k, base + 1) - 0.5) * 11.6, z = A.cz + (hash(k, base + 2) - 0.5) * 11.6, d = drawSdf(x, z); if (d < 0.75 || d > 2.4) continue; const B = areaAt(x, z); if (B && B !== A) continue;
+  for (let k = 0; k < 520 && n < 12; k++) { const x = A.cx + (hash(k, base + 1) - 0.5) * 11.6, z = A.cz + (hash(k, base + 2) - 0.5) * 11.6, d = drawSdf(x, z); if (d < 0.75 || d > 2.4) continue; const B = areaAt(x, z); if (B && B !== A) continue;
     if (A.id === 'r0' && segD(x, z, RAFT.e[0], RAFT.e[1], RAFT.w[0], RAFT.w[1]) < 1.5) continue; if (A.id === 'r2' && Math.hypot(x - HERON.bud[0], z - HERON.bud[1]) < 4) continue; if (spots.some((q) => Math.hypot(q[0] - x, q[1] - z) < 1.25)) continue; n++; spots.push([x, z]);
-    const s = 0.34 + hash(k, base + 3) * 0.14; [[0, 0, 0.42], [0.5, 0.2, 0.26], [-0.3, 0.45, 0.22]].forEach(([dx, dz, r], j) => heronSmallPad(L, x + dx, z + dz, r, base + k * 5 + j)); heronBloom(L, 'moon', 0.85 + hash(k, base + 4) * 0.15, s, x, -0.4, z, base + 3000 + k * 60);
+    const s = 0.5 + hash(k, base + 3) * 0.22; [[0, 0, 0.5], [0.6, 0.25, 0.3], [-0.4, 0.5, 0.26]].forEach(([dx, dz, r], j) => heronSmallPad(L, x + dx, z + dz, r, base + k * 5 + j)); heronBloom(L, 'moon', 0.85 + hash(k, base + 4) * 0.15, s, x, -0.4, z, base + 3000 + k * 60);
     for (let j = 0; j < 4; j++) P.push(x + (hash(k, j + 5) - 0.5) * 1.5, 0.1 + hash(k, j + 6) * 1.1, z + (hash(k, j + 7) - 0.5) * 1.5); }
   if (!n) return { none: 1 };
   const g = new T.Group(); sc.add(g); heronMesh(L, g, false); const pts = heronPoints(P, 0.2); g.add(pts);
@@ -292,7 +292,7 @@ function heronMarshStep(dt) {
     const A = AREA_BY[id]; if (Math.hypot(p.x - A.cx, p.z - A.cz) > 26) return; const P = M.pts.geometry.attributes.position, C = M.pts.geometry.attributes.color, B = M.base, t = reduced ? 0 : time;
     for (let i = 0; i < B.length / 3; i++) { const o = i * 3; P.array[o] = B[o] + Math.sin(t * 0.6 + i * 1.7) * 0.5; P.array[o + 1] = B[o + 1] + Math.sin(t * 0.9 + i) * 0.25; P.array[o + 2] = B[o + 2] + Math.cos(t * 0.5 + i * 2.3) * 0.5;
       const b = (0.34 + 0.66 * dusk) * (reduced ? 0.8 : 0.5 + 0.5 * Math.sin(time * (1.6 + (i % 4) * 0.5) + i * 1.3)); C.array[o] = b; C.array[o + 1] = b * 0.96; C.array[o + 2] = b * 0.5; }
-    P.needsUpdate = true; C.needsUpdate = true; M.pts.material.size = 0.18 + 0.12 * dusk; });
+    P.needsUpdate = true; C.needsUpdate = true; M.pts.material.size = 0.2 + 0.26 * dusk; });
 }
 
 /* ---- every frame ---- */
