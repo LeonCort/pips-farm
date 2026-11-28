@@ -7,7 +7,10 @@
 const SHOW = /[?&]show=1\b/.test(location.search); /* the asset yard (show.js): its own save, everything built, an empty lawn on the meadow */
 const SHOW_YARD = { m0: 1, m1: 1 };
 const SHOW_T = { tier: 0 }; /* the asset yard asks for a tree or rock of a given tier */
-const SAVE_KEY = SHOW ? 'pip-isle-show' : 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip looks) is shared with the farm */
+/* the whole island from the start (Leon, 2026-11-28: "option to unlock the full island from the get go"): isle.html?open=1,
+   picked on the start page. Its own save, so the real island is never touched (fill below, after AREAS). */
+const ISLE_OPEN = !SHOW && /[?&]open=1\b/.test(location.search);
+const SAVE_KEY = SHOW ? 'pip-isle-show' : ISLE_OPEN ? 'pip-isle-open' : 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip looks) is shared with the farm */
 const HERE = 'isle';
 const MAP_V = 'areas-2'; /* the map's version: a save made for another map starts over */
 const GS = 4; /* one square, in world units; an area is 3 by 3 squares (12 by 12) */
@@ -135,6 +138,19 @@ function areaMark(a) { HAS[a.id] = 1; areaSquares(a, (i, j) => { WALK[gIdx(i, j)
 AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.lift) LAND[gIdx(i, j)] = 1; /* the mine is not land: from outside there is only sea there (Leon 2026-11-28: the mine must not be seen from the shores) */ }); });
 if (SHOW) try { const s = fresh(), I = s.isle; AREAS.forEach((a) => { if (!a.cave) I.areas[a.id] = 1; }); I.ruins = { h3: 1, s1: 1, w1: 1 }; I.folk = { smith: 3, baker: 3, mason: 3, knitter: 3, miner: 3 };
   I.mon = { harbor: 1, windmill: 1, lighthouse: 1, tower: 1 }; I.keys = { rope: 2, map: 2, icepick: 2 }; I.done = 1; I.bld = { tent: 1, fire: 1, tool: 3, dog: 2, torch: 1, coat: 1, boots: 1 }; I.tools.pick = 1; I.seen = { torch: 1, coat: 1, boots: 1 };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {}
+/* the open island: every square that can be bought is bought (the hidden worlds still wait behind their sealed places), the
+   bridges' keys are used, the mine's rubble is gone and its cart runs, and Pip has the torch and the scooter, so every place
+   can be walked to. The friends, monuments, island crafts, chests and wonders are all still there to do. It runs on every
+   load, so squares added to the game later are bought here too; the rest of the save (stores, tools, friends) is kept. */
+if (ISLE_OPEN) try {
+  let s = null; try { s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) {}
+  if (!s || s.v !== 1 || !s.isle || s.isle.map !== MAP_V) s = fresh();
+  const I = s.isle; I.areas = I.areas || {}; AREAS.forEach((a) => { if (!a.cave && !a.secret) I.areas[a.id] = 1; });
+  I.keys = I.keys || {}; ['rope', 'map', 'icepick'].forEach((k) => { I.keys[k] = 2; });
+  I.mine = I.mine || {}; I.mine.g1 = 1; I.mine.g2 = 1; I.mine.cart = 1;
+  I.bld = I.bld || { tent: 1, fire: 1 }; ['torch', 'scooter'].forEach((k) => { I.bld[k] = Math.max(2, I.bld[k] || 0); });
+  I.seen = I.seen || {}; I.seen.torch = 1; I.seen.scooter = 1; s.moved = true;
   localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {}
 (function () {
   let I = null; try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && s.v === 1 && s.isle && s.isle.map === MAP_V) I = s.isle; } catch (e) {}
