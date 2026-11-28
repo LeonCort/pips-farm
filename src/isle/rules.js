@@ -148,7 +148,8 @@ function gSdfBox(on, x, z) {
    straight line, and its sign stands there), in the mine, and round everything that stands near a shore (COAST.keep). */
 const COAST = { st: 0.5, x0: (GI0 - 0.5) * GS - 2, n: 0, F: null,
   /* things set by hand near a shore that the lists below do not know: [x, z, r] */
-  keep: [[0, 0, 3.4]] };
+  keep: [[0, 0, 3.4], [54.6, 6.4, 2.6]] }; /* the last one: the diver's stand on the lagoon shore (seagarden.js) */
+for (let k = 0; k <= 6; k++) COAST.keep.push([46 + k * 2, -10, 1.7], [46 + k * 2, 2, 1.7], [58, -10 + k * 2, 1.7]); /* the Sea Garden's reef rim stands on a straight shore */
 const sstep = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 function coastMake() {
   const st = COAST.st, n = COAST.n = Math.ceil((GWN * GS + 4) / st) + 1, F = COAST.F = new Float32Array(n * n), K = COAST.keep.slice();
