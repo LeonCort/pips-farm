@@ -4,7 +4,7 @@
    Some areas grow the island Pip is on (a sign at the edge); some are across a strip of sea, another island, which Pip
    can see from the start and reaches by building a bridge. Each area has its own biome: what grows there and its colour.
    The engine draws the ground from ISLAND.d (how far a point is from the coast) and keeps Pip on land with ISLAND.clamp. */
-const SHOW = /[?&]show=1\b/.test(location.search); /* the asset yard (show.js): its own save, everything built, an empty lawn on the meadow */
+const SHOW = /[?&]show=1\b/.test(location.search) || window.PIPS_SHOW === 1; /* the asset yard (show.js): its own save, everything built, an empty lawn on the meadow. PIPS_SHOW: a test page that cannot take a question mark in its address sets this */
 const SHOW_YARD = { m0: 1, m1: 1 };
 const SHOW_T = { tier: 0 }; /* the asset yard asks for a tree or rock of a given tier */
 const SAVE_KEY = SHOW ? 'pip-isle-show' : 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip looks) is shared with the farm */
@@ -24,7 +24,7 @@ const AREAS = [
   { id: 'h0', i: -1, j: -1, biome: 'home', start: 1 },
   { id: 'h1', i: 2, j: -1, biome: 'rocks', cost: { log: 8, berry: 3 }, chest: 'pick' },
   { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 10, stone: 4, berry: 4 } },
-  { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag', ruin: [2.3, 1.0, -0.25], stairs: [-2.6, 2.2] },
+  { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag', ruin: [2.3, 1.0, -0.25], stairs: [-0.8, 2.2] }, /* stairs: the way down to the mine (entr.js); the point is the middle of the stair cut */
   { id: 'm0', chest: { coin: 8, berry: 6 }, i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, finds: [['hive', -3.6, -2.0], ['hive', 3.7, -3.5], ['hive', 4.3, 4.9]], tall: [[-5.4, 1.5, 5.4, 3.9]], bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
   { id: 'm1', chest: { coin: 10, berry: 8, gear: 'coat' }, chestAt: [-0.4, 3.4], i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', -2.0, -3.4], ['hive', -3.0, 2.6]], tall: [[1.5, -5.4, 3.9, 5.4]] },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, berry: 12, stone: 10 }, ruin: [0.4, 0, 0.2] },
@@ -134,7 +134,7 @@ function areaSquares(a, f) { for (let i = a.i; i < a.i + 3; i++) for (let j = a.
 function areaMark(a) { HAS[a.id] = 1; areaSquares(a, (i, j) => { WALK[gIdx(i, j)] = 1; if (!a.cave) LAND[gIdx(i, j)] = 1; }); if (typeof seaShoreDirty === 'function') seaShoreDirty(); }
 AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.lift) LAND[gIdx(i, j)] = 1; /* the mine is not land: from outside there is only sea there (Leon 2026-11-28: the mine must not be seen from the shores) */ }); });
 if (SHOW) try { const s = fresh(), I = s.isle; AREAS.forEach((a) => { if (!a.cave) I.areas[a.id] = 1; }); I.ruins = { h3: 1, s1: 1, w1: 1 }; I.folk = { smith: 3, baker: 3, mason: 3, knitter: 3, miner: 3 };
-  I.mon = { harbor: 1, windmill: 1, lighthouse: 1, tower: 1 }; I.keys = { rope: 2, map: 2, icepick: 2 }; I.done = 1; I.bld = { tent: 1, fire: 1, tool: 3, dog: 2, torch: 1, coat: 1, boots: 1 }; I.tools.pick = 1; I.seen = { torch: 1, coat: 1, boots: 1 };
+  I.mon = { harbor: 1, windmill: 1, lighthouse: 1, tower: 1 }; I.keys = { rope: 2, map: 2, icepick: 2 }; I.done = 1; I.bld = { tent: 1, fire: 1, tool: 3, dog: 2, torch: 2, coat: 1, boots: 1 }; /* the torch is owned, so the ways down to the mine can be tried (entr.js) */ I.tools.pick = 1; I.seen = { torch: 1, coat: 1, boots: 1 };
   localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {}
 (function () {
   let I = null; try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && s.v === 1 && s.isle && s.isle.map === MAP_V) I = s.isle; } catch (e) {}
@@ -248,6 +248,14 @@ const ISLAND = { a: 20, b: 18, wob: [], cape: null, plaza: 1.95, walk: 1.5, mask
   puddles: [[-2.2, 3.0, 0.9, 0.4], [2.8, -3.2, 0.8, 1.2], [2.9, 3.4, 0.7, 0.2], [-3.3, -0.9, 0.8, 1.5], [0.4, -3.6, 0.6, 0.9]], /* rain puddles in the start area (the farm's lie on its roads) */
   beachAt: (x, z) => { let a = areaAt(x, z); for (let k = 0; !a && k < 4; k++) a = areaAt(x + [1.5, -1.5, 0, 0][k], z + [0, 0, 1.5, -1.5][k]); return a ? BIOME_BEACH[a.biome] : null; },
   tint: (x, z, c) => { let a = areaAt(x, z); for (let k = 0; !a && k < 4; k++) a = areaAt(x + [1.2, -1.2, 0, 0][k], z + [0, 0, 1.2, -1.2][k]); /* a cape reaches past its square */ const t = a && BIOME_TINT[a.biome]; if (t) c.lerp(new T.Color(t[0]), t[1]); } };
+/* the ways down to the mine (entr.js; Leon, 2026-11-28: a test of two real 3D shapes side by side). pit: steps cut into
+   the ground between x - hw and x + hw, from the rim at z1 (south) down to the mouth in the wall at z0 (north), D deep.
+   mound: a boulder with the mouth built into its south face. Here, because the ground's paving is painted, and the coast
+   and what grows are laid out, before that file is read. */
+const ENTR = { pit: { x: 11.2, z0: 13.3, z1: 16.1, hw: 0.8, D: 1.4 }, mound: { x: 7.9, z: 14.9, s: 0.9 } };
+ISLAND.roads.push([ENTR.pit.x, ENTR.pit.z0 + 1.0, ENTR.pit.x, ENTR.pit.z1 + 0.45, 1.4, 2], [ENTR.mound.x, ENTR.mound.z - 0.4, ENTR.mound.x, ENTR.mound.z + 2.2, 0.72, 1]);
+COAST.keep.push([ENTR.mound.x, ENTR.mound.z, 3.2], [ENTR.pit.x, ENTR.pit.z1, 2.4]);
+ISLE_KEEPS.push((a, x, z) => a.id === 'h3' && (Math.hypot(x - ENTR.mound.x, z - ENTR.mound.z - 0.4) < 3.0 || (Math.abs(x - ENTR.pit.x) < 2.3 && z > ENTR.pit.z0 - 2.4 && z < ENTR.pit.z1 + 1.8)));
 /* the settlement fills the whole first area (Leon, 2026-11-25): a cobbled plaza round the campfire in the middle, dirt roads to
    the bridge and to the two neighbour areas, and a home in each corner */
 const FIRE = { x: 0, z: 0 }, TENT = { x: -3.3, z: -2.9 };

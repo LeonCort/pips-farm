@@ -62,7 +62,9 @@ function showBuild() {
   SH.here.push({ name: 'Camp', x: 0.8, z: 1.4, tris: 0, grp: 'In their real place' }, { name: 'Smithy street', x: 13.5, z: 1.4, tris: 0, grp: 'In their real place' }, { name: 'Village green', x: 7.5, z: 10, tris: 0, grp: 'In their real place' },
     { name: 'Bakery street', x: 0.6, z: 16.2, tris: 0, grp: 'In their real place' }, { name: 'Friends street', x: 13.5, z: 8.6, tris: 0, grp: 'In their real place' }, { name: 'Farm boat dock', x: FERRY.x + 1, z: FERRY.z + 0.8, tris: 0, grp: 'In their real place' },
     { name: 'Bridge to the meadow', x: 0.9, z: -5.2, tris: 0, grp: 'In their real place' }, { name: 'Stone island', x: -27, z: -14, tris: 0, grp: 'In their real place' }, { name: 'Winter island', x: 27, z: -18, tris: 0, grp: 'In their real place' });
-  showPanel(); showGo({ x: -6, z: -9.2 });
+  SH.here.unshift({ name: 'Mine: two ways down (test)', x: ENTR.pit.x - 1.6, z: ENTR.pit.z1 + 1.3, tris: showTris(EN.g), grp: 'In their real place' });
+  const at = window.PIPS_SHOW_AT; /* a test page may start Pip somewhere else: [x, z] */
+  showPanel(); showGo(at ? { x: at[0], z: at[1] } : { x: -6, z: -9.2 });
 }
 function showGo(it) { pip.position.set(it.x, 0, it.z); target.set(it.x, 0, it.z); camFocus.set(it.x, 0, it.z); work = null; pip.rotation.y = Math.PI; }
 function showPanel() {
@@ -73,7 +75,7 @@ function showPanel() {
     + '.shwG{font-weight:700;margin:8px 4px 2px;color:#8a5a32}.shwB{display:flex;justify-content:space-between;gap:6px;width:100%;border:0;background:none;padding:5px 6px;border-radius:8px;font:inherit;color:inherit;text-align:left;cursor:pointer}.shwB:hover,.shwB:active{background:#f0dcb2}'
     + '.shwB i{font-style:normal;font-size:12px}.shwB .lo{color:#c0392b}.shwB .mid{color:#b9770e}.shwB .hi{color:#2e7d32}';
   document.head.appendChild(st);
-  const d = document.createElement('div'); d.className = 'shw'; const h = document.createElement('div'); h.className = 'shwH'; h.innerHTML = '<span>Asset yard</span><span>▾</span>'; h.addEventListener('click', () => d.classList.toggle('shut')); d.appendChild(h);
+  const d = document.createElement('div'); d.className = 'shw' + (window.PIPS_SHOW_AT ? ' shut' : ''); const h = document.createElement('div'); h.className = 'shwH'; h.innerHTML = '<span>Asset yard</span><span>▾</span>'; h.addEventListener('click', () => d.classList.toggle('shut')); d.appendChild(h);
   const l = document.createElement('div'); l.className = 'shwL'; d.appendChild(l); let grp = null;
   SH.items.concat(SH.here).forEach((it) => { if (it.grp !== grp) { grp = it.grp; const g = document.createElement('div'); g.className = 'shwG'; g.textContent = grp; l.appendChild(g); }
     const b = document.createElement('button'); b.type = 'button'; b.className = 'shwB'; const n = document.createElement('span'); n.textContent = it.name; b.appendChild(n);

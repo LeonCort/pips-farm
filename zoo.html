@@ -815,7 +815,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261128163055">
+<meta name="app-ver" content="20261128174439">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -2675,7 +2675,7 @@ let skyT = 0, timeHold = false;
    4. Ripples: thin bright lines that drift over the open water, in patches.
    2 and 3 need to know how far each point is from a shore: seaShore() paints that into a small texture from isleD (so it
    follows whatever coast the game has), and paints it again when the land changes (seaShoreDirty, the island's squares). */
-const SEA = { t: { value: 0 }, amp: { value: 1 }, chop: { value: 0 }, shore: { value: null }, foam: { value: 1 }, N: SEAW > 160 ? 512 : 384, far: 8, lo: wg, hi: null, low: null, dirty: 1, wait: 0 };
+const SEA = { t: { value: 0 }, amp: { value: 1 }, chop: { value: 0 }, shore: { value: null }, foam: { value: 1 }, hole: { value: new T.Vector4(1e6, 1e6, 0, 0) }, /* hole: x, z, half width, half depth of a box where the sea is not drawn (a pit cut into the land: the sea lies under all land) */ N: SEAW > 160 ? 512 : 384, far: 8, lo: wg, hi: null, low: null, dirty: 1, wait: 0 };
 function seaShoreDirty() { try { SEA.dirty = 1; } catch (e) {} } /* may be called while the page is still loading: the first paint comes anyway */
 function seaShore() {
   const N = SEA.N, K = 6, /* the island game's coast: isleD is 1 + metres / 6; an oval coast is measured by its slope */ c = SEA.cv || (SEA.cv = document.createElement('canvas')); c.width = c.height = N;
@@ -2688,16 +2688,16 @@ function seaShore() {
 if (typeof water !== 'undefined' && water.material && water.material.isMeshStandardMaterial) {
   const prev = water.material.onBeforeCompile;
   water.material.onBeforeCompile = (sh, r) => { if (prev) prev(sh, r);
-    sh.uniforms.uSeaT = SEA.t; sh.uniforms.uSeaAmp = SEA.amp; sh.uniforms.uSeaChop = SEA.chop; sh.uniforms.uShore = SEA.shore; sh.uniforms.uSeaFoam = SEA.foam;
+    sh.uniforms.uSeaT = SEA.t; sh.uniforms.uSeaAmp = SEA.amp; sh.uniforms.uSeaChop = SEA.chop; sh.uniforms.uShore = SEA.shore; sh.uniforms.uSeaFoam = SEA.foam; sh.uniforms.uSeaHole = SEA.hole;
     sh.vertexShader = `uniform float uSeaT; uniform float uSeaAmp; uniform float uSeaChop; varying vec2 vSeaW;
       float seaH(vec2 p) { return (sin(p.x * 0.5 + uSeaT * 0.9) + sin(p.y * 0.42 - uSeaT * 0.7)) * 0.06 * uSeaAmp
         + (sin(p.x * 1.25 + p.y * 0.8 + uSeaT * 1.6) * 0.03 + sin(p.y * 1.6 - p.x * 0.55 - uSeaT * 1.3) * 0.024) * uSeaChop; }
       ` + sh.vertexShader.replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
       { vec2 sp = position.xz; objectNormal = normalize(vec3(seaH(sp - vec2(0.3, 0.0)) - seaH(sp + vec2(0.3, 0.0)), 0.6, seaH(sp - vec2(0.0, 0.3)) - seaH(sp + vec2(0.0, 0.3)))); }`)
       .replace('#include <begin_vertex>', '#include <begin_vertex>\n\ttransformed.y += seaH(position.xz); vSeaW = position.xz;');
-    sh.fragmentShader = `uniform float uSeaT; uniform sampler2D uShore; uniform float uSeaFoam; varying vec2 vSeaW;
+    sh.fragmentShader = `uniform float uSeaT; uniform sampler2D uShore; uniform float uSeaFoam; uniform vec4 uSeaHole; varying vec2 vSeaW;
       ` + sh.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
-      { vec2 p = vSeaW; float d = texture2D(uShore, p / ${SEAW.toFixed(1)} + 0.5).r * ${SEA.far.toFixed(1)};
+      { vec2 p = vSeaW; if (abs(p.x - uSeaHole.x) < uSeaHole.z && abs(p.y - uSeaHole.y) < uSeaHole.w) discard; float d = texture2D(uShore, p / ${SEAW.toFixed(1)} + 0.5).r * ${SEA.far.toFixed(1)};
         float w1 = sin(p.x * 1.9 + uSeaT * 0.8 + sin(p.y * 1.3 - uSeaT * 0.5)), w2 = sin(p.y * 2.3 - uSeaT * 0.7 + sin(p.x * 1.1 + uSeaT * 0.4) * 1.3);
         /* shallows */
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.50, 0.86, 0.80), smoothstep(3.2, 0.0, d) * 0.38);
@@ -2712,7 +2712,7 @@ if (typeof water !== 'undefined' && water.material && water.material.isMeshStand
         float band = smoothstep(0.84, 0.97, roll) * brk * smoothstep(3.0, 1.2, d) * smoothstep(0.35, 0.8, d);
         float foam = clamp(max(edge, band * 0.6), 0.0, 1.0) * uSeaFoam * step(0.001, d + 1.0);
         diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.97, 0.99, 0.96), foam * 0.9); }`); };
-  water.material.customProgramCacheKey = () => 'pipsSeaLook2'; water.material.needsUpdate = true;
+  water.material.customProgramCacheKey = () => 'pipsSeaLook3'; water.material.needsUpdate = true;
 }
 function seaStep(dt) {
   if (!reduced) SEA.t.value += dt;

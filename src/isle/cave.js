@@ -350,20 +350,9 @@ function stairMat(dir, x, z, y) {
   const f = new T.Mesh(fg, new T.MeshBasicMaterial({ color: '#f4b23a', side: T.DoubleSide })); f.rotation.x = -Math.PI / 2; f.position.set(x, 0.06 + (y || 0), z); sc.add(f); fg.setDrawRange(0, 0);
   return { x, z, R, pad, fg, w: 0, dir };
 }
-/* the way down, in h3: a stone frame round a dark hole with steps going down */
+/* the way down, in h3: built in entr.js (a stair cut into the ground and a boulder with a mouth, side by side as a test) */
 let stairsDown = null;
-function stairsBuild(A, fresh) {
-  const x = A.cx + A.stairs[0], z = A.cz + A.stairs[1], g = new T.Group(); g.position.set(x, 0, z); sc.add(g); const L = [];
-  const hole = new T.Mesh(new T.PlaneGeometry(1.25, 1.5), new T.MeshBasicMaterial({ color: '#1d1824' })); hole.rotation.x = -Math.PI / 2; hole.position.set(0, 0.03, -0.15); g.add(hole);
-  for (let s = 0; s < 4; s++) { const q = new T.PlaneGeometry(1.15, 0.26); q.rotateX(-Math.PI / 2); q.translate(0, 0.035, 0.42 - s * 0.3); const m = new T.Mesh(q, new T.MeshBasicMaterial({ color: new T.Color('#8a8074').multiplyScalar(1 - s * 0.22) })); g.add(m); }
-  [-0.78, 0.78].forEach((px, k) => { const q = new T.BoxGeometry(0.28, 1.25, 0.32); jit(q, 0.02, 2500 + k); q.translate(px, 0.62, -0.9); L.push(fac(q, (cx, cy, cz, i) => shadeY('#9a9184', cy, 0, 1.3, i, 0.5), 2500 + k)); });
-  let q = new T.BoxGeometry(1.9, 0.3, 0.38); jit(q, 0.02, 2502); q.translate(0, 1.36, -0.9); L.push(fac(q, (cx, cy, cz, i) => (cy > 1.45 && hash(i, 3) > 0.4 ? new T.Color('#6f9a4a') : shadeY('#a39a8c', cy, 1.2, 1.5, i, 0.5)), 2502));
-  for (let k = 0; k < 6; k++) { const a = k / 6 * 6.28, b = ico(0.16 + hash(k, 8) * 0.1, 0, 2510 + k); b.scale(1.2, 0.6, 1); b.translate(Math.cos(a) * 0.95, 0.06, Math.sin(a) * 1.0 - 0.15); L.push(fac(b, tone('#a9a090', k, 0.6), 2510 + k)); }
-  merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g);
-  stairsDown = stairMat('down', x, z + 1.15); stairsDown.g = g; CAVE_OUT.x = x; CAVE_OUT.z = z + 2.25;
-  stairsDown.ok = () => !inCave && gearDark(); stairsDown.to = () => CAVE_IN; stairsDown.cave = true; /* down needs the torch (gear.js) */
-  if (fresh) { g.scale.setScalar(0.01); stairsDown.pop = 0.001; }
-}
+function stairsBuild(A, fresh) { entrBuild(A, fresh); }
 /* ---- the dark. One small canvas over the picture (a quarter of the screen's size, like the night's: night.js), painted
    each frame while Pip is in the mine: dark all over, and every light cuts its own soft circle out of it: Pip's torch (the
    lantern reaches twice as far), the lanterns on their posts, crystals and star crystals that are ready to mine, the

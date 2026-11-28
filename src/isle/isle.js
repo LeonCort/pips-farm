@@ -112,8 +112,8 @@ function isleGroundTo(idx, t) { /* move the listed ground points from their sea 
 }
 /* lift the ground in a box round (cx, cz) to what hAt now says (call after the land has changed); done runs when it is up */
 function riseArea(cx, cz, hx, hz, done) {
-  const p = ground.geometry.attributes.position, idx = [], y0 = [], y1 = [];
-  for (let k = 0; k < p.count; k++) { const x = p.getX(k), z = p.getZ(k); if (Math.abs(x - cx) > hx || Math.abs(z - cz) > hz) continue; const ht = hAt(x, z); if (Math.abs(ht - p.getY(k)) < 0.05 && ht !== 0) continue; idx.push(k); y0.push(p.getY(k)); y1.push(ht === 0 ? 0.02 * hash(k, 5) : ht); }
+  const p = ground.geometry.attributes.position, idx = [], y0 = [], y1 = [], pin = ground.userData.pin;
+  for (let k = 0; k < p.count; k++) { const x = p.getX(k), z = p.getZ(k); if (Math.abs(x - cx) > hx || Math.abs(z - cz) > hz) continue; if (pin && pin.has(k)) continue; /* a point dropped into a cut in the ground stays there (entr.js) */ const ht = hAt(x, z); if (Math.abs(ht - p.getY(k)) < 0.05 && ht !== 0) continue; idx.push(k); y0.push(p.getY(k)); y1.push(ht === 0 ? 0.02 * hash(k, 5) : ht); }
   rising = { cx, cz, hx: hx - 1.4, hz: hz - 1.4, t: 0, idx, y0, y1, sp: 0, done };
   Snd.play('riser', { gain: 0.5 }); Snd.play('whoosh', { gain: 0.4 });
 }

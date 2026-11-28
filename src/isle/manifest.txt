@@ -72,6 +72,7 @@ coral.js
 ember.js
 wonders.js
 night.js
+entr.js
 wear.js
 props.js
 map.js
