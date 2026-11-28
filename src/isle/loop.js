@@ -30,10 +30,10 @@ const LOOP_MON = {
   harbor: { isle: 'home', need: () => ['h0', 'h1', 'h2', 'h3'].every((a) => HAS[a]) && (folk().smith || 0) >= 3, area: 'h2', cost: { log: 30, stone: 20 } },
   windmill: { isle: 'meadow', need: () => HAS.m3 && (folk().baker || 0) >= 2, area: 'm3', cost: { log: 40, berry: 20, stone: 15, honey: 6 } },
   lighthouse: { isle: 'stone', need: () => HAS.s2 && (folk().mason || 0) >= 2, area: 's2', cost: { stone: 50, log: 20, crystal: 6, iron: 4 } },
-  tower: { isle: 'winter', need: () => HAS.w1 && (folk().knitter || 0) >= 2, area: 'w1', cost: { crystal: 15, stone: 30, log: 30 } },
+  tower: { isle: 'winter', need: () => HAS.w1 && (folk().knitter || 0) >= 2, area: 'w1', cost: { crystal: 20, stone: 30, log: 30 } },
   sluice: { isle: 'marsh', need: () => HAS.r0 && HAS.r1 && HAS.r2 && (folk().fisher || 0) >= 2, area: 'r2', cost: { log: 60, stone: 30, reed: 10 } },
-  bell: { isle: 'coral', need: () => HAS.c0 && HAS.c1 && (folk().diver || 0) >= 2, area: 'c0', cost: { stone: 60, crystal: 10, pearl: 7 } },
-  hearth: { isle: 'ember', need: () => HAS.e0 && (folk().glass || 0) >= 2, area: 'e0', cost: { stone: 70, crystal: 16, ember: 4 } },
+  bell: { isle: 'coral', need: () => HAS.c0 && HAS.c1 && HAS.c2 && (folk().diver || 0) >= 2, area: 'c2', cost: { stone: 60, crystal: 10, pearl: 7 } },
+  hearth: { isle: 'ember', need: () => HAS.e0 && HAS.e1 && (folk().glass || 0) >= 2, area: 'e1', cost: { stone: 70, crystal: 16, ember: 6 } },
   /* the last wonder: its plot shows as soon as the harbour stands, so the goal is in sight all game, but it takes a find
      from every island (honey: meadow, iron: stone, reeds: marsh, pearls: coral, ember: volcano, crystals: winter and mine) */
   belfry: { isle: 'home', need: () => HAS.h3 && !!mons().harbor && goldAll(), /* the bell is cast from the seven golden gifts: its plot waits until all seven stand on their pedestals (gold.js) */ area: 'h3', cost: { honey: 4, iron: 4, reed: 4, pearl: 4, ember: 4, crystal: 20 } }
@@ -392,9 +392,11 @@ function loopStep(dt) {
     if (P.pop2 && P.house) { P.pop2 = Math.min(1, P.pop2 + dt * 1.6); P.house.scale.setScalar(P.pop2 < 0.7 ? P.pop2 / 0.7 * 1.08 : 1.08 - (P.pop2 - 0.7) / 0.3 * 0.08); if (P.pop2 >= 1) { P.pop2 = 0; P.house.scale.setScalar(1); } }
     if (P.move) { const M = P.move; M.t += dt;
       if (M.t < 1.0) g.position.y = Math.abs(Math.sin(M.t * Math.PI * 2)) * 0.35;
+      else if (M.w === undefined) { const [x, z] = loopSpot(id); M.w = walkStart(g, x, z); M.t = 1.0; } /* two happy hops, then off home on foot (walkhome.js) */
+      else if (M.w) { if (walkStep(M.w, g, dt)) { P.move = null; walkEnd(g); loopPlace(id); g.rotation.y = Math.atan2(pp.x - g.position.x, pp.z - g.position.z); P.hop = 1; P.arr = 25; Snd.play('pop', { gain: 0.35, f: 640 }); isleSigns(); save(); } }
       else if (M.t < 1.35) { g.scale.setScalar(Math.max(0.01, 1 - (M.t - 1.0) / 0.35)); if (!M.puff) { M.puff = 1; Snd.play('whoosh', { gain: 0.4 }); burst(g.position.x, 0.8, g.position.z, 6); } }
       else { P.move = null; g.position.y = 0; loopPlace(id); P.pop = 0.001; g.scale.setScalar(0.01); P.arr = 25; Snd.play('pop', { gain: 0.4, f: 640 }); burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); save(); } }
-    if (P.away && HAS[HOUSES[id].area || 'h1'] && F >= 2 && !P.move && !rising) { loopPlace(id); P.pop = 0.001; g.scale.setScalar(0.01); P.arr = 25; isleSigns(); }
+    if (P.away && HAS[HOUSES[id].area || 'h1'] && F >= 2 && !P.move && !rising) { P.away = 0; P.move = { t: 1.0 }; } /* the street is bought: off from the fire to the house */
     P.arr = Math.max(0, P.arr - dt);
     if (!g.visible || P.move) return;
     P.hop = Math.max(0, P.hop - dt * 1.6); g.position.y = P.hop > 0 ? Math.abs(Math.sin(P.hop * Math.PI * 3)) * 0.3 : (LP.partyT > 0 && F >= 3 ? Math.abs(Math.sin(time * 6 + id.length)) * 0.25 : 0);

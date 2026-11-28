@@ -162,9 +162,11 @@ function bakerStep(dt) {
   if (BK.pop) { BK.pop = Math.min(1, BK.pop + dt * 2); g.scale.setScalar(BK.pop < 0.7 ? BK.pop / 0.7 * 1.1 : 1.1 - (BK.pop - 0.7) / 0.3 * 0.1); if (BK.pop >= 1) { BK.pop = 0; g.scale.setScalar(1); } }
   if (BK.move) { const M = BK.move; M.t += dt;
     if (M.t < 1.0) g.position.y = Math.abs(Math.sin(M.t * Math.PI * 2)) * 0.35;
+    else if (M.w === undefined) { const [x, z] = bakerSpot(); M.w = walkStart(g, x, z); M.t = 1.0; } /* two happy hops, then off home on foot (walkhome.js) */
+    else if (M.w) { if (walkStep(M.w, g, dt)) { BK.move = null; walkEnd(g); bakerPlace(); g.rotation.y = Math.atan2(pp.x - g.position.x, pp.z - g.position.z); BK.hop = 1; BK.arr = 25; Snd.play('pop', { gain: 0.35, f: 640 }); isleSigns(); save(); } }
     else if (M.t < 1.35) { g.scale.setScalar(Math.max(0.01, 1 - (M.t - 1.0) / 0.35)); if (!M.puff) { M.puff = 1; Snd.play('whoosh', { gain: 0.4 }); burst(g.position.x, 0.8, g.position.z, 6); } }
     else { BK.move = null; g.position.y = 0; bakerPlace(); BK.pop = 0.001; g.scale.setScalar(0.01); BK.arr = 25; Snd.play('pop', { gain: 0.4, f: 640 }); burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); save(); } }
-  if (BK.away && HAS.h2 && F.baker >= 2 && !BK.move && !rising) { bakerPlace(); BK.pop = 0.001; g.scale.setScalar(0.01); BK.arr = 25; burst(g.position.x, 1.2, g.position.z, 8); isleSigns(); }
+  if (BK.away && HAS.h2 && F.baker >= 2 && !BK.move && !rising) { BK.away = 0; BK.move = { t: 1.0 }; } /* her corner is bought: off from the fire on foot */
   BK.arr = Math.max(0, BK.arr - dt);
   if (eatSp.visible) { eatSp.t -= dt; eatSp.position.set(pp.x, 2.2 + (1.6 - eatSp.t) * 0.3, pp.z); eatSp.material.opacity = Math.min(1, eatSp.t * 2); if (eatSp.t <= 0) eatSp.visible = false; }
   pieT -= dt; if (pieT <= 0) { pieT = 0.5; pieEat(); }

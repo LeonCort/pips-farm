@@ -7,7 +7,10 @@
 const SHOW = /[?&]show=1\b/.test(location.search) || window.PIPS_SHOW === 1; /* the asset yard (show.js): its own save, everything built, an empty lawn on the meadow. PIPS_SHOW: a test page that cannot take a question mark in its address sets this */
 const SHOW_YARD = { m0: 1, m1: 1 };
 const SHOW_T = { tier: 0 }; /* the asset yard asks for a tree or rock of a given tier */
-const SAVE_KEY = SHOW ? 'pip-isle-show' : 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip looks) is shared with the farm */
+/* the whole island from the start (Leon, 2026-11-28: "option to unlock the full island from the get go"): isle.html?open=1,
+   picked on the start page. Its own save, so the real island is never touched (fill below, after AREAS). */
+const ISLE_OPEN = !SHOW && /[?&]open=1\b/.test(location.search);
+const SAVE_KEY = SHOW ? 'pip-isle-show' : ISLE_OPEN ? 'pip-isle-open' : 'pip-isle-v2'; /* the island's own save; pips-avatar (how Pip looks) is shared with the farm */
 const HERE = 'isle';
 const MAP_V = 'areas-2'; /* the map's version: a save made for another map starts over */
 const GS = 4; /* one square, in world units; an area is 3 by 3 squares (12 by 12) */
@@ -43,7 +46,7 @@ const AREAS = [
   { id: 'w0', i: 6, j: -6, biome: 'snow', cost: { log: 34, berry: 16, stone: 20 }, bridge: { from: 'm2', x0: 17.4, z0: -16, x1: 22.6, z1: -16 },
     ice: { dx: 0.5, dz: -0.4, nx: 7, nz: 6, stop: [[0, 2], [6, 2], [3, 0], [3, 5], [0, 3], [1, 4], [4, 3]], gem: [[3, 2]] } },
   { id: 'w1', i: 6, j: -9, biome: 'snow', cost: { log: 40, stone: 30, crystal: 8 }, ruin: [-2.5, 1.5, 0], finds: [['frostflower', -4.6, -0.4]] },
-  { id: 'w2', chest: { coin: 20, crystal: 6 }, i: 9, j: -6, biome: 'snow', cost: { log: 44, stone: 34, berry: 20 }, finds: [['frostflower', -4.2, -3.8], ['frostflower', 1.0, -2.2]] },
+  { id: 'w2', chest: { coin: 20, crystal: 6 }, i: 9, j: -6, biome: 'snow', cost: { log: 44, stone: 34, berry: 20, crystal: 4 }, finds: [['frostflower', -4.2, -3.8], ['frostflower', 1.0, -2.2]] },
   { id: 'w3', chest: { coin: 25, crystal: 8 }, i: 9, j: -9, biome: 'snow', cost: { log: 50, stone: 40, crystal: 10 }, finds: [['frostflower', -4.2, 2.6], ['frostflower', 3.8, -3.8]] },
   { id: 'w4', chest: { coin: 35, crystal: 12 }, i: 9, j: -12, biome: 'snow', cost: { log: 60, stone: 44, crystal: 12 }, finds: [['frostflower', -4.2, 3.8], ['frostflower', 2.4, -0.6]] },
   /* the marsh island, west of the bakery over a bridge (marsh.js). holes: squares of the block that stay water. A channel
@@ -64,8 +67,8 @@ const AREAS = [
      cut in three by two streams of lava (EMBER below) */
   { id: 'e0', i: 6, j: 6, biome: 'ember', cost: { pearl: 4, log: 50, stone: 40 }, ruin: [-3.8, 4.2, 0.2], finds: [['cinder', 4.6, 0.6], ['cinder', 4.9, 3.4], ['cinder', 3.6, 5.0]], bridge: { from: 'c0', x0: 28, z0: 17.4, x1: 28, z1: 22.6 } },
   /* the rest of the ember island: ash fields round the volcano's foot (biome 'ash': set out by seed like any other land) */
-  { id: 'e1', chest: { coin: 30, ember: 1, gear: 'lantern' }, i: 9, j: 6, biome: 'ash', cost: { log: 56, stone: 46, crystal: 10 }, finds: [['cinder', 3.2, -3.4], ['cinder', -3.0, 3.6]] },
-  { id: 'e2', chest: { coin: 34, crystal: 10 }, i: 6, j: 9, biome: 'ash', cost: { stone: 60, log: 50, crystal: 12 }, finds: [['cinder', -3.6, 3.0], ['cinder', 2.6, 3.8]] },
+  { id: 'e1', chest: { coin: 30, ember: 1, gear: 'lantern' }, i: 9, j: 6, biome: 'ash', cost: { log: 56, stone: 46, crystal: 10, ember: 2 }, finds: [['cinder', 3.2, -3.4], ['cinder', -3.0, 3.6]] },
+  { id: 'e2', chest: { coin: 34, crystal: 10 }, i: 6, j: 9, biome: 'ash', cost: { stone: 60, log: 50, crystal: 12, ember: 2 }, finds: [['cinder', -3.6, 3.0], ['cinder', 2.6, 3.8]] },
   { id: 'e3', chest: { coin: 40, ember: 2 }, chestAt: [-3.2, 2.6], i: 9, j: 9, biome: 'ash', cost: { stone: 64, log: 54, ember: 2 }, finds: [['cinder', 3.4, 3.2], ['cinder', -3.4, -2.6], ['cinder', 0.4, 4.2]], ponds: [[0.4, 0, 1.8]] },
   { id: 'e4', chest: { coin: 50, ember: 2, pearl: 2 }, i: 12, j: 6, biome: 'ash', cost: { stone: 70, log: 60, ember: 3 }, finds: [['cinder', 3.8, -2.8], ['cinder', 2.4, 3.6], ['cinder', -3.0, -3.6]] },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
@@ -135,6 +138,19 @@ function areaMark(a) { HAS[a.id] = 1; areaSquares(a, (i, j) => { WALK[gIdx(i, j)
 AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.lift) LAND[gIdx(i, j)] = 1; /* the mine is not land: from outside there is only sea there (Leon 2026-11-28: the mine must not be seen from the shores) */ }); });
 if (SHOW) try { const s = fresh(), I = s.isle; AREAS.forEach((a) => { if (!a.cave) I.areas[a.id] = 1; }); I.ruins = { h3: 1, s1: 1, w1: 1 }; I.folk = { smith: 3, baker: 3, mason: 3, knitter: 3, miner: 3 };
   I.mon = { harbor: 1, windmill: 1, lighthouse: 1, tower: 1 }; I.keys = { rope: 2, map: 2, icepick: 2 }; I.done = 1; I.bld = { tent: 1, fire: 1, tool: 3, dog: 2, torch: 2, coat: 1, boots: 1 }; /* the torch is owned, so the ways down to the mine can be tried (entr.js) */ I.tools.pick = 1; I.seen = { torch: 1, coat: 1, boots: 1 };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {}
+/* the open island: every square that can be bought is bought (the hidden worlds still wait behind their sealed places), the
+   bridges' keys are used, the mine's rubble is gone and its cart runs, and Pip has the torch and the scooter, so every place
+   can be walked to. The friends, monuments, island crafts, chests and wonders are all still there to do. It runs on every
+   load, so squares added to the game later are bought here too; the rest of the save (stores, tools, friends) is kept. */
+if (ISLE_OPEN) try {
+  let s = null; try { s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); } catch (e) {}
+  if (!s || s.v !== 1 || !s.isle || s.isle.map !== MAP_V) s = fresh();
+  const I = s.isle; I.areas = I.areas || {}; AREAS.forEach((a) => { if (!a.cave && !a.secret) I.areas[a.id] = 1; });
+  I.keys = I.keys || {}; ['rope', 'map', 'icepick'].forEach((k) => { I.keys[k] = 2; });
+  I.mine = I.mine || {}; I.mine.g1 = 1; I.mine.g2 = 1; I.mine.cart = 1;
+  I.bld = I.bld || { tent: 1, fire: 1 }; ['torch', 'scooter'].forEach((k) => { I.bld[k] = Math.max(2, I.bld[k] || 0); });
+  I.seen = I.seen || {}; I.seen.torch = 1; I.seen.scooter = 1; s.moved = true;
   localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {}
 (function () {
   let I = null; try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && s.v === 1 && s.isle && s.isle.map === MAP_V) I = s.isle; } catch (e) {}
@@ -271,7 +287,7 @@ const HOUSES = { mason: { x: 11, z: 4.9 }, knitter: { x: 14, z: 4.9 }, miner: { 
 const LOOP_SITES = { harbor: { x: -4.4, z: 9.4, sx: 1.7, sz: 1.3, mx: 1.6, mz: 2.6 }, windmill: { x: 2.6, z: -30, sx: -1.7, sz: 1.5, mx: -2.2, mz: 2.2 },
   lighthouse: { x: -31.4, z: -2.2, sx: 1.8, sz: 1.3, mx: 2.4, mz: -1.0 }, tower: { x: 30.6, z: -34, sx: -1.7, sz: 1.5, mx: -2.0, mz: -1.2 },
   /* the far islands' wonders (Leon 2026-11-27): a sluice wheel on the marsh channel, a tide bell on the coral beach, a great hearth by the volcano */
-  sluice: { x: -24.7, z: 24.3, sx: 0.9, sz: 1.8, mx: 0.9, mz: -2.0 }, /* Leon 2026-11-28: out on the marsh's south side by r2's pool, not next to the settlement */ bell: { x: 30.4, z: 12.9, sx: -1.7, sz: 0.9, mx: 0.2, mz: -2.0 }, hearth: { x: 27.6, z: 32.7, sx: -1.7, sz: 0.3, mx: -1.4, mz: -1.8 },
+  sluice: { x: -24.7, z: 24.3, sx: 0.9, sz: 1.8, mx: 0.9, mz: -2.0 }, /* Leon 2026-11-28: out on the marsh's south side by r2's pool, not next to the settlement */ bell: { x: 40.0, z: 9.5, sx: -1.7, sz: 0.9, mx: 0.2, mz: -2.0 } /* Leon 2026-11-28: out on the coral's second square (c2), not by the bridge from the settlement */, hearth: { x: 36.5, z: 28.0, sx: -1.7, sz: 0.3, mx: -1.4, mz: -1.8 } /* Leon 2026-11-28: out on the ember isle's second square (e1) */,
   belfry: { x: 13.0, z: 9.7, sx: -1.9, sz: 1.0, mx: 0, mz: 0 } }; /* the bell tower on the village green: the last wonder, made of one find from every island */
 /* the island villages (hamlets.js): once an island's monument stands, a few houses and neighbours move in beside it.
    Each house is [x, z, turn]; the crate is where the village stacks what it gathers. Nothing grows on these plots. */
@@ -329,7 +345,7 @@ const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to t
 /* the docks the island boat sails between (docks.js): where the planks leave the shore, the way they run (out), and the
    way the boat sails off (go: along the shore, the channels between the islands are narrow) */
 const DOCKS = { camp: { x: -6, z: -4.4, out: [-1, 0], go: [0, -1], lane: [[-8.3, -6.6], [-11.5, -7.7], [-16.5, -6.8]] }, /* lane: the way out to open water (docks.js; default: straight along go) */ windmill: { x: 0.4, z: -34, out: [0, -1], go: [1, 0] }, lighthouse: { x: -34, z: 0.5, out: [-1, 0], go: [0, -1] }, tower: { x: 29.4, z: -38, out: [0, -1], go: [-1, 0] },
-  sluice: { x: -21.6, z: 27.2, out: [1, 0], go: [0, 1] }, bell: { x: 31.8, z: 6, out: [0, -1], go: [1, 0] }, hearth: { x: 22, z: 33.0, out: [-1, 0], go: [0, 1] } }, DOCK_ON = {};
+  sluice: { x: -21.6, z: 27.2, out: [1, 0], go: [0, 1] }, bell: { x: 40.0, z: 6.3, out: [0, -1], go: [1, 0], lane: [[46, 4.0], [58, 4.0], [64, 4.5]] }, hearth: { x: 36.5, z: 22.0, out: [0, -1], go: [1, 0], lane: [[37.5, 19.6], [50, 20], [62, 20]] } }, DOCK_ON = {};
 /* the shipping lane (cargo.js, Leon 2026-11-28): the villages' cargo boats sail in from the west channel between Stone and
    the Marsh, across the bay, and nose in at the end of the quay on the camp's west shore, between the camp's dock and the
    farm boat. pile: where the crates stack on the quay planks. lane: from the berth out to sea. */

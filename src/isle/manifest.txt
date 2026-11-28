@@ -44,6 +44,7 @@ people.js
 bakery.js
 village.js
 isledog.js
+walkhome.js
 gear.js
 look.js
 loop.js
@@ -54,6 +55,8 @@ beetrail.js
 orehunt.js
 frogsong.js
 shellwave.js
+snowroll.js
+urnfire.js
 tall.js
 mesa.js
 garden.js
