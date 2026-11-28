@@ -4,7 +4,7 @@
    own colour, with a round tag over it showing who it is from (a friend's face, or the village's wonder) and a heart.
    Pip walks into a box to open it: it bursts, and what was inside floats up and goes into the crate.
    A box left unopened grows a little each morning, up to five mornings' worth (state.isle.gifts[id] = { n, c }). */
-const GIFTERS = ['mason', 'knitter', 'miner', 'fisher', 'diver', 'glass', 'windmill', 'lighthouse', 'tower'];
+const GIFTERS = ['mason', 'knitter', 'miner', 'fisher', 'diver', 'glass', 'windmill', 'lighthouse', 'tower']; /* the villages stay in the list so a box an old save still has can be opened */
 /* what a friend with a house sends (the villages' gifts are HAM_DEF.give, times the village's size) */
 const GIFT_FOLK = { mason: { stone: 4 }, knitter: { coin: 3 }, miner: { crystal: 2 }, fisher: { reed: 2 }, diver: { pearl: 1 }, glass: { ember: 1 } };
 const GIFT_AT = (k) => [1.85 + k * 0.48, 0.95 + (k % 2) * 0.18]; /* one row along the lawn's edge */
@@ -40,7 +40,7 @@ function giftMake(id, anim) {
 function giftSync(anim) { GIFTERS.forEach((id) => { const o = gifts()[id]; if (o && o.n && !GF.box[id]) giftMake(id, anim); }); }
 function giftWake() {
   Object.keys(GIFT_FOLK).forEach((id) => { if (housed(id)) giftAdd(id, GIFT_FOLK[id], 1); });
-  Object.keys(HAM_DEF).forEach((id) => { if (mons()[id]) giftAdd(id, HAM_DEF[id].give, hamLv(id)); });
+  /* the villages no longer send presents: their goods come by boat through the day (cargo.js) */
   Object.keys(LOOP_FOLK).forEach((id) => { if (loopF(id) === 2 && LP.folk[id]) LP.folk[id].arr = 30; }); /* a new day: the arrow points at a friend's empty plot again for a while */
   giftSync(true); save();
 }

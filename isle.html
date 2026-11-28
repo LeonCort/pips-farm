@@ -815,7 +815,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261128131721">
+<meta name="app-ver" content="20261128134004">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1318,7 +1318,7 @@ function coastMake() {
     (a.finds || []).forEach((f) => P(f[1], f[2], 1.9)); if (a.ruin) P(a.ruin[0], a.ruin[1], 2.8); if (a.lift) P(a.lift[0], a.lift[1], 3.2); if (a.stairs) P(a.stairs[0], a.stairs[1], 2.6); if (a.chest) { const c = chestAt(a); K.push([c[0], c[1], 1.8]); }
     (a.mesas || []).forEach((m) => { if (!m.par) P(m.dx, m.dz, Math.hypot(m.w, m.d) / 2 + 0.8); }); if (a.ice) P(a.ice.dx, a.ice.dz, Math.hypot(a.ice.nx, a.ice.nz) / 2 + 1.2); });
   SHORTS.forEach((S) => { const b = S.bridge; K.push([b.x0, b.z0, 3], [b.x1, b.z1, 3]); });
-  K.push([FERRY.x - 1.5, FERRY.z, 4], [TENT.x, TENT.z, 2.2], [RAFT.e[0], RAFT.e[1], 3.4], [RAFT.w[0], RAFT.w[1], 3.4], [EMBER.cone[0], EMBER.cone[1], EMBER.cone[2] + 2]); EMBER.lava.forEach((L) => L.forEach((q) => K.push([q[0], q[1], 2.2]))); EMBER.cross.forEach((c) => K.push([c.ring[0], c.ring[1], 2])); EMBER.river.pts.forEach((q) => K.push([q[0], q[1], 2]));
+  K.push([FERRY.x - 1.5, FERRY.z, 4], [CARGO.x0 - 1, CARGO.z, 3], [TENT.x, TENT.z, 2.2], [RAFT.e[0], RAFT.e[1], 3.4], [RAFT.w[0], RAFT.w[1], 3.4], [EMBER.cone[0], EMBER.cone[1], EMBER.cone[2] + 2]); EMBER.lava.forEach((L) => L.forEach((q) => K.push([q[0], q[1], 2.2]))); EMBER.cross.forEach((c) => K.push([c.ring[0], c.ring[1], 2])); EMBER.river.pts.forEach((q) => K.push([q[0], q[1], 2]));
   Object.values(DOCKS).forEach((D) => K.push([D.x, D.z, 2.6]));
   for (let k = 0; k <= 4; k++) K.push([GARDEN.x0 + (GARDEN.x1 - GARDEN.x0) * k / 4, GARDEN.z0, 2.2], [GARDEN.x0, GARDEN.z0 + (GARDEN.z1 - GARDEN.z0) * k / 4, 2.2]);
   Object.values(LOOP_SITES).forEach((m) => K.push([m.x, m.z, 2.6], [m.x + m.sx, m.z + m.sz, 1.2], [m.x + m.mx, m.z + m.mz, 1.4])); Object.values(HAMLET_AT).forEach((H) => { H.h.forEach((h) => K.push([h[0], h[1], 1.7])); K.push([H.crate[0], H.crate[1], 2]); });
@@ -1366,6 +1366,7 @@ function walkSdf(x, z) {
   d = Math.min(d, segD(x, z, FERRY.x, FERRY.z, FERRY.x - 3.0, FERRY.z) - 0.55); /* the farm boat's dock: its pad is out on the planks (ferry.js) */
   for (const a of AREAS) if (a.bridge && HAS[a.id] && (!a.bridge.tide || TIDE.low)) { const b = a.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
   for (const S of SHORTS) if (S.on) { const b = S.bridge; d = Math.min(d, segD(x, z, b.x0, b.z0, b.x1, b.z1) - 0.72); }
+  if (CARGO.on) d = Math.min(d, segD(x, z, CARGO.x0, CARGO.z, CARGO.x1 + 0.25, CARGO.z) - 0.5); /* the cargo quay's planks */
   for (const k in DOCK_ON) { const D = DOCKS[k]; d = Math.min(d, segD(x, z, D.x - D.out[0] * 0.5, D.z - D.out[1] * 0.5, D.x + D.out[0] * 1.55, D.z + D.out[1] * 1.55) - 0.5); } /* out along a dock's planks */
   if (HAS.r0) { d = Math.min(d, segD(x, z, RAFT.e[0] + 1.5, RAFT.e[1], RAFT.e[0] + 0.5, RAFT.e[1]) - 0.6, segD(x, z, RAFT.w[0] - 1.5, RAFT.w[1], RAFT.w[0] - 0.5, RAFT.w[1]) - 0.6); /* the raft's two jetties, and the raft while it lies still */
     if (RAFT.on) d = Math.min(d, Math.hypot(x - RAFT.x, z - RAFT.z) - 0.85); }
@@ -1466,8 +1467,12 @@ Object.keys(HAMLET_AT).forEach((id) => { const A = HAMLET_AT[id]; A.more.forEach
 const FERRY = { x: -5.15, z: 3.05, pad: -2.45 }; /* the dock where the boat to the farm leaves (ferry.js) */
 /* the docks the island boat sails between (docks.js): where the planks leave the shore, the way they run (out), and the
    way the boat sails off (go: along the shore, the channels between the islands are narrow) */
-const DOCKS = { camp: { x: -6, z: -4.4, out: [-1, 0], go: [0, -1] }, windmill: { x: 0.4, z: -34, out: [0, -1], go: [1, 0] }, lighthouse: { x: -34, z: 0.5, out: [-1, 0], go: [0, -1] }, tower: { x: 29.4, z: -38, out: [0, -1], go: [-1, 0] },
+const DOCKS = { camp: { x: -6, z: -4.4, out: [-1, 0], go: [0, -1], lane: [[-8.3, -6.6], [-11.5, -7.7], [-16.5, -6.8]] }, /* lane: the way out to open water (docks.js; default: straight along go) */ windmill: { x: 0.4, z: -34, out: [0, -1], go: [1, 0] }, lighthouse: { x: -34, z: 0.5, out: [-1, 0], go: [0, -1] }, tower: { x: 29.4, z: -38, out: [0, -1], go: [-1, 0] },
   sluice: { x: -21.6, z: 27.2, out: [1, 0], go: [0, 1] }, bell: { x: 31.8, z: 6, out: [0, -1], go: [1, 0] }, hearth: { x: 22, z: 33.0, out: [-1, 0], go: [0, 1] } }, DOCK_ON = {};
+/* the shipping lane (cargo.js, Leon 2026-11-28): the villages' cargo boats sail in from the west channel between Stone and
+   the Marsh, across the bay, and nose in at the end of the quay on the camp's west shore, between the camp's dock and the
+   farm boat. pile: where the crates stack on the quay planks. lane: from the berth out to sea. */
+const CARGO = { on: 0, z: -1.0, x0: -5.7, x1: -8.5, berth: [-9.45, -1.0], pile: { x: -6.55, z: -1.0 }, lane: [[-11.4, -1.0], [-14.5, 0.3], [-20, 3.3], [-29, 4.0]] };
 const TRAVEL_HOME = { x: 2.7, z: 2.6 }, CAVE_FRIEND = { x: 8.8, z: 29.2 };
 const SPOT_AT = { tent: [-4.5, -1.5], fire: [-1.75, 0.75], dog: [-0.75, -2.7], gear: [-2.9, 2.9] }; /* gear has its bench in the start square: rain comes before the smithy does (Leon 2026-11-25, playtest) */ /* the upgrade rings in the camp (spots.js) */
 Object.keys(HAMLET_AT).forEach((id) => { const c = HAMLET_AT[id].crate; SPOT_AT['ham_' + id] = [c[0], c[1] + 1.3]; });
@@ -2617,7 +2622,7 @@ function areaDecor(A) {
   if (b === 'ember') emberDecor(A, L, base);
   if (L.length) { const m = merged(L.map((g) => (g.index ? g.toNonIndexed() : g)), MAT); m.castShadow = false; m.receiveShadow = true; }
 }
-const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL, FERRY].some((o) => Math.hypot(o.x - x, o.z - z) < r) || loopNear(x, z, r) || spotNear(x, z, r) || hamNear(x, z, r) || giftNear(x, z, r); /* the camp's buildings, the friends' houses, the monuments */
+const campNear = (x, z, r) => [TENT, KENNEL, STORE, FORGE, ANVIL, ANVIL_RING, OVEN, OVEN_RING, BOARD, TENT_RING, WELL, FERRY, CARGO.pile].some((o) => Math.hypot(o.x - x, o.z - z) < r) || loopNear(x, z, r) || spotNear(x, z, r) || hamNear(x, z, r) || giftNear(x, z, r); /* the camp's buildings, the friends' houses, the monuments */
 const walkSdfArea = (A, x, z) => Math.abs(x - A.cx) > 5.55 || Math.abs(z - A.cz) > 5.55; /* keep the dressing off the cliff edge */
 /* the camp in the start area: a campfire and a little tent */
 const campFlame = (() => {
@@ -8643,7 +8648,7 @@ function hamStep(dt) {
    own colour, with a round tag over it showing who it is from (a friend's face, or the village's wonder) and a heart.
    Pip walks into a box to open it: it bursts, and what was inside floats up and goes into the crate.
    A box left unopened grows a little each morning, up to five mornings' worth (state.isle.gifts[id] = { n, c }). */
-const GIFTERS = ['mason', 'knitter', 'miner', 'fisher', 'diver', 'glass', 'windmill', 'lighthouse', 'tower'];
+const GIFTERS = ['mason', 'knitter', 'miner', 'fisher', 'diver', 'glass', 'windmill', 'lighthouse', 'tower']; /* the villages stay in the list so a box an old save still has can be opened */
 /* what a friend with a house sends (the villages' gifts are HAM_DEF.give, times the village's size) */
 const GIFT_FOLK = { mason: { stone: 4 }, knitter: { coin: 3 }, miner: { crystal: 2 }, fisher: { reed: 2 }, diver: { pearl: 1 }, glass: { ember: 1 } };
 const GIFT_AT = (k) => [1.85 + k * 0.48, 0.95 + (k % 2) * 0.18]; /* one row along the lawn's edge */
@@ -8679,7 +8684,7 @@ function giftMake(id, anim) {
 function giftSync(anim) { GIFTERS.forEach((id) => { const o = gifts()[id]; if (o && o.n && !GF.box[id]) giftMake(id, anim); }); }
 function giftWake() {
   Object.keys(GIFT_FOLK).forEach((id) => { if (housed(id)) giftAdd(id, GIFT_FOLK[id], 1); });
-  Object.keys(HAM_DEF).forEach((id) => { if (mons()[id]) giftAdd(id, HAM_DEF[id].give, hamLv(id)); });
+  /* the villages no longer send presents: their goods come by boat through the day (cargo.js) */
   Object.keys(LOOP_FOLK).forEach((id) => { if (loopF(id) === 2 && LP.folk[id]) LP.folk[id].arr = 30; }); /* a new day: the arrow points at a friend's empty plot again for a while */
   giftSync(true); save();
 }
@@ -12201,7 +12206,23 @@ const ferryBusy = () => !!FB.trip || dockBusy();
    run, go: the way the boat sails off). Nothing new is saved: a dock stands wherever its wonder does. */
 const DK = { d: {}, trip: null, at: null, fade: null, L: 1.7 };
 const dockBusy = () => !!DK.trip;
-const dockSeat = (d) => tmpV.set(d.boat.position.x + d.go[0] * 0.25, d.boat.position.y - 0.12, d.boat.position.z + d.go[1] * 0.25);
+const dockSeat = (d) => { const r = d.boat.rotation.y; return tmpV.set(d.boat.position.x - Math.cos(r) * 0.25, d.boat.position.y - 0.12, d.boat.position.z + Math.sin(r) * 0.25); };
+/* ---------- sailing a lane (Leon, 2026-11-28: "the boat doesn't go into any other objects") ----------
+   A boat no longer sails straight off along go and back in from behind its dock (the camp's boat came in through the farm
+   boat). Each dock has a lane: points from its mooring out to open water (DOCKS[id].lane, or straight out along go). The
+   boat sails out along it, and a boat coming in sails the same lane backwards, so it always comes from open sea. The bow
+   turns smoothly toward where it is going. The cargo boats (cargo.js) sail their lane the same way. */
+const boatYaw = (dx, dz) => Math.atan2(dz, -dx); /* a boat's rotation.y when its bow points along (dx, dz) */
+function laneMake(pts) { const P = pts.map((p) => [p[0], p[1]]), S = [0]; for (let k = 1; k < P.length; k++) S.push(S[k - 1] + Math.hypot(P[k][0] - P[k - 1][0], P[k][1] - P[k - 1][1])); return { P, S, L: S[S.length - 1] }; }
+/* the point s along a lane (past either end it runs straight on), and the way the lane runs there */
+function laneAt(ln, s, out) {
+  const P = ln.P, S = ln.S; let k = 1; while (k < P.length - 1 && S[k] < s) k++;
+  const a = P[k - 1], b = P[k], l = S[k] - S[k - 1] || 1, u = (s - S[k - 1]) / l, dx = (b[0] - a[0]) / l, dz = (b[1] - a[1]) / l;
+  out.x = a[0] + (b[0] - a[0]) * u; out.z = a[1] + (b[1] - a[1]) * u; out.dx = dx; out.dz = dz; return out;
+}
+/* turn a boat's bow toward (dx, dz), at most rate radians a second */
+function boatTurn(boat, dx, dz, dt, rate) { let d = boatYaw(dx, dz) - boat.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); boat.rotation.y += Math.sign(d) * Math.min(Math.abs(d), rate * dt); }
+const LANE_P = { x: 0, z: 0, dx: 0, dz: 0 };
 function dockMake(id) {
   if (DK.d[id] || !DOCKS[id]) return; const D = DOCKS[id], [ox, oz] = D.out, [gx, gz] = D.go, L = [], g = new T.Group(); let q;
   g.position.set(D.x, 0, D.z); g.rotation.y = Math.atan2(oz, -ox); sc.add(g); /* in the group the planks run toward -x, like the farm boat's dock */
@@ -12218,7 +12239,8 @@ function dockMake(id) {
   const fill = new T.Mesh(new T.CircleGeometry(0.38, 32), new T.MeshBasicMaterial({ color: '#f4b23a', transparent: true, opacity: 0.85 })); fill.rotation.x = -Math.PI / 2; fill.position.set(rp[0], 0.185, rp[1]); fill.scale.setScalar(0.001); sc.add(fill);
   const boat = new T.Group(), mp = W(DK.L + 0.6, 0); propBoat(boat); boat.position.set(mp[0], -0.08, mp[1]); boat.rotation.y = Math.atan2(gz, -gx); sc.add(boat);
   const land = W(-0.9, 0);
-  DK.d[id] = { id, D, g, sgn, ring, fill, boat, rx: rp[0], rz: rp[1], mx: mp[0], mz: mp[1], lx: land[0], lz: land[1], go: D.go, w: 0, armed: Math.hypot(pip.position.x - rp[0], pip.position.z - rp[1]) > 1.0, ph: Object.keys(DK.d).length * 1.3 };
+  const lane = laneMake([[mp[0], mp[1]]].concat(D.lane || [[mp[0] + gx * 9, mp[1] + gz * 9]]));
+  DK.d[id] = { id, D, g, sgn, ring, fill, boat, lane, rx: rp[0], rz: rp[1], mx: mp[0], mz: mp[1], lx: land[0], lz: land[1], go: D.go, w: 0, armed: Math.hypot(pip.position.x - rp[0], pip.position.z - rp[1]) > 1.0, ph: Object.keys(DK.d).length * 1.3 };
   DOCK_ON[id] = 1;
 }
 /* off to another dock (the travel pictures call this) */
@@ -12238,19 +12260,137 @@ function dockStep(dt) {
     return;
   }
   const a = T0.a, b = T0.b; T0.t += dt; target.copy(pp); work = null;
-  if (T0.st === 'board') { const q = Math.min(1, T0.t / 0.7); pp.lerpVectors(T0.from, dockSeat(a), q); pp.y += Math.sin(q * Math.PI) * 0.6; pip.rotation.y = Math.atan2(a.go[0], a.go[1]); if (q >= 1) { T0.st = 'sail'; T0.t = 0; Snd.play('whoosh', { gain: 0.35, f: 300 }); } }
-  else if (T0.st === 'sail') { T0.v = Math.min(4, T0.v + dt * 2.5); a.boat.position.x += a.go[0] * T0.v * dt; a.boat.position.z += a.go[1] * T0.v * dt; pp.copy(dockSeat(a)); pip.rotation.y = Math.atan2(a.go[0], a.go[1]);
-    if (T0.t > 1.0) DK.fade.style.opacity = '1';
-    if (T0.t > 1.75) { /* out of sight: the boat is back at its dock, and the other dock's boat sails in with Pip in it */
-      a.boat.position.set(a.mx, -0.08, a.mz); b.boat.position.set(b.mx - b.go[0] * 7, -0.08, b.mz - b.go[1] * 7); pp.copy(dockSeat(b)); camFocus.set(b.rx, 0, b.rz);
+  const face = (d) => { const r = d.boat.rotation.y; pip.rotation.y = Math.atan2(-Math.cos(r), Math.sin(r)); };
+  if (T0.st === 'board') { const q = Math.min(1, T0.t / 0.7); pp.lerpVectors(T0.from, dockSeat(a), q); pp.y += Math.sin(q * Math.PI) * 0.6; face(a); if (q >= 1) { T0.st = 'sail'; T0.t = 0; T0.s = 0; Snd.play('whoosh', { gain: 0.35, f: 300 }); } }
+  else if (T0.st === 'sail') { /* out along the lane; a boat that came in bow first turns round as it goes */
+    const P = laneAt(a.lane, T0.s, LANE_P), r = a.boat.rotation.y, al = Math.max(0, -Math.cos(r) * P.dx + Math.sin(r) * P.dz);
+    T0.v = Math.min(4, T0.v + dt * 2.5 * (0.25 + 0.75 * al)); T0.s += T0.v * dt; laneAt(a.lane, T0.s, LANE_P); a.boat.position.x = LANE_P.x; a.boat.position.z = LANE_P.z; boatTurn(a.boat, LANE_P.dx, LANE_P.dz, dt, 3.2); pp.copy(dockSeat(a)); face(a);
+    if (T0.t > 1.0 + (1 - al) * 0.6) DK.fade.style.opacity = '1';
+    if (T0.t > 1.75 + (1 - al) * 0.6) { /* out of sight: the boat is back at its dock, and the other dock's boat sails in along its lane with Pip in it */
+      a.boat.position.set(a.mx, -0.08, a.mz); a.boat.rotation.y = boatYaw(a.go[0], a.go[1]);
+      T0.s = Math.min(b.lane.L, 7.5); laneAt(b.lane, T0.s, LANE_P); b.boat.position.set(LANE_P.x, -0.08, LANE_P.z); b.boat.rotation.y = boatYaw(-LANE_P.dx, -LANE_P.dz); pp.copy(dockSeat(b)); camFocus.set(b.rx, 0, b.rz);
       if (typeof dog !== 'undefined' && dog && dog.g) dog.g.position.set(b.lx, 0, b.lz); Object.keys(DK.d).forEach((k) => { DK.d[k].armed = false; });
       T0.st = 'arrive'; T0.t = 0; } }
   else if (T0.st === 'arrive') { if (T0.t > 0.25) DK.fade.style.opacity = '0';
-    const r = (b.mx - b.boat.position.x) * b.go[0] + (b.mz - b.boat.position.z) * b.go[1], st = Math.min(r, Math.max(1.6, Math.min(4.5, r * 1.6)) * dt); b.boat.position.x += b.go[0] * st; b.boat.position.z += b.go[1] * st; pp.copy(dockSeat(b)); pip.rotation.y = Math.atan2(b.go[0], b.go[1]);
+    const r = T0.s, st = Math.min(r, Math.max(1.6, Math.min(4.5, r * 1.6)) * dt); T0.s -= st; laneAt(b.lane, T0.s, LANE_P); b.boat.position.x = LANE_P.x; b.boat.position.z = LANE_P.z; boatTurn(b.boat, -LANE_P.dx, -LANE_P.dz, dt, 3.2); pp.copy(dockSeat(b)); face(b);
     if (r - st < 0.01) { T0.st = 'land'; T0.t = 0; T0.from = pp.clone(); } }
   else if (T0.st === 'land') { const q = Math.min(1, T0.t / 0.7); pp.lerpVectors(T0.from, tmpV.set(b.rx, 0.16, b.rz), q); pp.y += Math.sin(q * Math.PI) * 0.6;
     if (q >= 1) { target.copy(pp); DK.trip = null; Snd.play('pop', { gain: 0.4, f: 520 }); Snd.play('sparkle', { gain: 0.3 }); } }
 }
+/* ---------- the shipping lane (Leon, 2026-11-28: "a shipping lane where they continuously send us goods to the main
+   settlement ... other islands' communities send through the dock") ----------
+   A village that has moved in beside its island's wonder (hamlets.js) no longer leaves a present on the lawn each morning.
+   Three times a day it loads its boat: one of its neighbours (a duck, a bear or a bunny) sails it in from the west, across
+   the bay, and noses in at the end of the cargo quay on the camp's west shore. The crates hop off one by one onto the quay
+   and the boat backs out, turns, and sails home. Pip walks into the stack: the crates burst and what was in them goes into
+   the crate. Presents (gifts.js) are now only for the friends who live in the settlement.
+   One boat at the quay at a time; while the stack is full (two days' worth) the boats wait at home.
+   Saved: state.isle.cargo = { day, sent: { village: boats today }, pile: { thing: n }, n: crates on the quay }. A boat still
+   at sea when the game is closed sails again later (its crates count only once they are on the quay). */
+const CG = { quay: null, boat: null, crates: [], pics: [], pileN: -1, picKey: '', hop: [], lane: null };
+const CARGO_AT = [0.06, 0.24, 0.42]; /* when in the day (dayFrac, all in daylight) each village's boat sets out */
+const CARGO_MAX = 12; /* crates on the quay; two to a boat */
+const cargo = () => state.isle.cargo || (state.isle.cargo = { day: -1, sent: {}, pile: {}, n: 0 });
+/* one boat's load: a third of what the village used to give each morning (HAM_DEF.give, times its size) */
+function cargoLoad(id) { const G = HAM_DEF[id].give, lv = hamLv(id), o = {}; Object.keys(G).forEach((t) => { o[t] = Math.ceil(G[t] * lv / 3); }); return o; }
+const cargoNear = () => Math.hypot(pip.position.x - CARGO.pile.x, pip.position.z - CARGO.pile.z) < 16 && !inCave;
+/* the quay's picture: a boat with a crate aboard, on a wave */
+ISLE_ICON.cargo = (x) => {
+  const f = (c) => { x.fillStyle = c; x.fill(); x.stroke(); };
+  x.beginPath(); x.rect(-9, -20, 18, 15); f('#c08a52'); x.beginPath(); x.moveTo(-9, -13); x.lineTo(9, -13); x.stroke();
+  x.beginPath(); x.moveTo(-22, -5); x.lineTo(22, -5); x.quadraticCurveTo(18, 10, 10, 10); x.lineTo(-12, 10); x.quadraticCurveTo(-20, 8, -22, -5); x.closePath(); f('#d9573f');
+  x.beginPath(); x.moveTo(-20, 1); x.lineTo(20, 1); x.lineWidth = 2.4; x.strokeStyle = '#fbf3e4'; x.stroke(); x.lineWidth = 3; x.strokeStyle = '#3a2414';
+  x.beginPath(); x.moveTo(-22, 17); x.quadraticCurveTo(-16, 13, -10, 17); x.quadraticCurveTo(-4, 21, 2, 17); x.quadraticCurveTo(8, 13, 14, 17); x.quadraticCurveTo(18, 20, 22, 17); x.strokeStyle = '#3d8fb8'; x.stroke();
+};
+/* a wooden crate with a band and a lid (a merged mesh in its own group, so it can hop) */
+function cargoCrate(seed, col) {
+  const g = new T.Group(), L = []; let q = new T.BoxGeometry(0.34, 0.3, 0.34); q.translate(0, 0.15, 0); L.push(fac(q, (cx, cy, cz, i) => shadeY(tone('#c08a52', i + seed, 0.25).getStyle(), cy, 0, 0.3, i, 0.35), 9100 + seed % 7));
+  q = new T.BoxGeometry(0.36, 0.05, 0.36); q.translate(0, 0.3, 0); L.push(fac(q, (cx, cy, cz, i) => tone('#a8714d', i, 0.2), 9110));
+  q = new T.BoxGeometry(0.352, 0.07, 0.352); q.translate(0, 0.13, 0); L.push(fac(q, () => new T.Color(col || '#8a5f3c'), 9111));
+  merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g).castShadow = true; return g;
+}
+/* the quay: planks from the shore out over the water, two posts with a rope between them at the end, and a little crane */
+function cargoQuay() {
+  if (CG.quay) return; CARGO.on = 1; const g = new T.Group(), L = [], len = CARGO.x0 - CARGO.x1, n = Math.ceil(len / 0.37); let q; g.position.set(CARGO.x0, 0, CARGO.z); sc.add(g);
+  for (let k = 0; k < n; k++) { q = new T.BoxGeometry(0.36, 0.08, 1.25); q.translate(-0.18 - k * 0.37, 0.12, 0); L.push(fac(q, () => tone(['#c0935f', '#b08454', '#c99f6c'][k % 3], k + 40, 0.3), 9200 + k % 9)); }
+  for (let k = 0; k < 3; k++) [-0.58, 0.58].forEach((dz, j) => { q = new T.CylinderGeometry(0.075, 0.085, 1.4, 7); q.translate(-0.55 - k * 1.05, -0.25 + (k === 2 ? 0.3 : 0), dz); L.push(fac(q, (cx, cy) => shadeY(PAL.trunk, cy, -1, 0.6, k + j, 0.4), 9220 + k * 2 + j)); });
+  q = new T.TorusGeometry(0.1, 0.03, 5, 10); q.rotateX(Math.PI / 2); q.translate(-len + 0.25, 0.47, -0.58); L.push(fac(q.toNonIndexed(), () => new T.Color('#e6d3a8'), 9230));
+  /* the crane: a post, an arm out over the berth, a rope and a hook */
+  q = new T.CylinderGeometry(0.07, 0.09, 1.7, 7); q.translate(-len + 0.55, 0.95, 0.5); L.push(fac(q, (cx, cy) => shadeY('#8a5f3c', cy, 0, 1.8, 3, 0.4), 9231));
+  q = new T.BoxGeometry(1.15, 0.08, 0.08); q.translate(-len + 0.1, 1.76, 0.5); L.push(fac(q, () => new T.Color('#8a5f3c'), 9232));
+  q = new T.BoxGeometry(0.06, 0.62, 0.06); q.rotateZ(0.75); q.translate(-len + 0.34, 1.52, 0.5); L.push(fac(q, () => new T.Color('#7a4e2c'), 9233));
+  q = new T.CylinderGeometry(0.012, 0.012, 0.5, 4); q.translate(-len - 0.4, 1.5, 0.5); L.push(fac(q, () => new T.Color('#e6d3a8'), 9234));
+  q = new T.TorusGeometry(0.06, 0.018, 4, 8, 4.4); q.translate(-len - 0.4, 1.2, 0.5); L.push(fac(q.toNonIndexed(), () => new T.Color('#5d6670'), 9235));
+  merged(L.map((p) => (p.index ? p.toNonIndexed() : p)), MAT, g);
+  /* a post with the crate picture on the shore: goods come in here */
+  const sp = isleSprite(isleBubble('cargo'), 0.85); sp.position.set(CARGO.x0 + 0.35, 1.7, CARGO.z - 0.75); sc.add(sp);
+  CG.quay = { g, sp }; CG.lane = laneMake([CARGO.berth].concat(CARGO.lane));
+  lookFoot(CARGO.x0 + 0.2, CARGO.z, 0.7, 0.6);
+}
+/* the stack on the quay follows the save: two crates a boat, in rows of three, two high */
+function cargoPile() {
+  const C = cargo(), n = Math.min(C.n, CARGO_MAX); if (CG.pileN === n) return; CG.pileN = n;
+  while (CG.crates.length > n) sc.remove(CG.crates.pop());
+  while (CG.crates.length < n) { const k = CG.crates.length, c = cargoCrate(k, null), p = cargoSlot(k); c.position.set(p[0], p[1], p[2]); c.rotation.y = (hash(k, 9301) - 0.5) * 0.5; sc.add(c); CG.crates.push(c); }
+  cargoPics();
+}
+const cargoSlot = (k) => { const l = k % 6, h = Math.floor(k / 6); return [CARGO.pile.x - (l % 3) * 0.38 + h * 0.19, 0.16 + h * 0.31, CARGO.z + (l < 3 ? -0.2 : 0.2)]; };
+/* the pictures over the stack: what is in it, with numbers */
+function cargoPics() {
+  const C = cargo(), ks = Object.keys(C.pile).filter((t) => C.pile[t] > 0), key = C.n ? ks.map((t) => t + C.pile[t]).join() : '';
+  if (key === CG.picKey) return; CG.picKey = key; CG.pics.forEach((s) => { sc.remove(s); s.material.map.dispose(); }); CG.pics = [];
+  if (!C.n) return;
+  ks.forEach((t, k) => { const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, C.pile[t]), transparent: true, depthWrite: false })); sp.scale.set(1.2, 0.6, 1); sp.position.set(CARGO.pile.x - 0.35, 1.45 + k * 0.62, CARGO.z); sp.userData.y = 1.45 + k * 0.62; sc.add(sp); CG.pics.push(sp); });
+}
+/* a village's boat: the island boat with two crates aboard and one of the village's neighbours at the stern */
+function cargoBoat(id) {
+  const boat = new T.Group(); propBoat(boat); const roof = HAM_DEF[id].roof[0], c = [cargoCrate(1, roof), cargoCrate(2, roof)];
+  c[0].position.set(-0.42, 0.02, 0); c[1].position.set(-0.1, 0.02, 0.05); c[1].rotation.y = 0.4; c.forEach((q) => boat.add(q));
+  const f = guestModel2(HAM_DEF[id].kind); f.scale.setScalar(0.5); f.position.set(0.5, -0.05, 0); f.rotation.y = -Math.PI / 2; boat.add(f);
+  const s = CG.lane.L; laneAt(CG.lane, s, LANE_P); boat.position.set(LANE_P.x, -0.08, LANE_P.z); boat.rotation.y = boatYaw(-LANE_P.dx, -LANE_P.dz); boat.scale.setScalar(0.01); sc.add(boat);
+  CG.boat = { id, boat, c, f, s, t: 0, st: 'in', load: cargoLoad(id), hop: [] };
+}
+function cargoOpen() {
+  const C = cargo(), x = CARGO.pile.x, z = CARGO.z; let k = 0;
+  Object.keys(C.pile).forEach((t) => { const n = C.pile[t]; if (!(n > 0)) return; state.isle.store[t] = (state.isle.store[t] || 0) + n;
+    const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, n), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(x, 1.5 + k * 0.8, z); sc.add(sp); FD.floats.push({ sp, t: 0, y: k * 0.8 }); k++; });
+  CG.crates.forEach((c) => burst(c.position.x, c.position.y + 0.2, c.position.z, 3));
+  C.pile = {}; C.n = 0; invDirty = true; Snd.play('success', { gain: 0.45 }); Snd.play('sparkle', { gain: 0.45 }); bldBadge(); save(); cargoPile();
+}
+function cargoStep(dt) {
+  if (!state.isle || !CG.quay && !Object.keys(HAM_DEF).some((id) => mons()[id])) return;
+  cargoQuay(); const C = cargo(), day = Math.floor(state.clock / DAY), pp = pip.position; if (C.day !== day) { C.day = day; C.sent = {}; }
+  cargoPile();
+  CG.pics.forEach((s, k) => { s.position.y = s.userData.y + (reduced ? 0 : Math.sin(time * 2.2 + k) * 0.05); });
+  CG.quay.sp.position.y = 1.7 + (reduced ? 0 : Math.sin(time * 2) * 0.05);
+  /* Pip walks into the stack */
+  if (C.n && !enSleep && !inCave && Math.hypot(pp.x - (CARGO.pile.x - 0.38), pp.z - CARGO.z) < 0.75) cargoOpen();
+  /* a boat sets out when one is due and the quay is free */
+  if (!CG.boat) {
+    if (enSleep || C.n + 2 > CARGO_MAX) return; const due = CARGO_AT.filter((f) => dayFrac() >= f).length;
+    const ids = Object.keys(HAM_DEF).filter((id) => mons()[id] && (C.sent[id] || 0) < due).sort((a, b) => (C.sent[a] || 0) - (C.sent[b] || 0));
+    if (ids.length) cargoBoat(ids[0]); return;
+  }
+  const B = CG.boat, boat = B.boat; B.t += dt; boat.position.y = -0.08 + (reduced ? 0 : Math.sin(time * 1.6) * 0.04); boat.rotation.x = reduced ? 0 : Math.sin(time * 1.2) * 0.03;
+  if (B.st === 'in') { /* in along the lane from the west, slowing at the quay */
+    boat.scale.setScalar(Math.min(1, 0.01 + B.t / 0.9)); const st = Math.min(B.s, Math.max(0.9, Math.min(3, B.s * 1.1)) * dt); B.s -= st; laneAt(CG.lane, B.s, LANE_P); boat.position.x = LANE_P.x; boat.position.z = LANE_P.z; boatTurn(boat, -LANE_P.dx, -LANE_P.dz, dt, 2.4);
+    if (B.s <= 0.001) { B.st = 'unload'; B.t = 0; B.n = 0; if (cargoNear()) Snd.play('pop', { gain: 0.3, f: 420 }); } }
+  else if (B.st === 'unload') { /* the crates hop off onto the stack, one by one */
+    if (B.n < 2 && B.t > 0.5 + B.n * 0.55) { const c = B.c[B.n], w = c.getWorldPosition(new T.Vector3()); boat.remove(c); c.position.copy(w); c.rotation.y = 0; sc.add(c); B.hop.push({ c, a: w.clone(), b: new T.Vector3().fromArray(cargoSlot(Math.min(C.n + B.n, CARGO_MAX - 1))), t: 0 }); B.n++; }
+    B.hop.forEach((H) => { if (H.t >= 1) return; H.t = Math.min(1, H.t + dt / 0.5); H.c.position.lerpVectors(H.a, H.b, H.t); H.c.position.y += Math.sin(H.t * Math.PI) * 0.9; H.c.rotation.y = H.t * 1.6;
+      if (H.t >= 1 && cargoNear()) Snd.play('pop', { gain: 0.35, f: 520 + B.n * 60 }); });
+    if (B.n >= 2 && B.hop.every((H) => H.t >= 1)) { /* on the quay: they count now */
+      B.hop.forEach((H) => sc.remove(H.c)); B.hop = []; Object.keys(B.load).forEach((t) => { C.pile[t] = (C.pile[t] || 0) + B.load[t]; }); C.n = Math.min(CARGO_MAX, C.n + 2); C.sent[B.id] = (C.sent[B.id] || 0) + 1;
+      save(); cargoPile(); if (cargoNear()) Snd.play('sparkle', { gain: 0.3 }); B.st = 'back'; B.t = 0; B.s = 0; } }
+  else if (B.st === 'back') { /* backs out from the quay */
+    B.s = Math.min(1.8, B.s + dt * 1.1); laneAt(CG.lane, B.s, LANE_P); boat.position.x = LANE_P.x; boat.position.z = LANE_P.z; if (B.s >= 1.8) { B.st = 'out'; B.t = 0; B.v = 0.4; } }
+  else if (B.st === 'out') { /* turns round and sails home, fading into the sea at the end of the lane */
+    const r = boat.rotation.y, al = Math.max(0, -Math.cos(r) * LANE_P.dx + Math.sin(r) * LANE_P.dz); B.v = Math.min(3, B.v + dt * 1.6 * (0.2 + 0.8 * al)); B.s += B.v * dt;
+    laneAt(CG.lane, B.s, LANE_P); boat.position.x = LANE_P.x; boat.position.z = LANE_P.z; boatTurn(boat, LANE_P.dx, LANE_P.dz, dt, 2.0);
+    boat.scale.setScalar(Math.max(0.01, Math.min(1, (CG.lane.L - B.s) / 2.5)));
+    if (B.s >= CG.lane.L) { sc.remove(boat); CG.boat = null; } }
+}
+ISLE_STEPS.push(cargoStep);
 /* ---------- the asset yard (Leon, 2026-11-25): isle.html?show=1 ----------
    A test page, not part of the game: every island asset stands in rows on an empty lawn (the first two meadow areas),
    each upgrade level side by side, with a name tag and its triangle count. A list on the right jumps Pip to any of them,
