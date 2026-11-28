@@ -135,20 +135,30 @@ function peopleBuy(s) {
 }
 /* a new tool level: the tools are made again in the new colour, sparks fly off the anvil and she hops */
 /* over the smith's head: the next tool she can make (the one Pip can pay for first, else the one that is further behind) */
-function smithNext() { const K = toolKeys().filter((k) => bldLv(k) < BLD[k].max); if (!K.length) return null; const k = K.find(bldCan) || K.sort((a, b) => bldLv(a) - bldLv(b))[0]; tierSp.material.map = isleBubble(BLD[k].pic[bldLv(k) + 1]); return k; }
+/* what the anvil offers: the smith's own forging card (the copper pair) while it is there, and the two sharpening cards */
+const anvilKeys = () => forgeKeys().filter((k) => TOOL_FORGE[k] === 'smith').concat(toolKeys());
+/* a friend forged a new pair of tools: both are held up, one after the other */
+function toolForged(k) {
+  const t = +k[4], who = TOOL_FORGE[k], H = HOUSES[who], at = H ? [H.x, H.z] : [ANVIL.x, ANVIL.z]; toolPics(); TOOL.re(); smithNext(); hintSp.visible = false;
+  burst(at[0], 1.0, at[1], 12); if (who === 'smith') { SM.hop = 1; splash(ANVIL.x, 0.7, ANVIL.z, 8); }
+  foundIt('axe' + t); if (state.isle.tools && state.isle.tools.pick) setTimeout(() => foundIt('pick' + t), 2600);
+}
+/* the forging card's corner picture: the face of the friend who makes it */
+function forgeEff(x, k) { const v = VILLAGERS.find((q) => q.id === TOOL_FORGE[k]); x.beginPath(); x.arc(48, 50, 40, 0, 7); x.fillStyle = '#fff6e4'; x.fill(); x.lineWidth = 4; x.strokeStyle = '#6e4426'; x.stroke(); if (v) boardFace(x, v, 48, 60, 0.6, 3); }
+function smithNext() { const K = anvilKeys().filter((k) => bldLv(k) < BLD[k].max); if (!K.length) return null; const k = K.find(bldCan) || K.sort((a, b) => bldLv(a) - bldLv(b))[0]; tierSp.material.map = isleBubble(BLD[k].pic[bldLv(k) + 1]); return k; }
 function toolUp(k) {
   TOOL.re(); SM.hop = 1; burst(ANVIL.x, 0.9, ANVIL.z, 10); splash(ANVIL.x, 0.7, ANVIL.z, 8);
   smithNext(); hintSp.visible = false;
   /* the new pick flies up out of the anvil to Pip */
   const sp = isleSprite(isleBubble(BLD[k].pic[bldLv(k)]), 0.9); sp.position.set(ANVIL.x, 1.0, ANVIL.z); sc.add(sp); SM.gift = { sp, t: 0 };
 }
-function anvilOpen() { if (!forgeUp() || !BM.menu) return; const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; /* a new star's card first */ BM.keys = toolKeys(); bldFill(); BM.menu.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); }
+function anvilOpen() { if (!forgeUp() || !BM.menu) return; const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; /* a new star's card first */ BM.keys = anvilKeys(); bldFill(); BM.menu.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); }
 
 function peopleGoal() {
   const bg = bakerGoal() || loopGoal(); if (bg) return bg;
   const F = state.isle.folk; if (!F || !SM.g) return null; const pp = pip.position;
   if (F.smith === 2 && SM.arr > 0 && !SM.away && Math.hypot(pp.x - SMITH_AT.x, pp.z - SMITH_AT.z) > 4) return [ANVIL_RING.x, ANVIL_RING.z]; /* she moved: show where to */
-  if (F.smith === 3 && toolKeys().some((k) => bldLv(k) < 7 && bldCan(k)) && Math.hypot(pp.x, pp.z) < 14) return [ANVIL_RING.x, ANVIL_RING.z];
+  if (F.smith === 3 && anvilKeys().some((k) => (TOOL_FORGE[k] || bldLv(k) < 3) && bldCan(k)) && Math.hypot(pp.x, pp.z) < 14) return [ANVIL_RING.x, ANVIL_RING.z];
   return null;
 }
 

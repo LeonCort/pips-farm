@@ -5,15 +5,15 @@
 const BLD = {
   tent: { max: 3, cost: [null, null, { log: 12, berry: 5 }, { log: 20, stone: 10, berry: 10 }], pic: [null, 'tent', 'tent', 'hut'] },
   fire: { max: 3, cost: [null, null, { log: 6, stone: 4 }, { log: 12, stone: 12, crystal: 2 }], pic: [null, 'fire', 'fire', 'fire'] },
-  /* the axe and the pickaxe, each on its own card at the smith's anvil (Leon, 2026-11-27: smaller steps, one tool at a time).
-     Twelve levels: every third one is a new metal (copper at 4, iron at 7, star crystal at 10) and opens the next tier of
-     trees or rocks (tiers.js); the two between sharpen the tool, so it hits harder and looks a little bigger. */
-  axe: { max: 12, cost: [null, null, { log: 8, coin: 3 }, { log: 14, stone: 6, coin: 6 }, { copper: 3, log: 16, coin: 8 }, { log: 24, coin: 12 }, { log: 30, stone: 16, coin: 16 }, { iron: 3, crystal: 2, coin: 16 }, { log: 40, crystal: 4, coin: 22 }, { log: 50, crystal: 6, coin: 28 }, { glow: 2, crystal: 6, coin: 30 }, { log: 70, crystal: 10, coin: 40 }, { log: 90, crystal: 14, coin: 50 }],
-    pic: [null, 'axe', 'axe', 'axe', 'axe2', 'axe2', 'axe2', 'axe3', 'axe3', 'axe3', 'axe4', 'axe4', 'axe4'] },
-  pick: { max: 12, cost: [null, null, { stone: 8, coin: 3 }, { stone: 14, log: 6, coin: 6 }, { copper: 3, stone: 14, coin: 8 }, { stone: 24, coin: 12 }, { stone: 30, log: 16, coin: 16 }, { iron: 3, crystal: 2, coin: 16 }, { stone: 40, crystal: 4, coin: 22 }, { stone: 50, crystal: 6, coin: 28 }, { glow: 2, crystal: 6, coin: 30 }, { stone: 70, crystal: 10, coin: 40 }, { stone: 90, crystal: 14, coin: 50 }],
-    pic: [null, 'pick', 'pick', 'pick', 'pick2', 'pick2', 'pick2', 'pick3', 'pick3', 'pick3', 'pick4', 'pick4', 'pick4'] }
+  /* the axe and the pickaxe cards at the smith's anvil only sharpen now (Leon 2026-11-28): five levels, cheap at first. The
+     tier, the tool itself, comes from a friend's forging card (tool2 to tool4, tiers.js TOOL_FORGE). Pictures: toolPics(). */
+  axe: { max: 5, cost: [null, null, { log: 5, coin: 2 }, { log: 12, stone: 4, coin: 5 }, { log: 24, crystal: 3, coin: 12 }, { log: 40, crystal: 8, coin: 24 }], pic: [null, 'axe', 'axe', 'axe', 'axe', 'axe'] },
+  pick: { max: 5, cost: [null, null, { stone: 5, coin: 2 }, { stone: 12, log: 4, coin: 5 }, { stone: 24, crystal: 3, coin: 12 }, { stone: 40, crystal: 8, coin: 24 }], pic: [null, 'pick', 'pick', 'pick', 'pick', 'pick'] },
+  tool2: { max: 2, cost: [null, null, { copper: 3, log: 10, coin: 6 }], pic: [null, 'axe', 'forge2'] },
+  tool3: { max: 2, cost: [null, null, { iron: 4, stone: 20, coin: 16 }], pic: [null, 'forge2', 'forge3'] },
+  tool4: { max: 2, cost: [null, null, { glow: 2, crystal: 8, coin: 30 }], pic: [null, 'forge3', 'forge4'] }
 };
-const bldKeys = () => ['tent', 'fire', 'dog'].concat(forgeUp() ? toolKeys() : [], ovenUp() ? ['oven', 'sweet'] : [], gearKeys(), Object.keys(HAM_KEY).filter((k) => mons()[HAM_KEY[k]]));
+const bldKeys = () => ['tent', 'fire', 'dog'].concat(forgeUp() ? toolKeys() : [], forgeKeys(), ovenUp() ? ['oven', 'sweet'] : [], gearKeys(), Object.keys(HAM_KEY).filter((k) => mons()[HAM_KEY[k]]));
 const bldLv = (k) => (state.isle && state.isle.bld && state.isle.bld[k]) || 1;
 const enMax = () => [0, 100, 130, 160][bldLv('tent')] + xpEn() + (state.isle.folk && state.isle.folk.knitter >= 3 ? 25 : 0); /* the knitter's quilt */
 const enRegen = () => [0, 0.2, 0.33, 0.5][bldLv('fire')];
@@ -141,10 +141,11 @@ function bldEff(k, lv) {
   const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d');
   if (k === 'dog') { dogEff(x, lv); return c; }
   if (GEAR[k]) { gearEff(x, k); return c; }
+  if (TOOL_FORGE[k]) { forgeEff(x, k); return c; }
   if (k === 'oven' || k === 'sweet') { pieEff(x, k, lv); return c; }
   isleIcon(x, k === 'axe' || k === 'pick' ? 'perkHit' : 'bolt', 30, 48, 1.1);
   x.lineWidth = 4; x.strokeStyle = PAL.ink;
-  if (k === 'axe' || k === 'pick') { /* three arrows: how sharp it is within its metal; the metal itself is the small tool below */ for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(52 + q * 12, 26); x.lineTo(63 + q * 12, 42); x.lineTo(52 + q * 12, 58); x.strokeStyle = q <= (lv - 1) % 3 ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 6.5; x.stroke(); } isleIcon(x, BLD[k].pic[Math.min(lv, BLD[k].max)], 70, 76, 0.62); }
+  if (k === 'axe' || k === 'pick') { /* four arrows: how sharp the tool is (levels 2 to 5) */ for (let q = 0; q < 4; q++) { x.beginPath(); x.moveTo(48 + q * 11, 26); x.lineTo(58 + q * 11, 42); x.lineTo(48 + q * 11, 58); x.strokeStyle = q < lv - 1 ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 6.5; x.stroke(); } isleIcon(x, BLD[k].pic[Math.min(lv, BLD[k].max)], 70, 76, 0.62); }
   else if (k === 'tent') { for (let q = 0; q < 3; q++) { x.beginPath(); x.roundRect(54, 70 - q * 22, 32, 16, 5); x.fillStyle = q < lv ? '#7cc85a' : '#e6d9bd'; x.fill(); x.stroke(); } }
   else { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
   return c;
@@ -197,9 +198,10 @@ function bldUp(k) {
     if (miss.length) setTimeout(() => mapOpen(miss[0]), 420); return; }
   Object.keys(c).forEach((t) => { spendN(t, c[t]).forEach((m) => { fly(m, () => pip.localToWorld(tmpV.set(0, 2.2, 0)), () => sc.remove(m), 0.3); }); });
   state.isle.bld[k] = bldLv(k) + 1; save();
-  if ((k === 'axe' || k === 'pick' || GEAR[k]) && BLD[k].pic[bldLv(k)] !== BLD[k].pic[bldLv(k) - 1]) foundIt(BLD[k].pic[bldLv(k)]); /* a new tool or piece of gear is held up */
+  if (GEAR[k] && BLD[k].pic[bldLv(k)] !== BLD[k].pic[bldLv(k) - 1]) foundIt(BLD[k].pic[bldLv(k)]); /* a new tool or piece of gear is held up */
   if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(TENT.x, 1.2, TENT.z, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
   else if (k === 'axe' || k === 'pick') toolUp(k);
+  else if (TOOL_FORGE[k]) toolForged(k);
   else if (k === 'oven' || k === 'sweet') ovenLevelUp();
   else if (k === 'dog') dogUp();
   else if (GEAR[k]) gearGot(k);

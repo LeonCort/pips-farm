@@ -131,8 +131,8 @@ const HAS = {}; /* areas owned */
 /* ?new=1 starts a new island (for testing) */
 try { if (/[?&]new=1/.test(location.search)) localStorage.removeItem(SAVE_KEY); } catch (e) {}
 function areaSquares(a, f) { for (let i = a.i; i < a.i + 3; i++) for (let j = a.j; j < a.j + 3; j++) { if (a.holes && a.holes.some((h) => h[0] === i - a.i && h[1] === j - a.j)) continue; f(i, j); } }
-function areaMark(a) { HAS[a.id] = 1; areaSquares(a, (i, j) => { WALK[gIdx(i, j)] = 1; LAND[gIdx(i, j)] = 1; }); if (typeof seaShoreDirty === 'function') seaShoreDirty(); }
-AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.cave || a.lift) LAND[gIdx(i, j)] = 1; }); });
+function areaMark(a) { HAS[a.id] = 1; areaSquares(a, (i, j) => { WALK[gIdx(i, j)] = 1; if (!a.cave) LAND[gIdx(i, j)] = 1; }); if (typeof seaShoreDirty === 'function') seaShoreDirty(); }
+AREAS.forEach((a, k) => { areaSquares(a, (i, j) => { AREA_AT[gIdx(i, j)] = k; if (a.bridge || a.lift) LAND[gIdx(i, j)] = 1; /* the mine is not land: from outside there is only sea there (Leon 2026-11-28: the mine must not be seen from the shores) */ }); });
 if (SHOW) try { const s = fresh(), I = s.isle; AREAS.forEach((a) => { if (!a.cave) I.areas[a.id] = 1; }); I.ruins = { h3: 1, s1: 1, w1: 1 }; I.folk = { smith: 3, baker: 3, mason: 3, knitter: 3, miner: 3 };
   I.mon = { harbor: 1, windmill: 1, lighthouse: 1, tower: 1 }; I.keys = { rope: 2, map: 2, icepick: 2 }; I.done = 1; I.bld = { tent: 1, fire: 1, tool: 3, dog: 2, torch: 1, coat: 1, boots: 1 }; I.tools.pick = 1; I.seen = { torch: 1, coat: 1, boots: 1 };
   localStorage.setItem(SAVE_KEY, JSON.stringify(s)); } catch (e) {}
@@ -329,6 +329,7 @@ const CARGO = { on: 0, z: -1.0, x0: -5.7, x1: -8.5, berth: [-9.45, -1.0], pile: 
 const TRAVEL_HOME = { x: 2.7, z: 2.6 }, CAVE_FRIEND = { x: 8.8, z: 29.2 };
 const SPOT_AT = { tent: [-4.5, -1.5], fire: [-1.75, 0.75], dog: [-0.75, -2.7], gear: [-2.9, 2.9] }; /* gear has its bench in the start square: rain comes before the smithy does (Leon 2026-11-25, playtest) */ /* the upgrade rings in the camp (spots.js) */
 Object.keys(HAMLET_AT).forEach((id) => { const c = HAMLET_AT[id].crate; SPOT_AT['ham_' + id] = [c[0], c[1] + 1.3]; });
+SPOT_AT.tool3 = [HOUSES.mason.x + 1.35, HOUSES.mason.z + 1.3]; SPOT_AT.tool4 = [HOUSES.diver.x + 1.5, HOUSES.diver.z]; /* the mason and the pearl diver forge the next pair of tools at their door (tiers.js TOOL_FORGE) */
 const KENNEL = { x: -1.3, z: -3.7 }; /* the pet's kennel, by the camp in the start area */
 function fresh() { return { v: 1, coins: 0, total: 0, lv: { speed: 0, bag: 0 }, sound: true, moved: false, wx: { rain: 0, next: 150 },
   isle: { map: MAP_V, areas: { h0: 1 }, paid: {}, tools: { pick: 0, bag: 0, sickle: 0, shovel: 0 }, chests: {}, ruins: {}, store: { log: 0, stone: 0, berry: 0 } } }; }
