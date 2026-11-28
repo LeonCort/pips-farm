@@ -8,9 +8,18 @@
    state.isle.folk.baker: 0 in the cottage, 1 found (wants berries), 2 at the camp (oven plot), 3 oven built. state.isle.bake: progress. */
 /* (position: see rules.js) */ /* the bakery is in h2, south of the camp */ // /* the south-east corner of the settlement */
 const BAKER_WANT = { berry: 10 }, OVEN_COST = { stone: 12, log: 10 };
-const PIE_NEED = { berry: 4 }, PIE_MAX = 5, PIE_EN = 60, OVEN_IN = new T.Vector3(OVEN.x, 0.6, OVEN.z + 0.3);
-const bakeTime = () => [0, 45, 28, 28][bldLv('oven')], bakeBatch = () => [0, 1, 1, 2][bldLv('oven')];
-BLD.oven = { max: 3, cost: [null, null, { stone: 12, log: 12, coin: 8 }, { crystal: 6, log: 15, coin: 15 }], pic: [null, 'oven', 'oven', 'oven'] };
+/* Leon, 2026-11-28: pies were endless (+60 each, baked all day), so Pip never ran out of energy. Now how MANY and how
+   STRONG are two separate things, each its own upgrade at the baker's card:
+     the oven (how many): the oven bakes this many pies a day, then rests until Pip has slept: 2, 3, 4, 5;
+     the sweet pie (how strong): energy from one pie: 30, 45, 60, 80. */
+const PIE_NEED = { berry: 4 }, OVEN_IN = new T.Vector3(OVEN.x, 0.6, OVEN.z + 0.3);
+const PIE_DAY = [0, 2, 3, 4, 5], PIE_ENS = [0, 30, 45, 60, 80];
+const pieDay = () => PIE_DAY[bldLv('oven')], PIE_EN_OF = () => PIE_ENS[bldLv('sweet')];
+const bakeTime = () => [0, 45, 35, 28, 24][bldLv('oven')], bakeBatch = () => 1;
+BLD.oven = { max: 4, cost: [null, null, { stone: 12, log: 12, coin: 8 }, { crystal: 6, log: 15, coin: 15 }, { crystal: 10, honey: 3, coin: 25 }], pic: [null, 'oven', 'oven', 'oven', 'oven'] };
+BLD.sweet = { max: 4, cost: [null, null, { berry: 20, honey: 2, coin: 10 }, { berry: 30, honey: 4, coin: 18 }, { berry: 40, honey: 6, coin: 30 }], pic: [null, 'pie', 'pie', 'pie', 'pie'] };
+const baked = () => bake().day || 0; /* pies baked since Pip last slept */
+function bakeWake() { bake().day = 0; }
 const ovenUp = () => !!(state.isle && state.isle.folk && state.isle.folk.baker >= 3);
 const BK = { g: null, pop: 0, hop: 0, move: null, arr: 0, wait: 0 };
 const bake = () => state.isle.bake || (state.isle.bake = { t: 0, on: 0, pies: 0 });
@@ -51,11 +60,12 @@ function bakerPlace() { const [x, z] = bakerSpot(); BK.g.position.set(x, 0, z); 
 let ovenG = null, ovenFire = null, ovenGlow = null, ovenRing = null; const ovenPies = [];
 const pieSp = isleSprite(null, 0.85); pieSp.visible = false; sc.add(pieSp);
 const pieCv = document.createElement('canvas'); pieCv.width = pieCv.height = 128; const pieTex = new T.CanvasTexture(pieCv); pieSp.material.map = pieTex;
-function pieDraw(f, ok) { /* a pie in a bubble, with a ring that fills while it bakes; faded when the counters lack berries or hay */
+function pieDraw(f, ok, rest) { /* a pie in a bubble, with a ring that fills while it bakes; faded when the counters lack berries or hay */
   const x = pieCv.getContext('2d'); x.clearRect(0, 0, 128, 128);
   x.beginPath(); x.arc(64, 60, 50, 0, 7); x.fillStyle = '#fff6e4'; x.fill(); x.lineWidth = 5; x.strokeStyle = '#6e4426'; x.stroke();
   if (f > 0) { x.beginPath(); x.arc(64, 60, 50, -Math.PI / 2, -Math.PI / 2 + f * Math.PI * 2); x.lineWidth = 9; x.strokeStyle = '#74a857'; x.stroke(); }
   x.globalAlpha = ok ? 1 : 0.4; isleIcon(x, 'pie', 64, 62, 1.6); x.globalAlpha = 1;
+  if (rest) { x.beginPath(); x.arc(98, 32, 17, 0, 7); x.fillStyle = '#3b3348'; x.fill(); x.beginPath(); x.arc(101, 30, 10, 0.6, 5.7); x.arc(95, 28, 8, 5.2, 1.1, true); x.closePath(); x.fillStyle = '#ffe9a0'; x.fill(); } /* a moon: more after a sleep */
   if (!ok) isleIcon(x, 'berry', 64, 100, 0.6);
   pieTex.needsUpdate = true;
 }
@@ -129,18 +139,18 @@ function bakerBuy(s) {
   return false;
 }
 function ovenLevelUp() { BK.hop = 1; burst(OVEN.x, 1.3, OVEN.z, 10); bldPop = { g: ovenG, t: 0 }; }
-function ovenOpen() { if (!ovenUp() || !BM.menu) return; const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; BM.keys = ['oven']; bldFill(); BM.menu.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); }
+function ovenOpen() { if (!ovenUp() || !BM.menu) return; const xu = document.querySelector('.xpUp'); if (xu && !xu.hidden) return; BM.keys = ['oven', 'sweet']; bldFill(); BM.menu.hidden = false; Snd.play('pop', { gain: 0.3, f: 520 }); }
 function bakerGoal() {
   const F = state.isle.folk; if (!F || !BK.g) return null; const pp = pip.position;
   if (F.baker === 2 && BK.arr > 0 && !BK.away && Math.hypot(pp.x - BAKER_AT.x, pp.z - BAKER_AT.z) > 4) return [OVEN_RING.x, OVEN_RING.z];
-  if (F.baker === 3 && bldLv('oven') < 3 && bldCan('oven') && Math.hypot(pp.x, pp.z) < 14 && carry.count() < cap()) return [OVEN_RING.x, OVEN_RING.z];
+  if (F.baker === 3 && ((bldLv('oven') < BLD.oven.max && bldCan('oven')) || (bldLv('sweet') < BLD.sweet.max && bldCan('sweet'))) && Math.hypot(pp.x, pp.z) < 14 && carry.count() < cap()) return [OVEN_RING.x, OVEN_RING.z];
   return null;
 }
 /* Pip eats a pie when the energy runs low (and is not asleep) */
 const eatSp = isleSprite(isleBubble('pie'), 0.85); eatSp.visible = false; sc.add(eatSp);
 function pieEat() {
   const I = state.isle; if (!pies() || enSleep || I.en >= enMax() * 0.12) return false;
-  bake().pies--; I.en = Math.min(enMax(), I.en + PIE_EN); enShow = -1;
+  bake().pies--; I.en = Math.min(enMax(), I.en + PIE_EN_OF()); enShow = -1;
   eatSp.visible = true; eatSp.t = 1.6; Snd.play('success', { gain: 0.4, f: 'A5' }); burst(pip.position.x, 1.6, pip.position.z, 5); return true;
 }
 
@@ -170,13 +180,15 @@ function bakerStep(dt) {
   if (F.baker >= 3 && ovenG) {
     const B = bake(), I = state.isle;
     /* start a pie when the counters hold its berries and hay: they fly from the crate into the oven */
-    if (!B.on && pies() < PIE_MAX && Object.keys(PIE_NEED).every((t) => haveN(t) >= PIE_NEED[t])) {
+    if (!B.on && pies() < pieDay() && baked() < pieDay() && Object.keys(PIE_NEED).every((t) => haveN(t) >= PIE_NEED[t])) {
       Object.keys(PIE_NEED).forEach((t) => { spendN(t, PIE_NEED[t]).forEach((m) => sc.remove(m)); invWig(t); if (Math.hypot(pp.x - OVEN.x, pp.z - OVEN.z) < 9) for (let k = 0; k < PIE_NEED[t]; k++) { const m = itemModel(t); m.position.set(STORE.x, 0.7, STORE.z); sc.add(m); fly(m, () => OVEN_IN, () => sc.remove(m), 0.5 + k * 0.1); } });
       B.on = 1; B.t = 0; save();
     }
-    if (B.on) { B.t += dt; if (B.t >= bakeTime()) { B.on = 0; B.t = 0; B.pies = Math.min(PIE_MAX, pies() + bakeBatch()); BK.hop = 0.6; if (Math.hypot(pp.x - OVEN.x, pp.z - OVEN.z) < 9) { Snd.play('success', { gain: 0.35, f: 'G5' }); burst(OVEN.x, 1.0, OVEN.z + 0.4, 5); } save(); } }
-    const f = B.on ? B.t / bakeTime() : pies() >= PIE_MAX ? 1 : 0, ok = B.on || pies() >= PIE_MAX || Object.keys(PIE_NEED).every((t) => haveN(t) >= PIE_NEED[t]), key = Math.round(f * 24) + (ok ? 'y' : 'n');
-    if (key !== pieSp.key) { pieSp.key = key; pieDraw(f, ok); }
+    if (B.on) { B.t += dt; if (B.t >= bakeTime()) { B.on = 0; B.t = 0; B.pies = Math.min(pieDay(), pies() + bakeBatch()); B.day = baked() + 1; BK.hop = 0.6; if (Math.hypot(pp.x - OVEN.x, pp.z - OVEN.z) < 9) { Snd.play('success', { gain: 0.35, f: 'G5' }); burst(OVEN.x, 1.0, OVEN.z + 0.4, 5); } save(); } }
+    const rest = !B.on && baked() >= pieDay() && pies() < pieDay(); /* done for today: the bubble shows a sleeping moon */
+    const f = B.on ? B.t / bakeTime() : pies() >= pieDay() ? 1 : 0, ok = !rest && (B.on || pies() >= pieDay() || Object.keys(PIE_NEED).every((t) => haveN(t) >= PIE_NEED[t])), key = Math.round(f * 24) + (ok ? 'y' : 'n') + (rest ? 'r' : '');
+    pieSp.rest = rest;
+    if (key !== pieSp.key) { pieSp.key = key; pieDraw(f, ok, rest); }
     pieSp.visible = true; pieSp.position.set(OVEN.x, 1.75 + (reduced ? 0 : Math.sin(time * 2 + 1) * 0.05), OVEN.z - 0.1);
     ovenPies.forEach((m, k) => { m.visible = k < pies(); });
     const fl = reduced ? 1 : 0.8 + Math.sin(time * 8) * 0.12 + Math.sin(time * 19) * 0.06, hot = B.on ? 1 : 0.45; ovenFire.material.color.setRGB(1, 0.55 * fl * hot + 0.2, 0.2 * fl); ovenGlow.material.opacity = (isNight ? 0.7 : 0.35) * fl * hot;
@@ -184,4 +196,20 @@ function bakerStep(dt) {
     const ox = OVEN.x - 0.35, bx = pp.x - ox, bz = pp.z - OVEN.z; if (Math.abs(bx) < 1.2 && Math.abs(bz) < 0.85) { if (1.2 - Math.abs(bx) < 0.85 - Math.abs(bz)) pp.x = ox + Math.sign(bx || 1) * 1.2; else pp.z = OVEN.z + Math.sign(bz || 1) * 0.85; }
     const inR = Math.hypot(pp.x - OVEN_RING.x, pp.z - OVEN_RING.z) < 0.55; if (!inR) ovenIn = false; else if (!ovenIn && BM.menu && BM.menu.hidden) { ovenOpen(); ovenIn = !BM.menu.hidden; }
   }
+}
+/* the two pie cards, in pictures: the oven shows how many pies a day (pies by a moon), the sweet pie how much energy one gives */
+function pieRow(x, n, cx, cy, s) { const w = 40 * s; for (let k = 0; k < n; k++) isleIcon(x, 'pie', cx + (k - (n - 1) / 2) * w, cy, 0.95 * s); }
+function pieMoon(x, cx, cy, r) { x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fillStyle = '#3b3348'; x.fill(); x.beginPath(); x.arc(cx + r * 0.18, cy - r * 0.1, r * 0.62, 0.6, 5.7); x.arc(cx - r * 0.18, cy - r * 0.22, r * 0.5, 5.2, 1.1, true); x.closePath(); x.fillStyle = '#ffe9a0'; x.fill(); }
+function pieBar(x, x0, y, w, full, h) { h = h || 26; x.lineJoin = 'round'; x.beginPath(); x.roundRect(x0, y, w, h, 9); x.fillStyle = '#7cc85a'; x.fill(); x.lineWidth = 4; x.strokeStyle = PAL.ink; x.stroke(); if (full < w) { x.beginPath(); x.roundRect(x0 + full, y + 2.5, w - full, h - 5, 7); x.fillStyle = '#b9ee96'; x.fill(); } }
+function pieNum(x, n, cx, cy, sz) { x.font = '700 ' + sz + 'px Fredoka, sans-serif'; x.textAlign = 'center'; x.lineJoin = 'round'; x.lineWidth = sz * 0.2; x.strokeStyle = PAL.ink; x.fillStyle = '#fff6e4'; x.strokeText('\u00d7' + n, cx, cy); x.fillText('\u00d7' + n, cx, cy); x.textAlign = 'start'; }
+function pieEff(x, k, lv) {
+  if (k === 'oven') { pieMoon(x, 78, 20, 16); isleIcon(x, 'pie', 34, 50, 1.35); pieNum(x, PIE_DAY[lv], 62, 82, 30); }
+  else { isleIcon(x, 'pie', 34, 36, 1.2); isleIcon(x, 'bolt', 80, 36, 1.0); const w = 84 * PIE_ENS[lv] / 80; pieBar(x, 6, 66, w, w, 24); }
+}
+function pieHow(k, lv, next) {
+  const c = document.createElement('canvas'); c.width = 400; c.height = 128; const x = c.getContext('2d'); x.lineJoin = x.lineCap = 'round';
+  x.beginPath(); x.moveTo(178, 64); x.lineTo(214, 64); x.moveTo(202, 50); x.lineTo(218, 64); x.lineTo(202, 78); x.lineWidth = 9; x.strokeStyle = '#6e4426'; x.stroke();
+  if (k === 'oven') { [[70, PIE_DAY[lv]], [290, PIE_DAY[next]]].forEach(([cx, n]) => { isleIcon(x, 'pie', cx, 66, 2.1); pieNum(x, n, cx + 72, 92, 44); pieMoon(x, cx + 76, 28, 21); }); }
+  else { [[12, PIE_ENS[lv]], [232, PIE_ENS[next]]].forEach(([x0, e]) => { isleIcon(x, 'pie', x0 + 34, 38, 1.5); isleIcon(x, 'bolt', x0 + 104, 38, 1.3); const w = 156 * e / 80; pieBar(x, x0, 78, w, w, 32); }); }
+  return c;
 }
