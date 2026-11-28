@@ -97,7 +97,7 @@ const EMBER = { cone: [32.2, 23.8, 2.4], lava: [[[30.6, 25.6], [27.2, 27.2], [24
   cross: [{ id: 'a', a: [25.6, 26.3], b: [25.6, 28.5], ring: [25.6, 25.75], n: 6 }, { id: 'b', a: [28.9, 31.4], b: [31.1, 31.7], ring: [28.3, 31.35], n: 10 }], cool: {} };
 /* the great lava river down the east edge of the ash fields (glass.js): the points it runs through, half its width, and
    the row of stepping stones it sets into (a to b) once Pip has thrown the frost flowers in (cool) */
-EMBER.river = { pts: [[45.3, 34.5], [45.3, 36.8], [45.1, 38.8], [45.05, 41], [45.25, 43], [45.1, 44.8], [45.25, 46.9]], w: 0.7, a: [44.3, 41], b: [46.1, 41], cool: 0 };
+EMBER.river = { pts: [[45.3, 34.5], [45.3, 36.8], [45.15, 38.8], [45.1, 41], [45.2, 43], [45.15, 44.8], [45.2, 46.9]], w: 0.85, a: [44.15, 41], b: [46.25, 41], cool: 0 };
 /* how far a point is from the nearest lava (below 0: in it), not counting where a cooled slab lies */
 function emberLava(x, z) {
   for (const c of EMBER.cross) if (EMBER.cool[c.id] && segD(x, z, c.a[0], c.a[1], c.b[0], c.b[1]) < 0.8) return 1;

@@ -18,7 +18,7 @@
    state.isle.glass = { cool: 1 the river is crossed, lit: 1 the four bells are lit, done: 1 the heart is found } */
 const GL = { out: null, g: null, u: { value: 0.22 }, ub: { value: 0.5 }, solid: [], pat: null, bells: [], step: 0, fin: 0, show: 0, flw: [], pools: [], bird: null, bal: null, fly: null, rings: 0, cool: 0, thrown: [], stones: [], crust: null, aft: null, buds: [], ripe: -1, ripeT: 25, lamp: null, haze: [], pop: 0, sea: 0, beams: [], heart: null, tips: [], sparks: [] };
 const glassS = () => state.isle.glass || (state.isle.glass = {});
-const GLASS = { sign: [43.75, 39.9], rock: [43.95, 42.1], entry: { ring: [28.9, 24.0], park: [29.6, 22.9] }, wood: { ring: [53.8, 44.5], park: [55.0, 44.0] }, pool: [0.2, -0.4, 1.25], order: [1, 3, 0, 2],
+const GLASS = { sign: [43.45, 39.85], rock: [43.75, 42.1], entry: { ring: [28.95, 23.6], park: [29.7, 22.8] }, wood: { ring: [53.8, 44.5], park: [55.0, 44.0] }, pool: [0.2, -0.4, 1.25], order: [1, 3, 0, 2],
   bells: [[-3.0, -1.4, 'G5'], [-1.2, -3.6, 'B5'], [2.0, -3.4, 'D6'], [3.4, -0.9, 'G6']],
   /* the balloon's way from the bridge to the forest: along the trails, where no tree stands */
   route: [[29.4, 25.2], [29.7, 27.6], [31.0, 29.6], [33.0, 30.2], [34.4, 31.5], [34.3, 33.6], [35.6, 35.3], [38.5, 36.0], [41.5, 37.4], [43.6, 39.7], [45.3, 41.0], [47.4, 41.3], [49.6, 42.4], [52.6, 43.7]],
@@ -29,8 +29,8 @@ const GLASS = { sign: [43.75, 39.9], rock: [43.95, 42.1], entry: { ring: [28.9, 
 const GL_COL = ['#ffa51f', '#ff5f95', '#22cfa2', '#9a66ff'], GL_W = new T.Color('#ffffff'), GL_UP = new T.Vector3(0, 1, 0), GL_V = new T.Vector3(), GL_Q = new T.Quaternion(), GL_M = new T.Matrix4();
 const glTurn = (a, b) => GL_M.makeRotationFromQuaternion(GL_Q.setFromUnitVectors(a, b)); /* the turn that takes direction a to direction b */
 /* black sand: the forest's own ground, darker than the ash fields; it fades in at the river and at the field to the north */
-const GL_SAND = new T.Color('#1a171d');
-{ const t0 = ISLAND.tint; ISLAND.tint = (x, z, c) => { t0(x, z, c); if (x > 46 && z > 34 && x < 59.5 && z < 47.5) c.lerp(GL_SAND, (0.74 + hash(Math.round(x * 3), Math.round(z * 3)) * 0.1) * clamp((x - 46) / 0.9, 0, 1) * clamp((z - 34) / 0.9, 0, 1)); }; }
+const GL_SAND = new T.Color('#100f17');
+{ const t0 = ISLAND.tint; ISLAND.tint = (x, z, c) => { t0(x, z, c); if (x > 46 && z > 34 && x < 59.5 && z < 47.5) c.lerp(GL_SAND, (0.88 + hash(Math.round(x * 3), Math.round(z * 3)) * 0.09) * clamp((x - 46) / 0.9, 0, 1) * clamp((z - 34) / 0.9, 0, 1)); }; }
 /* glass: one see-through material for all of it; every face also glows a little in its own colour (GL.u: more at night) */
 function glGlow(m, u) { m.onBeforeCompile = (sh) => { sh.uniforms.uGlGlow = u; sh.fragmentShader = 'uniform float uGlGlow;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\n\ttotalEmissiveRadiance += vColor.rgb * uGlGlow;'); }; m.userData = { noSnow: 1 }; return m; }
 const glassMat = glGlow(new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.16, metalness: 0.08, transparent: true, opacity: 0.8 }), GL.u);
@@ -40,11 +40,6 @@ ISLE_ICON.balloon = (x) => { const cols = ['#ffb238', '#ff7fa8', '#3fd6b0', '#a7
   for (let k = 0; k < 5; k++) for (let j = 0; j < 4; j++) { x.fillStyle = cols[(k * 2 + j * 3) % 5]; x.fillRect(-22 + k * 9, -28 + j * 9, 9, 9); } x.restore();
   x.beginPath(); x.moveTo(-6, 6); x.bezierCurveTo(-26, -6, -18, -28, 0, -28); x.bezierCurveTo(18, -28, 26, -6, 6, 6); x.closePath(); x.stroke();
   x.lineWidth = 1.8; x.beginPath(); x.moveTo(-5, 7); x.lineTo(-6, 14); x.moveTo(5, 7); x.lineTo(6, 14); x.stroke(); x.lineWidth = 3; x.beginPath(); x.roundRect(-8, 14, 16, 11, 3); x.fillStyle = '#b8834c'; x.fill(); x.stroke(); };
-ISLE_ICON.firebird = (x) => { const b = (f) => { x.fillStyle = f; x.fill(); x.stroke(); };
-  x.beginPath(); x.moveTo(-6, 6); x.quadraticCurveTo(-24, 8, -24, -10); x.quadraticCurveTo(-14, -2, -4, -2); x.closePath(); b('#ffd24a');
-  x.beginPath(); x.ellipse(2, 5, 13, 11, 0, 0, 7); b('#f0622a'); x.beginPath(); x.arc(11, -8, 8.5, 0, 7); b('#f57a2c');
-  x.beginPath(); x.moveTo(8, -15); x.lineTo(6, -26); x.lineTo(12, -18); x.lineTo(15, -27); x.lineTo(16, -14); x.closePath(); b('#ffd24a');
-  x.beginPath(); x.moveTo(19, -9); x.lineTo(26, -6); x.lineTo(18, -4); x.closePath(); b('#ffe07a'); x.fillStyle = '#2a1a12'; x.beginPath(); x.arc(13, -9, 1.8, 0, 7); x.fill(); };
 /* the frost flower's picture, only until the winter island's own file brings the real one */
 if (!ISLE_ICON.frost) ISLE_ICON.frost = (x) => { for (let k = 0; k < 6; k++) { x.save(); x.rotate(k * Math.PI / 3); x.beginPath(); x.moveTo(0, -3); x.quadraticCurveTo(8, -12, 0, -22); x.quadraticCurveTo(-8, -12, 0, -3); x.closePath(); x.fillStyle = k % 2 ? '#cfeeff' : '#e9f8ff'; x.fill(); x.stroke(); x.restore(); }
   x.beginPath(); x.arc(0, 0, 5, 0, 7); x.fillStyle = '#ffffff'; x.fill(); x.stroke(); x.fillStyle = '#8fd0f2'; x.beginPath(); x.arc(0, 0, 2, 0, 7); x.fill(); };
@@ -144,20 +139,20 @@ function glassOut() {
   if (GL.out || !EM.lavaTex) return; const g = GL.out = new T.Group(); sc.add(g); const L = [], G = [], R = EMBER.river, A = AREA_BY.e5, nq = (p) => (p.index ? p.toNonIndexed() : p); let q;
   const lm = new T.MeshBasicMaterial({ map: EM.lavaTex, side: T.DoubleSide }); lm.userData = { noSnow: 1 };
   const pts = emberPath(R.pts), pos = [], uv = [], idx = [];
-  pts.forEach((p, k) => { const a = pts[Math.max(0, k - 1)], b = pts[Math.min(pts.length - 1, k + 1)], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, nx = -(b[1] - a[1]) / l, nz = (b[0] - a[0]) / l, w = R.w * (0.96 + Math.sin(k * 0.45) * 0.06), y = p[1] > 45.8 ? 0.075 - (p[1] - 45.8) * 1.7 : 0.075;
+  pts.forEach((p, k) => { const a = pts[Math.max(0, k - 1)], b = pts[Math.min(pts.length - 1, k + 1)], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, nx = -(b[1] - a[1]) / l, nz = (b[0] - a[0]) / l, w = R.w * (0.96 + Math.sin(k * 0.45) * 0.06), y = p[1] > 46.3 ? 0.075 - (p[1] - 46.3) * 2.3 : 0.075;
     pos.push(p[0] + nx * w, y, p[1] + nz * w, p[0] - nx * w, y, p[1] - nz * w); uv.push(0, k * 0.1, 1, k * 0.1); if (k) { const o = k * 2; idx.push(o - 2, o - 1, o, o, o - 1, o + 1); }
-    if (k % 2 === 0 && p[1] < 46) [1, -1].forEach((sd, j) => { if (Math.abs(p[1] - 41) < 0.75) return; const r = 0.18 + hash(k, 11020 + j) * 0.15, e = ico(r, 0, 11030 + k + j * 100); e.scale(1.3, 0.7, 1.1); e.translate(p[0] + nx * sd * (w + 0.12), 0.04, p[1] + nz * sd * (w + 0.12)); L.push(fac(e, (cx, cy, cz, i) => tone(i % 5 === 0 ? '#7a3a22' : '#3a322e', i + k, 0.4), 11030 + k)); }); });
+    if (k % 2 === 0 && p[1] < 46.25) [1, -1].forEach((sd, j) => { if (Math.abs(p[1] - 41) < 0.75) return; const r = 0.18 + hash(k, 11020 + j) * 0.15, e = ico(r, 0, 11030 + k + j * 100); e.scale(1.3, 0.7, 1.1); e.translate(p[0] + nx * sd * (w + 0.12), 0.04, p[1] + nz * sd * (w + 0.12)); L.push(fac(e, (cx, cy, cz, i) => tone(i % 5 === 0 ? '#7a3a22' : '#3a322e', i + k, 0.4), 11030 + k)); }); });
   { const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals(); g.add(new T.Mesh(geo, lm)); }
   /* where it wells up: a round pool among bigger rocks */
   { const [sx, sz] = R.pts[0], s = new T.Mesh(new T.CircleGeometry(1.0, 14), lm); s.rotation.x = -Math.PI / 2; s.position.set(sx, 0.08, sz + 0.25); g.add(s);
     for (let k = 0; k < 9; k++) { const a = -0.5 - k / 8 * 5.3 + 1.57, r = 0.28 + hash(k, 11060) * 0.26; q = ico(r, 1, 11061 + k, 0.05); q.scale(1.2, 0.8 + hash(k, 11062) * 0.5, 1); q.translate(sx + Math.cos(a) * 1.12, r * 0.25, sz + 0.25 + Math.sin(a) * 1.12); L.push(fac(q, (cx, cy, cz, i) => tone(i % 6 === 0 ? '#7a3a22' : '#3d3531', i, 0.4), 11061 + k)); } }
   pts.forEach((p, k) => { if (k % 4 === 0 && p[1] < 46) lookFoot(p[0], p[1], 1.0, 1.0); if (k % 8 === 0 && p[1] < 46.2) nightLamp(p[0], p[1], 3.6); });
   /* the stepping stones and the set stone under them (hidden until the frost flowers go in) */
-  { const cool = !!glassS().cool; R.cool = cool ? 1 : 0; const w = R.b[0] - R.a[0] - 0.1, cg = new T.PlaneGeometry(w, 1.7); cg.rotateX(-Math.PI / 2); cg.translate(w / 2, 0, 0);
+  { const cool = !!(glassS().cool || HAS.e5); R.cool = cool ? 1 : 0; const w = R.b[0] - R.a[0] - 0.1, cg = new T.PlaneGeometry(w, 1.7); cg.rotateX(-Math.PI / 2); cg.translate(w / 2, 0, 0);
     GL.crust = new T.Mesh(cg, new T.MeshBasicMaterial({ map: glCrustTex(), transparent: true, depthWrite: false })); GL.crust.material.userData = { noSnow: 1 }; GL.crust.position.set(R.a[0] + 0.05, 0.085, 41); GL.crust.visible = cool; g.add(GL.crust);
-    for (let k = 0; k < 5; k++) { const s = new T.Group(), x = 44.52 + k * 0.355, z = 41 + (k % 2 ? 0.17 : -0.17); q = new T.CylinderGeometry(0.31, 0.36, 0.15, 8); jit(q, 0.025, 11080 + k); q.rotateY(hash(k, 11081) * 6);
+    for (let k = 0; k < 5; k++) { const s = new T.Group(), x = 44.4 + k * 0.425, z = 41 + (k % 2 ? 0.17 : -0.17); q = new T.CylinderGeometry(0.35, 0.4, 0.15, 8); jit(q, 0.025, 11080 + k); q.rotateY(hash(k, 11081) * 6);
       const sm = new T.Mesh(fac(q, (cx, cy, cz, i) => tone(cy > 0.04 ? (i % 4 === 0 ? '#5d5753' : '#4a4441') : '#2c2725', i + k, 0.3), 11080 + k), MAT); sm.castShadow = true; sm.receiveShadow = true; sm.position.y = 0.1; s.add(sm);
-      const gm = new T.Mesh(new T.CircleGeometry(0.42, 8), new T.MeshBasicMaterial({ color: '#ff8a2a' })); gm.rotation.x = -Math.PI / 2; gm.position.y = 0.092; s.add(gm); s.position.set(x, 0, z); s.visible = cool; g.add(s); GL.stones.push(s); } }
+      const gm = new T.Mesh(new T.CircleGeometry(0.47, 8), new T.MeshBasicMaterial({ color: '#ff8a2a' })); gm.rotation.x = -Math.PI / 2; gm.position.y = 0.092; s.add(gm); s.position.set(x, 0, z); s.visible = cool; g.add(s); GL.stones.push(s); } }
   /* the fire bird's rock on the near bank */
   glRock(L, GLASS.rock[0], GLASS.rock[1], 0.42, 11090, 0.95); lookFoot(GLASS.rock[0], GLASS.rock[1], 0.5, 0.5); GL.solid.push([GLASS.rock[0], GLASS.rock[1], 0.34]);
   /* black rocks out in the sea, a tree of glass on each: all that can be seen of the forest until it rises */
@@ -216,8 +211,8 @@ function glassPatches() { const P = GL.pat; if (!P) return; const A = P.m.geomet
   P.list.forEach((p, k) => { const lit = p.bell == null ? 1 : GL.bells[p.bell] ? GL.bells[p.bell].lit * 1.3 + GL.bells[p.bell].fl : 0, s = p.s * (0.82 + Math.sin(t * 0.9 + p.ph) * 0.2) * (p.bell == null ? 1 : Math.min(1.4, lit)), x = p.x + Math.sin(t * 0.5 + p.ph) * 0.16, z = p.z + Math.cos(t * 0.37 + p.ph * 1.7) * 0.12, a = p.ph + t * 0.12, cx = Math.cos(a) * s, sx = Math.sin(a) * s * 0.62, o = k * 12;
     A.array[o] = x - cx + sx; A.array[o + 1] = 0.05; A.array[o + 2] = z - sx * 1.6 - cx * 0.62; A.array[o + 3] = x + cx + sx; A.array[o + 4] = 0.05; A.array[o + 5] = z + sx * 1.6 - cx * 0.62;
     A.array[o + 6] = x + cx - sx; A.array[o + 7] = 0.05; A.array[o + 8] = z + sx * 1.6 + cx * 0.62; A.array[o + 9] = x - cx - sx; A.array[o + 10] = 0.05; A.array[o + 11] = z - sx * 1.6 + cx * 0.62; }); A.needsUpdate = true; }
-ISLE_KEYS.push({ id: 'glass', ok: () => !!HAS.e3 && !glassS().cool, x: GLASS.sign[0], z: GLASS.sign[1], cost: { frost: 5, stone: 30 }, open: () => glassCool() });
-ISLE_KEEPS.push((a, x, z) => (a.id === 'e3' && (x > 43.4 && emberLava(x, z) < 0.75 || Math.hypot(x - GLASS.sign[0], z - GLASS.sign[1]) < 1.4 || Math.hypot(x - GLASS.rock[0], z - GLASS.rock[1]) < 1.0 || Math.hypot(x - 43.9, z - 41) < 1.2)) || (a.id === 'e0' && x > 27.3 && x < 31.3 && z < 27.3) /* no tree between the balloon's landing place and us */);
+ISLE_KEYS.push({ id: 'glass', ok: () => !!HAS.e3 && !HAS.e5 && !glassS().cool, x: GLASS.sign[0], z: GLASS.sign[1], cost: { frost: 5, stone: 30 }, open: () => glassCool() });
+ISLE_KEEPS.push((a, x, z) => (a.id === 'e3' && (x > 43.4 && emberLava(x, z) < 0.75 || Math.hypot(x - GLASS.sign[0], z - GLASS.sign[1]) < 1.4 || Math.hypot(x - GLASS.rock[0], z - GLASS.rock[1]) < 1.0 || Math.hypot(x - 43.7, z - 41) < 1.2)) || (a.id === 'e0' && x > 27.3 && x < 31.3 && z < 27.3) /* no tree between the balloon's landing place and us */);
 /* the frost flowers go in: they fly out over the river one after another, and it sets where each one lands */
 function glassCool() { const S = glassS(); if (S.cool) return; S.cool = 1; GL.cool = 0.001; const pp = pip.position; Snd.play('swish', { gain: 0.4 });
   for (let k = 0; k < 5; k++) { const sp = isleSprite(isleBubbleFree('frost'), 0.5); sp.position.set(pp.x, 1.7, pp.z); sp.visible = false; sc.add(sp); GL.thrown.push({ sp, t: -k * 0.16, x0: pp.x, z0: pp.z, x1: GL.stones[k].position.x, z1: GL.stones[k].position.z, k }); } save(); }
@@ -250,7 +245,7 @@ function glassStep(dt) {
   const nt = typeof nightAmt === 'number' ? nightAmt : 0, X = AREA_BY.e5.cx, Z = AREA_BY.e5.cz, near = Math.abs(pp.x - 44) < 34 && Math.abs(pp.z - 34) < 30;
   GL.out.visible = !inCave; if (GL.g) GL.g.visible = !inCave; if (GL.aft) GL.aft.visible = !inCave; if (GL.bal) GL.bal.visible = !inCave && !!HAS.e5 && !GL.pop;
   GL.u.value = 0.3 + nt * 0.7 + (GL.fin ? Math.min(0.5, GL.fin * 0.25) : 0);
-  if (!inCave && near) GL.haze.forEach((h, k) => { const u = ((reduced ? 0.3 : time * 0.22) + k * 0.37) % 1; h.scale.set(0.9 + Math.sin(k * 2.1) * 0.25, 1.5 + u * 1.9, 1); h.material.opacity = (0.2 - nt * 0.08) * Math.sin(u * Math.PI); });
+  if (!inCave && near) GL.haze.forEach((h, k) => { const u = ((reduced ? 0.3 : time * 0.22) + k * 0.37) % 1; h.scale.set(0.9 + Math.sin(k * 2.1) * 0.25, 1.5 + u * 1.9, 1); h.material.opacity = (0.36 - nt * 0.14) * Math.sin(u * Math.PI); });
   if (!inCave && near) GL.sparks.forEach((P) => { const A = P.m.geometry.attributes.color; P.c.forEach((c, k) => { const v = reduced ? 0.25 : Math.pow(Math.max(0, Math.sin(time * (1.1 + (k % 5) * 0.23) + k * 2.4)), 10) * (0.9 + nt * 0.5); A.array[k * 3] = c.r * v; A.array[k * 3 + 1] = c.g * v; A.array[k * 3 + 2] = c.b * v; }); A.needsUpdate = true; });
   /* the river pours into the sea: steam where it meets the water */
   if (!reduced && !inCave && Math.hypot(pp.x - 45.2, pp.z - 46) < 16) { GL.sea -= dt; if (GL.sea <= 0) { GL.sea = 0.5; smokePuff(45.2 + (Math.random() - 0.5) * 1.1, -0.4 + Math.random() * 0.3, 46.75 + Math.random() * 0.3, '#ffffff'); } }
@@ -261,7 +256,7 @@ function glassStep(dt) {
     GL.crust.visible = t > 0.6; GL.crust.scale.x = Math.max(0.01, clamp((t - 0.6) / 1.5, 0, 1));
     if (GL.cool >= 1) { R.cool = 1; Snd.play('success', { gain: 0.45 }); burst((R.a[0] + R.b[0]) / 2, 1.0, 41, 10); } }
   GL.stones.forEach((s) => { if (s.userData.p > 0 && s.userData.p < 1) { s.userData.p = Math.min(1, s.userData.p + dt * 3); const e = s.userData.p; s.scale.setScalar(e < 0.7 ? e / 0.7 * 1.15 : 1.15 - (e - 0.7) / 0.3 * 0.15); } s.children[1].material.color.setRGB(1, 0.5 + (reduced ? 0 : Math.sin(time * 2 + s.position.x * 5) * 0.08), 0.16); });
-  if (S.cool && !(GL.cool > 0 && GL.cool < 1)) { if (!R.cool) { R.cool = 1; GL.crust.visible = true; GL.stones.forEach((s) => { s.visible = true; }); } if (!HAS.e5 && !rising) secretOpen('e5'); }
+  if ((S.cool || HAS.e5) && !(GL.cool > 0 && GL.cool < 1)) { if (!R.cool) { R.cool = 1; GL.crust.visible = true; GL.stones.forEach((s) => { s.visible = true; }); } if (!HAS.e5 && !rising) secretOpen('e5'); }
   /* things Pip walks round */
   if (!inCave && !SC.ride && pp.x > 42) GL.solid.forEach(([x, z, r]) => { const dx = pp.x - x, dz = pp.z - z, d = Math.hypot(dx, dz), q = r + 0.2; if (d < q && d > 1e-4 && (HAS.e5 || x < 46)) { pp.x = x + dx / d * q; pp.z = z + dz / d * q; } });
   glassBird(dt, nt);
