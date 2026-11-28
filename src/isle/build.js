@@ -13,7 +13,7 @@ const BLD = {
   pick: { max: 12, cost: [null, null, { stone: 8, coin: 3 }, { stone: 14, log: 6, coin: 6 }, { copper: 3, stone: 14, coin: 8 }, { stone: 24, coin: 12 }, { stone: 30, log: 16, coin: 16 }, { iron: 3, crystal: 2, coin: 16 }, { stone: 40, crystal: 4, coin: 22 }, { stone: 50, crystal: 6, coin: 28 }, { glow: 2, crystal: 6, coin: 30 }, { stone: 70, crystal: 10, coin: 40 }, { stone: 90, crystal: 14, coin: 50 }],
     pic: [null, 'pick', 'pick', 'pick', 'pick2', 'pick2', 'pick2', 'pick3', 'pick3', 'pick3', 'pick4', 'pick4', 'pick4'] }
 };
-const bldKeys = () => ['tent', 'fire', 'dog'].concat(forgeUp() ? toolKeys() : [], ovenUp() ? ['oven'] : [], gearKeys(), Object.keys(HAM_KEY).filter((k) => mons()[HAM_KEY[k]]));
+const bldKeys = () => ['tent', 'fire', 'dog'].concat(forgeUp() ? toolKeys() : [], ovenUp() ? ['oven', 'sweet'] : [], gearKeys(), Object.keys(HAM_KEY).filter((k) => mons()[HAM_KEY[k]]));
 const bldLv = (k) => (state.isle && state.isle.bld && state.isle.bld[k]) || 1;
 const enMax = () => [0, 100, 130, 160][bldLv('tent')] + xpEn() + (state.isle.folk && state.isle.folk.knitter >= 3 ? 25 : 0); /* the knitter's quilt */
 const enRegen = () => [0, 0.2, 0.33, 0.5][bldLv('fire')];
@@ -141,10 +141,10 @@ function bldEff(k, lv) {
   const c = document.createElement('canvas'); c.width = c.height = 96; const x = c.getContext('2d');
   if (k === 'dog') { dogEff(x, lv); return c; }
   if (GEAR[k]) { gearEff(x, k); return c; }
-  isleIcon(x, k === 'axe' || k === 'pick' ? 'perkHit' : k === 'oven' ? 'pie' : 'bolt', 30, 48, k === 'oven' ? 0.95 : 1.1);
+  if (k === 'oven' || k === 'sweet') { pieEff(x, k, lv); return c; }
+  isleIcon(x, k === 'axe' || k === 'pick' ? 'perkHit' : 'bolt', 30, 48, 1.1);
   x.lineWidth = 4; x.strokeStyle = PAL.ink;
-  if (k === 'oven') { if (lv >= 3) { isleIcon(x, 'pie', 30, 74, 0.7); } for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < Math.min(lv, 2) ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
-  else if (k === 'axe' || k === 'pick') { /* three arrows: how sharp it is within its metal; the metal itself is the small tool below */ for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(52 + q * 12, 26); x.lineTo(63 + q * 12, 42); x.lineTo(52 + q * 12, 58); x.strokeStyle = q <= (lv - 1) % 3 ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 6.5; x.stroke(); } isleIcon(x, BLD[k].pic[Math.min(lv, BLD[k].max)], 70, 76, 0.62); }
+  if (k === 'axe' || k === 'pick') { /* three arrows: how sharp it is within its metal; the metal itself is the small tool below */ for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(52 + q * 12, 26); x.lineTo(63 + q * 12, 42); x.lineTo(52 + q * 12, 58); x.strokeStyle = q <= (lv - 1) % 3 ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 6.5; x.stroke(); } isleIcon(x, BLD[k].pic[Math.min(lv, BLD[k].max)], 70, 76, 0.62); }
   else if (k === 'tent') { for (let q = 0; q < 3; q++) { x.beginPath(); x.roundRect(54, 70 - q * 22, 32, 16, 5); x.fillStyle = q < lv ? '#7cc85a' : '#e6d9bd'; x.fill(); x.stroke(); } }
   else { for (let q = 0; q < 3; q++) { x.beginPath(); x.moveTo(54 + q * 12, 30); x.lineTo(66 + q * 12, 48); x.lineTo(54 + q * 12, 66); x.strokeStyle = q < lv ? '#f2a13c' : '#d8cdb5'; x.lineWidth = 7; x.stroke(); } }
   return c;
@@ -154,6 +154,7 @@ function bldEff(k, lv) {
    trouble with a tired Pip, then the gear with a happy Pip. */
 function bldHow(k, lv, next) {
   if (HAM_KEY[k]) return lv >= BLD[k].max ? null : hamHow(HAM_KEY[k], lv, next);
+  if (k === 'oven' || k === 'sweet') return lv >= BLD[k].max ? null : pieHow(k, lv, next);
   if (k !== 'tent' && k !== 'fire' && !GEAR[k]) return null; if (lv >= BLD[k].max) return null;
   const c = document.createElement('canvas'); c.width = 400; c.height = 128; const x = c.getContext('2d'); x.lineJoin = x.lineCap = 'round';
   const arrow = () => { x.beginPath(); x.moveTo(178, 64); x.lineTo(214, 64); x.moveTo(202, 50); x.lineTo(218, 64); x.lineTo(202, 78); x.lineWidth = 9; x.strokeStyle = '#6e4426'; x.stroke(); };
@@ -199,7 +200,7 @@ function bldUp(k) {
   if ((k === 'axe' || k === 'pick' || GEAR[k]) && BLD[k].pic[bldLv(k)] !== BLD[k].pic[bldLv(k) - 1]) foundIt(BLD[k].pic[bldLv(k)]); /* a new tool or piece of gear is held up */
   if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(TENT.x, 1.2, TENT.z, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
   else if (k === 'axe' || k === 'pick') toolUp(k);
-  else if (k === 'oven') ovenLevelUp();
+  else if (k === 'oven' || k === 'sweet') ovenLevelUp();
   else if (k === 'dog') dogUp();
   else if (GEAR[k]) gearGot(k);
   else if (HAM_KEY[k]) hamGrow(HAM_KEY[k]);
