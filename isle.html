@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261128082304">
+<meta name="app-ver" content="20261128121509">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1201,7 +1201,7 @@ const AREAS = [
   { id: 'r4', chest: { coin: 28, reed: 4 }, chestAt: [-3.4, -3.4], i: -11, j: 5, biome: 'marsh', cost: { log: 52, stone: 34, reed: 4 }, holes: [[1, 1], [2, 2]], finds: [['reeds', -2.7, 0.2], ['reeds', 0.2, -2.7], ['reeds', 2.6, 1.4], ['reeds', 1.0, 2.8]] },
   /* the coral beach, east of the village green over a bridge (coral.js). Its second square is an islet across a strait:
      the way there is a row of stepping stones that the tide covers and bares again (bridge.tide) */
-  { id: 'c0', i: 6, j: 2, biome: 'coral', cost: { log: 44, stone: 30, crystal: 6 }, finds: [['clam', 3.6, 3.8], ['clam', -3.8, 2.6]], bridge: { from: 'h3', x0: 17.4, z0: 7.5, x1: 22.6, z1: 7.5 } },
+  { id: 'c0', i: 6, j: 2, biome: 'coral', cost: { log: 44, stone: 30, reed: 3 }, finds: [['clam', 3.6, 3.8], ['clam', -3.8, 2.6]], bridge: { from: 'h3', x0: 17.4, z0: 7.5, x1: 22.6, z1: 7.5 } },
   { id: 'c1', i: 6, j: -2, biome: 'coral', cost: { stone: 40, log: 30, crystal: 10 }, ruin: [2.8, 0.6, -0.2], finds: [['clam', -3.5, -3.0], ['clam', 3.4, -2.2], ['clam', 0.5, -4.2], ['clam', -2.6, 1.8]], bridge: { from: 'c0', x0: 28, z0: 6.6, x1: 28, z1: 1.4, tide: 1 } },
   { id: 'c2', chest: { coin: 24, pearl: 1 }, i: 9, j: 2, biome: 'coral', cost: { log: 50, stone: 36, crystal: 8 }, finds: [['clam', 3.9, -3.6], ['clam', -2.4, 4.0]] },
   { id: 'c3', chest: { coin: 30, pearl: 2 }, chestAt: [-3.4, -0.4], i: 12, j: 2, biome: 'coral', cost: { stone: 50, log: 40, crystal: 12 }, finds: [['clam', 4.2, 0.4], ['clam', 3.0, 4.0], ['clam', -1.0, -4.2]], ponds: [[0.2, 0.4, 2.3]] },
@@ -7189,6 +7189,71 @@ function digLoot(A) {
   return out;
 }
 
+/* ---------- the dog leads the way (Leon, 2026-11-27: "the dog as hint system") ----------
+   Pip stands at a sign and has none of something it wants: the dog barks, shows the missing thing in a bubble and trots
+   off to where it is, waiting and looking back whenever Pip falls behind. Where it leads, in this order:
+     a ready tree, stone, bush, crystal or find on land Pip owns (through the mine stairs if it is down there);
+     the anvil, if the find needs a better pick first;
+     the dock, when the way there is by boat;
+     else the sign or bridge that opens the way toward the island that has it.
+   Nothing is saved; a wrong guess costs nothing, the dog simply sits and wags. */
+const LEAD = { t: 0, cool: 0 };
+const nodeGives = (n) => (FIND_NODE[n.kind] ? FIND_NODE[n.kind].t : YIELD[n.kind] ? YIELD[n.kind][0] : null);
+function leadMissing(s) { /* what the sign still wants and Pip has none of; null while he can pay anything at all */
+  const cs = signCost(s), miss = [];
+  for (const t of Object.keys(cs)) { if (signNeed(s, t) <= 0) continue; if (haveN(t) > 0) return null; miss.push(t); }
+  return miss.find((t) => FINDS.indexOf(t) >= 0) || miss.find((t) => t !== 'coin') || null;
+}
+function leadShut(s) { /* a bridge waiting for its key or behind a web has its own hint */
+  if (s.kind !== 'bridge' && s.kind !== 'lift') return false;
+  return !!(LOOP_KEY[s.A.id] && !lkeys()[LOOP_KEY[s.A.id]]) || (s.kind === 'bridge' && GE.webs.some((w) => w.id === s.A.id));
+}
+function leadBy(x, z, r, pic) { /* a dry spot right beside it */
+  let b = [x, z + r], bs = 1e9; for (let k = 0; k < 8; k++) { const q = k / 8 * 6.283, px = x + Math.sin(q) * r, pz = z + Math.cos(q) * r, w = walkSdf(px, pz); if (w < bs - 0.05) { bs = w; b = [px, pz]; } }
+  return { x: b[0], z: b[1], pic };
+}
+function leadPick(t, s) {
+  const pp = pip.position, way = (x, z, fx, fz) => { fx = fx == null ? pp.x : fx; fz = fz == null ? pp.z : fz; return landLine(fx, fz, x, z) || !!landPath(fx, fz, x, z); };
+  let best = null, bd = 1e9, down = null, gear = null;
+  nodes.forEach((n) => { if (n.st !== 'ready' || nodeGives(n) !== t || n.mesa) return; const A = areaAt(n.x, n.z); if (!A || !HAS[A.id]) return;
+    const F = FIND_NODE[n.kind]; if (F && !F.hand && toolTier('pick') < F.tier) { gear = 'pick' + (F.tier > 1 ? F.tier : ''); return; }
+    if (!!A.cave !== !!inCave) { if (A.cave) down = n; return; }
+    const d = Math.hypot(n.x - pp.x, n.z - pp.z); if (d > 1.5 && d < bd) { bd = d; best = n; } });
+  let G = null;
+  if (best) G = leadBy(best.x, best.z, 0.75, t);
+  else if (inCave) return null;
+  else if (gear) G = { x: ANVIL_RING.x + 0.7, z: ANVIL_RING.z, pic: gear, gear: 1 };
+  else if (down && stairsDown) G = leadBy(stairsDown.x, stairsDown.z, 0.7, t);
+  else { /* it grows on land Pip does not own yet: to the sign nearest to it */
+    let S = null, sd = 1e9; mapHintSpots(t).forEach((q) => { if (q.t !== t) return; const A = areaAt(q.x, q.z); if (A && HAS[A.id]) return; const d = Math.hypot(q.x - pp.x, q.z - pp.z); if (d < sd) { sd = d; S = q; } });
+    if (!S) return null;
+    if (S.need === 'torch') G = { x: SPOT_AT.gear[0] + 0.7, z: SPOT_AT.gear[1], pic: 'torch', gear: 1 };
+    else { let q = null, qd = 1e9; signs.forEach((o) => { if (o === s || o.x == null || (o.kind !== 'area' && o.kind !== 'bridge' && o.kind !== 'lift')) return; const d = Math.hypot(o.x - S.x, o.z - S.z); if (d < qd) { qd = d; q = o; } });
+      if (!q || qd > sd - 1) return null; G = leadBy(q.x, q.z, 0.85, t); }
+  }
+  if (inCave || way(G.x, G.z)) return G;
+  /* no way by land: by boat, if a dock stands at both ends */
+  const D = Object.keys(DK.d).map((k) => DK.d[k]), to = D.find((d) => way(G.x, G.z, d.lx, d.lz)); let from = null, fd = 1e9;
+  D.forEach((d) => { if (d === to || !way(d.lx, d.lz)) return; const q = Math.hypot(d.lx - pp.x, d.lz - pp.z); if (q < fd) { fd = q; from = d; } });
+  return to && from ? { x: from.lx, z: from.lz, pic: 'travel', then: t } : null;
+}
+function leadWatch(dt) {
+  LEAD.cool -= dt; const pp = pip.position, dp = dog.g.position;
+  if (DG.mode || LEAD.cool > 0 || rising || building || Math.hypot(pp.x - dp.x, pp.z - dp.z) > 12) { LEAD.t = 0; return; }
+  const s = signs.find((q) => q.x != null && Math.hypot(pp.x - q.x, pp.z - q.z) < 0.85), t = s && !leadShut(s) ? leadMissing(s) : null;
+  if (!t) { LEAD.t = 0; return; }
+  LEAD.t += dt; if (LEAD.t < 1.0) return; LEAD.t = 0;
+  const L = leadPick(t, s); bark(0.55); dogBubble(L ? L.pic : t); LEAD.cool = L ? 8 : 14; if (!L) return;
+  L.t = t; L.T = 0; L.w = 0; DG.lead = L; DG.mode = 'lead';
+}
+function leadStep(dt) {
+  const L = DG.lead, pp = pip.position, dp = dog.g.position, far = Math.hypot(pp.x - dp.x, pp.z - dp.z), at = Math.hypot(L.x - dp.x, L.z - dp.z) < 0.6;
+  L.T += dt; if (!DG.bub) dogBubble(L.pic); /* the picture stays up all the way */
+  if (far > 4.6 || at) { dog.g.rotation.y = Math.atan2(pp.x - dp.x, pp.z - dp.z); L.w += dt; if (L.w > 2.6) { L.w = 0; bark(0.4); dogBubble(L.pic); } } else L.w = 1.8;
+  if (at && far < 2.8) { bark(0.5); dogBubble(L.then || L.pic); Snd.play('blip', { gain: 0.3, f: 820 }); DG.mode = null; DG.lead = null; DG.cool = 3; LEAD.cool = 14; return; }
+  if (L.T > 75 || far > 26 || (!L.gear && !L.then && haveN(L.t) > 0)) { DG.mode = null; DG.lead = null; DG.cool = 1; LEAD.cool = 10; }
+}
+
 /* ---- what the dog wants to do ---- */
 const dogFree = () => state.pet !== 'none' && !isNight && !enSleep;
 function dogGoal() {
@@ -7199,6 +7264,7 @@ function dogGoal() {
   if (DG.mode === 'sniff' || DG.mode === 'dig') return [DG.spot.x, DG.spot.z + 0.45, 2.4];
   if (DG.mode === 'take') return [pp.x, pp.z, sp];
   if (DG.mode === 'home') return [STORE.x, STORE.z + 0.95, sp * 1.15];
+  if (DG.mode === 'lead') { const L = DG.lead, dp = dog.g.position; return Math.hypot(pp.x - dp.x, pp.z - dp.z) > 4.6 ? [dp.x, dp.z, sp] : [L.x, L.z, sp * 1.1]; }
   return null;
 }
 function dogMouth() { return dog.head || dog.g; }
@@ -7222,7 +7288,7 @@ function dogStepIsle(dt) {
   if (DG.bub) { DG.bub.t -= dt; DG.bub.position.set(dp.x, 1.45 + Math.sin(time * 4) * 0.04, dp.z); if (DG.bub.t <= 0) { sc.remove(DG.bub); DG.bub = null; } }
   dirtStep(dt);
   if (!dogFree()) { if (DG.mode === 'back') dogDrop(); if (DG.mode === 'home') courierEnd(); DG.mode = null; DG.d = null; return; }
-  DG.cool -= dt;
+  DG.cool -= dt; leadWatch(dt);
   if (!DG.mode && DG.cool <= 0) {
     const d = lv >= 2 ? dogFind() : null;
     if (lv >= 4 && !inCave && carry.count('coin') > 0 && carry.count() >= cap() && Math.hypot(pp.x - dp.x, pp.z - dp.z) < 14) { DG.mode = 'take'; DG.t = 0; bark(0.5); dogBubble('coin'); }
@@ -7230,7 +7296,8 @@ function dogStepIsle(dt) {
     else if (lv >= 3) { const A = areaAt(pp.x, pp.z), s = digSpot(A); if (s && Math.hypot(s.x - dp.x, s.z - dp.z) < 8 && Math.hypot(s.x - pp.x, s.z - pp.z) < 9) { DG.mode = 'sniff'; DG.spot = s; DG.area = A; DG.t = 0; } }
     if (!DG.mode) DG.cool = 0.5;
   }
-  if (DG.mode === 'take') { /* the courier: fetch the coins off Pip, they are safe in the crate's count at once, then run them home */
+  if (DG.mode === 'lead') leadStep(dt);
+  else if (DG.mode === 'take') { /* the courier: fetch the coins off Pip, they are safe in the crate's count at once, then run them home */
     DG.t += dt; if (carry.count() < cap() || DG.t > 12) { DG.mode = null; DG.cool = 1; }
     else if (Math.hypot(pp.x - dp.x, pp.z - dp.z) < 1.15) { let n = 0, m; while ((m = carry.take('coin'))) { n++; if (m.parent) m.parent.remove(m); }
       state.isle.store.coin = storeN('coin') + n; invDirty = true; save();
@@ -7294,7 +7361,7 @@ function dogEff(x, lv) {
   else { /* the saddlebags: the island's own find comes up with the treasure */ isleIcon(x, 'bag', 32, 50, 1.0); isleIcon(x, 'honey', 66, 40, 0.8); x.font = '700 24px Fredoka, sans-serif'; x.lineWidth = 5; x.strokeStyle = PAL.ink; x.fillStyle = '#7cc85a'; x.strokeText('+1', 56, 74); x.fillText('+1', 56, 74); }
 }
 function dogUp() { dogBagSync(); const p = dog.g.position; burst(p.x, 1.0, p.z, 8); dog.hop = 1; bark(0.6); camFocus.set(p.x, 0, p.z); DG.cool = 1; }
-const dogTest = () => ({ lv: dogLv(), mode: DG.mode, cap: cap(), dug: Object.assign({}, state.isle.dug), spots: Object.keys(DIG).length, holes: DG.holes.length, pos: [+dog.g.position.x.toFixed(2), +dog.g.position.z.toFixed(2)], bags: !!(dogBagG && dogBagG.visible) });
+const dogTest = () => ({ lv: dogLv(), mode: DG.mode, lead: DG.lead ? [DG.lead.pic, +DG.lead.x.toFixed(1), +DG.lead.z.toFixed(1)] : null, cap: cap(), dug: Object.assign({}, state.isle.dug), spots: Object.keys(DIG).length, holes: DG.holes.length, pos: [+dog.g.position.x.toFixed(2), +dog.g.position.z.toFixed(2)], bags: !!(dogBagG && dogBagG.visible) });
 
 /* ---------- pets keep to the land and take the bridges (Leon, 2026-11-25) ----------
    The pet used to run in a straight line at whatever it was after, so it crossed the sea between islands, and the pets
@@ -7333,7 +7400,12 @@ function landRoute(d, tx, tz) {
   return R.P[0];
 }
 /* never out at sea: slide back to the shore (the cave has its own walls) */
-function landKeep(p) { if (!inCave && walkSdf(p.x, p.z) > -0.15) wClamp(p); }
+function landKeep(p) {
+  if (inCave) return; if (walkSdf(p.x, p.z) > -0.15) wClamp(p);
+  /* nor through the rock tables and the garden walls (pets stay on the ground level) */
+  MS.list.forEach((m) => { if (!m.par && !m.pop) mesaOut(m, p, 0.25); });
+  if (typeof GD !== 'undefined' && GD.walls) GD.walls.forEach((m) => { mesaOut(m, p, 0.25); });
+}
 ISLAND.petRoute = landRoute; ISLAND.petLand = landKeep;
 /* ---------- gear against the islands' obstacles (Leon's vision for Pips Island, 2026-11-24) ----------
    No fighting: each obstacle has a piece of gear that gets Pip past it, bought in the build menu once Pip has met it.
@@ -11106,6 +11178,46 @@ function mapPic(px) {
   x.beginPath(); x.arc(7, -9, 2.6, 0, 7); x.fillStyle = '#fff6e4'; x.fill();
   return c;
 }
+/* the land as it really lies (Leon, 2026-11-27: coasts are no longer straight): the coast distance is read on a half-metre
+   grid and smoothed up to the map's size, so coves, capes and ponds show just as they are in the world */
+function mapLand() {
+  const S = MP.S, W = MP.w * S, H = MP.h * S, gw = MP.w * 2 + 1, gh = MP.h * 2 + 1, D = new Float32Array(gw * gh), K = new Int16Array(gw * gh);
+  for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) { const wx = MP.x0 + i * 0.5, wz = MP.z0 + j * 0.5, A = areaAt(wx, wz), k = A && !A.cave && HAS[A.id] ? AREAS.indexOf(A) : -1; K[j * gw + i] = k; D[j * gw + i] = k < 0 ? Math.max(0.3, gSdf(wx, wz)) : gSdf(wx, wz); }
+  const rgb = (h) => { const c = new T.Color(h); return [c.r * 255, c.g * 255, c.b * 255]; }, G = AREAS.map((A) => rgb(MAP_COL[A.biome] || '#9fd36a')), B = AREAS.map((A) => rgb(BIOME_BEACH[A.biome] || '#f0dfae'));
+  const c = MP.land || (MP.land = document.createElement('canvas')); c.width = W; c.height = H; const cx = c.getContext('2d'), im = cx.createImageData(W, H), px = im.data, q = 2 / S;
+  for (let y = 0; y < H; y++) { const fy = y * q, j = Math.min(gh - 2, fy | 0), v = fy - j, r0 = j * gw, r1 = r0 + gw;
+    for (let xx = 0; xx < W; xx++) { const fx = xx * q, i = Math.min(gw - 2, fx | 0), u = fx - i;
+      const d = (D[r0 + i] * (1 - u) + D[r0 + i + 1] * u) * (1 - v) + (D[r1 + i] * (1 - u) + D[r1 + i + 1] * u) * v; if (d > 0.05) continue;
+      let k = K[(v < 0.5 ? r0 : r1) + (u < 0.5 ? i : i + 1)]; if (k < 0) { k = Math.max(K[r0 + i], K[r0 + i + 1], K[r1 + i], K[r1 + i + 1]); if (k < 0) continue; }
+      const g = G[k], b = B[k], t = clamp((-0.62 - d) * S * 0.5 + 0.5, 0, 1), e = clamp((d + 0.2) * S * 0.6, 0, 1) * 0.5, o = (y * W + xx) * 4;
+      px[o] = (b[0] + (g[0] - b[0]) * t) * (1 - e) + 58 * e; px[o + 1] = (b[1] + (g[1] - b[1]) * t) * (1 - e) + 36 * e; px[o + 2] = (b[2] + (g[2] - b[2]) * t) * (1 - e) + 20 * e; px[o + 3] = clamp(0.5 - d * S, 0, 1) * 255; } }
+  cx.putImageData(im, 0, 0); return c;
+}
+/* ---------- a finished star for each island (Leon, 2026-11-27: "a finished star per island") ----------
+   An island is finished when all its land is bought, its wonders stand, its friend has a house and its golden gift is
+   found. The map shows a star by each island Pip has set foot on: grey with four small dots (land, wonder, friend,
+   gift) that fill one by one, gold once all four are done. The moment it turns gold Pip holds the star up. */
+const STAR_HIDE = { smith: 'h', baker: 'm', mason: 's', knitter: 'w', fisher: 'r', diver: 'c', glass: 'e' }, STAR_ISLES = ['h', 'm', 's', 'w', 'r', 'c', 'e'], STARS = { t: 6 };
+function starParts(L) {
+  const land = AREAS.every((A) => A.cave || A.secret || A.id[0] !== L || HAS[A.id]);
+  const wonder = Object.keys(LOOP_SITES).every((id) => { const A = areaAt(LOOP_SITES[id].x, LOOP_SITES[id].z); return !A || A.cave || A.id[0] !== L || !!mons()[id]; });
+  const friend = VILLAGERS.every((v) => (STAR_HIDE[v.id] || 'h') !== L || (folk()[v.id] || 0) >= (LOOP_FOLK[v.id] ? 3 : 2));
+  const gift = GOLD.every((G) => (G.isle === 'cave' ? 'h' : G.isle) !== L || !!golds()[G.id]);
+  return [land, wonder, friend, gift];
+}
+function starStep(dt) {
+  STARS.t -= dt; if (STARS.t > 0 || rising || building || inCave || enSleep) return; STARS.t = 1.5;
+  const I = state.isle; I.stars = I.stars || {};
+  for (const L of STAR_ISLES) if (!I.stars[L] && starParts(L).every(Boolean)) { I.stars[L] = 1; save(); foundIt('star'); return; }
+}
+ISLE_STEPS.push(starStep);
+function mapStars(x) {
+  STAR_ISLES.forEach((L) => { const As = AREAS.filter((A) => !A.cave && !A.secret && A.id[0] === L && HAS[A.id]); if (!As.length) return;
+    const top = Math.min(...As.map((A) => A.cz)), row = As.filter((A) => A.cz === top), A0 = row.reduce((a, b) => (b.cx < a.cx ? b : a)), q0 = mapXY(A0.cx - 6.9, top - 6.9), px = Math.max(40, q0[0]), pz = Math.max(40, q0[1]), P = starParts(L), done = P.every(Boolean);
+    mapBadge(x, px, pz, 27, done ? '#fff1b8' : '#f4efe4'); if (done) { x.beginPath(); x.arc(px, pz, 33, 0, 7); x.lineWidth = 4; x.strokeStyle = '#f4b23a'; x.stroke(); }
+    x.save(); if (!done) { x.globalAlpha = 0.45; x.filter = 'grayscale(1)'; } isleIcon(x, 'star', px, pz, 0.95); x.restore();
+    if (!done) P.forEach((ok, k) => { x.beginPath(); x.arc(px - 24 + k * 16, pz + 38, 5.5, 0, 7); x.fillStyle = ok ? '#f4b23a' : '#fff6e4'; x.fill(); x.lineWidth = 2.5; x.strokeStyle = '#6e4426'; x.stroke(); }); });
+}
 function mapBadge(x, px, pz, r, fill) { x.beginPath(); x.arc(px, pz, r, 0, 7); x.fillStyle = fill || '#fff6e4'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#6e4426'; x.stroke(); }
 function mapDraw() {
   const S = MP.S, W = MP.w * S, H = MP.h * S, x = MP.cv.getContext('2d'); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, W, H); x.lineJoin = 'round'; x.lineCap = 'round';
@@ -11114,13 +11226,8 @@ function mapDraw() {
   x.strokeStyle = 'rgba(255,255,255,.4)'; x.lineWidth = 3; for (let k = 0; k < 46; k++) { const wx = hash(k, 301) * W, wz = hash(k, 302) * H; x.beginPath(); x.moveTo(wx - 14, wz); x.quadraticCurveTo(wx - 7, wz - 7, wx, wz); x.quadraticCurveTo(wx + 7, wz + 7, wx + 14, wz); x.stroke(); }
   const buy = {}; signs.forEach((s) => { if (s.A) buy[s.A.id] = 1; });
   const sq = (A, grow, r) => { const [px, pz] = mapXY(A.cx - 6 - grow, A.cz - 6 - grow); x.beginPath(); x.roundRect(px, pz, (12 + grow * 2) * S, (12 + grow * 2) * S, r * S); };
-  /* owned land: a sand rim, then the grass, so squares of one island run together */
-  AREAS.forEach((A) => { if (A.cave || !HAS[A.id]) return; sq(A, 0.55, 2.4); x.fillStyle = BIOME_BEACH[A.biome] || '#f0dfae'; x.fill(); });
-  AREAS.forEach((A) => { if (A.cave || !HAS[A.id]) return; sq(A, 0.55, 2.4); x.lineWidth = 3; x.strokeStyle = 'rgba(58,36,20,.5)'; x.stroke(); });
-  AREAS.forEach((A) => { if (A.cave || !HAS[A.id]) return; sq(A, 0.55, 2.4); x.fillStyle = BIOME_BEACH[A.biome] || '#f0dfae'; x.fill(); });
-  AREAS.forEach((A) => { if (A.cave || !HAS[A.id]) return; sq(A, 0.08, 1.6); x.fillStyle = MAP_COL[A.biome]; x.fill(); });
-  /* water inside an area: the marsh's channel and pond */
-  AREAS.forEach((A) => { if (!A.holes || !HAS[A.id]) return; A.holes.forEach(([a, b]) => { const [px, pz] = mapXY((A.i + a) * GS - 1.5, (A.j + b) * GS - (A.holes.length > 1 ? 2.6 : 1.5)); x.beginPath(); x.roundRect(px, pz, 3 * S, (A.holes.length > 1 ? 5.2 : 3) * S, 1.2 * S); x.fillStyle = '#6fbfe0'; x.fill(); }); });
+  /* owned land with its real, wandering coast: a dark edge, a sand rim, then the island's own colour; ponds stay sea */
+  x.drawImage(mapLand(), 0, 0);
   /* land Pip does not own yet */
   AREAS.forEach((A) => { if (A.cave || A.secret || HAS[A.id]) return; sq(A, -0.35, 1.6); x.fillStyle = buy[A.id] ? 'rgba(255,246,228,.5)' : 'rgba(255,255,255,.22)'; x.fill();
     x.setLineDash([14, 12]); x.lineWidth = buy[A.id] ? 6 : 3; x.strokeStyle = buy[A.id] ? '#f4b23a' : 'rgba(255,255,255,.75)'; x.stroke(); x.setLineDash([]);
@@ -11156,6 +11263,7 @@ function mapDraw() {
     const [px, pz] = mapXY(wx, wz); if (F) mapBadge(x, px, pz, 27); boardFace(x, v, px, pz + (F ? 3 : 0), F ? 0.5 : 0.62, F ? 3 : 0); if (F === 2 && LOOP_FOLK[v.id]) { mapBadge(x, px + 24, pz - 22, 15, '#f4b23a'); isleIcon(x, 'hammer', px + 24, pz - 22, 0.5); } /* a house to build here */ });
   /* something to pay for here */
   signs.forEach((s) => { if (s.A || s.x == null) return; const [px, pz] = mapXY(s.x, s.z); x.beginPath(); x.arc(px, pz, 11, 0, 7); x.fillStyle = '#f4b23a'; x.fill(); x.lineWidth = 3; x.strokeStyle = '#6e4426'; x.stroke(); x.beginPath(); x.arc(px, pz, 4, 0, 7); x.fillStyle = '#fff6e4'; x.fill(); });
+  mapStars(x);
   /* where Pip is */
   const P = inCave ? [AREA_BY.cave.cx, AREA_BY.cave.cz] : [pip.position.x, pip.position.z], [qx, qz] = mapXY(P[0], P[1]);
   MP.pip.style.left = (qx / W * 100) + '%'; MP.pip.style.top = (qz / H * 100) + '%';
