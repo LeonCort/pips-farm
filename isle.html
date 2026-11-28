@@ -814,7 +814,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261127233917">
+<meta name="app-ver" content="20261128070436">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1038,6 +1038,13 @@ ask().then(function(v){if(v!==cur){set("new","Updating");setTimeout(function(){l
       coin: (t, o) => { tone(t, { f: 'B5', type: 'square', dur: 0.07, gain: 0.07 * o.g, a: 0.001, hold: 0.06 }); tone(t + 0.07, { f: 'E6', type: 'square', dur: 0.3, gain: 0.07 * o.g, a: 0.001, hold: 0.1 }); },
       jump: (t, o) => tone(t, { f: [[0, 260], [0.16, 820]], type: 'square', dur: 0.18, gain: 0.07 * o.g, a: 0.001, hold: 0.12 }),
       hurt: (t, o) => { tone(t, { f: [[0, 600], [0.25, 90]], type: 'square', dur: 0.28, gain: 0.08 * o.g, a: 0.001, hold: 0.2 }); noise(t, { dur: 0.2, filter: 'lowpass', f: 1800, gain: 0.15 * o.g, rate: 0.25 }); },
+      // discovery, in three sizes (Pips Island): a chest opens / a hidden way is found / a hidden world opens
+      treasure: (t, o) => { ['E5', 'A5', 'C#6', 'E6'].forEach((n, i) => { tone(t + i * 0.085, { f: n, type: 'triangle', dur: i === 3 ? 0.7 : 0.16, gain: 0.2 * o.g, a: 0.004, hold: i === 3 ? 0.18 : 0.08, verb: 0.25 }); tone(t + i * 0.085, { f: n, dur: i === 3 ? 0.6 : 0.12, gain: 0.07 * o.g, detune: 1200, verb: 0.3 }); }); ['A6', 'C#7', 'E7'].forEach((n, i) => tone(t + 0.36 + i * 0.06, { f: n, dur: 0.35, gain: 0.05 * o.g, verb: 0.4 })); },
+      secret: (t, o) => { ['A4', 'C5', 'E5', 'D#5', 'F#5', 'B5'].forEach((n, i) => { const last = i === 5, tt = t + i * 0.15 + (i > 2 ? 0.06 : 0); tone(tt, { f: n, type: 'triangle', dur: last ? 1.1 : 0.2, gain: 0.19 * o.g, a: 0.006, hold: last ? 0.3 : 0.1, verb: 0.35 }); tone(tt, { f: n, type: 'sine', dur: last ? 1.0 : 0.16, gain: 0.06 * o.g, detune: 1205, verb: 0.4 }); }); tone(t + 0.96, { f: 'E4', dur: 1.0, gain: 0.07 * o.g, a: 0.05, hold: 0.4, verb: 0.3 }); },
+      fanfare: (t, o) => { const brass = (tt, n, d, g) => { tone(tt, { f: n, type: 'sawtooth', dur: d, gain: g * o.g, a: 0.02, hold: d * 0.6, filter: 'lowpass', f2: [[0, 900], [0.08, 2600], [d, 1400]], q: 0.7, verb: 0.3 }); tone(tt, { f: n, type: 'triangle', dur: d, gain: g * 0.8 * o.g, a: 0.01, hold: d * 0.6, verb: 0.3 }); };
+        [['G4', 0], ['C5', 0.14], ['E5', 0.28], ['G5', 0.42]].forEach(([n, d]) => brass(t + d, n, 0.16, 0.1)); brass(t + 0.62, 'A5', 0.22, 0.1); brass(t + 0.86, 'B5', 0.22, 0.1);
+        ['C5', 'E5', 'G5', 'C6'].forEach((n) => brass(t + 1.12, n, 1.5, 0.075)); tone(t + 1.12, { f: 'C3', type: 'triangle', dur: 1.5, gain: 0.14 * o.g, a: 0.02, hold: 0.9, verb: 0.2 });
+        ['E6', 'G6', 'C7', 'E7', 'G7'].forEach((n, i) => tone(t + 1.3 + i * 0.09, { f: n, dur: 0.5, gain: 0.05 * o.g, verb: 0.45 })); },
       powerup: (t, o) => ['C5', 'E5', 'G5', 'C6', 'E6', 'G6', 'C7'].forEach((n, i) => tone(t + i * 0.045, { f: n, type: 'square', dur: 0.06, gain: 0.06 * o.g, a: 0.001, hold: 0.05 })),
       select: (t, o) => { S.blip(t, { ...o, f: 'A5', dur: 0.04 }); S.blip(t + 0.05, { ...o, f: 'E6', dur: 0.05 }); },
       text: (t, o) => { const n = o.n || 10, rate = o.rate || 0.05; for (let i = 0; i < n; i++) tone(t + i * rate, { f: i % 2 ? 'C6' : 'G5', type: 'square', dur: 0.025, gain: 0.04 * o.g, a: 0.001, hold: 0.015 }); },
@@ -1156,6 +1163,8 @@ const gIn = (i, j) => i >= GI0 && i < GI0 + GWN && j >= GI0 && j < GI0 + GWN;
 const gCell = (x) => Math.round(x / GS);
 /* the areas: i, j = the square at the low corner of the 3 by 3 block. start: land from the beginning. bridge: reached over a
    bridge from another area (x0, z0 to x1, z1), and drawn from the start so it can be seen across the water. chest: a tool inside. */
+/* the hidden worlds plug in here (secret.js says how) */
+const ISLE_STEPS = [], ISLE_KEEPS = [], ISLE_KEYS = [], ISLE_GATE = {}, SECRET_FILL = {}, ISLE_ICON = {};
 const NO_BASKET = true; /* nothing is carried on the island: Pip has no carrying frame on the back (engine/pip2.js) */
 const AREAS = [
   { id: 'h0', i: -1, j: -1, biome: 'home', start: 1 },
@@ -1163,7 +1172,7 @@ const AREAS = [
   { id: 'h2', i: -1, j: 2, biome: 'berry', cost: { log: 10, stone: 4, berry: 4 } },
   { id: 'h3', i: 2, j: 2, biome: 'rocks', cost: { log: 14, stone: 8, berry: 5 }, chest: 'bag', ruin: [2.3, 1.0, -0.25], stairs: [-2.6, 2.2] },
   { id: 'm0', chest: { coin: 8, berry: 6 }, i: -1, j: -5, biome: 'meadow', cost: { log: 18, stone: 10, berry: 6 }, finds: [['hive', -3.6, -2.0], ['hive', 3.7, -3.5], ['hive', 4.3, 4.9]], tall: [[-5.4, 1.5, 5.4, 3.9]], bridge: { from: 'h0', x0: 0, z0: -5.4, x1: 0, z1: -10.6 } },
-  { id: 'm1', chest: { coin: 10, berry: 8 }, chestAt: [-0.4, 3.4], i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', -2.0, -3.4], ['hive', -3.0, 2.6]], tall: [[1.5, -5.4, 3.9, 5.4]] },
+  { id: 'm1', chest: { coin: 10, berry: 8, gear: 'coat' }, chestAt: [-0.4, 3.4], i: -4, j: -5, biome: 'meadow', cost: { log: 16, stone: 8, berry: 10 }, finds: [['hive', -2.0, -3.4], ['hive', -3.0, 2.6]], tall: [[1.5, -5.4, 3.9, 5.4]] },
   { id: 'm2', i: 2, j: -6, biome: 'orchard', cost: { log: 20, berry: 12, stone: 10 }, ruin: [0.4, 0, 0.2] },
   { id: 'm3', i: -1, j: -8, biome: 'meadow', cost: { log: 24, stone: 10, berry: 14 }, tall: [[-5.4, 1.5, 5.4, 3.9]] },
   { id: 'm4', chest: { coin: 15, honey: 2 }, chestAt: [3.2, 2.6], i: -4, j: -8, biome: 'meadow', cost: { log: 30, berry: 20, stone: 14 }, finds: [['hive', 3.4, -3.6], ['hive', -3.8, 3.2]], tall: [[3.4, -5.4, 5.4, -1.6]], ponds: [[-1.6, 0.6, 2.0]] },
@@ -1187,7 +1196,7 @@ const AREAS = [
      runs through the first square from north to south: the only way over is the pole raft. The second has a pond. */
   { id: 'r0', i: -5, j: 2, biome: 'marsh', cost: { log: 30, stone: 18, berry: 14 }, holes: [[1, 0], [1, 1], [1, 2]], finds: [['reeds', -4.7, -3.4], ['reeds', -3.1, -0.4], ['reeds', -4.8, 1.6]], bridge: { from: 'h2', x0: -5.4, z0: 16.6, x1: -10.6, z1: 16.6 } },
   { id: 'r1', i: -8, j: 2, biome: 'marsh', cost: { log: 36, stone: 24, crystal: 4 }, holes: [[1, 1]], ruin: [4.3, -3.0, 0.1], finds: [['reeds', -2.7, -1.6], ['reeds', 2.8, 1.2], ['reeds', 0.8, 3.0], ['reeds', -1.2, -3.1]] },
-  { id: 'r2', chest: { coin: 18, reed: 3 }, chestAt: [3.6, -3.6], i: -8, j: 5, biome: 'marsh', cost: { log: 40, stone: 26, berry: 18 }, holes: [[1, 1]], finds: [['reeds', -2.6, 0.4], ['reeds', 2.7, -0.6], ['reeds', 0.3, 2.8]] },
+  { id: 'r2', chest: { coin: 18, reed: 3, gear: 'boots' }, chestAt: [3.6, -3.6], i: -8, j: 5, biome: 'marsh', cost: { log: 40, stone: 26, berry: 18 }, holes: [[1, 1]], finds: [['reeds', -2.6, 0.4], ['reeds', 2.7, -0.6], ['reeds', 0.3, 2.8]] },
   { id: 'r3', chest: { coin: 22, crystal: 4 }, chestAt: [2.8, 0.2], i: -11, j: 2, biome: 'marsh', cost: { log: 46, stone: 30, crystal: 6 }, holes: [[0, 1]], finds: [['reeds', -1.4, -1.8], ['reeds', -1.2, 2.2]] },
   { id: 'r4', chest: { coin: 28, reed: 4 }, chestAt: [-3.4, -3.4], i: -11, j: 5, biome: 'marsh', cost: { log: 52, stone: 34, reed: 4 }, holes: [[1, 1], [2, 2]], finds: [['reeds', -2.7, 0.2], ['reeds', 0.2, -2.7], ['reeds', 2.6, 1.4], ['reeds', 1.0, 2.8]] },
   /* the coral beach, east of the village green over a bridge (coral.js). Its second square is an islet across a strait:
@@ -1201,7 +1210,7 @@ const AREAS = [
      cut in three by two streams of lava (EMBER below) */
   { id: 'e0', i: 6, j: 6, biome: 'ember', cost: { pearl: 4, log: 50, stone: 40 }, ruin: [-3.8, 4.2, 0.2], finds: [['cinder', 4.6, 0.6], ['cinder', 4.9, 3.4], ['cinder', 3.6, 5.0]], bridge: { from: 'c0', x0: 28, z0: 17.4, x1: 28, z1: 22.6 } },
   /* the rest of the ember island: ash fields round the volcano's foot (biome 'ash': set out by seed like any other land) */
-  { id: 'e1', chest: { coin: 30, ember: 1 }, i: 9, j: 6, biome: 'ash', cost: { log: 56, stone: 46, crystal: 10 }, finds: [['cinder', 3.2, -3.4], ['cinder', -3.0, 3.6]] },
+  { id: 'e1', chest: { coin: 30, ember: 1, gear: 'lantern' }, i: 9, j: 6, biome: 'ash', cost: { log: 56, stone: 46, crystal: 10 }, finds: [['cinder', 3.2, -3.4], ['cinder', -3.0, 3.6]] },
   { id: 'e2', chest: { coin: 34, crystal: 10 }, i: 6, j: 9, biome: 'ash', cost: { stone: 60, log: 50, crystal: 12 }, finds: [['cinder', -3.6, 3.0], ['cinder', 2.6, 3.8]] },
   { id: 'e3', chest: { coin: 40, ember: 2 }, chestAt: [-3.2, 2.6], i: 9, j: 9, biome: 'ash', cost: { stone: 64, log: 54, ember: 2 }, finds: [['cinder', 3.4, 3.2], ['cinder', -3.4, -2.6], ['cinder', 0.4, 4.2]], ponds: [[0.4, 0, 1.8]] },
   { id: 'e4', chest: { coin: 50, ember: 2, pearl: 2 }, i: 12, j: 6, biome: 'ash', cost: { stone: 70, log: 60, ember: 3 }, finds: [['cinder', 3.8, -2.8], ['cinder', 2.4, 3.6], ['cinder', -3.0, -3.6]] },
@@ -1209,7 +1218,15 @@ const AREAS = [
   { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 },
   /* the mine runs on west under the sea: a gallery behind rubble, then the lift room behind a rockfall */
   { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1, finds: [['copper', -3.5, -3.4], ['copper', -1.0, -4.0], ['copper', 2.6, -3.3], ['copper', 3.4, 3.3], ['copper', -3.2, 3.5]] },
-  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, finds: [['glow', 2.6, -3.6], ['glow', -0.8, -4.1], ['glow', 3.5, 3.4]] }
+  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, finds: [['glow', 2.6, -3.6], ['glow', -0.8, -4.1], ['glow', 3.5, 3.4]] },
+  /* the hidden worlds (Leon, 2026-11-28; secret.js): no sign, not on the map, each rises from the sea when its island's sealed
+     place is opened with something from another island. ALWAYS add new areas at the end: every area's random layout hangs on its place in this list. */
+  { id: 'm5', i: -4, j: -11, biome: 'meadow', secret: 1 }, /* the Garden of Giant Flowers, behind the Bee Queen's garden (giant.js) */
+  { id: 's5', i: -14, j: -8, biome: 'stone', secret: 1 }, /* the Giant's Sky Garden, west of the High Table (sky.js) */
+  { id: 'w5', i: 12, j: -9, biome: 'snow', secret: 1 }, /* the Summer Hollow, behind the ice wall (hollow.js) */
+  { id: 'r5', i: -8, j: 8, biome: 'marsh', secret: 1 }, /* Heron Isle and the Firefly Tree, across Lily Lake (heron.js) */
+  { id: 'c5', i: 12, j: -2, biome: 'coral', secret: 1 }, /* the Sea Garden, under the lagoon (seagarden.js) */
+  { id: 'e5', i: 12, j: 9, biome: 'ash', secret: 1 } /* the Glass Forest, past the great lava river (glass.js) */
 ];
 /* shortcuts (Leon, 2026-11-27): the first way to a far place may be long, but once Pip has reached it a short way back
    opens by itself. Each is a plank bridge between two areas that builds itself, free, when both are owned (isle.js).
@@ -2319,6 +2336,7 @@ let rising = null, hitT = 0, giveT = 0, pickHintT = 0;
 
 /* ---- pictures: drawn on a 2D canvas for the signs and bubbles ---- */
 function isleIcon(x, t, cx, cy, s) {
+  if (ISLE_ICON[t]) { x.save(); x.translate(cx, cy); x.scale(s, s); x.lineJoin = x.lineCap = 'round'; x.lineWidth = 3; x.strokeStyle = '#3a2414'; ISLE_ICON[t](x); x.restore(); return; } /* a hidden world's own picture: drawn round 0,0 in a box of about 44 */
   x.save(); x.translate(cx, cy); x.scale(s, s); x.lineWidth = 3; x.strokeStyle = PAL.ink; x.lineJoin = 'round'; x.lineCap = 'round';
   const blob = (f) => { x.fillStyle = f; x.fill(); x.stroke(); };
   if (t === 'log') { x.beginPath(); x.roundRect(-20, -9, 34, 18, 9); blob('#a8774f'); x.beginPath(); x.ellipse(14, 0, 6, 9, 0, 0, 7); blob('#e7c48f'); x.beginPath(); x.ellipse(14, 0, 2.2, 3.5, 0, 0, 7); x.strokeStyle = '#a8774f'; x.lineWidth = 1.6; x.stroke(); }
@@ -2488,7 +2506,7 @@ function areaClear(x, z) {
   for (const a of AREAS) { if (a.chest) { const c = chestAt(a); if (Math.hypot(x - c[0], z - c[1] - 0.4) < 1.5) return false; }
     if (a.stairs && Math.hypot(x - a.cx - a.stairs[0], z - a.cz - a.stairs[1]) < 2.2) return false;
     if (a.cave && (Math.hypot(x - a.cx, z - a.cz - 4.0) < 2.4 || mineKeep(a, x, z))) return false;
-    if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || gardenKeep(a, x, z) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z) || emberKeep(a, x, z)) return false;
+    if (findKeep(a, x, z) || tallKeep(a, x, z) || mesaKeep(a, x, z) || gardenKeep(a, x, z) || goldKeep(x, z) || ISLE_KEEPS.some((f) => f(a, x, z)) || iceKeep(a, x, z) || marshKeep(a, x, z) || coralKeep(a, x, z) || emberKeep(a, x, z)) return false;
     if (a.lift && Math.hypot(x - a.cx - a.lift[0], z - a.cz - a.lift[1]) < 3.1) return false;
     if (a.ruin && Math.hypot(x - a.cx - a.ruin[0], z - a.cz - a.ruin[1]) < 2.6) return false;
     if (a.bridge) { const b = a.bridge; if (Math.hypot(x - b.x0, z - b.z0) < 2.4 || Math.hypot(x - b.x1, z - b.z1) < 2.4) return false; } }
@@ -2511,6 +2529,7 @@ function basicsFill(A, fresh) {
 }
 function areaFill(A, fresh) {
   if (SHOW && SHOW_YARD[A.id]) return; /* the asset yard keeps these two areas as an empty lawn */
+  if (A.secret) { if (SECRET_FILL[A.id]) SECRET_FILL[A.id](A, fresh); return; } /* a hidden world is laid by hand, piece by piece (secret.js) */
   if (A.start) { START_NODES.forEach(([k, x, z], q) => makeNode(k, x, z, 50 + q)); areaDecor(A); return; }
   const SP = 2.05, base = AREAS.indexOf(A) * 997; let c = 0;
   for (let gx = A.cx - 5.2; gx <= A.cx + 5.3; gx += SP) for (let gz = A.cz - 5.2; gz <= A.cz + 5.3; gz += SP) {
@@ -2592,12 +2611,13 @@ function chestStep(c, dt) {
   if (c.pop > 0 && c.pop < 1) { c.pop = Math.min(1, c.pop + dt * 2.2); const s = c.pop < 0.7 ? c.pop / 0.7 * 1.15 : 1.15 - (c.pop - 0.7) / 0.3 * 0.15; c.g.scale.setScalar(s); }
   if (!c.open && (c.mesa || null) === MS.on && Math.hypot(pip.position.x - c.x, pip.position.z - (c.z + 0.85)) < 0.9) {
     c.open = 0.001; state.isle.chests[c.idx] = 1;
-    if (typeof c.tool === 'string') { state.isle.tools[c.tool] = 1; c.sp.visible = true; }
+    if (typeof c.tool === 'string') { state.isle.tools[c.tool] = 1; c.sp.visible = true; foundIt(c.tool); }
     else { /* a treasure: what is inside floats up as counted pictures and goes straight to the counter */
-      Object.keys(c.tool).forEach((t, k) => { state.isle.store[t] = (state.isle.store[t] || 0) + c.tool[t];
+      const loot = Object.assign({}, c.tool); if (loot.gear) { gearFind(loot.gear); delete loot.gear; }
+      Object.keys(loot).forEach((t, k) => { state.isle.store[t] = (state.isle.store[t] || 0) + c.tool[t];
         const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, c.tool[t]), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(c.x, 1.5 + k * 0.8, c.z); sc.add(sp); FD.floats.push({ sp, t: 0, y: k * 0.8 }); });
       invDirty = true; burst(c.x, 0.7, c.z, 14); Snd.play('sparkle', { gain: 0.45 }); if (typeof bldBadge === 'function') bldBadge(); }
-    Snd.play('powerup', { gain: 0.5 }); burst(c.x, 1.0, c.z, 8); save();
+    Snd.play('treasure', { gain: 0.6 }); burst(c.x, 1.0, c.z, 8); save();
   }
   if (c.open) {
     c.open += dt; c.lid.rotation.x = -Math.min(1.9, c.open * 5);
@@ -2691,7 +2711,7 @@ function signSpot([ni, nj, a, b]) {
 function signWants() {
   const want = new Map(), used = new Set();
   AREAS.forEach((A) => {
-    if (HAS[A.id] || (rising && rising.area === A.id) || (building && building.A === A)) return;
+    if (A.secret || HAS[A.id] || (rising && rising.area === A.id) || (building && building.A === A)) return;
     if (A.bridge) { if (HAS[A.bridge.from]) want.set('b:' + A.id, { kind: 'bridge', A }); return; }
     if (A.lift) { if (mineS().g2) want.set('l:' + A.id, { kind: 'lift', A }); return; } /* the lift at the end of the mine (cave.js) */
     /* the owned square touching this area that is nearest its middle: the sign stands there, by the shared edge */
@@ -2703,7 +2723,7 @@ function signWants() {
     if (!best && C[0]) best = C[0].slice(0, 4);
     if (best) { used.add(best[0] + ',' + best[1]); want.set('a:' + A.id, { kind: 'area', A, at: best }); }
   });
-  peopleWants(want); sealWants(want);
+  peopleWants(want); sealWants(want); ISLE_KEYS.forEach((K) => { if (K.ok()) want.set('q:' + K.id, { kind: 'key', K }); });
   return want;
 }
 const areaGhostGeo = (() => { const g = new T.PlaneGeometry(GS * 3 - 0.6, GS * 3 - 0.6, 12, 12); g.rotateX(-Math.PI / 2); return g; })();
@@ -2716,6 +2736,7 @@ function isleSigns() {
       signMake({ key, kind: 'area', at: w.at, A, cost: A.cost, x, z, ghostGeo: areaGhostGeo, ghostTex, gx: A.cx, gz: A.cz }); }
     else if (w.kind === 'lift') { const q = new T.PlaneGeometry(1.5, 1.5, 2, 2); q.rotateX(-Math.PI / 2);
       signMake({ key, kind: 'lift', A, cost: A.cost, x: LIFT.low.x + 1.45, z: LIFT.low.z - 1.0, ghostGeo: q, ghostTex: ghostRound, gx: LIFT.low.x, gz: LIFT.low.z, gy: 0.05 }); }
+    else if (w.kind === 'key') { const K = w.K; signMake({ key, kind: 'key', K, A: null, cost: K.cost, x: K.x, z: K.z, ghostGeo: tinyGeo, ghostTex, gx: K.x, gz: K.z, gy: -5 }); }
     else if (w.kind === 'seal') { const m = w.m, z = m.z + m.d / 2 + 1.0, x = m.x + m.lx + (walkSdf(m.x + m.lx + 1.1, z) < walkSdf(m.x + m.lx - 1.1, z) ? 1.1 : -1.1); signMake({ key, kind: 'seal', m, A: null, cost: m.seal, x, z, ghostGeo: tinyGeo, ghostTex, gx: x, gz: z, gy: -5 }); }
     else if (!peopleSignMake(w, key)) { const B = A.bridge, L = Math.hypot(B.x1 - B.x0, B.z1 - B.z0), ux = (B.x1 - B.x0) / L, uz = (B.z1 - B.z0) / L, q = new T.PlaneGeometry(1.7, L, 2, 8); q.rotateX(-Math.PI / 2);
       signMake({ key, kind: 'bridge', A, cost: A.cost, x: B.x0 - ux * 0.6 - uz * 1.5, z: B.z0 - uz * 0.6 + ux * 1.5, ghostGeo: q, ghostTex, gx: (B.x0 + B.x1) / 2, gz: (B.z0 + B.z1) / 2, gy: -0.15, gr: Math.atan2(ux, uz) }); }
@@ -2749,7 +2770,7 @@ function signStep(s, dt) {
 }
 function isleBuy(s) {
   delete state.isle.paid[s.key]; [s.g, s.ring, s.ghost].forEach((m) => sc.remove(m)); signs.splice(signs.indexOf(s), 1);
-  if (s.kind === 'area') areaRise(s.A); else if (s.kind === 'lift') { loopBuy(s); liftOwn(s.A); } else if (s.kind === 'seal') sealOpen(s.m); else if (!peopleBuy(s)) bridgeBuild(s.A, false);
+  if (s.kind === 'area') areaRise(s.A); else if (s.kind === 'lift') { loopBuy(s); liftOwn(s.A); } else if (s.kind === 'seal') sealOpen(s.m); else if (s.kind === 'key') s.K.open(); else if (!peopleBuy(s)) bridgeBuild(s.A, false);
   signs.forEach(drawSign); save();
 }
 
@@ -2865,7 +2886,7 @@ function nodeHit(n, side) {
   if (n.kind !== 'bush' && n.kind !== 'grass') splash(sx, 0.6, sz, 3);
   if (n.hp > 0.01) return;
   dropOut(n); n.t = sleepRegrow(n);
-  if (n.gate === 'garden') { gardenGateOpen(n); return; }
+  if (n.gate === 'garden') { gardenGateOpen(n); return; } if (ISLE_GATE[n.gate]) { ISLE_GATE[n.gate](n); return; }
   if (n.gate) { mineGateOpen(n); return; }
   if (n.kind === 'planks') { n.st = 'gone'; n.main.visible = false; Snd.play('thud', { gain: 0.5 }); ruinOpen(n.ruin); return; }
   if (n.kind === 'tree') { n.st = 'fall'; n.fall = 0; n.stump.visible = true; Snd.play('thud', { gain: 0.5 }); }
@@ -3517,6 +3538,7 @@ function bldUp(k) {
     if (miss.length) setTimeout(() => mapOpen(miss[0]), 420); return; }
   Object.keys(c).forEach((t) => { spendN(t, c[t]).forEach((m) => { fly(m, () => pip.localToWorld(tmpV.set(0, 2.2, 0)), () => sc.remove(m), 0.3); }); });
   state.isle.bld[k] = bldLv(k) + 1; save();
+  if ((k === 'axe' || k === 'pick' || GEAR[k]) && BLD[k].pic[bldLv(k)] !== BLD[k].pic[bldLv(k) - 1]) foundIt(BLD[k].pic[bldLv(k)]); /* a new tool or piece of gear is held up */
   if (k === 'tent') { tentShape(bldLv('tent')); bldPop = { g: campFlame.t, t: 0 }; burst(TENT.x, 1.2, TENT.z, 10); state.isle.en = Math.min(enMax(), state.isle.en + 30); }
   else if (k === 'axe' || k === 'pick') toolUp(k);
   else if (k === 'oven') ovenLevelUp();
@@ -3721,7 +3743,7 @@ function mineS() { return state.isle.mine || (state.isle.mine = {}); }
 function mineKeep(a, x, z) { return (Math.abs(z - a.cz) < 1.6 && Math.abs(x - a.cx) > 3.3) || (a.id === 'cave3' && Math.hypot(x - LIFT.low.x, z - LIFT.low.z - 0.5) < 2.6); }
 function mineGateOpen(n) {
   mineS()[n.gate] = 1; if (n.tag) { n.g.remove(n.tag); n.tag = null; } n.dead = 1; n.st = 'gone'; if (work && work.n === n) work = null;
-  burst(n.x, 1.2, n.z, 12); Snd.play('thud', { gain: 0.6 }); Snd.play('success', { gain: 0.45, f: 'E6' }, 0.15); xpGain(10); isleSigns(); save();
+  burst(n.x, 1.2, n.z, 12); Snd.play('thud', { gain: 0.6 }); Snd.play('secret', { gain: 0.55 }, 0.25); xpGain(10); isleSigns(); save();
 }
 /* a mine lift: four posts, a cross beam with a wheel and a rope, and a plank floor */
 function liftModel(x, z, seed) {
@@ -6639,7 +6661,7 @@ function peopleGoal() {
 
 let anvilIn = false, hamT = 0;
 function peopleStep(dt) {
-  bakerStep(dt); loopStep(dt); hamStep(dt); giftStep(dt); findStep(dt); mesaStep(dt); gardenStep(dt); iceStep(dt); raftStep(dt); tideStep(dt); emberStep(dt); wonderStep(dt); nightStep(dt); wearStep(); dockStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep();
+  bakerStep(dt); loopStep(dt); hamStep(dt); giftStep(dt); findStep(dt); mesaStep(dt); gardenStep(dt); goldStep(dt); iceStep(dt); raftStep(dt); tideStep(dt); emberStep(dt); wonderStep(dt); nightStep(dt); wearStep(); dockStep(dt); ferryStep(dt); showStep(); villageStep(dt); dogStepIsle(dt); gearStep(dt); lookStep(); ISLE_STEPS.forEach((f) => f(dt));
   if (!SM.g) return;
   const F = folk(), g = SM.g, pp = pip.position;
   /* she steps out of the cottage */
@@ -7309,16 +7331,21 @@ ISLAND.petRoute = landRoute; ISLAND.petLand = landKeep;
    When Pip meets an obstacle, a bubble shows the gear it needs, and from then on that gear has a card in the build menu. */
 const GEAR = {
   torch: { cost: { honey: 3, log: 8, coin: 6 }, eff: ['web', 'bees', 'dark'] },
-  coat: { cost: { berry: 14, log: 6, coin: 12 }, eff: ['rain'] },
-  boots: { cost: { reed: 4, log: 16, coin: 18 }, eff: ['snowDeep'] },
-  lantern: { cost: { ember: 2, honey: 2, coin: 20 }, eff: ['dark'] }, /* the dark night (night.js) */
+  /* (Leon, 2026-11-28: "some just make it easier, for example, better boots... make it a more joyful experience when we find
+     something"): the comfort gear is no longer bought. found: the chest it lies in; Pip holds it up when the lid opens. */
+  coat: { cost: { berry: 14, log: 6, coin: 12 }, eff: ['rain'], found: 'm1' },
+  boots: { cost: { reed: 4, log: 16, coin: 18 }, eff: ['snowDeep'], found: 'r2' },
+  lantern: { cost: { ember: 2, honey: 2, coin: 20 }, eff: ['dark'], found: 'e1' }, /* the dark night (night.js) */
   /* the bigger islands (Leon, 2026-11-27: "a scooter or thing to move around the islands at a quicker pace"): after a few
      steps of walking Pip hops on and rolls, faster still along a trail (wear.js). Its card comes after the first long walk. */
   scooter: { cost: { copper: 3, log: 20, coin: 20 }, eff: ['trail'] }
 };
 Object.keys(GEAR).forEach((k) => { BLD[k] = { max: 2, cost: [null, null, GEAR[k].cost], pic: [null, k, k] }; });
 const gearHas = (k) => bldLv(k) >= 2;
-const gearKeys = () => Object.keys(GEAR).filter((k) => gearHas(k) || (state.isle.seen && state.isle.seen[k]));
+const gearKeys = () => Object.keys(GEAR).filter((k) => gearHas(k) || (!GEAR[k].found && state.isle.seen && state.isle.seen[k]));
+/* a chest gave a piece of gear; a save that opened that chest before the gear lay in it gets it too */
+function gearFind(k) { if (gearHas(k)) return; state.isle.bld[k] = 2; gearGot(k); foundIt(k); }
+function gearOld() { Object.keys(GEAR).forEach((k) => { const f = GEAR[k].found; if (f && state.isle.chests[f] && !gearHas(k)) state.isle.bld[k] = 2; }); }
 const GE = { bub: null, cool: {}, webs: [], bees: null, light: null, flame: null, smoke: [] };
 const WEB_AT = ['w0']; /* the bridges that start webbed */
 const BEES_AT = 'm2'; /* the cottage the bees guard */
@@ -7470,6 +7497,7 @@ const gearSnow = () => !inCave && zoneSeason === 'winter' && !gearHas('boots') &
 const gearSlow = () => (state.isle && GE.ready && gearSnow() ? 0.5 : 1); /* deep snow: half speed without boots (rules.js speed) */
 function gearInit() { const I = state.isle; I.seen = I.seen || {}; I.webs = I.webs || {}; I.calm = I.calm || {}; GE.ready = 1; webSync(); torchLight(); }
 function gearStep(dt) {
+  if (!GE.old) { GE.old = 1; gearOld(); }
   Object.keys(GE.cool).forEach((k) => { GE.cool[k] -= dt; });
   if (GE.bub) { GE.bub.t -= dt; const p = pip.position; GE.bub.position.set(p.x, 2.35 + Math.sin(time * 4) * 0.05, p.z); GE.bub.material.opacity = Math.min(1, GE.bub.t * 3); if (GE.bub.t <= 0) { sc.remove(GE.bub); GE.bub = null; } }
   webSync();
@@ -7887,6 +7915,7 @@ function travelGo(id) { dockGo(id); }
 /* ---- keys: a picture in the corner while held; the bridge that needs one shows it in a locked bubble ---- */
 function keyGive(k, x, z) {
   if (lkeys()[k]) return; lkeys()[k] = 1; save(); keyHud();
+  foundIt(k);
   const sp = isleSprite(isleBubble(k), 0.9); sp.position.set(x, 1.6, z); sc.add(sp); LP.gift = { sp, t: 0 };
   Snd.play('success', { gain: 0.5, f: 'G5' }); Snd.play('sparkle', { gain: 0.45 }, 0.2);
 }
@@ -8345,6 +8374,7 @@ function findNode(n, g) {
 function findGot(n) {
   const t = YIELD[n.kind][0], c = hiveGives(n, YIELD[n.kind][1]); state.isle.store[t] = (state.isle.store[t] || 0) + c; xpGain(XP_FOR[n.kind]);
   const sp = new T.Sprite(new T.SpriteMaterial({ map: hamGiftTex(t, c), transparent: true, depthWrite: false })); sp.scale.set(1.5, 0.75, 1); sp.position.set(n.x, n.g.position.y + 1.5, n.z); sc.add(sp); FD.floats.push({ sp, t: 0, y: n.g.position.y });
+  const F1 = state.isle.first || (state.isle.first = {}); if (!F1[t]) { F1[t] = 1; foundIt(t); } /* the first of each special find is held up */
   invDirty = true; Snd.play('sparkle', { gain: 0.45 }); burst(n.x, n.g.position.y + 1.0, n.z, 6); bldBadge(); save();
 }
 function findStep(dt) {
@@ -8452,7 +8482,7 @@ function sealS() { return state.isle.seals || (state.isle.seals = {}); }
 function sealWants(want) { MS.list.forEach((m) => { if (m.locked && HAS[m.A.id] && !m.pop) want.set('k:' + m.id, { kind: 'seal', m }); }); }
 function sealOpen(m) {
   sealS()[m.id] = 1; m.locked = false; sc.remove(m.g); mesaModel(m, false); burst(m.x + m.lx, 1.2, m.z + m.d / 2 + 0.5, 16);
-  Snd.play('success', { gain: 0.5 }); Snd.play('sparkle', { gain: 0.4 }, 0.2); xpGain(25); isleSigns(); save();
+  Snd.play('secret', { gain: 0.6 }, 0.1); xpGain(25); isleSigns(); save();
 }
 function mesaStep(dt) {
   if (!MS.list.length) return; const pp = pip.position;
@@ -8533,7 +8563,7 @@ function gardenFill(A, fresh) {
 }
 function gardenGateOpen(n) {
   state.isle.garden = 1; if (n.tag) { n.g.remove(n.tag); n.tag = null; } n.dead = 1; n.st = 'gone'; n.main.visible = false; if (work && work.n === n) work = null; GD.node = null; GD.open = 0.001;
-  burst(n.x, 1.2, n.z, 16); Snd.play('thud', { gain: 0.5 }); Snd.play('success', { gain: 0.5, f: 'E6' }, 0.15); Snd.play('sparkle', { gain: 0.45 }, 0.4); xpGain(25);
+  burst(n.x, 1.2, n.z, 16); Snd.play('thud', { gain: 0.5 }); Snd.play('secret', { gain: 0.6 }, 0.25); xpGain(25);
   nodes.forEach((q) => { if (q.kind === 'hive' && q.st !== 'ready') { q.t = 0.01; } }); save();
 }
 /* honey from a hive: the Queen's own gives a big comb, and once she is found every hive gives double */
@@ -8547,6 +8577,126 @@ function gardenStep(dt) {
   if (GD.open) GD.open += dt; const out = GD.open && GD.open < 6 ? Math.sin(Math.min(1, GD.open / 6) * Math.PI) : 0;
   GD.bees.forEach((b, k) => { const a = time * (1.3 + k * 0.17) + k * 0.9, r = 0.7 + 0.3 * Math.sin(time * 0.7 + k) + out * (3 + k * 0.5); b.position.set(GARDEN.hive[0] + Math.cos(a) * r + out * 3.5, 1.3 + Math.sin(time * 2.1 + k) * 0.35 + out * 0.6, GARDEN.hive[1] + Math.sin(a) * r * 0.8); b.visible = !inCave && !reduced; });
 }
+/* ---------- the seven golden gifts (Leon, 2026-11-28: a hidden world should give something special, with a moment of
+   joy; "inspired by Zelda") ----------
+   Each island's hidden world holds one golden gift. When Pip finds it, the game stops for a breath: Pip holds it up, the
+   fanfare plays. From then on it stands on its own pedestal on the village green, beside the bell tower's place; the
+   empty pedestals show a pale shape of what is still out there. state.isle.gold[id] = 1. */
+const GOLD = [{ id: 'comb', isle: 'm' }, { id: 'hammer', isle: 's' }, { id: 'lily', isle: 'r' }, { id: 'sun', isle: 'w' }, { id: 'glass', isle: 'e' }, { id: 'shipbell', isle: 'c' }, { id: 'starheart', isle: 'cave' }];
+const GOLD_AT = { x: 13, z: 9.7, r: 1.95 }; /* a ring round the bell tower's plot */
+const GO = { g: null, items: {}, hold: null };
+const golds = () => state.isle.gold || (state.isle.gold = {});
+const goldSpot = (k) => { const a = (k - 3) * Math.PI / 4; return [GOLD_AT.x + Math.sin(a) * GOLD_AT.r, GOLD_AT.z - Math.cos(a) * GOLD_AT.r]; }; /* three quarters of a ring; the gap looks south */
+const goldKeep = (x, z) => Math.hypot(x - GOLD_AT.x, z - GOLD_AT.z) < GOLD_AT.r + 0.8;
+function goldGeo(id) {
+  let q; const P = [];
+  if (id === 'comb') { [[0, 0], [0.19, 0.11], [-0.19, 0.11], [0, 0.22], [0.19, 0.33], [-0.19, 0.33], [0, 0.44]].forEach(([x, y]) => { q = new T.CylinderGeometry(0.115, 0.115, 0.1, 6); q.rotateX(Math.PI / 2); q.rotateZ(Math.PI / 6); q.translate(x, y - 0.22, 0); P.push(q.toNonIndexed()); }); }
+  else if (id === 'hammer') { q = new T.BoxGeometry(0.46, 0.24, 0.24); q.translate(0, 0.16, 0); P.push(q.toNonIndexed()); q = new T.CylinderGeometry(0.045, 0.045, 0.46, 6); q.translate(0, -0.14, 0); P.push(q.toNonIndexed()); }
+  else if (id === 'lily') { for (let k = 0; k < 6; k++) { q = new T.ConeGeometry(0.1, 0.4, 4); q.translate(0, 0.2, 0); q.rotateZ(0.75); q.rotateY(k / 6 * 6.283); P.push(q.toNonIndexed()); } q = new T.SphereGeometry(0.09, 8, 6); P.push(q.toNonIndexed()); }
+  else if (id === 'sun') { q = new T.SphereGeometry(0.2, 10, 8); P.push(q.toNonIndexed()); for (let k = 0; k < 8; k++) { q = new T.ConeGeometry(0.05, 0.16, 4); q.translate(0, 0.31, 0); q.rotateZ(k / 8 * 6.283); P.push(q.toNonIndexed()); } }
+  else if (id === 'glass') { q = new T.SphereGeometry(0.2, 8, 6); q.scale(1, 1.25, 1); const A = q.attributes.position; for (let i = 0; i < A.count; i++) if (A.getY(i) > 0.05) A.setXYZ(i, A.getX(i) * (1 - A.getY(i) * 2.2), A.getY(i) * 1.3, A.getZ(i) * (1 - A.getY(i) * 2.2)); P.push(q.toNonIndexed()); }
+  else if (id === 'shipbell') { q = new T.CylinderGeometry(0.1, 0.24, 0.34, 10, 1, true); P.push(q.toNonIndexed()); q = new T.SphereGeometry(0.1, 8, 5, 0, 6.283, 0, 1.6); q.translate(0, 0.17, 0); P.push(q.toNonIndexed()); q = new T.SphereGeometry(0.05, 6, 5); q.translate(0, -0.2, 0); P.push(q.toNonIndexed()); }
+  else { q = new T.OctahedronGeometry(0.2, 0); q.scale(1, 1.5, 1); P.push(q.toNonIndexed()); for (let k = 0; k < 4; k++) { q = new T.OctahedronGeometry(0.08, 0); q.scale(1, 1.6, 1); q.translate(0.26, 0, 0); q.rotateY(k / 4 * 6.283); P.push(q.toNonIndexed()); } }
+  let n = 0; P.forEach((p) => { n += p.attributes.position.count; }); const A = new Float32Array(n * 3); let o = 0; P.forEach((p) => { A.set(p.attributes.position.array, o); o += p.attributes.position.count * 3; });
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(A, 3)); g.computeVertexNormals(); return g;
+}
+const goldMat = new T.MeshStandardMaterial({ color: '#f6c63c', roughness: 0.3, metalness: 0.55, emissive: new T.Color('#a8741a'), emissiveIntensity: 0.55, side: T.DoubleSide });
+const goldGhost = new T.MeshStandardMaterial({ color: '#8d8a84', roughness: 0.95, side: T.DoubleSide }); /* a grey stone carving of what is still out there */
+function goldBuild() {
+  if (GO.g || !HAS.h3) return; const g = GO.g = new T.Group(); sc.add(g); const L = []; let q;
+  GOLD.forEach((G, k) => { const [x, z] = goldSpot(k);
+    q = new T.CylinderGeometry(0.3, 0.36, 0.14, 8); q.translate(x, 0.07, z); L.push(fac(q.toNonIndexed(), (cx, cy, cz, i) => tone('#b5ab98', i, 0.3), 9600 + k));
+    q = new T.CylinderGeometry(0.2, 0.24, 0.5, 8); q.translate(x, 0.39, z); L.push(fac(q.toNonIndexed(), (cx, cy, cz, i) => shadeY('#d6cebd', cy, 0.1, 0.7, i, 0.3), 9610 + k));
+    q = new T.CylinderGeometry(0.3, 0.22, 0.1, 8); q.translate(x, 0.69, z); L.push(fac(q.toNonIndexed(), (cx, cy, cz, i) => tone('#c9c0ae', i, 0.3), 9620 + k));
+    const m = new T.Mesh(goldGeo(G.id), golds()[G.id] ? goldMat : goldGhost); m.position.set(x, 1.15, z); m.castShadow = !!golds()[G.id]; g.add(m); GO.items[G.id] = m; lookFoot(x, z, 0.4, 0.4); });
+  const mesh = merged(L, MAT, g); if (mesh && mesh.isMesh) { mesh.castShadow = true; mesh.receiveShadow = true; }
+}
+/* ---- "found it!" (Leon 2026-11-28: every one-time find is held up, "like it does with Zelda: Pip turns around and lifts it
+   up. We celebrate the fact that we found something useful") ----
+   holdUp(obj, o): the game holds its breath, Pip spins to face us, both arms go up, the thing rises over the head with rays
+   of light turning behind it. Golden gifts get the long fanfare, tools, gear, keys and first finds the treasure tune.
+   A second find while one is up waits its turn. */
+let raysTex = null;
+function foundRays() {
+  if (raysTex) return raysTex; const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'); x.translate(128, 128);
+  const g = x.createRadialGradient(0, 0, 8, 0, 0, 124); g.addColorStop(0, 'rgba(255,244,190,0.95)'); g.addColorStop(0.45, 'rgba(255,214,110,0.45)'); g.addColorStop(1, 'rgba(255,200,80,0)'); x.fillStyle = g;
+  for (let k = 0; k < 12; k++) { x.rotate(Math.PI / 6); x.beginPath(); x.moveTo(0, 0); x.lineTo(-13 - (k % 2) * 6, -124); x.lineTo(13 + (k % 2) * 6, -124); x.closePath(); x.fill(); }
+  x.beginPath(); x.arc(0, 0, 46, 0, 7); x.fill(); raysTex = new T.CanvasTexture(c); return raysTex;
+}
+function foundTex(t) { const c = document.createElement('canvas'); c.width = c.height = 160; isleIcon(c.getContext('2d'), t, 80, 82, 2.3); return new T.CanvasTexture(c); }
+function holdUp(m, o) {
+  o = o || {}; if (GO.hold) { (GO.q = GO.q || []).push([m, o]); return; }
+  const rays = new T.Sprite(new T.SpriteMaterial({ map: foundRays(), transparent: true, depthWrite: false, blending: T.AdditiveBlending })); sc.add(rays); sc.add(m);
+  GO.hold = { m, rays, t: 0, len: o.len || 2.4, s0: o.s || 1, r0: pip.rotation.y, tex: o.tex };
+  Snd.play(o.snd || 'treasure', { gain: o.gain || 0.65 }); burst(pip.position.x, 2.2, pip.position.z, o.n || 12);
+}
+/* a tool, a piece of gear, a key or the first of a special find: t is its picture */
+function foundIt(t) { const sp = isleSprite(foundTex(t), 1.15); holdUp(sp, { tex: 1, s: 1.15 }); }
+/* Pip finds a golden gift: the long fanfare, and from now on it stands on its pedestal */
+function goldGive(id) {
+  if (golds()[id]) return; golds()[id] = 1; holdUp(new T.Mesh(goldGeo(id), goldMat), { len: 3.2, s: 1.3, snd: 'fanfare', gain: 0.7, n: 22 });
+  if (GO.items[id]) { GO.items[id].material = goldMat; GO.items[id].castShadow = true; } save();
+}
+function goldStep(dt) {
+  if (!GO.g) goldBuild();
+  if (GO.g) GOLD.forEach((G, k) => { const m = GO.items[G.id]; const got = golds()[G.id]; m.rotation.y = got ? time * 0.9 + k : 0; m.scale.setScalar(got ? 1 : 0.8); m.position.y = got ? 1.2 + (reduced ? 0 : Math.sin(time * 1.6 + k) * 0.05) : 1.02; m.visible = !inCave; });
+  const H = GO.hold; if (!H) return; H.t += dt; const pp = pip.position, up = Math.min(1, H.t / 0.55), s = up * up * (3 - 2 * up), out = H.t > H.len ? Math.max(0.01, 1 - (H.t - H.len) / 0.4) : 1;
+  if (H.t < H.len) { target.copy(pp); work = null; pip.rotation.y = (1 - s) * (H.r0 + Math.PI * 2); /* a full turn that ends facing us */
+    limbs.forEach((l) => { if (l.arm) { l.g.rotation.x = -2.75 * s; l.g.rotation.z = (l.s > 0 ? -1 : 1) * (0.1 + 0.22 * s); } }); GO.arms = 1; }
+  else if (GO.arms) { limbs.forEach((l) => { if (l.arm) l.g.rotation.z = l.s > 0 ? -0.1 : 0.1; }); GO.arms = 0; }
+  const y = pp.y + 1.55 + s * 0.85 + (reduced ? 0 : Math.sin(H.t * 3) * 0.03);
+  H.m.position.set(pp.x, y, pp.z); if (H.tex) H.m.scale.set(H.s0 * out * (0.4 + 0.6 * s), H.s0 * out * (0.4 + 0.6 * s), 1); else { H.m.rotation.y = H.t * 2.4; H.m.scale.setScalar(H.s0 * out); }
+  H.rays.position.set(pp.x, y, pp.z - 0.05); H.rays.material.rotation = H.t * 0.7; H.rays.scale.setScalar(2.3 * s * out); H.rays.renderOrder = 4; H.m.renderOrder = 5;
+  if (H.t > H.len + 0.4) { sc.remove(H.m); sc.remove(H.rays); H.rays.material.dispose(); if (H.tex) { H.m.material.map.dispose(); H.m.material.dispose(); } GO.hold = null; if (GO.q && GO.q.length) { const n = GO.q.shift(); holdUp(n[0], n[1]); } }
+}
+/* ---------- shared pieces for the hidden worlds (Leon, 2026-11-28: every island keeps a sealed place that opens into "a
+   unique, wonderful section, a bit bespoke", with "joy, exploration, and awe") ----------
+   Each hidden world lives in its own file and plugs in through the lists in rules.js, so no file needs a line in another:
+     ISLE_STEPS.push((dt) => ...)            runs every frame, after everything else (rides may place Pip)
+     ISLE_KEEPS.push((a, x, z) => bool)      true keeps random trees, rocks and decor off a spot
+     ISLE_GATE.<name> = (n) => ...           a node made with n.gate = '<name>' calls this when it breaks
+     ISLE_KEYS.push({ id, ok, x, z, cost, open })   a sign that stands at x, z while ok() is true; paying it calls open()
+     SECRET_FILL.<area id> = (A, fresh) => ...       builds an area that has secret: 1 in AREAS (nothing random is put there)
+   An area with secret: 1 has no sign and is not on the map until secretOpen('<id>') makes it rise from the sea.
+   ringMake({ x, z, icon, ok, go })  a rope ring with a picture over it: standing still on it for a moment calls go()
+   rideGo({ pts, speed, mesh, seat, snd, onEnd })  carries Pip along a path (a bee line, a kite, a heron, a cart)
+   foundIt(picture) and goldGive(id) (gold.js) are the two "found it!" moments. */
+const SC = { rings: [], ride: null };
+function secretOpen(id) { const A = AREAS.find((a) => a.id === id); if (!A || HAS[A.id] || rising) return false; Snd.play('secret', { gain: 0.65 }); areaRise(A); isleSigns(); save(); return true; }
+function ringMake(o) {
+  const r = { o, w: 0, armed: false, ph: SC.rings.length * 1.7 }, y = o.y || 0;
+  r.ring = ropeRing(0.5, 0.62); r.ring.position.set(o.x, y + 0.035, o.z); sc.add(r.ring);
+  const q = new T.CircleGeometry(0.5, 24); q.rotateX(-Math.PI / 2); r.fill = new T.Mesh(q, new T.MeshBasicMaterial({ color: '#ffe9a6', transparent: true, opacity: 0.75, depthWrite: false })); r.fill.position.set(o.x, y + 0.045, o.z); r.fill.scale.setScalar(0.001); sc.add(r.fill);
+  r.sp = isleSprite(isleBubble(o.icon || 'star'), 0.85); r.sp.position.set(o.x, y + 1.75, o.z); sc.add(r.sp); SC.rings.push(r); return r;
+}
+function ringDrop(r) { [r.ring, r.fill, r.sp].forEach((m) => sc.remove(m)); const k = SC.rings.indexOf(r); if (k >= 0) SC.rings.splice(k, 1); }
+/* the path is walked at an even pace; between points the height and place are eased, so a few points make a soft curve */
+function rideGo(o) {
+  if (SC.ride) return false; const P = o.pts.map((p) => new T.Vector3(p[0], p[1], p[2])), L = [0]; for (let k = 1; k < P.length; k++) L.push(L[k - 1] + P[k].distanceTo(P[k - 1]));
+  SC.ride = { o, P, L, d: 0, v: 0, len: L[L.length - 1] }; if (o.mesh) sc.add(o.mesh); if (o.snd) Snd.play(o.snd, { gain: 0.4 }); return true;
+}
+const riding2 = () => !!SC.ride;
+function secretStep(dt) {
+  const pp = pip.position, R = SC.ride;
+  SC.rings.forEach((r) => { const o = r.o, show = !o.ok || o.ok(); r.ring.visible = r.fill.visible = r.sp.visible = !!show && inCave === !!o.cave; if (!r.ring.visible) { r.w = 0; return; }
+    r.sp.position.y = (o.y || 0) + 1.75 + (reduced ? 0 : Math.sin(time * 2 + r.ph) * 0.05); const d = Math.hypot(pp.x - o.x, pp.z - o.z); if (d > 1.0) r.armed = true;
+    const on = d < 0.45 && r.armed && !R && !enSleep && !rising && Math.abs(pp.y - (o.y || 0)) < 0.6 && Math.hypot(target.x - pp.x, target.z - pp.z) < 0.15;
+    r.w = on ? Math.min(1, r.w + dt / 0.9) : Math.max(0, r.w - dt * 3); r.fill.scale.setScalar(Math.max(0.001, r.w));
+    if (r.w >= 1) { r.w = 0; r.armed = false; o.go(r); } });
+  if (!R) return; const o = R.o; R.v = Math.min(o.speed || 5, R.v + dt * (o.speed || 5) * 1.2); R.d = Math.min(R.len, R.d + R.v * dt * (R.len - R.d < 1.2 ? Math.max(0.25, (R.len - R.d) / 1.2) : 1));
+  let k = 1; while (k < R.L.length - 1 && R.L[k] < R.d) k++; const f = (R.d - R.L[k - 1]) / Math.max(0.001, R.L[k] - R.L[k - 1]), a = R.P[k - 1], b = R.P[k];
+  const y = a.y + (b.y - a.y) * (f * f * (3 - 2 * f)); pp.set(a.x + (b.x - a.x) * f, y + (o.seat || 0), a.z + (b.z - a.z) * f); target.copy(pp); work = null;
+  if (b.x !== a.x || b.z !== a.z) pip.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
+  if (o.mesh) { o.mesh.position.set(pp.x, y, pp.z); o.mesh.rotation.y = pip.rotation.y; } if (o.each) o.each(R, dt);
+  if (R.d >= R.len - 0.01) { SC.ride = null; if (o.mesh && !o.keep) sc.remove(o.mesh); pp.y = o.endY != null ? o.endY : b.y; target.copy(pp); if (o.onEnd) o.onEnd(); }
+}
+ISLE_STEPS.push(secretStep);
+/* ---------- the Garden of Giant Flowers (meadow, area m5): a hidden world (secret.js says how they plug in) ---------- */
+/* ---------- the Giant's Sky Garden (stone island, area s5): a hidden world (secret.js says how they plug in) ---------- */
+/* ---------- the Summer Hollow (winter island, area w5): a hidden world (secret.js says how they plug in) ---------- */
+/* ---------- Heron Isle and the Firefly Tree (marsh, area r5): a hidden world (secret.js says how they plug in) ---------- */
+/* ---------- the Sea Garden (coral island, area c5): a hidden world (secret.js says how they plug in) ---------- */
+/* ---------- the Glass Forest (ember island, area e5): a hidden world (secret.js says how they plug in) ---------- */
 /* ---------- the frozen lake (Leon, 2026-11-25: each island should differ in how Pip gets about) ----------
    The winter island's way of moving is sliding. A frozen lake lies in its first square, marked out in metre squares.
    Stepping onto the ice sends Pip sliding straight on (north, south, east or west, whichever he was heading most) until
@@ -9330,11 +9480,11 @@ function mapDraw() {
   /* water inside an area: the marsh's channel and pond */
   AREAS.forEach((A) => { if (!A.holes || !HAS[A.id]) return; A.holes.forEach(([a, b]) => { const [px, pz] = mapXY((A.i + a) * GS - 1.5, (A.j + b) * GS - (A.holes.length > 1 ? 2.6 : 1.5)); x.beginPath(); x.roundRect(px, pz, 3 * S, (A.holes.length > 1 ? 5.2 : 3) * S, 1.2 * S); x.fillStyle = '#6fbfe0'; x.fill(); }); });
   /* land Pip does not own yet */
-  AREAS.forEach((A) => { if (A.cave || HAS[A.id]) return; sq(A, -0.35, 1.6); x.fillStyle = buy[A.id] ? 'rgba(255,246,228,.5)' : 'rgba(255,255,255,.22)'; x.fill();
+  AREAS.forEach((A) => { if (A.cave || A.secret || HAS[A.id]) return; sq(A, -0.35, 1.6); x.fillStyle = buy[A.id] ? 'rgba(255,246,228,.5)' : 'rgba(255,255,255,.22)'; x.fill();
     x.setLineDash([14, 12]); x.lineWidth = buy[A.id] ? 6 : 3; x.strokeStyle = buy[A.id] ? '#f4b23a' : 'rgba(255,255,255,.75)'; x.stroke(); x.setLineDash([]);
     const [px, pz] = mapXY(A.cx, A.cz); x.globalAlpha = buy[A.id] ? 1 : 0.6; isleIcon(x, 'lock', px, pz, 1.25); x.globalAlpha = 1; });
   /* what grows there */
-  AREAS.forEach((A) => { if (A.cave) return; const [px, pz] = mapXY(A.cx - 4.1, A.cz - 4.2); x.globalAlpha = HAS[A.id] ? 1 : 0.55; isleIcon(x, MAP_RES[A.biome], px, pz, 0.8); x.globalAlpha = 1; });
+  AREAS.forEach((A) => { if (A.cave || A.secret) return; const [px, pz] = mapXY(A.cx - 4.1, A.cz - 4.2); x.globalAlpha = HAS[A.id] ? 1 : 0.55; isleIcon(x, MAP_RES[A.biome], px, pz, 0.8); x.globalAlpha = 1; });
   /* the cave hill */
   { const A = AREA_BY.cave, [px, pz] = mapXY(A.cx, A.cz), [wx] = mapXY(AREA_BY.cave3.cx, A.cz); x.beginPath(); x.roundRect(wx - 5.6 * S, pz - 5.2 * S, px - wx + 11.2 * S, 10.4 * S, 5.2 * S); x.fillStyle = '#8a8074'; x.fill(); x.lineWidth = 3; x.strokeStyle = 'rgba(58,36,20,.5)'; x.stroke();
     x.beginPath(); x.ellipse(px - 8, pz - 10, 3.6 * S, 3.2 * S, 0, 0, 7); x.fillStyle = '#9c9184'; x.fill(); isleIcon(x, 'crystal', px - 3.2 * S, pz - 2.6 * S, 0.8); }
@@ -9416,7 +9566,7 @@ function mapInit() {
    is nothing left to buy there. (The smith's anvil and the baker's oven already work this way.) */
 const SPT = { list: [], t: 0, tex: {} };
 function spotNear(x, z, r) { if (Math.hypot(SPOT_AT.gear[0] - 0.75 - x, SPOT_AT.gear[1] - 0.75 - z) < r * 0.6 + 0.5) return true; return Object.keys(SPOT_AT).some((k) => Math.hypot(SPOT_AT[k][0] - x, SPOT_AT[k][1] - z) < r * 0.6); }
-function spotKeys(id) { if (HAM_KEY[id]) return mons()[HAM_KEY[id]] && HAM.v[HAM_KEY[id]] && bldLv(id) < BLD[id].max ? [id] : []; return id === 'gear' ? Object.keys(GEAR).filter((k) => !gearHas(k) && state.isle.seen && state.isle.seen[k]) : (bldLv(id) < BLD[id].max ? [id] : []); }
+function spotKeys(id) { if (HAM_KEY[id]) return mons()[HAM_KEY[id]] && HAM.v[HAM_KEY[id]] && bldLv(id) < BLD[id].max ? [id] : []; return id === 'gear' ? Object.keys(GEAR).filter((k) => !gearHas(k) && !GEAR[k].found && state.isle.seen && state.isle.seen[k]) : (bldLv(id) < BLD[id].max ? [id] : []); }
 function spotTex(pic, can) {
   const key = pic + (can ? '!' : ''); if (SPT.tex[key]) return SPT.tex[key];
   const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
