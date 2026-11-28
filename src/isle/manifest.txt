@@ -61,6 +61,7 @@ hollow.js
 heron.js
 seagarden.js
 glass.js
+cathedral.js
 ice.js
 marsh.js
 coral.js

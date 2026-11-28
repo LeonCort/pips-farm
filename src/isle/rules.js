@@ -69,10 +69,11 @@ const AREAS = [
   { id: 'e3', chest: { coin: 40, ember: 2 }, chestAt: [-3.2, 2.6], i: 9, j: 9, biome: 'ash', cost: { stone: 64, log: 54, ember: 2 }, finds: [['cinder', 3.4, 3.2], ['cinder', -3.4, -2.6], ['cinder', 0.4, 4.2]], ponds: [[0.4, 0, 1.8]] },
   { id: 'e4', chest: { coin: 50, ember: 2, pearl: 2 }, i: 12, j: 6, biome: 'ash', cost: { stone: 70, log: 60, ember: 3 }, finds: [['cinder', 3.8, -2.8], ['cinder', 2.4, 3.6], ['cinder', -3.0, -3.6]] },
   /* the cave under the hill: not bought, reached down the stairs in h3 (cave.js); from outside it is a rocky hill out at sea */
-  { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1 },
-  /* the mine runs on west under the sea: a gallery behind rubble, then the lift room behind a rockfall */
-  { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1, finds: [['copper', -3.5, -3.4], ['copper', -1.0, -4.0], ['copper', 2.6, -3.3], ['copper', 3.4, 3.3], ['copper', -3.2, 3.5]] },
-  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, finds: [['glow', 2.6, -3.6], ['glow', -0.8, -4.1], ['glow', 3.5, 3.4]] },
+  { id: 'cave', i: 2, j: 7, biome: 'cave', cave: 1, secret: 1 },
+  /* the mine runs on west under the sea (cave.js lays every room by hand, hence secret: 1): the ore gallery behind rubble, and
+     the deep gallery with the lift at the far end of a long way round (three more rooms, at the end of this list) */
+  { id: 'cave2', i: -1, j: 7, biome: 'cave', cave: 1, secret: 1, finds: [['copper', 2.6, -2.7], ['copper', 4.0, -1.4], ['copper', 0.6, -3.1], ['copper', -3.6, 2.6], ['copper', -2.4, 2.9], ['copper', -4.2, 0.8]] },
+  { id: 'cave3', i: -4, j: 7, biome: 'cave', cave: 1, secret: 1, finds: [['glow', -0.8, -4.0], ['glow', 3.6, 3.4], ['glow', -3.9, 3.6], ['glow', -3.6, -3.6]] },
   /* the hidden worlds (Leon, 2026-11-28; secret.js): no sign, not on the map, each rises from the sea when its island's sealed
      place is opened with something from another island. ALWAYS add new areas at the end: every area's random layout hangs on its place in this list. */
   { id: 'm5', i: -4, j: -11, biome: 'meadow', secret: 1 }, /* the Garden of Giant Flowers, behind the Bee Queen's garden (giant.js) */
@@ -80,7 +81,13 @@ const AREAS = [
   { id: 'w5', i: 12, j: -9, biome: 'snow', season: 'summer', secret: 1 }, /* the Summer Hollow, behind the ice wall (hollow.js) */
   { id: 'r5', i: -8, j: 8, biome: 'marsh', secret: 1 }, /* Heron Isle and the Firefly Tree, across Lily Lake (heron.js) */
   { id: 'c5', i: 12, j: -2, biome: 'coral', secret: 1 }, /* the Sea Garden, under the lagoon (seagarden.js) */
-  { id: 'e5', i: 12, j: 9, biome: 'ash', secret: 1 } /* the Glass Forest, past the great lava river (glass.js) */
+  { id: 'e5', i: 12, j: 9, biome: 'ash', secret: 1 }, /* the Glass Forest, past the great lava river (glass.js) */
+  /* the mine grew (Leon, 2026-11-28): a second row of rooms south of the first, all under one hill, and under the lake the
+     Crystal Cathedral (cathedral.js). Laid by hand, never bought, not on the map. */
+  { id: 'cave4', i: 2, j: 10, biome: 'cave', cave: 1, secret: 1 }, /* the crystal grotto, a dead end */
+  { id: 'cave5', i: -1, j: 10, biome: 'cave', cave: 1, secret: 1 }, /* the lake room */
+  { id: 'cave6', i: -4, j: 10, biome: 'cave', cave: 1, secret: 1 }, /* the glow cavern */
+  { id: 'cave7', i: -1, j: 13, biome: 'cave', cave: 1, secret: 1 } /* the Crystal Cathedral, under the lake */
 ];
 /* shortcuts (Leon, 2026-11-27): the first way to a far place may be long, but once Pip has reached it a short way back
    opens by itself. Each is a plank bridge between two areas that builds itself, free, when both are owned (isle.js).
