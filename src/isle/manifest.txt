@@ -51,6 +51,7 @@ hamlets.js
 gifts.js
 finds.js
 beetrail.js
+orehunt.js
 tall.js
 mesa.js
 garden.js

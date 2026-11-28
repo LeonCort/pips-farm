@@ -29,7 +29,7 @@ const LOOP_FOLK = {
 const LOOP_MON = {
   harbor: { isle: 'home', need: () => ['h0', 'h1', 'h2', 'h3'].every((a) => HAS[a]) && (folk().smith || 0) >= 3, area: 'h2', cost: { log: 30, stone: 20 } },
   windmill: { isle: 'meadow', need: () => HAS.m3 && (folk().baker || 0) >= 2, area: 'm3', cost: { log: 40, berry: 20, stone: 15, honey: 6 } },
-  lighthouse: { isle: 'stone', need: () => HAS.s2 && (folk().mason || 0) >= 2, area: 's2', cost: { stone: 50, log: 20, crystal: 6 } },
+  lighthouse: { isle: 'stone', need: () => HAS.s2 && (folk().mason || 0) >= 2, area: 's2', cost: { stone: 50, log: 20, crystal: 6, iron: 4 } },
   tower: { isle: 'winter', need: () => HAS.w1 && (folk().knitter || 0) >= 2, area: 'w1', cost: { crystal: 15, stone: 30, log: 30 } },
   sluice: { isle: 'marsh', need: () => HAS.r0 && HAS.r1 && HAS.r2 && (folk().fisher || 0) >= 2, area: 'r2', cost: { log: 60, stone: 30, reed: 8 } },
   bell: { isle: 'coral', need: () => HAS.c0 && HAS.c1 && (folk().diver || 0) >= 2, area: 'c0', cost: { stone: 60, crystal: 10, pearl: 5 } },

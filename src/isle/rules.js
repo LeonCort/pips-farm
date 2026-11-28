@@ -35,8 +35,8 @@ const AREAS = [
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3], mesas: [{ id: 's1a', dx: -2.7, dz: 2.6, w: 5.0, d: 4.6, h: 1.3, lx: 1.4, finds: [['iron', 1.2, 0.5]] }, { id: 's1b', par: 's1a', dx: -3.7, dz: 1.9, w: 2.8, d: 2.9, h: 1.2, finds: [['iron', 0, -0.1]] }] },
   { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 }, finds: [['iron', -3.2, -2.2]] },
   /* the islands grew (Leon, 2026-11-27: every island at least five squares): the stone island runs on west */
-  { id: 's3', chest: { coin: 18, iron: 2 }, chestAt: [-2.6, -0.6], i: -11, j: -5, biome: 'stone', cost: { stone: 40, log: 26, berry: 16 }, mesas: [{ id: 's3a', dx: 2.4, dz: 2.6, w: 4.8, d: 4.2, h: 1.3, finds: [['iron', -0.9, 0.2], ['iron', 1.0, -0.3]] }], finds: [['iron', -3.6, -3.4]] },
-  { id: 's4', chest: { coin: 22, crystal: 5 }, chestAt: [3.6, 2.4], i: -11, j: -8, biome: 'clay', cost: { stone: 50, log: 30, crystal: 6 }, finds: [['iron', 3.0, -2.6], ['iron', -3.4, 2.8]], ponds: [[0.6, 0.8, 1.7]],
+  { id: 's3', chest: { coin: 18, iron: 2 }, chestAt: [-2.6, -0.6], i: -11, j: -5, biome: 'stone', cost: { stone: 40, log: 26, berry: 16, iron: 2 }, mesas: [{ id: 's3a', dx: 2.4, dz: 2.6, w: 4.8, d: 4.2, h: 1.3, finds: [['iron', -0.9, 0.2], ['iron', 1.0, -0.3]] }], finds: [['iron', -3.6, -3.4]] },
+  { id: 's4', chest: { coin: 22, crystal: 5 }, chestAt: [3.6, 2.4], i: -11, j: -8, biome: 'clay', cost: { stone: 50, log: 30, crystal: 6, iron: 3 }, finds: [['iron', 3.0, -2.6], ['iron', -3.4, 2.8]], ponds: [[0.6, 0.8, 1.7]],
     /* the High Table (mesa.js): the tallest rock on the island, its ladder broken. A rope ladder of marsh reed opens it: the island's sealed place, for the visit after the marsh */
     mesas: [{ id: 's4a', dx: -2.9, dz: -2.7, w: 4.8, d: 4.0, h: 2.3, seal: { reed: 6, log: 14 }, chest: [{ coin: 40, iron: 4 }, 1.5, -1.0], finds: [['iron', -0.2, -1.3], ['iron', 1.4, 1.0], ['iron', -0.7, 1.1]] }] }, /* the west end of its top is kept for the giant's kite (sky.js) */
   /* the winter island, east of the orchard, over a bridge */

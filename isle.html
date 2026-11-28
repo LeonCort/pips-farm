@@ -815,7 +815,7 @@ html body.dressing > div#boot#boot { visibility: visible !important; }
     <button type="button" class="wardDone" id="wardDone" aria-label="Klar"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M10 25 L20 35 L38 13" fill="none" stroke="#fff6e4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg><b>OK</b></button>
   </div>
 </div>
-<meta name="app-ver" content="20261128153809">
+<meta name="app-ver" content="20261128155411">
 <div class="nogl" id="nogl" hidden>This game needs a browser with 3D graphics turned on.</div>
 <script>(function(){var h=location.hostname;if(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"){document.getElementById("homeBtn").hidden=false;}})();</script>
 <script>(function(){var h=location.hostname;if(!(/github\.io$/.test(h)||h==="localhost"||h==="127.0.0.1"))return;
@@ -1182,8 +1182,8 @@ const AREAS = [
   { id: 's1', i: -8, j: -8, biome: 'stone', cost: { stone: 30, log: 20, crystal: 4 }, ruin: [0.8, -0.8, 0.3], mesas: [{ id: 's1a', dx: -2.7, dz: 2.6, w: 5.0, d: 4.6, h: 1.3, lx: 1.4, finds: [['iron', 1.2, 0.5]] }, { id: 's1b', par: 's1a', dx: -3.7, dz: 1.9, w: 2.8, d: 2.9, h: 1.2, finds: [['iron', 0, -0.1]] }] },
   { id: 's2', i: -8, j: -2, biome: 'clay', cost: { stone: 30, log: 20, berry: 12 }, finds: [['iron', -3.2, -2.2]] },
   /* the islands grew (Leon, 2026-11-27: every island at least five squares): the stone island runs on west */
-  { id: 's3', chest: { coin: 18, iron: 2 }, chestAt: [-2.6, -0.6], i: -11, j: -5, biome: 'stone', cost: { stone: 40, log: 26, berry: 16 }, mesas: [{ id: 's3a', dx: 2.4, dz: 2.6, w: 4.8, d: 4.2, h: 1.3, finds: [['iron', -0.9, 0.2], ['iron', 1.0, -0.3]] }], finds: [['iron', -3.6, -3.4]] },
-  { id: 's4', chest: { coin: 22, crystal: 5 }, chestAt: [3.6, 2.4], i: -11, j: -8, biome: 'clay', cost: { stone: 50, log: 30, crystal: 6 }, finds: [['iron', 3.0, -2.6], ['iron', -3.4, 2.8]], ponds: [[0.6, 0.8, 1.7]],
+  { id: 's3', chest: { coin: 18, iron: 2 }, chestAt: [-2.6, -0.6], i: -11, j: -5, biome: 'stone', cost: { stone: 40, log: 26, berry: 16, iron: 2 }, mesas: [{ id: 's3a', dx: 2.4, dz: 2.6, w: 4.8, d: 4.2, h: 1.3, finds: [['iron', -0.9, 0.2], ['iron', 1.0, -0.3]] }], finds: [['iron', -3.6, -3.4]] },
+  { id: 's4', chest: { coin: 22, crystal: 5 }, chestAt: [3.6, 2.4], i: -11, j: -8, biome: 'clay', cost: { stone: 50, log: 30, crystal: 6, iron: 3 }, finds: [['iron', 3.0, -2.6], ['iron', -3.4, 2.8]], ponds: [[0.6, 0.8, 1.7]],
     /* the High Table (mesa.js): the tallest rock on the island, its ladder broken. A rope ladder of marsh reed opens it: the island's sealed place, for the visit after the marsh */
     mesas: [{ id: 's4a', dx: -2.9, dz: -2.7, w: 4.8, d: 4.0, h: 2.3, seal: { reed: 6, log: 14 }, chest: [{ coin: 40, iron: 4 }, 1.5, -1.0], finds: [['iron', -0.2, -1.3], ['iron', 1.4, 1.0], ['iron', -0.7, 1.1]] }] }, /* the west end of its top is kept for the giant's kite (sky.js) */
   /* the winter island, east of the orchard, over a bridge */
@@ -8208,7 +8208,7 @@ const LOOP_FOLK = {
 const LOOP_MON = {
   harbor: { isle: 'home', need: () => ['h0', 'h1', 'h2', 'h3'].every((a) => HAS[a]) && (folk().smith || 0) >= 3, area: 'h2', cost: { log: 30, stone: 20 } },
   windmill: { isle: 'meadow', need: () => HAS.m3 && (folk().baker || 0) >= 2, area: 'm3', cost: { log: 40, berry: 20, stone: 15, honey: 6 } },
-  lighthouse: { isle: 'stone', need: () => HAS.s2 && (folk().mason || 0) >= 2, area: 's2', cost: { stone: 50, log: 20, crystal: 6 } },
+  lighthouse: { isle: 'stone', need: () => HAS.s2 && (folk().mason || 0) >= 2, area: 's2', cost: { stone: 50, log: 20, crystal: 6, iron: 4 } },
   tower: { isle: 'winter', need: () => HAS.w1 && (folk().knitter || 0) >= 2, area: 'w1', cost: { crystal: 15, stone: 30, log: 30 } },
   sluice: { isle: 'marsh', need: () => HAS.r0 && HAS.r1 && HAS.r2 && (folk().fisher || 0) >= 2, area: 'r2', cost: { log: 60, stone: 30, reed: 8 } },
   bell: { isle: 'coral', need: () => HAS.c0 && HAS.c1 && (folk().diver || 0) >= 2, area: 'c0', cost: { stone: 60, crystal: 10, pearl: 5 } },
@@ -9016,6 +9016,66 @@ function beeStep(dt) {
   }
 }
 ISLE_STEPS.push(beeStep);
+/* ---------- the Stone Isle's craft: the ore hunt (Leon 2026-11-28: each island gets a new fun way of gathering, played a
+   lot on its own island and now and then later, so the time there is play and not grinding) ----------
+   Iron is the Stone Isle's own material: its later parts and the lighthouse ask for it. Every Stone square Pip owns hides
+   one ore vein a day under the ground. On a square with a hidden vein, a glow ring circles Pip's feet: blue and slow far
+   away, orange, fast and ticking close by (warmer, colder: no reading). Right on top, the ground cracks and the vein pushes
+   up. Pip breaks it for three iron.
+   Saved: state.isle.ore = { day, done: { area id: 1 } }. A vein that has come up is not saved: it is there until Pip
+   breaks it or leaves the game. */
+const OH = { ring: null, tick: 0, vein: {} };
+const ORE_ISLE = (A) => A && !A.secret && A.id[0] === 's' && A.id[1] !== 'k';
+const oreS = () => state.isle.ore || (state.isle.ore = { day: -1, done: {} });
+const oreOffMesa = (A, x, z) => !(A.mesas || []).some((m) => Math.abs(x - A.cx - m.dx) < m.w / 2 + 0.8 && Math.abs(z - A.cz - m.dz) < m.d / 2 + 0.8) && !(A.lift && Math.hypot(x - A.cx - A.lift[0], z - A.cz - A.lift[1]) < 2.4); /* and clear of the lift */
+/* where today's vein lies in a square: open ground, off roads and mesas, away from what stands there, the same all day */
+function oreSpot(A) {
+  const day = Math.floor(state.clock / DAY);
+  for (let k = 0; k < 60; k++) {
+    const x = A.cx + (hash(k + day * 5, 7800 + A.i * 13 + A.j) - 0.5) * 8.6, z = A.cz + (hash(k + day * 7, 7801 + A.i * 7 - A.j) - 0.5) * 8.6;
+    if (areaAt(x, z) !== A || walkSdf(x, z) > -1.1 || campNear(x, z, 1.5) || !oreOffMesa(A, x, z)) continue;
+    if (nodes.some((n) => n.st !== 'gone' && Math.hypot(n.x - x, n.z - z) < 1.5)) continue;
+    return [x, z];
+  }
+  return null;
+}
+/* the glow ring at Pip's feet */
+function oreRing() {
+  const m = new T.Mesh(new T.RingGeometry(0.55, 0.72, 32), new T.MeshBasicMaterial({ color: '#7fc8ff', transparent: true, opacity: 0, depthWrite: false, side: T.DoubleSide }));
+  m.rotation.x = -Math.PI / 2; m.renderOrder = 3; sc.add(m); return m;
+}
+const ORE_COLD = new T.Color('#7fc8ff'), ORE_HOT = new T.Color('#ff8a2a');
+function oreStep(dt) {
+  if (!state.isle || inCave) return; const S = oreS(), day = Math.floor(state.clock / DAY), pp = pip.position;
+  if (S.day !== day) { S.day = day; S.done = {}; OH.spot = {}; }
+  OH.spot = OH.spot || {};
+  if (!OH.ring) OH.ring = oreRing();
+  const A = areaAt(pp.x, pp.z), R = OH.ring;
+  let warm = -1;
+  if (ORE_ISLE(A) && HAS[A.id] && !S.done[A.id] && !enSleep && !rising) {
+    if (OH.spot[A.id] === undefined) OH.spot[A.id] = oreSpot(A);
+    const at = OH.spot[A.id];
+    if (at) {
+      const d = Math.hypot(pp.x - at[0], pp.z - at[1]); warm = Math.max(0, Math.min(1, 1 - (d - 0.9) / 7));
+      if (d < 0.9) { /* found: the ground cracks and the vein comes up */
+        S.done[A.id] = 1; save();
+        const n = makeNode('iron', at[0], at[1], 7900 + day % 97); n.vein = 1; n.pop = 0.001; n.g.scale.setScalar(0.01);
+        Snd.play('secret', { gain: 0.4 }); Snd.play('impact', { gain: 0.3 }); burst(at[0], 0.5, at[1], 12); warm = -1;
+      }
+    }
+  }
+  /* the ring: blue and slow when cold, orange and quick when warm, with a tick that speeds up */
+  const on = warm >= 0; R.material.opacity += ((on ? 0.75 : 0) - R.material.opacity) * Math.min(1, dt * 5); R.visible = R.material.opacity > 0.02;
+  if (!R.visible) return;
+  R.position.set(pp.x, 0.06 + (pp.y || 0), pp.z);
+  if (on) {
+    R.material.color.copy(ORE_COLD).lerp(ORE_HOT, warm);
+    const rate = 0.9 + warm * 5; OH.ph = ((OH.ph || 0) + dt * rate) % 1; R.scale.setScalar(0.9 + OH.ph * 0.9 * (1 - warm * 0.4));
+    R.material.opacity = 0.75 * (1 - OH.ph * 0.7);
+    if ((OH.tick += dt) > 1 / rate) { OH.tick = 0; Snd.play('tick', { gain: 0.12 + warm * 0.2, f: 500 + warm * 900 }); }
+  }
+}
+ISLE_STEPS.push(oreStep);
 /* ---------- tall grass (Leon, 2026-11-25: each island should differ in how Pip gets about, not only in looks) ----------
    The meadow's way of moving: belts of grass taller than Pip stand across it, three clumps deep, and Pip cuts a lane
    through by hand. A clump is a node that cannot be walked through; cut, it is gone for good (state.isle.cut), so a lane
@@ -9206,7 +9266,7 @@ function gardenGateOpen(n) {
 /* the hedge plug shrinks away: the way north is open */
 function gardenDoor() { GD.doorOpen = 0.001; }
 /* honey from a hive: the Queen's own gives a big comb, and once she is found every hive gives double */
-const hiveGives = (n, c) => (n.kind !== 'hive' ? c : n.queen ? 5 : n.bee ? (gardenOpen() ? 4 : 2) : gardenOpen() ? c * 2 : c); /* a wild hive a bee led Pip to (beetrail.js) gives more */
+const hiveGives = (n, c) => (n.vein ? 3 : n.kind !== 'hive' ? c : n.queen ? 5 : n.bee ? (gardenOpen() ? 4 : 2) : gardenOpen() ? c * 2 : c); /* a wild hive a bee led Pip to (beetrail.js) gives more */
 function gardenStep(dt) {
   if (!GD.g) return; const pp = pip.position;
   if (GD.pop) { GD.pop = Math.min(1, GD.pop + dt * 1.5); GD.g.scale.setScalar(GD.pop); if (GD.pop >= 1) GD.pop = 0; }
