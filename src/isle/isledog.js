@@ -247,7 +247,7 @@ function dogEff(x, lv) {
   else if (lv === 4) { /* twice the coins from a dig */ isleIcon(x, 'coin', 30, 40, 0.95); isleIcon(x, 'coin', 44, 54, 0.95); x.font = '700 26px Fredoka, sans-serif'; x.lineWidth = 5; x.strokeStyle = PAL.ink; x.fillStyle = '#7cc85a'; x.strokeText('x2', 60, 44); x.fillText('x2', 60, 44); }
   else { /* the saddlebags: the island's own find comes up with the treasure */ isleIcon(x, 'bag', 32, 50, 1.0); isleIcon(x, 'honey', 66, 40, 0.8); x.font = '700 24px Fredoka, sans-serif'; x.lineWidth = 5; x.strokeStyle = PAL.ink; x.fillStyle = '#7cc85a'; x.strokeText('+1', 56, 74); x.fillText('+1', 56, 74); }
 }
-function dogUp() { dogBagSync(); const p = dog.g.position; burst(p.x, 1.0, p.z, 8); dog.hop = 1; bark(0.6); camFocus.set(p.x, 0, p.z); DG.cool = 1; }
+function dogUp() { dogBagSync(); const p = dog.g.position; burst(p.x, 1.0, p.z, 8); dog.hop = 1; bark(0.6); DG.cool = 1; } /* no camera jump to the dog: it shook the screen (Leon, 2026-11-28) */
 const dogTest = () => ({ lv: dogLv(), mode: DG.mode, lead: DG.lead ? [DG.lead.pic, +DG.lead.x.toFixed(1), +DG.lead.z.toFixed(1)] : null, cap: cap(), dug: Object.assign({}, state.isle.dug), spots: Object.keys(DIG).length, holes: DG.holes.length, pos: [+dog.g.position.x.toFixed(2), +dog.g.position.z.toFixed(2)], bags: !!(dogBagG && dogBagG.visible) });
 
 /* ---------- pets keep to the land and take the bridges (Leon, 2026-11-25) ----------
@@ -255,7 +255,11 @@ const dogTest = () => ({ lv: dogLv(), mode: DG.mode, lead: DG.lead ? [DG.lead.pi
    nobody picked strolled the settlement's streets while those corners were still under water.
    landRoute: if the straight line to the goal leaves the land, find the way over owned squares and built bridges
    (a flood fill from the goal over the 19 by 19 grid) and head for the furthest corner of it that is in plain sight. */
-function landLine(x0, z0, x1, z1) { const L = Math.hypot(x1 - x0, z1 - z0), n = Math.ceil(L / 0.4); for (let k = 1; k < n; k++) { const u = k / n; if (walkSdf(x0 + (x1 - x0) * u, z0 + (z1 - z0) * u) > -0.12) return false; } return true; }
+/* how far in from the coast a pet keeps (Leon, 2026-11-28: the cat stood out on the water by the camp dock). The ground mesh
+   rounds a square's corners and its coast is drawn about half a metre coarse, so a pet walking right up to the line of
+   walkSdf looked as if it stood in the sea. The planks of bridges and docks are not moved in: pets still cross them. */
+const PET_M = 0.9;
+function landLine(x0, z0, x1, z1) { const L = Math.hypot(x1 - x0, z1 - z0), n = Math.ceil(L / 0.4); for (let k = 1; k < n; k++) { const u = k / n; if (walkSdf(x0 + (x1 - x0) * u, z0 + (z1 - z0) * u, PET_M) > -0.12) return false; } return true; }
 const LR_DIST = new Int16Array(GWN * GWN);
 function landBridges() { return AREAS.filter((a) => a.bridge && HAS[a.id]).concat(SHORTS.filter((S) => S.on)).map((a) => { const b = a.bridge; return { b, a: [gCell(b.x0), gCell(b.z0)], c: [gCell(b.x1), gCell(b.z1)] }; }); }
 function landPath(px, pz, tx, tz) {
@@ -279,8 +283,12 @@ function landPath(px, pz, tx, tz) {
   P.push([tx, tz]); return P;
 }
 /* where to head right now: the goal itself if it is in plain sight over land, else the next corner of the way round; null: no way */
+const LR_T = new T.Vector3();
 function landRoute(d, tx, tz) {
-  const p = d.g.position; if (inCave || landLine(p.x, p.z, tx, tz)) { d.lr = null; return [tx, tz]; }
+  const p = d.g.position; if (inCave) { d.lr = null; return [tx, tz]; }
+  /* a goal at the water's edge (beside Pip on the shore, out past a dock's end) moves in to where a pet may stand */
+  if (walkSdf(tx, tz, PET_M) > -0.2) { wClamp(LR_T.set(tx, 0, tz), PET_M); tx = LR_T.x; tz = LR_T.z; }
+  if (landLine(p.x, p.z, tx, tz)) { d.lr = null; return [tx, tz]; }
   let R = d.lr; if (!R || time - R.at > 0.7 || Math.hypot(R.tx - tx, R.tz - tz) > 3) R = d.lr = { at: time, tx, tz, P: landPath(p.x, p.z, tx, tz) };
   if (!R.P) return null;
   for (let k = R.P.length - 1; k >= 0; k--) if (landLine(p.x, p.z, R.P[k][0], R.P[k][1])) return R.P[k];
@@ -288,9 +296,9 @@ function landRoute(d, tx, tz) {
 }
 /* never out at sea: slide back to the shore (the cave has its own walls) */
 function landKeep(p) {
-  if (inCave) return; if (walkSdf(p.x, p.z) > -0.15) wClamp(p);
+  if (inCave) return; if (walkSdf(p.x, p.z, PET_M) > -0.15) wClamp(p, PET_M);
   /* nor through the rock tables and the garden walls (pets stay on the ground level) */
   MS.list.forEach((m) => { if (!m.par && !m.pop) mesaOut(m, p, 0.25); });
   if (typeof GD !== 'undefined' && GD.walls) GD.walls.forEach((m) => { mesaOut(m, p, 0.25); });
 }
-ISLAND.petRoute = landRoute; ISLAND.petLand = landKeep;
+ISLAND.petRoute = landRoute; ISLAND.petLand = landKeep; ISLAND.petLine = landLine;
