@@ -157,6 +157,8 @@ function wanderPick(w) {
   w.path = roadPath(p.x, p.z, x, z); w.i = 0;
   /* the island: streets on land that is still under the sea are not there yet */
   if (ISL.roadOk && w.path) { const bad = w.path.findIndex((q) => !ISL.roadOk(q[0], q[1])); if (bad >= 0) w.path.length = bad; if (!w.path.length) { w.path = null; w.wait = 1.5; } }
+  /* and a stroller never cuts across water from one street to the next (a cove, a pond, the sea between two islands) */
+  if (ISL.petLine && w.path) { let x = p.x, z = p.z; const bad = w.path.findIndex((q) => { const ok = ISL.petLine(x, z, q[0], q[1]); x = q[0]; z = q[1]; return !ok; }); if (bad >= 0) w.path.length = bad; if (!w.path.length) { w.path = null; w.wait = 1.5; } }
 }
 function wanderStep(w, dt) {
   const d = w.d, p = d.g.position, pp = pip.position, near = !inHouse && !trip && Math.hypot(pp.x - p.x, pp.z - p.z) < 2.4;
@@ -168,6 +170,7 @@ function wanderStep(w, dt) {
     else if (walkTo(d.g, q[0], q[1], dt, sp) | (ISL.petLand ? (ISL.petLand(p), 0) : 0)) { w.i++; if (w.i >= w.path.length) { w.path = null; w.wait = 2.5 + Math.random() * 5; } }
     else moving = true;
   } else { w.wait -= dt; if (w.wait <= 0) wanderPick(w); }
+  if (ISL.petLand) ISL.petLand(p); /* standing still too: never left out over the water */
   if (!near && Math.hypot(pp.x - p.x, pp.z - p.z) > 3.2) w.hi = false;
   d.asleep = isNight && !moving;
   petAnim(d, moving, sp, dt, near ? pp : null);

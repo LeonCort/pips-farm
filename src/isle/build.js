@@ -209,7 +209,7 @@ function bldUp(k) {
   else { fireShape(bldLv('fire')); bldPop = { g: campFlame.g, t: 0 }; burst(FIRE.x, 0.8, FIRE.z, 10); }
   enShow = -1; enBarW();
   Snd.play('success', { gain: 0.5, f: 'C6' }); Snd.play('sparkle', { gain: 0.4 }, 0.1);
-  BM.menu.hidden = true; bldBadge(); if (k === 'tent' || k === 'fire') camFocus.set(k === 'tent' ? TENT.x : FIRE.x, 0, k === 'tent' ? TENT.z : FIRE.z);
+  BM.menu.hidden = true; bldBadge(); /* the camera stays on Pip: jumping it to the tent or fire and gliding back shook the screen (Leon, 2026-11-28) */
 }
 /* the energy bar grows with the tent */
 function enBarW() { const b = ENB.el && ENB.el.querySelector('.bar'); if (b) b.style.width = Math.min(220, 120 * enMax() / 100) + 'px'; }
