@@ -79,6 +79,7 @@ entr.js
 wear.js
 props.js
 map.js
+pack.js
 spots.js
 ferry.js
 docks.js
